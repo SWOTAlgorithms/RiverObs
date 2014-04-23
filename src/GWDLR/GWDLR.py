@@ -98,7 +98,7 @@ class GWDLR:
                                       self.y.coordinates.min(), self.y.step )
         
         write_llh_to_gdal(self.data,lon_min,dlon,lat_min,dlat,
-                      gdal_format, dst_filename, origin_up=False,
-                      options=None,nodata_value=nodata_value)
+                      gdal_format, dst_filename, origin_up=True,
+                      options=None,nodata_value=nodata_value,vflip_data=False)
         
         

@@ -31,8 +31,12 @@ def get_gdal_type(dtype):
 
 def write_llh_to_gdal(llh_data,lon_min,dlon,lat_min,dlat,
                       gdal_format, dst_filename, origin_up=True,
-                      options=None,nodata_value=None):
-    """Write an LLH layer to a GIS file in a gdal supported format."""
+                      options=None,nodata_value=None,vflip_data=False):
+    """Write an LLH layer to a GIS file in a gdal supported format.
+
+    vflip_data: if True llh_data => llh_data[::-1,:]. Use in case the data
+    is not aligned with the desired geotranform.
+    """
 
     gdal_type = get_gdal_type(llh_data.dtype)
     
@@ -45,6 +49,11 @@ def write_llh_to_gdal(llh_data,lon_min,dlon,lat_min,dlat,
     dst_ds = driver.Create( dst_filename, llh_data.shape[1], llh_data.shape[0],
                             bands=1, eType = gdal_type) #, options=options )
 
+    # Flip the data if needed to be consistent with the geotransform
+    
+    if vflip_data:
+        llh_data = llh_data[::-1,:]
+
     # Set all of the transform information
     
     if origin_up:
@@ -52,7 +61,6 @@ def write_llh_to_gdal(llh_data,lon_min,dlon,lat_min,dlat,
         lat_max = lat_min + (nlat -1)*dlat
         dst_ds.SetGeoTransform( [ lon_min, dlon, 0, 
                                   lat_max, 0, -dlat ] )
-        llh_data = llh_data[::-1,:]
     else:
         dst_ds.SetGeoTransform( [ lon_min, dlon, 0, 
                                       lat_min, 0, dlat ] )
