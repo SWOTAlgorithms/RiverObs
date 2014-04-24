@@ -8,6 +8,7 @@ A simple GrADS parser is implemented here.
 from os.path import join
 import numpy as N
 from numpy.ma import masked_array
+from skimage.morphology import skeletonize 
 
 from GDALOGRUtilities import write_llh_to_gdal
 
@@ -81,14 +82,21 @@ class GWDLR:
 
         exec('self.%s = axis'%(axis.name))
 
-    def to_mask(self,width,overwrite=True):
+    def to_mask(self,width,overwrite=True,thin=False):
         """Return a mask with 1's when the data is >= width, 0 otherwise.
-        If overwrite == True, the self.data is replaced with the mask."""
+        If overwrite == True, the self.data is replaced with the mask.
+
+        If skeletonize: thin the mask
+        """
 
         mask = (self.data >= width).astype(N.uint8)
+
+        if thin:
+            mask = skeletonize(mask).astype(N.uint8)
+            
         if overwrite:
             self.data = mask
-            
+
         return mask
 
     def to_gdal(self,dst_filename, gdal_format='GTiff',nodata_value=None):
