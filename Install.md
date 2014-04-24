@@ -26,10 +26,12 @@ by git. For instance, using bash
 To create an anaconda virtual environment, execute:
 
 	cd $RIVER_DIR
-	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook matplotlib gdal scipy pip
+	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook
+	matplotlib gdal scipy pip scikit-image statsmodels
 
 or
-	conda create -n SWOTRiver numpy ipython ipython-notebook matplotlib gdal scipy pip 
+	conda create -n SWOTRiver numpy ipython ipython-notebook
+	matplotlib gdal scipy pip scikit-image statsmodels 
 	
 To activate this environment, type
 
