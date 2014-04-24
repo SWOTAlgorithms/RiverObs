@@ -29,7 +29,7 @@ setup(name='GDALOGRUtilities',
       ## scripts=[script_dir+'binary_to_netcdf.py']
      )
      
-setup(name='CenterLine',
+setup(name='Centerline',
       version='0.1',
       description='Project coordinates to a curved coordinate system.',
       author='Ernesto Rodriguez',
@@ -37,7 +37,7 @@ setup(name='CenterLine',
       ##      url='http://www.python.org/sigs/distutils-sig/',
       package_dir = {'': 'src'},
       ## packages = find_packages()
-      packages=['CenterLine',]
+      packages=['Centerline',]
       ## scripts=[script_dir+'binary_to_netcdf.py']
      )
 
