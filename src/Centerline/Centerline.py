@@ -53,7 +53,7 @@ class Centerline:
             self.ds =  self.s[-1]/(ns - 1)
             self.s = N.arange(ns)*self.ds
             self.x = splev(self.s,self.xtck)
-            self.y = splev(self.s,self.xtck)
+            self.y = splev(self.s,self.ytck)
 
         # Initialize the cKDtree
 
