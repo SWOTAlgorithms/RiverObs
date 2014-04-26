@@ -17,21 +17,27 @@ In what follows, it is assumed that the environment variable RIVER_DIR has been
 set to point to the root directory of the AirSWOTAnomalyAnalysis package cloned
 by git. For instance, using bash
 
-	export RIVER_DIR=/home/erodrigu/SWOT/AirSWOT/AirSWOTAnomalyAnalysis
+	export RIVER_DIR=/home/erodrigu/SWOT/SWOTRiver
 
 ##1- PYTHON VIRTUAL ENVIRONMENT INSTALLATION
+
+Note that the dependence on scikit-image is optional and
+required only if one wants to vectorize GWDLR data. In
+that case, a working grass installation is required (tested
+with grass 6.4; grass70 beta has a bug in r.to.vector as of
+this writing).
 
 ###1.1- Setting up an anaconda virtual environment
 
 To create an anaconda virtual environment, execute:
 
 	cd $RIVER_DIR
-	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook
-	matplotlib gdal scipy pip scikit-image statsmodels
+	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook \_
+	matplotlib gdal scipy pip scikit-image statsmodels pysal
 
 or
-	conda create -n SWOTRiver numpy ipython ipython-notebook
-	matplotlib gdal scipy pip scikit-image statsmodels 
+	conda create -n SWOTRiver numpy ipython ipython-notebook \_
+	matplotlib gdal scipy pip scikit-image statsmodels pysal
 	
 To activate this environment, type
 
@@ -70,10 +76,11 @@ and to deactivate
 
 ##2- BUILD THE PACKAGE
 
-In addition to the packages installed by conda, pyproj is required.
+In addition to the packages installed by conda, pyproj and shapely are required.
 Working inside the virtual environment, the following command:
 
 	pip install pyproj
+	pip install shapely
 
 Then, to build the package
 

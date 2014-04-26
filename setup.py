@@ -28,9 +28,10 @@ setup(name='GDALOGRUtilities',
       packages=['GDALOGRUtilities',]
       ## scripts=[script_dir+'binary_to_netcdf.py']
      )
-     
+
+exec(open('src/Centerline/version.py').read())
 setup(name='Centerline',
-      version='0.1',
+      version=__version__,
       description='Project coordinates to a curved coordinate system.',
       author='Ernesto Rodriguez',
       author_email='ernesto.rodriguez@jpl.nasa.gov',
@@ -50,5 +51,18 @@ setup(name='GWDLR',
       package_dir = {'': 'src'},
       ## packages = find_packages()
       packages=['GWDLR',]
+      ## scripts=[script_dir+'binary_to_netcdf.py']
+     )
+
+exec(open('src/GeometryDataBase/version.py').read())
+setup(name='GeometryDataBase',
+      version=__version__,
+      description='Find geometries within bounding boxes.',
+      author='Ernesto Rodriguez',
+      author_email='ernesto.rodriguez@jpl.nasa.gov',
+      ##      url='http://www.python.org/sigs/distutils-sig/',
+      package_dir = {'': 'src'},
+      ## packages = find_packages()
+      packages=['GeometryDataBase',]
       ## scripts=[script_dir+'binary_to_netcdf.py']
      )
