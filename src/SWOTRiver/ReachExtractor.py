@@ -41,7 +41,7 @@ class ReachExtractor:
         by the data bounding box plus a buffer given by clip_buffer 
         (default is 0.1 deg or ~11 km).
         """
-        
+
         # Open the geometry data base and shape files
 
         self.db = GeometryDataBase2D(shape_file_root)
@@ -90,6 +90,37 @@ class ReachExtractor:
             # Append the river reach
 
             self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,metadata=metadata,reach_index=i))
+
+        
+        # Set the iterator indexes
+
+        self.idx = 0
+        self.nreaches = len(self.reach)
+        
+    def __iter__(self):
+        """This and the next function define an iterator over reaches."""
+        return self
+    
+    def next(self): ## Python 3: def __next__(self)
+        """This and the previous function define an iterator over reaches."""
+
+        if self.idx >= self.nreaches:
+            self.idx = 0
+            raise StopIteration
+        
+        self.idx += 1
+        return self.reach[self.idx - 1]
+
+    def __len__(self):
+        """Number of reaches."""
+
+        return self.nreaches
+
+    def __getitem__(self,index):
+        """Get reaches or slices of reaches."""
+
+        return self.reach[index]
+    
 
             
             
