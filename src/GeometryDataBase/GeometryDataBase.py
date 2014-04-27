@@ -90,7 +90,8 @@ class GeometryDataBase2D:
 
         # Check that the rtree files are there, otherwise, create them
 
-        if not ( exists(shape_file_root+'idx') and exists(shape_file_root+'dat') ):
+        if not ( exists(shape_file_root+'.idx') and exists(shape_file_root+'.dat') ):
+            print("Rtree data base does not exist. Create it now.")
             write_shape_rtree_2D(shape_file_root,store_obj=store_obj)
         
         self.shape = pysal.open(shape_file_root+'.shp')
@@ -122,7 +123,7 @@ class GeometryDataBase2D:
         return self.intersects_xy_bbox(xy_bbox)
 
     
-class ReachDataBase3D:
+class GeometryDataBase3D:
     """Read geometry shapefile and dbf containing time and rtree and perform queries on it"""
 
     def __init__(self,shape_file_root,dt=1,time_kwd='time',store_obj=False,dimension=3):
