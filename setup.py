@@ -66,3 +66,16 @@ setup(name='GeometryDataBase',
       packages=['GeometryDataBase',]
       ## scripts=[script_dir+'binary_to_netcdf.py']
      )
+
+exec(open('src/SWOTRiver/version.py').read())
+setup(name='SWOTRiver',
+      version=__version__,
+      description='Extract hydrology observables from SWOT data.',
+      author='Ernesto Rodriguez',
+      author_email='ernesto.rodriguez@jpl.nasa.gov',
+      ##      url='http://www.python.org/sigs/distutils-sig/',
+      package_dir = {'': 'src'},
+      ## packages = find_packages()
+      packages=['SWOTRiver',]
+      ## scripts=[script_dir+'binary_to_netcdf.py']
+     )
