@@ -61,7 +61,8 @@ class SWOTL2:
     """Access SWOT L2 data conveniently."""
 
     def __init__(self,swotL2_file,bounding_box=None,class_list=[1],
-                 lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude', 
+                 lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
+                 class_kwd='no_layover_classification',
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
         """Open netcdf SWOT L2 file for reading.
@@ -77,6 +78,8 @@ class SWOTL2:
 
         lon_kwd, lat_kwd: netcdf names for the longitudes and latitudes to be used
         for georeferencing the data set.
+
+        class_kwd: the netcdf name of the classification layer to use.
 
         The final set of keywords are projection options for pyproj.
         A full list of projection options to set plus explanations of their
@@ -100,7 +103,7 @@ class SWOTL2:
         self.set_bounding_box(bounding_box,lat_kwd,lon_kwd)
         print('Bounding box calculated')
         
-        self.set_index(class_list)
+        self.set_index(class_list,class_kwd=class_kwd)
         print('Good data selected')
 
         # Get locations for these data (note that these should be the reference values)
@@ -131,8 +134,11 @@ class SWOTL2:
 
         self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
 
-    def set_index(self,class_list):
-        """Set the index for the good data."""
+    def set_index(self,class_list,class_kwd='no_layover_classification'):
+        """Set the index for the good data.
+
+        class_kwd: the netcdf name of the classification layer to use.
+        """
         
         # Initialize the index of data in the bounding box
 
@@ -143,7 +149,7 @@ class SWOTL2:
 
         # Read the classification and update the index
 
-        self.klass = self.nc.variables['no_layover_classification'][:]
+        self.klass = self.nc.variables[class_kwd][:]
 
         self.class_list = class_list
 
