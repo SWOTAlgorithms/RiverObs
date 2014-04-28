@@ -4,5 +4,6 @@ from SWOTL2 import SWOTL2
 from ReachExtractor import ReachExtractor, RiverReach
 from RiverNode import RiverNode
 from RiverObs import RiverObs
+from FitRiver import FitRiver
 
 from version import __version__
