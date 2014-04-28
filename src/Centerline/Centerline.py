@@ -11,7 +11,7 @@ class Centerline:
     relative to a curved line defined by a series of two dimentional
     points."""
 
-    def __init__(self,x,y,k=3,ds=None):
+    def __init__(self,x,y,k=3,ds=None,eps=1.e-6):
         """Initialize with a set of x,y points. A Euclidean
         metric is assumed for distance calculation. Optionally,
         the centerline is resampled to a uniform along-track
@@ -22,6 +22,7 @@ class Centerline:
         k: order of the spline to use for interpolation (1<= k <=5)
         ds: if not None, resample x,y points to this spacing 
         (approximately to not extend the interval).
+        eps: minimum distance for two points to be considered different
         """
 
         # The following holds the array for cKDTree, which
@@ -30,12 +31,24 @@ class Centerline:
         self.x = N.asarray(x)
         self.y = N.asarray(y)
 
-        # Compute the distance along the curve
+        # Compute the point separation along the curve
 
         self.delta = N.zeros((len(x),),dtype=N.float64)
         
         self.delta[1:] = N.sqrt((self.x[1:]-self.x[:-1])**2 + 
                                 (self.y[1:]-self.y[:-1])**2 )
+
+        # Remove any duplicate points (point separation < eps)
+
+        self.delta[0] = 1 # to avoid removing the first point
+        unique = self.delta > eps
+        self.delta[0] = 0.
+        self.x = self.x[unique]
+        self.y = self.y[unique]
+        self.delta = self.delta[unique]
+
+        # Compute the distance along the curve
+                
         self.s = N.cumsum(self.delta)
 
         # Compute the spline for evaluating x and y as a function of s
