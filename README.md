@@ -53,7 +53,7 @@ open source packages:
    [Dai Yamazaki](mailto:bigasmountain1022@gmail.com)  to vectors that can be used as 
    centerlines. Requires:
 
-* [grass](grass.osgeo.org): for raster to vector program. 
+* [grass](http://grass.osgeo.org): for raster to vector program. 
 * [scikit-image](http://scikit-image.org): for skeletonize. 
 
 

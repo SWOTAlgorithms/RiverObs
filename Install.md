@@ -32,12 +32,10 @@ this writing).
 To create an anaconda virtual environment, execute:
 
 	cd $RIVER_DIR
-	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook \_
-	matplotlib gdal scipy pip scikit-image statsmodels pysal
+	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook matplotlib gdal scipy pip scikit-image statsmodels pysal
 
 or
-	conda create -n SWOTRiver numpy ipython ipython-notebook \_
-	matplotlib gdal scipy pip scikit-image statsmodels pysal
+	conda create -n SWOTRiver numpy ipython ipython-notebook matplotlib gdal scipy pip scikit-image statsmodels pysal
 	
 To activate this environment, type
 
@@ -76,11 +74,12 @@ and to deactivate
 
 ##2- BUILD THE PACKAGE
 
-In addition to the packages installed by conda, pyproj and shapely are required.
+In addition to the packages installed by conda, pyproj, rtree, and shapely are required.
 Working inside the virtual environment, the following command:
 
 	pip install pyproj
 	pip install shapely
+	pip install rtree
 
 Then, to build the package
 
