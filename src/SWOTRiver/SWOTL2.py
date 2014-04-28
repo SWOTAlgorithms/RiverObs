@@ -61,6 +61,7 @@ class SWOTL2:
     """Access SWOT L2 data conveniently."""
 
     def __init__(self,swotL2_file,bounding_box=None,class_list=[1],
+                 lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude', 
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
         """Open netcdf SWOT L2 file for reading.
@@ -72,9 +73,12 @@ class SWOTL2:
         bounding_box should be of the form (lonmin,latmin,lonmax,latmax) 
         good_class: a list of class labels where the data are returned.
 
-        The proj4 template should replace lat_0, lon_0, x_0, y_0, proj, which
-        are passed as keyword parameters (default as below).
+        class_list: a list of the class labels for what is considered good data
 
+        lon_kwd, lat_kwd: netcdf names for the longitudes and latitudes to be used
+        for georeferencing the data set.
+
+        The final set of keywords are projection options for pyproj.
         A full list of projection options to set plus explanations of their
         meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
         
@@ -88,27 +92,34 @@ class SWOTL2:
         +y_0=False Northing, set to 0
         """
 
+        self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
+        
         self.nc = Dataset(swotL2_file)
+        print('Dataset opened')
 
-        self.set_bounding_box(bounding_box)
-
+        self.set_bounding_box(bounding_box,lat_kwd,lon_kwd)
+        print('Bounding box calculated')
+        
         self.set_index(class_list)
+        print('Good data selected')
 
         # Get locations for these data (note that these should be the reference values)
 
-        self.lat = self.get('no_layover_latitude')
-        self.lon = self.get('no_layover_longitude')
-        self.water_height = self.get('water_height')
+        self.lat = self.get(lat_kwd)
+        self.lon = self.get(lon_kwd)
+        print('lat/lon read')
 
         # Project to a coordinate system
 
-        self.project(proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,ellps=ellps,**proj_kwds)
+        self.x, self.y = self.project(proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
+                                      ellps=ellps,**proj_kwds)
+        print('projection set and x,y calculated')
 
-    def set_bounding_box(self,bounding_box):
+    def set_bounding_box(self,bounding_box,lat_kwd,lon_kwd):
         """Set the bounding box and identify pixes in the bounding box."""
 
-        self.no_layover_lat = self.nc.variables['no_layover_latitude'][:]
-        self.no_layover_lon = self.nc.variables['no_layover_longitude'][:]
+        self.no_layover_lat = self.nc.variables[lat_kwd][:]
+        self.no_layover_lon = self.nc.variables[lon_kwd][:]
 
         if bounding_box != None:
             self.lonmin,self.latmin,self.lonmax,self.latmax = bounding_box

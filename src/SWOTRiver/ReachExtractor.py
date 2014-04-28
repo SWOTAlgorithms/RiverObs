@@ -1,13 +1,12 @@
 """
-Extract all of the reaches overlapping a given SWOTL2 bounding box and 
-computes the coordinates in the same projection used by the SWOTL2 data.
+Extract all of the reaches overlapping a given bounding box and 
+computes the coordinates in the same projection used by the data.
 The result is contained in a set of RiverReach objects, which can be clipped
 to the same bounding box  as the data set.
 """
 
 import numpy as N
 import pysal
-#from shapely.geometry import asShape, Polygon
 from GeometryDataBase import GeometryDataBase2D
 
 class RiverReach:
@@ -29,13 +28,19 @@ class RiverReach:
             exec('self.%s = v'%k)
 
 class ReachExtractor:
-    """Extract all of the reaches overlapping a given SWOTL2 bounding box and 
-    computes the coordinates in the same projection used by the SWOTL2 data.
+    """Extract all of the reaches overlapping a given bounding box and 
+    computes the coordinates in the same projection used by the data.
     The result is contained in a set of RiverReach objects, which can be clipped
     to the same bounding box  as the data set."""
 
-    def __init__(self, shape_file_root, swotL2,clip=True,clip_buffer=0.1):
-        """Initialize with the shape file database location and a SWOTL2 instance.
+    def __init__(self, shape_file_root, lat_lon_region,clip=True,clip_buffer=0.1):
+        """Initialize with the shape file database location and a lat_lon_region instance.
+
+        shape_file_root: path to shapefile database (no suffix)
+
+        lat_lon_region: an object providing the following members:
+                     lat_lon_region.bounding_box (lonmin,latmin,lonmax,latmax)
+                     lat_lon_region.proj: a pyproj.Proj projection (lon,lat) -> (x,y) 
 
         If clip is true, the reach is clipped to lie in a bounding box defined
         by the data bounding box plus a buffer given by clip_buffer 
@@ -54,12 +59,12 @@ class ReachExtractor:
 
         # Get the list of applicable reaches and extract them
 
-        self.reach_idx = self.db.intersects_xy_bbox(swotL2.bounding_box)
+        self.reach_idx = self.db.intersects_xy_bbox(lat_lon_region.bounding_box)
 
         # Store the reaches in a list of RiverReaches
 
         self.reach = []
-        bbox = swotL2.bounding_box
+        bbox = lat_lon_region.bounding_box
         for i in self.reach_idx:
 
             # Get the coordinates as arrays
@@ -78,7 +83,7 @@ class ReachExtractor:
 
             # Project into the L2 projection
 
-            x, y = swotL2.proj(lon, lat)
+            x, y = lat_lon_region.proj(lon, lat)
 
             # Get the metadata
 
