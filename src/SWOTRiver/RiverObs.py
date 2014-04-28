@@ -193,5 +193,19 @@ class RiverObs:
             exec('result.append( river_node.%s("%s") )'%(stat,var) )
 
         return result
-                
+
+
+    def trim_nodes(self,fraction,mode='both',sort_variable='n'):
+        """Trim the data in all the nodes.
+
+        fraction: 0 < f < 1. Fraction of the data to remove.
+        mode is 'both', 'low', 'high' for which tails of the distribution need to be
+        trimmed.
+
+        Prior to trimming, the data are sorted according to the sort variable.
+        """
+
+        for node, river_node in self.river_nodes.iteritems():
+            river_node.sort(sort_variable=sort_variable)
+            river_node.trim(fraction,mode=mode)
                 

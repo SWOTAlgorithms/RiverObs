@@ -60,6 +60,8 @@ class RiverNode:
         if len(obs) != self.ndata:
             raise Exception('length of observations not consistent with number of node points')
 
+        self.sort_vars.append(obs_name)
+        
         if sort and self.sorted:
             exec('self.%s = N.asarray(obs[self.sort_index])'%obs_name)
         else:
@@ -90,9 +92,19 @@ class RiverNode:
         """Return standrad error of a variable"""
 
         scale = 1./N.sqrt(N.sum(self.good).astype(N.float))
-        exec('std = scale*N.std(self.%s[self.good])'%var)        
+        exec('stderr = scale*N.std(self.%s[self.good])'%var)        
                  
-        return std
+        return stderr
+
+    def cdf(self,var):
+        """Get the cdf for a variable."""
+
+        ngood = N.sum(self.good.astype(N.int32))
+        cdf = N.cumsum(N.ones(ngood,dtype=N.float64))
+        cdf /= cdf[-1]
+        exec('x = N.sort(self.%s[self.good])'%var)
+
+        return x, cdf
 
     def flag_extent(self,var_name,var_min,var_max):
         """Update the good flag to places where the variable var_name
@@ -169,12 +181,3 @@ class RiverNode:
 
         self.trimmed = True
 
-    def cdf(self,var):
-        """Get the cdf for a variable."""
-
-        ngood = N.sum(self.good.astype(N.int32))
-        cdf = N.cumsum(N.ones(ngood,dtype=N.float64))
-        cdf /= cdf[-1]
-        exec('x = N.sort(self.%s[self.good])'%var)
-
-        return x, cdf
