@@ -68,6 +68,7 @@ setup(name='GeometryDataBase',
      )
 
 exec(open('src/SWOTRiver/version.py').read())
+script_dir = 'src/SWOTRiver/scripts/'
 setup(name='SWOTRiver',
       version=__version__,
       description='Extract hydrology observables from SWOT data.',
@@ -76,6 +77,6 @@ setup(name='SWOTRiver',
       ##      url='http://www.python.org/sigs/distutils-sig/',
       package_dir = {'': 'src'},
       ## packages = find_packages()
-      packages=['SWOTRiver',]
-      ## scripts=[script_dir+'binary_to_netcdf.py']
+      packages=['SWOTRiver',],
+      scripts=[script_dir+'make_simulation_catalog.py']
      )
