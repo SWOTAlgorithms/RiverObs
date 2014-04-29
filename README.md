@@ -33,9 +33,10 @@ open source packages:
 
 **GeometryDataBase**: Find quickly which reach intersects with a 
    geometry of interest. The geometries are assumed to be stored in a 
-   shafile. Requires the following packages:
+   shapefile. Requires the following packages:
 
-* [Rtree](https://github.com/Toblerity/rtree): Fast bounding box queries. 
+* [Rtree](https://github.com/Toblerity/rtree): Fast bounding box queries.
+* [libspatialindex](http://libspatialindex.github.io): Required by Rtree.
 * [pysal](http://pysal.org): nice interface to shapefiles and 
       shapely bridge. 
 * [shapely](https://github.com/sgillies/shapely): geometry 

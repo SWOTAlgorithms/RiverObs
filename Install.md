@@ -81,7 +81,24 @@ Working inside the virtual environment, the following command:
 	pip install shapely
 	pip install rtree
 
-Then, to build the package
+In addition, [rtree](https://github.com/Toblerity/rtree) requires the
+[libspatialindex](http://libspatialindex.github.io) library. On am Mac with
+[brew](http://brew.sh) this can be done easily:
+
+	brew install spatialindex
+
+On a generic Unix system, this can be done by downloading the code from
+[osgeo](http://download.osgeo.org/libspatialindex), and following the
+usual Unix install process. To avoid pat/ownership conflict, one can install into the
+anaconda installation:
+
+	tar xvzf spatialindex-src-1.8.1.tar.gz
+	cd spatialindex-src-1.8.1
+	./configure --prefix=~/anaconda
+	make
+	make install
+
+Then, to build the SWOTRiver and associated packages:
 
 	cd $RIVER_DIR
 	python setup.py install --force
