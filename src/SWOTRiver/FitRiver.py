@@ -14,6 +14,7 @@ class FitRiver:
         the river nodes."""
 
         self.river_obs = river_obs
+        self.inputs_computed = False
 
     def get_linear_fit_inputs(self,smin,smax,fit_var,mean_stat='mean',err_stat='stderr'):
         """Get the design matrix, the observations, and the fitting weights
@@ -46,9 +47,12 @@ class FitRiver:
 
         X = N.c_[x, N.ones(nsample,dtype=x.dtype)]
 
+        self.inputs_computed = True
+
         return s, y, X, w
 
-    def fit_linear(self,smin,smax,fit_var,fit='OLS',mean_stat='mean',err_stat='stderr'):
+    def fit_linear(self,smin,smax,fit_var,fit='OLS',mean_stat='mean',err_stat='stderr',
+                   load_inputs=True,):
                    ## norm='HuberT'):
         """Fit the variable in the interval [smin,smax] using various fitting methods.
 
@@ -58,13 +62,18 @@ class FitRiver:
         
         fit_var: the variable to fit
         mean_stat: how the data are averaged in the node; e.g., 'mean', 'median', etc.
-        err_stat: formal errors for weighting the node; e.g., 'stderr', 'std', etc."""
+        err_stat: formal errors for weighting the node; e.g., 'stderr', 'std', etc.
+        load_inputs: if True, calculates the fitting inputs. If False, assumes that
+                     they are available from a previous fit. Useful if using multiple
+                     fit methods using the same data.
+        """
 
-        # Get the fit inputs
+        # Get the fit inputs, if desired
 
-        self.s, self.y, self.X, self.w = self.get_linear_fit_inputs(smin,smax,fit_var,
-                                                                    mean_stat=mean_stat,
-                                                                    err_stat=err_stat)
+        if load_inputs or ( not self.inputs_computed ):
+            self.s, self.y, self.X, self.w = self.get_linear_fit_inputs(smin,smax,fit_var,
+                                                                        mean_stat=mean_stat,
+                                                                        err_stat=err_stat)
 
         # Initialize the model depending on the fit
 
