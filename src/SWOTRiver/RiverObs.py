@@ -25,11 +25,19 @@ class RiverObs:
         and a set of observation coordinates.
 
         reach: has reach.x,reach.y (and optionally, reach.metadata).
+        
         xobs, yobs: iterables with observation coordinates.
+        
         k: centerline spline smoothing degree (default 3)
+        
         ds: centerline point separation (default None)
+        
         max_width: if !=None, exclude all observations more than max_width/2
-                   away from the centerline in the normal direction
+                   away from the centerline in the normal direction. 
+                   max_width can be a number or an iterable of the same
+                   size as reach.x or reach.y. If it is an interable,
+                   it is added to the centerline as a member.
+                   
         minobs: minimum number of observations for each node.
         """
 
@@ -44,7 +52,13 @@ class RiverObs:
             
         # Calculate the centerline for this reach
 
-        self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds)
+        if max_width == None or not N.iterable(max_width):
+            self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds)
+            self.centerline.max_width = max_width
+        else:
+            self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds,
+                                         obs=[max_width],obs_names=['max_width'])
+        self.max_width = self.centerline.max_width
         print('Centerline initialized')
 
         # Calculate the local coordiantes for each observation point
@@ -63,9 +77,8 @@ class RiverObs:
 
         # Edit, so that only river points appear
 
-        if max_width != None:
-            self.in_channel = self.flag_out_channel(max_width)
-        self.max_width = max_width
+        if self.max_width != None:
+            self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
 
         # Get the mapping from observation to node position (1 -> many); i.e., the inverse
@@ -77,8 +90,13 @@ class RiverObs:
     def flag_out_channel(self,max_width):
         """Get the indexes of all of the points inside a channel of max_width,
         and remove the points from the list of observations."""
+
+        if N.iterable(max_width): # Map centerline observalble to measurements
+            max_distance = max_width[self.index]/2.
+        else:
+            max_distance = max_width/2.
          
-        self.in_channel = N.abs(self.n) <= max_width/2.
+        self.in_channel = N.abs(self.n) <= max_distance
 
         self.index = self.index[self.in_channel]
         self.d = self.d[self.in_channel]
@@ -115,6 +133,7 @@ class RiverObs:
 
     def add_obs(self,obs_name,obs):
         """Add an observation as a class variable self.obs_name.
+        
         The observation is edited to remove measurements outside
         the channel.
 
