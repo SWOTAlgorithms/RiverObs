@@ -16,7 +16,7 @@ class Centerline:
     """
 
     def __init__(self,x,y,k=3,ds=None,eps=1.e-6,
-                 obs=None,obs_names=None):
+                 obs=None,obs_names=None,kobs=1):
         """Initialize with a set of x,y points. A Euclidean
         metric is assumed for distance calculation. Optionally,
         the centerline is resampled to a uniform along-track
@@ -35,8 +35,11 @@ class Centerline:
         stored and interpolated to the resampled centerline. In this case:
 
         obs: a list of iterables, each of the same size as x or y
+        
         obs_names: a list of names, of the same size as obs, that
                    will be used to set the class members (e.g., ['width'])
+
+        kobs: interpolation method for observations (default 1: linear)
         """
 
         # The following holds the array for cKDTree, which
@@ -84,7 +87,7 @@ class Centerline:
         self.xtck = splrep(self.s,self.x,k=k)
         self.ytck = splrep(self.s,self.y,k=k)
         if obs != None:
-            self.init_obs_tck(self.s,k)
+            self.init_obs_tck(self.s,kobs)
 
         # If resampling is desired, find the new s, x, and y
 
