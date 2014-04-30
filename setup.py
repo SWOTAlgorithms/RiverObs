@@ -80,3 +80,16 @@ setup(name='SWOTRiver',
       packages=['SWOTRiver',],
       scripts=[script_dir+'make_simulation_catalog.py']
      )
+
+exec(open('src/RDF/version.py').read())
+setup(name='RDF',
+      version=__version__,
+      description='Read, write various flavours of RDF format files.',
+      author='Ernesto Rodriguez',
+      author_email='ernesto.rodriguez@jpl.nasa.gov',
+      ##      url='http://www.python.org/sigs/distutils-sig/',
+      package_dir = {'': 'src'},
+      ## packages = find_packages()
+      packages=['RDF',],
+      ## scripts=[script_dir+'']
+     )
