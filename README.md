@@ -24,6 +24,10 @@ open source packages:
       shapely bridge.  
 * [pyproj](http://code.google.com/p/pyproj): Cartographic
       projections swiss army knife.
+* [pandas](http://pandas.pydata.org): The Python Data Analysis
+  Library for DataFrames and HDFStore.
+* [pytables](http://www.pytables.org): easy HDF5 support, required for
+  pandas HDFStore.
 
 **Centerline**: Provides a class that can be used to project data 
    or refine a river center line. Requires the following packages:

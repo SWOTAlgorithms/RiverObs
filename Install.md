@@ -32,10 +32,10 @@ this writing).
 To create an anaconda virtual environment, execute:
 
 	cd $RIVER_DIR
-	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook matplotlib gdal scipy pip scikit-image statsmodels pysal
+	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook matplotlib gdal scipy pip scikit-image statsmodels pysal pandas pytables
 
 or
-	conda create -n SWOTRiver numpy ipython ipython-notebook matplotlib gdal scipy pip scikit-image statsmodels pysal
+	conda create -n SWOTRiver numpy ipython ipython-notebook matplotlib gdal scipy pip scikit-image statsmodels pysal pandas pytables
 	
 To activate this environment, type
 
