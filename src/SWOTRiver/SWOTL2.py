@@ -63,6 +63,7 @@ class SWOTL2:
     def __init__(self,swotL2_file,bounding_box=None,class_list=[1],
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
                  class_kwd='no_layover_classification',
+                 project_data=True,
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
         """Open netcdf SWOT L2 file for reading.
@@ -114,9 +115,10 @@ class SWOTL2:
 
         # Project to a coordinate system
 
-        self.x, self.y = self.project(proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
-                                      ellps=ellps,**proj_kwds)
-        print('projection set and x,y calculated')
+        if project_data:
+            self.x, self.y = self.project(proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
+                                        ellps=ellps,**proj_kwds)
+            print('projection set and x,y calculated')
 
     def set_bounding_box(self,bounding_box,lat_kwd,lon_kwd):
         """Set the bounding box and identify pixes in the bounding box."""
@@ -162,7 +164,8 @@ class SWOTL2:
     def get(self,var):
         """Get the values of the variable var within the desired index of good sites."""
 
-        return self.nc.variables[var][self.index]
+        x = self.nc.variables[var][:]
+        return x[self.index]
 
     def project(self,proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,ellps='WGS84',**proj_kwds):
         """Get x and y coordinates for the selected points using a proj4 projection.

@@ -186,6 +186,11 @@ class IteratedRiverObs(RiverObs):
         return ( self.centerline_obs[name].x, self.centerline_obs[name].y,
                  self.centerline_obs[name].v )
 
+    def get_centerline_xy_max_width(self):
+        """Return the centerline coordinates."""
+
+        return self.centerline.x, self.centerline.y, self.max_width
+
     def add_centerline_obs(self,xv,yv,v,name,minobs=1):
         """Given an array along a line x,y, interpolate it to the centerline.
 
@@ -246,9 +251,14 @@ class IteratedRiverObs(RiverObs):
 
         # Initialize the base class
 
+        print len(reach.x),len(reach.y),len(max_width)
         RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds,
                           max_width=max_width,
                             minobs=self.minobs)
+
+        # The obs will have to be reprojected
+        
+        self.centerline_obs = {}
 
         
             
