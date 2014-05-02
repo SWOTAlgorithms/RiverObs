@@ -16,7 +16,7 @@ class Centerline:
     """
 
     def __init__(self, x, y, k=3, ds=None, eps=1.e-6,
-                 w=None, s=None,
+                 wx=None, wy=None, smooth=None,
                  obs=None, obs_names=None, kobs=1,
                  wobs=None, sobs=None, **kwds):
         """Initialize with a set of x,y points. A Euclidean
@@ -34,13 +34,14 @@ class Centerline:
              (approximately to not extend the interval).
         eps : float
               minimum distance for two points to be considered different
-        w : array_like
-            Strictly positive rank-1 array of weights the same length as x and y.
-            The weights are used in computing the weighted least-squares spline
-            fit. If the errors in the y values have standard-deviation given by the
-            vector d, then w should be 1/d. Default is ones(len(x)).
-        s : float
-            A smoothing condition. The amount of smoothness is determined by
+        wx, wy : array_like
+            coordinate weights. Strictly positive rank-1 array of weights the same
+            length as x and y. The weights are used in computing the weighted
+            least-squares spline fit. If the errors in the y values have standard
+            deviation given by the vector d, then w should be 1/d. Default is ones(len(x)).
+        smooth : float
+            A smoothing condition, related to the splrep s parameter
+            by s = smooth*len(x). The amount of smoothness is determined by
             satisfying the conditions: sum((w * (y - g))**2,axis=0) <= s where g(x)
             is the smoothed interpolation of (x,y). The user can use s to control
             the tradeoff between closeness and smoothness of fit. Larger s means
@@ -49,7 +50,7 @@ class Centerline:
             represent the inverse of the standard-deviation of y, then a good s
             value should be found in the range (m-sqrt(2*m),m+sqrt(2*m)) where m is
             the number of datapoints in x, y, and w. default : s=m-sqrt(2*m) if
-            weights are supplied. s = 0.0 (interpolating) if no weights are
+            weights are supplied. smooth = 0.0 (interpolating) if no weights are
             supplied.            
 
         As an option, observations at the centerline locations can be
@@ -117,9 +118,13 @@ class Centerline:
 
         # Compute the spline for evaluating x and y as a function of s
 
-        self.xtck = splrep(self.s,self.x,k=k,w=w,s=s,**kwds)
-        self.ytck = splrep(self.s,self.y,k=k,w=w,s=s,**kwds)
+        if smooth != None:
+            smooth *= len(self.x)
+        self.xtck = splrep(self.s,self.x,k=k,w=wx,s=smooth,**kwds)
+        self.ytck = splrep(self.s,self.y,k=k,w=wy,s=smooth,**kwds)
         if obs != None:
+            if sobs != None:
+                sobs *= len(self.x)
             self.init_obs_tck(self.s,k=kobs,w=wobs,s=sobs,**kwds)
 
         # If resampling is desired, find the new s, x, and y
