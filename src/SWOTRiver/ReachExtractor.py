@@ -59,13 +59,14 @@ class ReachExtractor:
 
         # Get the list of applicable reaches and extract them
 
-        self.reach_idx = self.db.intersects_xy_bbox(lat_lon_region.bounding_box)
+        self.shape_idx = self.db.intersects_xy_bbox(lat_lon_region.bounding_box)
+        self.reach_idx = []
 
         # Store the reaches in a list of RiverReaches
 
         self.reach = []
         bbox = lat_lon_region.bounding_box
-        for i in self.reach_idx:
+        for i in self.shape_idx:
 
             # Get the coordinates as arrays
 
@@ -91,10 +92,13 @@ class ReachExtractor:
             record = self.dbf[i][0]
             for i,field in enumerate(self.dbf_header):
                 metadata[field] = record[i]
+                if field == 'reach_idx':
+                    reach_index = record[i]
+                    self.reach_idx.append(reach_index)
 
             # Append the river reach
 
-            self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,metadata=metadata,reach_index=i))
+            self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,metadata=metadata,reach_index=reach_index))
 
         
         # Set the iterator indexes
