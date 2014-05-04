@@ -60,6 +60,8 @@ from pyproj import Proj
 class SWOTL2:
     """Access SWOT L2 data conveniently."""
 
+    azimuth_spacing_default = 5.3 # default azimuth spacing
+
     def __init__(self,swotL2_file,bounding_box=None,class_list=[1],
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
                  class_kwd='no_layover_classification',
@@ -101,6 +103,13 @@ class SWOTL2:
         self.nc = Dataset(swotL2_file)
         print('Dataset opened')
 
+        # Get some of the metadata
+
+        try:
+            self.azimuth_spacing = float(self.nc.azimuth_spacing)
+        except:
+            self.azimuth_spacing = self.default_azimuth_spacing
+            
         self.set_bounding_box(bounding_box,lat_kwd,lon_kwd)
         print('Bounding box calculated')
         
