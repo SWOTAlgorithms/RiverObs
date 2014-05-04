@@ -124,7 +124,12 @@ class RiverNode:
                  
         return percentile
 
+    def sum(self,var):
+        """Return the sum of all variable values (e.g., for area)."""
 
+        exec('sum = N.sum(self.%s[self.good])'%var)        
+                 
+        return sum
 
     def cdf(self,var):
         """Get the cdf for a variable."""
