@@ -96,6 +96,36 @@ class RiverNode:
                  
         return stderr
 
+    def min(self,var):
+        """Return min of a variable"""
+
+        exec('min = N.min(self.%s[self.good])'%var)        
+                 
+        return min
+
+    def max(self,var):
+        """Return max of a variable"""
+
+        exec('max = N.max(self.%s[self.good])'%var)        
+                 
+        return max
+
+    def ptp(self,var):
+        """Return peak to peak variation of a variable"""
+
+        exec('ptp = N.ptp(self.%s[self.good])'%var)        
+                 
+        return ptp
+
+    def percentile(self,var,q):
+        """Return qth percentile of a variable"""
+
+        exec('percentile = N.percentile(self.%s[self.good],q)'%var)        
+                 
+        return percentile
+
+
+
     def cdf(self,var):
         """Get the cdf for a variable."""
 
