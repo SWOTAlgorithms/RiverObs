@@ -1,56 +1,5 @@
 """
 Access SWOT L2 data conveniently.
-
-The L2 Data format is not fixed. The current version has the 
-following header information (an example).
-
-dimensions:
-	water_record = 27378 ;
-variables:
-	int range_index(water_record) ;
-	int azimuth_index(water_record) ;
-
-    double no_layover_x(water_record) ;
-	double no_layover_y(water_record) ;
-	double no_layover_z(water_record) ;
-    double no_layover_latitude(water_record) ;
-	double no_layover_longitude(water_record) ;
-	double no_layover_height(water_record) ;
-
-    float water_height(water_record) ;
-
-	float no_layover_look_angle(water_record) ;
-
-    double look_unit_x(water_record) ;
-	double look_unit_y(water_record) ;
-	double look_unit_z(water_record) ;
-	double range_to_reference(water_record) ;
-	float altitude(water_record) ;
-	double range(water_record) ;
-
-    double no_layover_ground_resolution(water_record) ;
-	double no_layover_cross_track(water_record) ;
-
-    double dlook_dphase_x(water_record) ;
-	double dlook_dphase_y(water_record) ;
-	double dlook_dphase_z(water_record) ;
-
-    float no_noise_ifgram_real(water_record) ;
-	float no_noise_ifgram_imag(water_record) ;
-	float no_layover_ifgram_real(water_record) ;
-	float no_layover_ifgram_imag(water_record) ;
-	double no_noise_dphase(water_record) ;
-	float no_noise_delta_x(water_record) ;
-	float no_noise_delta_y(water_record) ;
-	float no_noise_delta_z(water_record) ;
-	byte no_layover_classification(water_record) ;
-
-    byte classification(water_record) ;
-	double no_noise_latitude(water_record) ;
-	double no_noise_longitude(water_record) ;
-	double no_noise_height(water_record) ;
-	double no_noise_cross_track(water_record) ;
-
 """
 
 import numpy as N
@@ -58,7 +7,44 @@ from netCDF4 import Dataset
 from pyproj import Proj
 
 class SWOTL2:
-    """Access SWOT L2 data conveniently."""
+    """Access SWOT L2 data conveniently.
+
+    Parameters
+    ----------
+    
+    bounding_box : tuple or array_like
+        should be of the form (lonmin,latmin,lonmax,latmax).
+        If the bounding_box is provided, select only the data in the
+        bounding box, otherwise, get the bounding box from the data
+        itself.
+    good_class : list or array_like
+        a list of class labels where the data are returned.
+    class_list : list
+        a list of the class labels for what is considered good data
+    lon_kwd, lat_kwd : str
+        netcdf names for the longitudes and latitudes to be used
+        for georeferencing the data set.
+    class_kwd : str
+        the netcdf name of the classification layer to use.
+    min_points : int
+        If the number of good points is less than this, raise an exception.
+
+    Notes
+    ------
+
+    The final set of keywords are projection options for pyproj.
+    A full list of projection options to set plus explanations of their
+    meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
+        
+    The default projection is Lambert equiarea, which has a proj4 string with the
+    following parameters:
+        
+    +proj=laea  
+    +lat_0=Latitude at projection center, set to bounding box center lat 
+    +lon_0=Longitude at projection center, set to bounding box center lon
+    +x_0=False Easting, set to 0
+    +y_0=False Northing, set to 0
+    """
 
     azimuth_spacing_default = 5.3 # default azimuth spacing
 
@@ -69,39 +55,6 @@ class SWOTL2:
                  project_data=True,
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
-        """Open netcdf SWOT L2 file for reading.
-
-        If the bounding_box is provided, select only the data in the
-        bounding box, otherwise, get the bounding box from the data
-        itself.
-
-        bounding_box :
-            should be of the form (lonmin,latmin,lonmax,latmax) 
-        good_class :
-            a list of class labels where the data are returned.
-        class_list :
-            a list of the class labels for what is considered good data
-        lon_kwd, lat_kwd :
-            netcdf names for the longitudes and latitudes to be used
-            for georeferencing the data set.
-        class_kwd :
-            the netcdf name of the classification layer to use.
-        min_points : int
-            If the number of good points is less than this, raise an exception.
-
-        The final set of keywords are projection options for pyproj.
-        A full list of projection options to set plus explanations of their
-        meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
-        
-        The default projection is Lambert equiarea, which has a proj4 string with the
-        following parameters:
-        
-        +proj=laea  
-        +lat_0=Latitude at projection center, set to bounding box center lat 
-        +lon_0=Longitude at projection center, set to bounding box center lon
-        +x_0=False Easting, set to 0
-        +y_0=False Northing, set to 0
-        """
 
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
         

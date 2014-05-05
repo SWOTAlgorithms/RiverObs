@@ -8,7 +8,39 @@ from scipy.stats import trimboth
 
 class RiverNode:
     """A river node holds all of the measurements associated with a node in a centerline.
-    It returns various data characteristics when queried."""
+    It returns various data characteristics when queried.
+
+    Initialize with the outputs of Centerline plus height and potentially
+    other keywords that are turned into class variables.
+
+    Parameters
+    ----------
+
+    index : int
+        index in the center line corresponding to this node
+    d : array_like
+        distance from the node to each of the data points
+    x : array_like
+        x coordinate of each measurement associated with the node
+    y : array_like
+        y coordinate of each measurement associated with the node
+    s : array_like
+        along-track coordinate (relative to the node center) for each point 
+    n : array_like
+        across-track (normal) coordinate (relative to the node center) for each point
+    ds : float
+        along-track dimension for this node. Defaults to 1. Needs to be set
+        correctly for width_area to work.
+
+    Notes
+    -----
+
+    To edit the data, it is useful to sort it by order in one of the variables.
+    To sort the data, set sort=True and set sort_variable one of ['d','s','n','h'].
+    If the data are not sorted intially, they can be sorted later, as desired by calling 
+    RiverNode.sort.
+    
+    """
 
     # These variables are sorted simultaneously when sort is called. Append
     # to this list after class instantiation if you want to add an additional 
@@ -17,35 +49,7 @@ class RiverNode:
     sort_vars = ['d','x','y','s','n']
 
     def __init__(self,index,d,x,y,s,n,ds=1,**kwds):
-        """Initialize with the outputs of Centerline plus height and potentially
-        other keywords that are turned into class variables.
-
-        Parameters
-        ----------
-
-        index : int
-            index in the center line corresponding to this node
-        d : array_like
-            distance from the node to each of the data points
-        x : array_like
-            x coordinate of each measurement associated with the node
-        y : array_like
-            y coordinate of each measurement associated with the node
-        s : array_like
-            along-track coordinate (relative to the node center) for each point 
-        n : array_like
-            across-track (normal) coordinate (relative to the node center) for each point
-        ds : float
-            along-track dimension for this node. Defaults to 1. Needs to be set
-            correctly for width_area to work.
-
-        Notes
-        -----
-
-        To edit the data, it is useful to sort it by order in one of the variables.
-        To sort the data, set sort=True and set sort_variable one of ['d','s','n','h'].
-        If the data are not sorted intially, they can be sorted later, as desired by calling 
-        RiverNode.sort.
+        """
         """
 
         self.index = index
@@ -177,7 +181,6 @@ class RiverNode:
         else:
             for var in vars:
                 self.sort_vars.append(var)
-
 
     def sort(self,sort_variable='n'):
         """Sort the data according to the variable sort_variable. self.sort_variable must exist.

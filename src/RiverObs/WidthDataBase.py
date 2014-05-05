@@ -6,24 +6,29 @@ import numpy as N
 import pandas as pd
 
 class WidthDataBase:
-    """Query a pandas HDFStore width data base for rivers."""
+    """Query a pandas HDFStore width data base for rivers.
+
+    Parameters
+    ----------
+
+    db_file : str
+        pandas HDFStore file containing river and reach data frames.
+    river_df_name : str
+        Name of the pandas DataFrame containing point
+        width information (default: 'river').
+    reach_df_name : str
+        Name of the pandas DataFrame containing 
+        reach statistical information (default: 'reach').
+    mode: str
+        how to open the file (default: 'r' read only).
+    reach_index_kwd: str
+        column name uniquely identifying the reach.
+        (default: 'reach_index', but could be the reach name, etc.)
+    """
 
     def __init__(self,db_file,river_df_name='river',reach_df_name='reach',
                  mode='r',reach_index_kwd='reach_index'):
-        """Open the data base file for reading.
-
-        db_file: pandas HDFStore file containing river and reach data frames.
-
-        river_df_name: Name of the pandas DataFrame containing point
-                       width information (default: 'river').
-
-        reach_df_name: Name of the pandas DataFrame containing 
-                       reach statistical information (default: 'reach').
-
-        mode: how to open the file (default: 'r' read only).
-
-        reach_index_kwd: column name uniquely identifying the reach.
-                         (default: 'reach_index', but could be the reach name, etc.)
+        """
         """
 
         self.h5 = pd.HDFStore(db_file,mode=mode)
@@ -36,23 +41,27 @@ class WidthDataBase:
                     bounding_box=None,clip_buffer=0):
         """Return selected information for the reach index by reach_index.
 
-        reach_index: index identifying the reach.
+        Parameters
+        -----------
         
-        columns: if None, all of the iformation associated with the reach is returned.
-                 Otherwise, pass either a column name or list of column names;
-                 e.g., columns='width' or columns=['long','lat','width'].
-
-        asarray: if True, returns a numpy ndarray rather than a pandas DataFrame.
-        
-        transpose: if True and asarray=True, return the transpose array.
-                   This is useful to unpack arrays easily.
-
-        lat_kwd: latitude column name in the data base (default 'lat')
-
-        lon_kwd: latitude column name in the data base (default 'long')
-
-        bounding_box: (lonmin, latmin, lonmax, latmax). If not None, the
-                      only lon/lat in the bounding box + clip_buffer are returned.                   
+        reach_index : int
+            index identifying the reach.
+        columns : list
+            if None, all of the iformation associated with the reach is
+            returned. Otherwise, pass either a column name or list of
+            column names;e.g., columns='width' orcolumns=['long','lat','width'].
+        asarray : bool
+            if True, returns a numpy ndarray rather than a pandas DataFrame.
+        transpose: bool
+            if True and asarray=True, return the transpose array.
+            This is useful to unpack arrays easily.
+        lat_kwd : str
+            latitude column name in the data base (default 'lat')
+        lon_kwd : str
+            latitude column name in the data base (default 'long')
+        bounding_box: tuple
+            (lonmin, latmin, lonmax, latmax). If not None, the
+            only lon/lat in the bounding box + clip_buffer are returned.
         """
 
         if bounding_box != None:
@@ -89,15 +98,23 @@ class WidthDataBase:
 
     def get_lon_lat(self,reach_index,lat_kwd='lat',lon_kwd='long',
                     bounding_box=None,clip_buffer=0):
-        """Return the latitude and longitude associated with a reach and a clip box.
+        """Return the latitude and longitude associated with a reach and
+        a clip box.
 
-        lat_kwd: latitude column name in the data base (default 'lat')
+        Parameters
+        ----------
 
-        lon_kwd: latitude column name in the data base (default 'long')
+        lat_kwd : str
+            latitude column name in the data base (default 'lat')
+        lon_kwd : str
+            latitude column name in the data base (default 'long')
+        bounding_box: tuple
+            (lonmin, latmin, lonmax, latmax). If not None, the
+            only lon/lat in the bounding box + clip_buffer are returned.
 
-        bounding_box: (lonmin, latmin, lonmax, latmax). If not None, the
-                      only lon/lat in the bounding box + clip_buffer are returned.
-
+        Returns
+        -------
+        
         Returns lon, lat numpy arrays. If bounding_box != None, also returns
         an index array for the good data.
         """
@@ -120,11 +137,18 @@ class WidthDataBase:
                     bounding_box=None,clip_buffer=0):
         """Given a projection function (e.g., from pyproj.Proj ) return x,y.
 
-        proj: x,y = proj(lon,lat)
+        Parameters
+        ----------
 
-        lat_kwd: latitude column name in the data base (default 'lat')
+        proj : function
+            x,y = proj(lon,lat)
+        lat_kwd: str
+            latitude column name in the data base (default 'lat')
+        lon_kwd: str
+            latitude column name in the data base (default 'long')
 
-        lon_kwd: latitude column name in the data base (default 'long')
+        Returns
+        -------
 
         Returns x,y numpy arrays.
         """

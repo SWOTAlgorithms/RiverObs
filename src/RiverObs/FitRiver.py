@@ -6,13 +6,14 @@ import numpy as N
 import statsmodels.api as sm
 
 class FitRiver:
-    """A class to fit various river parameters over a set of reaches."""
+    """A class to fit various river parameters over a set of reaches.
+
+    Initialize with a RiverObs object where all of the relevant variables
+    have been loaded into which all of the observables have been loaded into
+    the river nodes.
+    """
 
     def __init__(self,river_obs):
-        """Initialize with a RiverObs object where all of the relevant variables
-        have been loaded into which all of the observables have been loaded into
-        the river nodes."""
-
         self.river_obs = river_obs
         self.inputs_computed = False
 
@@ -20,9 +21,16 @@ class FitRiver:
         """Get the design matrix, the observations, and the fitting weights
         for all the nodes in the interval [smin,smax].
 
-        fit_var: the variable to fit
-        mean_stat: how the data are averaged in the node; e.g., 'mean', 'median', etc.
-        err_stat: formal errors for weighting the node; e.g., 'stderr', 'std', etc."""
+        Parameters
+        ----------
+
+        fit_var : str
+            the variable to fit
+        mean_stat : str
+            how the data are averaged in the node; e.g., 'mean', 'median', etc.
+        err_stat: str
+            formal errors for weighting the node; e.g., 'stderr', 'std', etc.
+        """
 
         s = N.asarray( self.river_obs.get_node_stat(mean_stat,'s') )
 
@@ -56,16 +64,22 @@ class FitRiver:
                    ## norm='HuberT'):
         """Fit the variable in the interval [smin,smax] using various fitting methods.
 
-        fit: 'OLS': ordinary least squares, 'WLS': weighted least squares,
-             'RLM': robust linear model (in which case norm is used).
-             
-        
-        fit_var: the variable to fit
-        mean_stat: how the data are averaged in the node; e.g., 'mean', 'median', etc.
-        err_stat: formal errors for weighting the node; e.g., 'stderr', 'std', etc.
-        load_inputs: if True, calculates the fitting inputs. If False, assumes that
-                     they are available from a previous fit. Useful if using multiple
-                     fit methods using the same data.
+        Parameters
+        ----------
+
+        fit : str
+            'OLS': ordinary least squares, 'WLS': weighted least squares,
+            'RLM': robust linear model (in which case norm is used).
+        fit_var : str
+            the variable to fit
+        mean_stat : str
+            how the data are averaged in the node; e.g., 'mean', 'median', etc.
+        err_stat: str
+            formal errors for weighting the node; e.g., 'stderr', 'std', etc.
+        load_inputs : bool
+            if True, calculates the fitting inputs. If False, assumes that
+            they are available from a previous fit. Useful if using multiple
+            fit methods using the same data.
         """
 
         # Get the fit inputs, if desired

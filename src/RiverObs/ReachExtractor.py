@@ -10,13 +10,14 @@ import pysal
 from GeometryDataBase import GeometryDataBase2D
 
 class RiverReach:
-    """Class containing river reach coordinates and metadata."""
+    """Class containing river reach coordinates and metadata.
+
+    Initialize with empty information and, optionally,
+    a set of keywords that get turned into class members. 
+    The metadata is stored as dictionary variable_name:value.
+    """
 
     def __init__(self,**kwds):
-        """Initialize with empty information and, optionally,
-        a set of keywords that get turned into class members. 
-        The metadata is stored as dictionary variable_name:value."""
-
         self.lat = None
         self.lon = None
         self.x = None
@@ -31,22 +32,37 @@ class ReachExtractor:
     """Extract all of the reaches overlapping a given bounding box and 
     computes the coordinates in the same projection used by the data.
     The result is contained in a set of RiverReach objects, which can be clipped
-    to the same bounding box  as the data set."""
+    to the same bounding box  as the data set.
 
-    def __init__(self, shape_file_root, lat_lon_region,clip=True,clip_buffer=0.1):
-        """Initialize with the shape file database location and a lat_lon_region instance.
+    Initialize with the shape file database location and a lat_lon_region
+    instance.
 
-        shape_file_root: path to shapefile database (no suffix)
+    Parameters
+    ----------
 
-        lat_lon_region: an object providing the following members:
-                     lat_lon_region.bounding_box (lonmin,latmin,lonmax,latmax)
-                     lat_lon_region.proj: a pyproj.Proj projection (lon,lat) -> (x,y) 
+    shape_file_root : str
+        path to shapefile database (no suffix)
 
-        If clip is true, the reach is clipped to lie in a bounding box defined
-        by the data bounding box plus a buffer given by clip_buffer 
-        (default is 0.1 deg or ~11 km).
-        """
+    lat_lon_region : object
+        an object providing the following members:
+        lat_lon_region.bounding_box (lonmin,latmin,lonmax,latmax)
+        lat_lon_region.proj: a pyproj.Proj projection (lon,lat) -> (x,y)
+    clip : bool
+        Clip to the bounding box?
+    clip_buffer : float
+        buffer to add around bounding box.
 
+    Notes
+    ------
+    
+    If clip is true, the reach is clipped to lie in a bounding box defined
+    by the data bounding box plus a buffer given by clip_buffer 
+    (default is 0.1 deg or ~11 km).
+    
+    """
+
+    def __init__(self, shape_file_root, lat_lon_region,clip=True,
+                 clip_buffer=0.1):
         # Open the geometry data base and shape files
 
         self.db = GeometryDataBase2D(shape_file_root)
@@ -98,7 +114,9 @@ class ReachExtractor:
 
             # Append the river reach
 
-            self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,metadata=metadata,reach_index=reach_index))
+            self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,
+                                         metadata=metadata,
+                                         reach_index=reach_index))
 
         
         # Set the iterator indexes

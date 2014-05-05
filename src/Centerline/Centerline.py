@@ -13,68 +13,63 @@ class Centerline:
 
     As an option, a set of ovservations (e.g., width) can be associated
     with the center line.
+
+    Parameters
+    ----------
+        
+    x,y : iterables of the same dimension.
+    k : int
+        order of the spline to use for interpolation (1<= k <=5)
+    ds : float
+        If not None, resample x,y points to this spacing 
+        (approximately to not extend the interval).
+    eps : float
+        minimum distance for two points to be considered different
+    wx, wy : array_like
+        coordinate weights. Strictly positive rank-1 array of weights the same
+        length as x and y. The weights are used in computing the weighted
+        least-squares spline fit. If the errors in the y values have standard
+        deviation given by the vector d, then w should be 1/d. Default is ones(len(x)).
+    smooth : float
+        A smoothing condition, related to the splrep s parameter
+        by s = smooth*len(x). The amount of smoothness is determined by
+        satisfying the conditions: sum((w * (y - g))**2,axis=0) <= s where g(x)
+        is the smoothed interpolation of (x,y). The user can use s to control
+        the tradeoff between closeness and smoothness of fit. Larger s means
+        more smoothing while smaller values of s indicate less smoothing.
+        Recommended values of s depend on the weights, w. If the weights
+        represent the inverse of the standard-deviation of y, then a good s
+        value should be found in the range (m-sqrt(2*m),m+sqrt(2*m)) where m is
+        the number of datapoints in x, y, and w. default : s=m-sqrt(2*m) if
+        weights are supplied. smooth = 0.0 (interpolating) if no weights are
+        supplied.            
+
+        As an option, observations at the centerline locations can be
+        stored and interpolated to the resampled centerline. In this case:
+
+    obs : a list of iterables, each of the same size as x or y
+    obs_names: a list of names, of the same size as obs 
+        Will be used to set the class members (e.g., ['width'])
+    kobs : int
+        interpolation method for observations (default 1: linear)
+    wobs : array_like
+        Observation weights for splrep.
+    sobs : float
+        Observations smoothing for splrep
+    **kwds:
+        Additional keywords will be passed to splrep.
+
+    Notes
+    ------
+
+    Uses scipy.interpolate.splrep (FITPACK). See scipy documentation for
+    further comments on the inputs.
     """
 
     def __init__(self, x, y, k=3, ds=None, eps=1.e-6,
                  wx=None, wy=None, smooth=None,
                  obs=None, obs_names=None, kobs=1,
                  wobs=None, sobs=None, **kwds):
-        """Initialize with a set of x,y points. A Euclidean
-        metric is assumed for distance calculation. Optionally,
-        the centerline is resampled to a uniform along-track
-        spacing.
-
-        Parameters
-        ----------
-        x,y : iterables of the same dimension.
-        k : int
-            order of the spline to use for interpolation (1<= k <=5)
-        ds : float
-             If not None, resample x,y points to this spacing 
-             (approximately to not extend the interval).
-        eps : float
-              minimum distance for two points to be considered different
-        wx, wy : array_like
-            coordinate weights. Strictly positive rank-1 array of weights the same
-            length as x and y. The weights are used in computing the weighted
-            least-squares spline fit. If the errors in the y values have standard
-            deviation given by the vector d, then w should be 1/d. Default is ones(len(x)).
-        smooth : float
-            A smoothing condition, related to the splrep s parameter
-            by s = smooth*len(x). The amount of smoothness is determined by
-            satisfying the conditions: sum((w * (y - g))**2,axis=0) <= s where g(x)
-            is the smoothed interpolation of (x,y). The user can use s to control
-            the tradeoff between closeness and smoothness of fit. Larger s means
-            more smoothing while smaller values of s indicate less smoothing.
-            Recommended values of s depend on the weights, w. If the weights
-            represent the inverse of the standard-deviation of y, then a good s
-            value should be found in the range (m-sqrt(2*m),m+sqrt(2*m)) where m is
-            the number of datapoints in x, y, and w. default : s=m-sqrt(2*m) if
-            weights are supplied. smooth = 0.0 (interpolating) if no weights are
-            supplied.            
-
-        As an option, observations at the centerline locations can be
-        stored and interpolated to the resampled centerline. In this case:
-
-        obs : a list of iterables, each of the same size as x or y
-        obs_names: a list of names, of the same size as obs 
-                   Will be used to set the class members (e.g., ['width'])
-        kobs : int
-               interpolation method for observations (default 1: linear)
-        wobs : array_like
-               Observation weights for splrep.
-        sobs : float
-               Observations smoothing for splrep
-        **kwds:
-               Additional keywords will be passed to splrep.
-
-        Notes
-        -----
-
-        Uses scipy.interpolate.splrep (FITPACK). See scipy documentation for
-        further comments on the inputs.
-        
-        """
 
         # The following holds the array for cKDTree, which
         # must not be touched during calls
@@ -165,6 +160,9 @@ class Centerline:
         self.normal[:,1] = self.tangent[:,0]
 
     def __call__(self, x0, y0):
+        return self.to_centerline(x0,y0)
+
+    def to_centerline(self, x0, y0):
         """For each point in (x0,y0), return the nearest point, as well
         as the along and across track coordinates for that point in the
         local coordinate system as the point.
@@ -186,6 +184,11 @@ class Centerline:
         s,n : array_like
               The along and across track coordinates of the point
               relative to the nearest point coordinate system.
+
+        Notes
+        -----
+
+        __call__ is equivalent to to_centerline.
         """
 
         xy = N.column_stack([x0,y0])

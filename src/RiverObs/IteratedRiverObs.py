@@ -8,6 +8,7 @@ import numpy as N
 from scipy.interpolate import splrep, splev
 from RiverObs import RiverObs
 from Centerline import Centerline
+from RiverNode import RiverNode
 
 class CenterlineObs:
     """An auxiliary class to hold values of observations associated
@@ -24,36 +25,33 @@ class IteratedRiverObs(RiverObs):
 
     The class has the same initialization as RiverObs and does not override
     any of the class functions. It adds functions to iterate the centerline.
+
+    Parameters
+    ----------
+
+    reach : object
+        Has reach.x,reach.y (and optionally, reach.metadata).
+    xobs, yobs : array_like
+        Iterables with observation coordinates.
+    k : int
+        Centerline spline smoothing degree (default 3).
+    ds : float
+        Centerline point separation (default None).
+    max_width : float
+        If !=None, exclude all observations more than max_width/2
+        away from the centerline in the normal direction. 
+        On __init__ max_width should be a number. After centerline
+        convergence, an iterable of the same
+        size as reach.x or reach.y can be added using add_centerline_obs.
+        To reflag the data with the new max_width, run reinititialize.
+    minobs : int
+        Minimum number of observations for each node.
+    **kwds :
+        Additional keywords to pass to RiverObs.__init__
     """
 
     def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1,
                  **kwds):
-        """Initialize with a reach object (e.g., from ReachExtractor),
-        and a set of observation coordinates.
-
-        Parameters
-        ----------
-
-        reach : object
-                Has reach.x,reach.y (and optionally, reach.metadata).
-        xobs, yobs : array_like
-                     Iterables with observation coordinates.
-        k : int
-            Centerline spline smoothing degree (default 3).
-        ds : float
-             Centerline point separation (default None).
-        max_width : float
-                    If !=None, exclude all observations more than max_width/2
-                    away from the centerline in the normal direction. 
-                    On __init__ max_width should be a number. After centerline
-                    convergence, an iterable of the same
-                    size as reach.x or reach.y can be added using add_centerline_obs.
-                    To reflag the data with the new max_width, run reinititialize.
-        minobs : int
-                 Minimum number of observations for each node.
-        **kwds :
-                 Additional keywords to pass to RiverObs.__init__
-        """
 
         # Right now, things do not work for width observations along the
         # reach, due to ambiguities when the true reac is far from the original

@@ -18,28 +18,41 @@ class RiverObs:
     a center line point.
 
     The class supports extracting summary observations from each node and
-    returning them for analaysis (e.g., fitting)."""
+    returning them for analaysis (e.g., fitting).
 
-    def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1):
-        """Initialize with a reach variable (e.g., from ReachExtractor),
-        and a set of observation coordinates.
+    Initialize with a reach variable (e.g., from ReachExtractor),
+    and a set of observation coordinates.
 
-        reach: has reach.x,reach.y (and optionally, reach.metadata).
-        
-        xobs, yobs: iterables with observation coordinates.
-        
-        k: centerline spline smoothing degree (default 3)
-        
-        ds: centerline point separation (default None)
-        
-        max_width: if !=None, exclude all observations more than max_width/2
-                   away from the centerline in the normal direction. 
-                   max_width can be a number or an iterable of the same
-                   size as reach.x or reach.y. If it is an interable,
-                   it is added to the centerline as a member.
-                   
-        minobs: minimum number of observations for each node.
-        """
+    Parameters
+    ----------
+
+    reach : object
+        has reach.x,reach.y (and optionally, reach.metadata).
+    xobs, yobs : iterable
+        iterables with observation coordinates.
+    k : int
+        centerline spline smoothing degree (default 3)
+    ds : float
+        centerline point separation (default None)
+    max_width :
+        if !=None, exclude all observations more than max_width/2
+        away from the centerline in the normal direction. 
+        max_width can be a number or an iterable of the same
+        size as reach.x or reach.y. If it is an interable,
+        it is added to the centerline as a member.
+    minobs : int
+        minimum number of observations for each node.
+    node_class: class
+        either RiverNode, or a class derived from it.
+
+    """
+
+    def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1,
+                 node_class=RiverNode):
+
+        # Register the node class
+
+        self.node_class = node_class
 
         # Copy metadata, in case it is present
         
@@ -200,7 +213,7 @@ class RiverObs:
             y = self.obs_to_node(self.y,node)
             s = self.obs_to_node(self.s,node)
             n = self.obs_to_node(self.n,node)
-            self.river_nodes[node] = RiverNode(node,d,x,y,s,n,ds=self.ds[node])
+            self.river_nodes[node] = self.node_class(node,d,x,y,s,n,ds=self.ds[node])
             for var in vars:
                 exec('obs = self.obs_to_node(self.%s,node)'%var)
                 self.river_nodes[node].add_obs(var,obs,sort=False)

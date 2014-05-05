@@ -7,14 +7,59 @@ from collections import OrderedDict as odict
 import numpy as N
 import pandas as pd
 from SWOTL2 import SWOTL2
-from SWOTRiver import ReachExtractor
-from SWOTRiver import IteratedRiverObs
-from FitRiver import FitRiver
+from RiverObs import ReachExtractor
+from RiverObs import IteratedRiverObs
+from RiverObs import FitRiver
 
 class SWOTRiverEstimator(SWOTL2):
     """Given a SWOTL2 file, fit all of the reaches observed and output results.
 
     This class is derived from the SWOTL2 class.
+
+    Parameters
+    ----------
+
+    height_kwd : str
+        name of netcdf variable to use as a measurement.
+    true_height_kwd: str
+        name of variable to use as truth for comparison.
+    no_noise_height_kwd : str
+        name for no noise measurement
+    xtrack_kwd : str
+        name of cross-track distance variable.
+    bounding_box : 4-tuple or array_like
+        If the bounding_box is provided, select only the data in the
+        bounding box, otherwise, get the bounding box from the data
+        itself. bounding_box should be of the form
+        (lonmin,latmin,lonmax,latmax) 
+    good_class : list
+        a list of class labels where the data are returned.
+    class_list : list
+        a list of the class labels for what is considered good data
+    lon_kwd, lat_kwd : str
+        netcdf names for the longitudes and latitudes to be used
+        for georeferencing the data set.
+    class_kwd : str
+        the netcdf name of the classification layer to use.
+    min_points : int
+        If the number of good points is less than this, raise an exception.
+
+    The final set of keywords are projection options for pyproj. See Notes.
+
+    Notes
+    -----
+        
+    A full list of projection options to set plus explanations of their
+    meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
+        
+    The default projection is Lambert equiarea, which has a proj4 string with the
+    following parameters:
+        
+    +proj=laea  
+    +lat_0=Latitude at projection center, set to bounding box center lat 
+    +lon_0=Longitude at projection center, set to bounding box center lon
+    +x_0=False Easting, set to 0
+    +y_0=False Northing, set to 0
     """
 
     xtrack_res_max = 100. # Maximum allowed cross-track range resolution 
@@ -29,54 +74,6 @@ class SWOTRiverEstimator(SWOTL2):
                  xtrack_res_kwd = 'no_layover_ground_resolution',
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
-        """Initialize as with a SWOTL2 file, but with some added parameters.
-
-        Parameters
-        ----------
-
-        height_kwd : str
-            name of netcdf variable to use as a measurement.
-        true_height_kwd: str
-            name of variable to use as truth for comparison.
-        no_noise_height_kwd : str
-            name for no noise measurement
-        xtrack_kwd : str
-            name of cross-track distance variable.
-        bounding_box : 4-tuple or array_like
-            If the bounding_box is provided, select only the data in the
-            bounding box, otherwise, get the bounding box from the data
-            itself. bounding_box should be of the form
-            (lonmin,latmin,lonmax,latmax) 
-        good_class : list
-            a list of class labels where the data are returned.
-        class_list : list
-            a list of the class labels for what is considered good data
-        lon_kwd, lat_kwd : str
-            netcdf names for the longitudes and latitudes to be used
-            for georeferencing the data set.
-        class_kwd : str
-            the netcdf name of the classification layer to use.
-        min_points : int
-            If the number of good points is less than this, raise an exception.
-
-        The final set of keywords are projection options for pyproj. See Notes.
-
-        Notes
-        -----
-        
-        A full list of projection options to set plus explanations of their
-        meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
-        
-        The default projection is Lambert equiarea, which has a proj4 string with the
-        following parameters:
-        
-        +proj=laea  
-        +lat_0=Latitude at projection center, set to bounding box center lat 
-        +lon_0=Longitude at projection center, set to bounding box center lon
-        +x_0=False Easting, set to 0
-        +y_0=False Northing, set to 0
-        
-        """
 
         self.input_file = split(swotL2_file)[-1]
         self.output_file = None
