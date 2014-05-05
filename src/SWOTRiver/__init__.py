@@ -7,5 +7,6 @@ from RiverObs import RiverObs
 from FitRiver import FitRiver
 from WidthDataBase import WidthDataBase
 from IteratedRiverObs import IteratedRiverObs
+from SWOTRiverEstimator import SWOTRiverEstimator
 
 from version import __version__
