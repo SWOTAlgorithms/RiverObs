@@ -65,6 +65,7 @@ class SWOTL2:
     def __init__(self,swotL2_file,bounding_box=None,class_list=[1],
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
                  class_kwd='no_layover_classification',
+                 min_points=100,
                  project_data=True,
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
@@ -74,15 +75,19 @@ class SWOTL2:
         bounding box, otherwise, get the bounding box from the data
         itself.
 
-        bounding_box should be of the form (lonmin,latmin,lonmax,latmax) 
-        good_class: a list of class labels where the data are returned.
-
-        class_list: a list of the class labels for what is considered good data
-
-        lon_kwd, lat_kwd: netcdf names for the longitudes and latitudes to be used
-        for georeferencing the data set.
-
-        class_kwd: the netcdf name of the classification layer to use.
+        bounding_box :
+            should be of the form (lonmin,latmin,lonmax,latmax) 
+        good_class :
+            a list of class labels where the data are returned.
+        class_list :
+            a list of the class labels for what is considered good data
+        lon_kwd, lat_kwd :
+            netcdf names for the longitudes and latitudes to be used
+            for georeferencing the data set.
+        class_kwd :
+            the netcdf name of the classification layer to use.
+        min_points : int
+            If the number of good points is less than this, raise an exception.
 
         The final set of keywords are projection options for pyproj.
         A full list of projection options to set plus explanations of their
@@ -121,6 +126,12 @@ class SWOTL2:
         self.lat = self.get(lat_kwd)
         self.lon = self.get(lon_kwd)
         print('lat/lon read')
+
+        # If not enough good points are found, raise Exception
+
+        if len(self.lat) < min_points:
+            raise Exception('number of good points: %d smaller than required: %d'%(
+                len(self.lat),min_points) )
 
         # Project to a coordinate system
 
