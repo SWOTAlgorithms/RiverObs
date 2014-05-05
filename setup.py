@@ -78,7 +78,8 @@ setup(name='SWOTRiver',
       package_dir = {'': 'src'},
       ## packages = find_packages()
       packages=['SWOTRiver',],
-      scripts=[script_dir+'make_simulation_catalog.py']
+      scripts=[script_dir+'make_simulation_catalog.py',
+               script_dir+'estimate_swot_rivers.py',]
      )
 
 exec(open('src/RDF/version.py').read())
