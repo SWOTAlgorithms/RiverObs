@@ -16,16 +16,31 @@ class RiverNode:
     
     sort_vars = ['d','x','y','s','n']
 
-    def __init__(self,index,d,x,y,s,n,**kwds):
+    def __init__(self,index,d,x,y,s,n,ds=1,**kwds):
         """Initialize with the outputs of Centerline plus height and potentially
         other keywords that are turned into class variables.
 
-        index: index in the center line corresponding to this node
-        d: distance from the node to each of the data points
-        x: x coordinate of each measurement associated with the node
-        y: y coordinate of each measurement associated with the node
-        s: along-track coordinate (relative to the node center) for each point 
-        n: across-track (normal) coordinate (relative to the node center) for each point
+        Parameters
+        ----------
+
+        index : int
+            index in the center line corresponding to this node
+        d : array_like
+            distance from the node to each of the data points
+        x : array_like
+            x coordinate of each measurement associated with the node
+        y : array_like
+            y coordinate of each measurement associated with the node
+        s : array_like
+            along-track coordinate (relative to the node center) for each point 
+        n : array_like
+            across-track (normal) coordinate (relative to the node center) for each point
+        ds : float
+            along-track dimension for this node. Defaults to 1. Needs to be set
+            correctly for width_area to work.
+
+        Notes
+        -----
 
         To edit the data, it is useful to sort it by order in one of the variables.
         To sort the data, set sort=True and set sort_variable one of ['d','s','n','h'].
@@ -34,6 +49,7 @@ class RiverNode:
         """
 
         self.index = index
+        self.ds = ds
         self.d = N.asarray(d)
         self.x = N.asarray(x)
         self.y = N.asarray(y)
@@ -216,3 +232,42 @@ class RiverNode:
 
         self.trimmed = True
 
+    def width_ptp(self,*pars,**kwds):
+        """Return the river width at this node, estimated from the max/min
+        extent of the normal coordinate.
+
+        Call signature made compatible with other stat calls, but requires
+        no inputs."""
+
+        nmin = self.min('n')
+        nmax = self.max('n')
+        width_ptp = nmax - nmin
+
+        return width_ptp
+
+    def width_std(self,*pars,**kwds):
+        """Return the river width at this node, estimated as sqrt(12)*std(n).
+        This would be appropriate for uniformly distributed point measurements.
+
+        Call signature made compatible with other stat calls, but requires
+        no inputs."""
+
+        nstd = self.std('n')
+        width_std = N.sqrt(12.)*nstd # uniformly distributed (~ 3.5 sigma Gaussian)
+
+        return width_std
+
+    def width_area(self,area_var='pixel_area'):
+        """Return the river width at this node, estimated as Area/ds.
+        This would be appropriate for pixels representing areas.
+
+        area_var: str
+            name of the variable associated with the pixel area (default 'pixel_area')
+
+        Call signature made compatible with other stat calls, but requires
+        no inputs."""
+
+        area = self.sum(area_var)
+        width_area = area/self.ds
+
+        return width_area
