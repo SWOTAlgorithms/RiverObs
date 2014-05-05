@@ -71,7 +71,7 @@ class IteratedRiverObs(RiverObs):
         # additional variables
 
         self.k = k
-        self.ds = ds
+        self.ds_init = ds
         self.reach = reach
 
         self.xobs = xobs
@@ -232,7 +232,7 @@ class IteratedRiverObs(RiverObs):
         # from a smoothed spline
 
         if smooth != None and wx != None and wy != None:
-            centerline = Centerline(x1,y1,k=self.k,ds=self.ds,
+            centerline = Centerline(x1,y1,k=self.k,ds=self.ds_init,
                                     smooth=smooth,wx=wx,wy=wy)
             x1 = splev(centerline.s,centerline.xtck)
             y1 = splev(centerline.s,centerline.ytck)
@@ -240,7 +240,7 @@ class IteratedRiverObs(RiverObs):
 
         # Calculate the centerline for this reach
 
-        self.centerline = Centerline(x1,y1,k=self.k,ds=self.ds)
+        self.centerline = Centerline(x1,y1,k=self.k,ds=self.ds_init)
 
         # Calculate the local coordiantes for each observation point
         # index: the index of the nearest point
@@ -357,7 +357,7 @@ class IteratedRiverObs(RiverObs):
         # Initialize the base class
 
         print len(reach.x),len(reach.y),len(max_width)
-        RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds,
+        RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds_init,
                           max_width=max_width,
                             minobs=self.minobs,**self.robs_kwds)
 
