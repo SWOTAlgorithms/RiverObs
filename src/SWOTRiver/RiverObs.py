@@ -61,6 +61,16 @@ class RiverObs:
         self.max_width = self.centerline.max_width
         print('Centerline initialized')
 
+        # Associate an along-track dimension to each node
+
+        if ds != None: # Evenly spaced nodes
+            self.ds = N.ones(len(self.centerline.s),dtype=self.centerline.s.dtype)*ds
+        else:
+            self.ds = N.ones(len(self.centerline.s),dtype=self.centerline.s.dtype)
+            self.ds[1:-1] = (self.centerline.s[2:] - self.centerline.s[0:-2])/2.
+            self.ds[0] = self.ds[1]
+            self.ds[-1] = self.ds[-2]
+
         # Calculate the local coordiantes for each observation point
         # index: the index of the nearest point
         # d: distance to the point
@@ -190,7 +200,7 @@ class RiverObs:
             y = self.obs_to_node(self.y,node)
             s = self.obs_to_node(self.s,node)
             n = self.obs_to_node(self.n,node)
-            self.river_nodes[node] = RiverNode(node,d,x,y,s,n)
+            self.river_nodes[node] = RiverNode(node,d,x,y,s,n,ds=self.ds[node])
             for var in vars:
                 exec('obs = self.obs_to_node(self.%s,node)'%var)
                 self.river_nodes[node].add_obs(var,obs,sort=False)
