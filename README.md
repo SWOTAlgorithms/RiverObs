@@ -1,18 +1,17 @@
-#SWOTRiver
+#RiverObs
 
 This is a package written initially by
 [Ernesto Rodriguez](mailto:ernesto.rodriguez@jpl.nasa.gov)  to estimate
-various river parameters starting from SWOT L2 data.
+various river parameters starting from remote sensing data.
 
 Detailed installation instructions are in the Install.md file.
 
 ##Summary of packages provided
 
-**SWOTRiver**: This is the main package for handling SWOT data,
-associating data with river reaches, and estimating hydrology
-parameters base on reach averaging (or not...). In addition to the
-homegrown packages listed below, this package requires the following
-open source packages:
+**SWOTRiver**: This is the main package for associating data with r
+iver reaches, and estimating hydrology parameters base on reach
+averaging (or not...). In addition to the homegrown packages listed
+below, this package requires the following open source packages:
 
 * [scipy](http://www.scipy.org/): Science algorithms swiss army knife. 
 * [numpy](http://www.scipy.org/): Numerics swiss army knife. 
@@ -44,8 +43,21 @@ open source packages:
 * [pysal](http://pysal.org): nice interface to shapefiles and 
       shapely bridge. 
 * [shapely](https://github.com/sgillies/shapely): geometry 
-      calculations. 
+      calculations.
+	  
+**SWOTRiver**: This package contains classes that use the RiverObs
+capabilities to produce hydrology outputs from SWOT (simulated) data.
 
+* [numpy](http://www.scipy.org/): Numerics swiss army knife. 
+* [netCDF4](code.google.com/p/netcdf4-python): Reading netcdf4 files,
+  including SWOT L2 data files.
+* [pyproj](http://code.google.com/p/pyproj): Cartographic
+      projections swiss army knife.
+* [pandas](http://pandas.pydata.org): The Python Data Analysis
+  Library for DataFrames and HDFStore.
+* [pytables](http://www.pytables.org): easy HDF5 support, required for
+  pandas HDFStore.
+  
 **GDALOGRUtilities**: Provides homegrown utilities for reading and writing
    various GIS files. Requires the following packages:
 

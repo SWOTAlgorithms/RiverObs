@@ -1,7 +1,7 @@
-# SWOTRiver Installation Instructions
+# RiverObs Installation Instructions
 
 
-##0- PRELIMINARIES
+##Preliminaries
 
 These are the instructions for installing the SWOTRiver package
 written by Ernesto Rodriguez in a Unix (linux or Mac) machine with an
@@ -17,9 +17,9 @@ In what follows, it is assumed that the environment variable RIVER_DIR has been
 set to point to the root directory of the AirSWOTAnomalyAnalysis package cloned
 by git. For instance, using bash
 
-	export RIVER_DIR=/home/erodrigu/SWOT/SWOTRiver
+	export RIVER_DIR=/home/erodrigu/SWOT/RiverObs
 
-##1- PYTHON VIRTUAL ENVIRONMENT INSTALLATION
+##Python virtual environment installation
 
 Note that the dependence on scikit-image is optional and
 required only if one wants to vectorize GWDLR data. In
@@ -27,7 +27,7 @@ that case, a working grass installation is required (tested
 with grass 6.4; grass70 beta has a bug in r.to.vector as of
 this writing).
 
-###1.1- Setting up an anaconda virtual environment
+###Setting up an anaconda virtual environment
 
 To create an anaconda virtual environment, execute:
 
@@ -55,7 +55,7 @@ Equivalnetly, one can set
 
 	export PATH=$RIVER_DIR/anaconda/bin:$PATH
 
-###1.2- Setting up a python virtual environment
+###Setting up a python virtual environment
 
 In case you have a prexisting python environment with virtualenv,
 numpy, and ipython already installed, create a virtual environment for
@@ -72,7 +72,7 @@ and to deactivate
 	source deactivate
 
 
-##2- BUILD THE PACKAGE
+##Build the package
 
 In addition to the packages installed by conda, pyproj, rtree, and shapely are required.
 Working inside the virtual environment, the following command:
