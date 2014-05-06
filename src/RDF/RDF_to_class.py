@@ -37,13 +37,26 @@ class RDF_to_class:
     "x_keyword":("x","f")
     
     the A.x will return the floating value of rdf["x_keyword"]
+
+    Parameters
+    ----------
+
+    d : dictionary
+        Dictionary containing the defintions, as above.
+    file : str
+        Path to a file containing RDF inputs.
+    rdf : RDF instance
+        Initialize from an RDF instance.
+
+    Notes
+    -----
+
+    Intialize the variables to None. If rdf instance is given,
+    load the values from the rdf structure. If a file name is given,
+    the rdf is read from the file. file takes precedence over rdf.
     """
 
     def __init__(self,d, file=None,  rdf=None):
-        """Intialize the variables to None. If rdf instance is given,
-        load the values from the rdf structure. If a file name is given,
-        the rdf is read from the file. file takes precedence ove rdf"""
-
         self.d = d
         for tuple in d.values():
             if len(tuple) < 3:

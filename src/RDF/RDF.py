@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 """
-A class for holding files of the format:
+A class for parsing, storing, and writing files of the format:
 
     keyword (units) = value
 """
@@ -10,6 +10,22 @@ import string #string library
 import types
 
 class RDF:
+    """A class for parsing, storing, and writing files of the format:
+
+    keyword (units) = value
+
+    Parameters
+    ----------
+
+    separator : char
+        Separates keyword (unit) from value (default '='(
+    continuation : str
+        Line continuation.
+    comment: char
+        Anything after this is ignored in a line (default '!')
+    eof : str
+        For RDF embedded in a binary file, this starts the binary content.
+    """
 
     #set the RDF comment and continuation characters
     # rdfComm = "!"

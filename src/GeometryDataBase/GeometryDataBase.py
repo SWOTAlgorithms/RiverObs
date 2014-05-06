@@ -12,10 +12,17 @@ from rtree import index
 from shapely.geometry import asShape, Polygon
 
 def bbox_generator_3D(shape,dbf,dt,tindex=1,store_obj=False):
-    """Following the rtree documentation, a fast way to load iterables into the RTree index.
+    """Following the rtree documentation, a fast way to load iterables
+    into the RTree index.
 
-    dbf: vector such that t = dbf[tindex] is the time associated with that bounding box.
-    dt: tmin = t - dt/2, tmax = d + dt/2 determines the time bounding box.
+    Parameters
+    ----------
+
+    dbf : list
+        vector such that t = dbf[tindex] is the time associated with that
+        bounding box.
+    dt : float
+        tmin = t - dt/2, tmax = d + dt/2 determines the time bounding box.
     """
 
     if store_obj:
@@ -26,7 +33,17 @@ def bbox_generator_3D(shape,dbf,dt,tindex=1,store_obj=False):
             yield (i, shape_bbox_dbf_as_tuple(obj,dbf[i],dt,tindex=tindex)  , i)
 
 def bbox_generator_2D(shape,store_obj=False):
-    """Following the rtree documentation, a fast way to load iterables into the RTree index."""
+    """Following the rtree documentation, a fast way to load iterables into
+    the RTree index.
+
+    Parameters
+    ----------
+    
+    shape : object
+        contains the bounding box, shape.bounding_box.left,
+        shape.bounding_box.lower, shape.bounding_box.right,
+        shape.bounding_box.upper.
+    """
     if store_obj:
         for i, obj in enumerate(shape):
             yield (i, shape_bbox_as_tuple(obj) , obj)
@@ -37,7 +54,13 @@ def bbox_generator_2D(shape,store_obj=False):
 def shape_bbox_dbf_as_tuple(shape,dbf,dt,tindex=1):
     """Return a (x,y,time) bbox.
 
-    shape: contains the bounding box
+    Parameters
+    ----------
+    
+    shape : object
+        contains the bounding box, shape.bounding_box.left,
+        shape.bounding_box.lower, shape.bounding_box.right,
+        shape.bounding_box.upper.
     """
     t = dbf[0][tindex]
     tmin = t - dt/2
@@ -48,7 +71,13 @@ def shape_bbox_dbf_as_tuple(shape,dbf,dt,tindex=1):
 def shape_bbox_as_tuple(shape):
     """Return a (x,y) bbox.
 
-    shape: contains the bounding box
+    Parameters
+    ----------
+    
+    shape : object
+        contains the bounding box, shape.bounding_box.left,
+        shape.bounding_box.lower, shape.bounding_box.right,
+        shape.bounding_box.upper.
     """
     return (shape.bounding_box.left, shape.bounding_box.lower,
             shape.bounding_box.right, shape.bounding_box.upper)
@@ -76,16 +105,27 @@ def write_shape_rtree_2D(shape_file_root,store_obj=False):
                 bbox_generator_2D(shape,store_obj=store_obj))  
 
 class GeometryDataBase2D:
-    """Read geometry shapefile and rtree and perform queries on it"""
+    """Read geometry shapefile and rtree and perform queries on it.
+
+    Return an rtree index object containing the bounding boxes of the
+    shapefile object. If the files required by rtree (.idx and .dat) do
+    not exist in the shapefile directory, they are created on initialization.
+
+    Parameters
+    ----------
+
+    shape_file_root : str
+        root shapefile name
+    store_obj : bool
+        if the rtree file does not exist, this is passed to write_shape_rtree_2D
+        and determines whether the shape index (store_obj = False) or
+        the shape are stored.
+    dimension : {2, 3}
+        dimension of the shapes.
+    """
 
     def __init__(self,shape_file_root,store_obj=False,dimension=2):
-        """Return an rtree index object containing the bounding boxes of the shapefile object.
-        If the files required by rtree (.idx and .dat) do not exist in the shapefile directory, they
-        are created on initialization.
-
-        shape_file_root: root shapefile name
-        store_obj: if the rtree file does not exist, this is passed to write_shape_rtree_2D
-        and determines whether the shape index (store_obj = False) or the shape are stored.
+        """
         """
 
         # Check that the rtree files are there, otherwise, create them
@@ -103,14 +143,19 @@ class GeometryDataBase2D:
     def intersects_xy_bbox(self,xy_bbox):
         """Return the ids for objects which intersect by the input 2D bbox."""
 
-        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),(xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])])
+        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),
+                                (xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])]
+                                )
 
-        return [id for id in self.idx.intersection(xy_bbox,objects='raw') if shapely_bbox.intersects(asShape(self.shape[id]))]
+        return [id for id in self.idx.intersection(xy_bbox,objects='raw')
+                if shapely_bbox.intersects(asShape(self.shape[id]))]
 
     def get_reach_intersect_xy_bbox(self,xy_bbox):
         """Return the shapely objects which intersect by the input 2D bbox."""
 
-        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),(xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])])
+        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),
+                                (xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])]
+                                )
 
         return [asShape(self.shape[id]) for id in self.idx.intersection(xy_bbox,objects='raw') 
                         if shapely_bbox.intersects(asShape(self.shape[id]))]
@@ -124,11 +169,29 @@ class GeometryDataBase2D:
 
     
 class GeometryDataBase3D:
-    """Read geometry shapefile and dbf containing time and rtree and perform queries on it"""
+    """Read geometry shapefile and dbf containing time and rtree and
+    perform queries on it.
 
-    def __init__(self,shape_file_root,dt=1,time_kwd='time',store_obj=False,dimension=3):
-        """Return an rtree index object containing the bounding boxes of the shapefile object."""
+    Parameters
+    ----------
 
+    shape_file_root : str
+        root shapefile name
+    dt : float
+        Time increment between records.
+    time_kwd : str
+        Keyword for time variable in the dbf file.
+    store_obj : bool
+        if the rtree file does not exist, this is passed to write_shape_rtree_2D
+        and determines whether the shape index (store_obj = False) or
+        the shape are stored.
+    dimension : {2, 3}
+        dimension of the shapes.
+
+    """
+
+    def __init__(self,shape_file_root,dt=1,time_kwd='time',store_obj=False,
+                 dimension=3):
         # Check that the rtree files are there, otherwise, create them
 
         if not ( exists(shape_file_root+'idx') and exists(shape_file_root+'dat') ):
@@ -145,17 +208,25 @@ class GeometryDataBase3D:
     def intersects_xy_time_bbox(self,xyt_bbox):
         """Return the ids for objects which intersect by the input 3D bbox."""
 
-        shapely_bbox = Polygon([(xyt_bbox[0],xyt_bbox[1]),(xyt_bbox[0],xyt_bbox[4]),(xyt_bbox[3],xyt_bbox[4]),(xyt_bbox[3],xyt_bbox[1])])
+        shapely_bbox = Polygon([(xyt_bbox[0],xyt_bbox[1]),
+                                (xyt_bbox[0],xyt_bbox[4]),
+                                (xyt_bbox[3],xyt_bbox[4]),
+                                (xyt_bbox[3],xyt_bbox[1])])
 
-        return [id for id in self.idx.intersection(xyt_bbox,objects='raw') if shapely_bbox.intersects(asShape(self.shape[id]))]
+        return [id for id in self.idx.intersection(xyt_bbox,objects='raw')
+                if shapely_bbox.intersects(asShape(self.shape[id]))]
 
     def intersects_xy_bbox(self,xy_bbox,large_time=1.e16):
         """Return the ids for objects which intersect by the input 3D bbox."""
 
-        xyt_bbox = (xy_bbox[0], xy_bbox[1], -large_time, xy_bbox[2], xy_bbox[3], large_time)
-        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),(xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])])
+        xyt_bbox = (xy_bbox[0], xy_bbox[1], -large_time, xy_bbox[2],
+                    xy_bbox[3], large_time)
+        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),
+                                (xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])]
+                                )
 
-        return [id for id in self.idx.intersection(xyt_bbox,objects='raw') if shapely_bbox.intersects(asShape(self.shape[id]))]
+        return [id for id in self.idx.intersection(xyt_bbox,objects='raw')
+                if shapely_bbox.intersects(asShape(self.shape[id]))]
 
 
     def contains_point_time(self,x, y, time,eps=1.e-6):
