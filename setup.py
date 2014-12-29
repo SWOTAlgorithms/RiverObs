@@ -82,6 +82,21 @@ setup(name='SWOTRiver',
                script_dir+'estimate_swot_rivers.py',]
      )
 
+exec(open('src/RiverObs/version.py').read())
+#script_dir = 'src/SWOTRiver/scripts/'
+setup(name='RiverObs',
+      version=__version__,
+      description='Associate observations with river reaches and nodes.',
+      author='Ernesto Rodriguez',
+      author_email='ernesto.rodriguez@jpl.nasa.gov',
+      ##      url='http://www.python.org/sigs/distutils-sig/',
+      package_dir = {'': 'src'},
+      ## packages = find_packages()
+      packages=['RiverObs',],
+      ## scripts=[script_dir+'make_simulation_catalog.py',
+      ##         script_dir+'estimate_swot_rivers.py',]
+     )
+
 exec(open('src/RDF/version.py').read())
 setup(name='RDF',
       version=__version__,
