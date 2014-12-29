@@ -8,13 +8,14 @@ from pyproj import Proj, transform
 import numpy as N
 
 class CoordinateTransformation:
-    """Base class for coordinate transformations."""
+    """Base class for coordinate transformations.
+
+    Initialize ccordinate systems with source and destination projections as
+    proj4 strings.
+    """
 
     def __init__(self,source_projection,
                  destination_projection='+units=m +ellps=WGS84 +datum=WGS84 +proj=longlat '):
-        """Initialize ccordinate systems with source and destination projections as
-        proj4 strings."""
-
         self.source_projection = Proj(source_projection)
         self.destination_projection = Proj(destination_projection)
 

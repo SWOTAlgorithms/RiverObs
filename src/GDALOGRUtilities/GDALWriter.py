@@ -92,15 +92,26 @@ def write_numpy_to_gdal(data,geotransform,wkt_proj,
                         options=None,nodata_value=None):
     """Given numpy data and projection information, write to a gdal file.
 
-    data: a 2D numpy array
-    geotransform: a list containing the affine transformation 
-    (e.g., the result of gdal data_set.GetGeoTransform())
-    wkt_proj: well known text projection information 
-    (e.g., the data_set.GetProjection() )
-    dst_filename: destination file name
-    origin_up: if origin_up == True, the data is reversed in its first axis
-    option: options to pass to gdal.
-    nodata_value: nodata_value value. If None, no nodata_value value is set.""" 
+    Parameters
+    ----------
+
+    data :
+        a 2D numpy array
+    geotransform :
+        a list containing the affine transformation 
+        (e.g., the result of gdal data_set.GetGeoTransform())
+    wkt_proj :
+        well known text projection information 
+        (e.g., the data_set.GetProjection() )
+    dst_filename : str
+        destination file name
+    origin_up : bool
+        if origin_up == True, the data is reversed in its first axis
+    option :
+        options to pass to gdal.
+    nodata_value :
+        nodata_value value. If None, no nodata_value value is set.
+    """ 
 
     gdal_type = get_gdal_type(data.dtype)
     

@@ -13,7 +13,34 @@ from scipy.ndimage.interpolation import map_coordinates
 
 class GDALLatLonLayer:
     """A layer of raster data than can be read with GDAL and interrogated with geographic
-    coordinates of known projection."""
+    coordinates of known projection.
+
+    Read the data into an array and get the affine transformations.
+
+    Parameters
+    -----------
+
+    input_file :
+        file containing the raster data
+    dtype :
+        if None, use the same data type as the input data. Otherwise, convert to dtype.
+    destination_projection : str
+        a string that can be given to Proj for initialization (default: WGS84 longlat)
+        and defines the destination data projection. If None, the destination projection is the same
+        as the input projection. This can be used to interpolate the data.
+    band: int
+        band index to read from the file (index starts at 1)
+
+    Notes
+    -------
+    
+    If the base layer is lat/lon and all the longitudes > 0, set positive_lon = True
+    to enforce that all of the x values lie in [0,360].
+
+    ## The following are GDAL.RasterBand.ReadAsArray keywords:
+    ## xoff=0, yoff=0, win_xsize=None, win_ysize=None, buf_xsize=None, buf_ysize=None, buf_obj=None
+
+    """
 
     def __init__(self, input_file,band=1,
                  dtype=N.float32,scale=1,offset=0,
@@ -21,27 +48,6 @@ class GDALLatLonLayer:
                  ## xoff=0, yoff=0, win_xsize=None, win_ysize=None, buf_xsize=None, buf_ysize=None, buf_obj=None
                  positive_lon=False,
                  ):
-        """Read the data into an array and get the affine transformations.
-
-        input_file: file containing the raster data
-
-        keyword options:
-
-        dtype: if None, use the same data type as the input data. Otherwise, convert to dtype.
-
-        destination_projection: a string that can be given to Proj for initialization (default: WGS84 longlat)
-        and defines the destination data projection. If None, the destination projection is the same
-        as the input projection. This can be used to interpolate the data.
-        
-        band: band index to read from the file (index starts at 1)
-
-        If the base layer is lat/lon and all the longitudes > 0, set positive_lon = True
-        to enforce that all of the x values lie in [0,360].
-
-        ## The following are GDAL.RasterBand.ReadAsArray keywords:
-        ## xoff=0, yoff=0, win_xsize=None, win_ysize=None, buf_xsize=None, buf_ysize=None, buf_obj=None
-        """
-
         self.positive_lon = positive_lon
 
         gdal.AllRegister()

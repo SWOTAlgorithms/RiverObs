@@ -43,15 +43,17 @@ def format_lat(lat):
 
 class GDALInfo:
     """Get relevant information about a GDAL supported raster layer and support various
-    queries regarding extent via Shapely."""
+    queries regarding extent via Shapely.
+
+    Parameters
+    -----------
+    input_file : str
+        file containing the raster data
+    band : int
+        band for additional info. Default: 1
+    """
 
     def __init__(self, input_file,band=1):
-        """Get basic gdal file info and bounding boxes
-
-        input_file: file containing the raster data
-        band: band for additional info. Default: 1
-        """
-
         gdal.AllRegister()
         self.data_set = gdal.Open(input_file)
         if self.data_set == None:

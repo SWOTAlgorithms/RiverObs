@@ -7,12 +7,13 @@ import numpy as N
 from shapely import wkt
 
 class ShapelyDataSource:
-    """Hold all of the information in an ogr data source as shapely arrays."""
+    """Hold all of the information in an ogr data source as shapely arrays.
+
+    Initilize and, optionally, read ogr data from an ogr supported file
+    or an ogr DataSource.
+    """
 
     def __init__(self,ogr_file=None,ogr_data_source=None):
-        """Initilize and, optionally, read ogr data from an ogr supported file
-        or an ogr DataSource."""
-
         # The layers are stored as a dictionary of ShapelyLayers
         
         self.nlayers = 0

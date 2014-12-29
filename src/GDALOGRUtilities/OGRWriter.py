@@ -10,7 +10,54 @@ from collections import OrderedDict
 
 class OGRWriter:
     """A Class to write vector files supported by OGR with inputs from
-    various sources."""
+    various sources.
+
+    Open the file for writing and intialialize the fields.
+
+    Parameters
+    -----------
+    
+    output_file : str
+        Name of the output file.
+    layers : a list of layer names.
+        If empty, the root name of the file is used.
+        If a string is passed, then only a single layer with that name is created.
+    fields :
+        a list of dictionaries, one per field, containing the options for each layer.
+        The dictionaries are of the form
+
+        field_dict[field_name] = type
+
+        or
+
+        field_dict[field_name] = (type,length)
+
+        type is one of the accepted types in field_types.
+        The optional length is the field length ('str') or precision ('float').
+        If a single dictionary is passed, it will be used for all layers.
+
+    diver : str
+        one of the driver names accepted by OGR.
+
+    coordinate_system :
+        one of the well known coordinate systems accepted by OGR.
+        Currently supported:
+        "WGS84": same as "EPSG:4326" but has no dependence on EPSG data files.
+        "WGS72": same as "EPSG:4322" but has no dependence on EPSG data files.
+        "NAD27": same as "EPSG:4267" but has no dependence on EPSG data files.
+        "NAD83": same as "EPSG:4269" but has no dependence on EPSG data files.
+        "EPSG:n": same as doing an ImportFromEPSG(n).
+
+        proj4_string: a string understood by proj4 (optional). For instance:
+        proj4_string = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs '
+        If not empty, this is applied after setting the well know coordinate system.
+
+    geometry : str
+        one of the keys in OGRWriter.geom_type dictionary
+
+    srs :
+        a predifined osr spatial reference. Overrides other srs options.
+    """
 
     # This dictionary translates between various ways of specifying geometries
     # and OGR supported geometries
@@ -52,44 +99,6 @@ class OGRWriter:
 
     def __init__(self,output_file,layers=[],fields={},driver='ESRI Shapefile',
                  geometry='Point',coordinate_system='WGS84',proj4_string='',srs=None):
-        """Open the file for writing and intialialize the fields.
-
-        output_file: Name of the output file.
-        
-        layers: a list of layer names. If empty, the root name of the file is used.
-        If a string is passed, then only a single layer with that name is created.
-        
-        fields: a list of dictionaries, one per field, containing the options for each layer.
-        The dictionaries are of the form
-
-        field_dict[field_name] = type
-
-        or
-
-        field_dict[field_name] = (type,length)
-
-        type is one of the accepted types in field_types.
-        The optional length is the field length ('str') or precision ('float').
-        If a single dictionary is passed, it will be used for all layers.
-
-        diver: one of the driver names accepted by OGR.
-
-        coordinate_system: one of the well known coordinate systems accepted by OGR.
-        Currently supported:
-        "WGS84": same as "EPSG:4326" but has no dependence on EPSG data files.
-        "WGS72": same as "EPSG:4322" but has no dependence on EPSG data files.
-        "NAD27": same as "EPSG:4267" but has no dependence on EPSG data files.
-        "NAD83": same as "EPSG:4269" but has no dependence on EPSG data files.
-        "EPSG:n": same as doing an ImportFromEPSG(n).
-
-        proj4_string: a string understood by proj4 (optional). For instance:
-        proj4_string = '+proj=longlat +ellps=WGS84 +towgs84=0,0,0,0,0,0,0 +no_defs '
-        If not empty, this is applied after setting the well know coordinate system.
-
-        geometry: one of the keys in OGRWriter.geom_type dictionary
-
-        srs: a predifined osr spatial reference. Overrides other srs options.
-        """
 
         # Set the coordinate system
 
@@ -175,8 +184,13 @@ class OGRWriter:
     def add_wkt_feature(self,wkt,field_record,layer_index=0,layer_name=None):
         """Add a feature from a WKT (well known text) string and a field dictionary.
 
-        layer_index: index of the layer to which the feature will be added.
-        layer_name: overrides layer index 
+        Parameters
+        ----------
+
+        layer_index : int
+            index of the layer to which the feature will be added.
+        layer_name : str
+            overrides layer index 
         """
 
         if layer_name != None:
@@ -199,12 +213,19 @@ class OGRWriter:
     def add_geo_feature(self,object,field_record,layer_index=0,layer_name=None):
         """Add a feature from an object that supports the Python Geo interface and
         can be converted to a Shape object by shapely.geometry.asShape.
-        This can be a GeoJSON python dictionary; e.g.,
 
-        object = {"type": "Point", "coordinates": (0.0, 0.0)}
+        Parameters
+        -----------
 
-        layer_index: index of the layer to which the feature will be added.
-        layer_name: overrides layer index 
+        object : object
+            This can be a GeoJSON python dictionary; e.g.,
+
+            object = {"type": "Point", "coordinates": (0.0, 0.0)}
+
+        layer_index : int
+            index of the layer to which the feature will be added.
+        layer_name: str
+            overrides layer index 
         """
 
         shape = asShape(object)
