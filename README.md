@@ -8,8 +8,8 @@ Detailed installation instructions are in the Install.md file.
 
 ##Summary of packages provided
 
-**SWOTRiver**: This is the main package for associating data with r
-iver reaches, and estimating hydrology parameters base on reach
+**RiverObs**: This is the main package for associating data with river
+reaches, and estimating hydrology parameters base on reach
 averaging (or not...). In addition to the homegrown packages listed
 below, this package requires the following open source packages:
 
