@@ -4,8 +4,12 @@
 
 # Version 0.1.1: added along-track resampling
 
-__version__ = '0.1.1'
+#__version__ = '0.1.1'
 
 # Version 0.1.2: added IteratedCenterline
 
-__version__ = '0.1.2'
+#__version__ = '0.1.2'
+
+# Version 0.1.3: moved IteratedCenterline to RiverObs package
+
+__version__ = '0.1.3'
