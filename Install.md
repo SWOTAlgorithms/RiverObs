@@ -27,7 +27,7 @@ that case, a working grass installation is required (tested
 with grass 6.4; grass70 beta has a bug in r.to.vector as of
 this writing).
 
-###Setting up an anaconda virtual environment
+###Setting up an anaconda virtual environment (Simplest)
 
 To create an anaconda virtual environment, execute:
 
@@ -36,7 +36,7 @@ To create an anaconda virtual environment, execute:
 	matplotlib gdal scipy pip scikit-image statsmodels pysal pandas
 	pytables shapely netcdf4
 
-or
+or (Simplest)
 
 	conda create -n RiverObs numpy ipython ipython-notebook matplotlib
 	gdal scipy pip scikit-image statsmodels pysal pandas pytables
