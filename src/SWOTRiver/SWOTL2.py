@@ -68,11 +68,9 @@ class SWOTL2:
         except:
             self.azimuth_spacing = self.default_azimuth_spacing
             
-        self.set_bounding_box(bounding_box,lat_kwd,lon_kwd)
-        print('Bounding box calculated')
-        
-        self.set_index(class_list,class_kwd=class_kwd)
-        print('Good data selected')
+        self.set_index_and_bounding_box(bounding_box,lat_kwd,lon_kwd,
+                                        class_list,class_kwd=class_kwd)
+        print('Good data selected & bounding box calculated.')
 
         # Get locations for these data (note that these should be the reference values)
 
@@ -93,36 +91,14 @@ class SWOTL2:
                                         ellps=ellps,**proj_kwds)
             print('projection set and x,y calculated')
 
-    def set_bounding_box(self,bounding_box,lat_kwd,lon_kwd):
-        """Set the bounding box and identify pixes in the bounding box."""
-
-        self.no_layover_lat = self.nc.variables[lat_kwd][:]
-        self.no_layover_lon = self.nc.variables[lon_kwd][:]
-
-        if bounding_box != None:
-            self.lonmin,self.latmin,self.lonmax,self.latmax = bounding_box
-        else:
-            self.lonmin = self.no_layover_lon.min()
-            self.latmin = self.no_layover_lat.min()
-            self.lonmax = self.no_layover_lon.max()
-            self.latmax = self.no_layover_lat.max()
-
-        self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
-
-    def set_index(self,class_list,class_kwd='no_layover_classification'):
-        """Set the index for the good data.
+    def set_index_and_bounding_box(self,bounding_box,lat_kwd,lon_kwd,
+                                   class_list,class_kwd='no_layover_classification'):
+        """Set the index for the good data and computes the bounding box for the good data.
 
         class_kwd: the netcdf name of the classification layer to use.
         """
-        
-        # Initialize the index of data in the bounding box
 
-        self.index = ( (self.no_layover_lat >= self.latmin) &
-                       (self.no_layover_lon >= self.lonmin) &
-                       (self.no_layover_lat <= self.latmax) &
-                       (self.no_layover_lon <= self.lonmax) )
-
-        # Read the classification and update the index
+         # Read the classification and update the index
 
         self.klass = self.nc.variables[class_kwd][:]
 
@@ -132,7 +108,32 @@ class SWOTL2:
         for i in range(1,len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
+        lat = self.nc.variables[lat_kwd][:]
+        lon = self.nc.variables[lon_kwd][:]
+            
+        if bounding_box != None:
+            self.lonmin,self.latmin,self.lonmax,self.latmax = bounding_box
+        else:
+            self.lonmin = lon.min()
+            self.latmin = lat.min()
+            self.lonmax = lon.max()
+            self.latmax = lat.max()
+
+        self.index = ( (lat >= self.latmin) &
+                       (lon >= self.lonmin) &
+                       (lat <= self.latmax) &
+                       (lon <= self.lonmax) )
+
         self.index = self.index & self.class_index
+
+        lat = lat[self.index]
+        lon = lon[self.index]
+        
+        self.lonmin = lon.min()
+        self.latmin = lat.min()
+        self.lonmax = lon.max()
+        self.latmax = lat.max()
+        self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
 
     def get(self,var):
         """Get the values of the variable var within the desired index of good sites."""
