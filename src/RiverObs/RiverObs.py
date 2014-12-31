@@ -65,7 +65,7 @@ class RiverObs:
             
         # Calculate the centerline for this reach
 
-        if max_width == None or not N.iterable(max_width):
+        if type(max_width) == type(None) or not N.iterable(max_width):
             self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds)
             self.centerline.max_width = max_width
         else:
@@ -100,7 +100,7 @@ class RiverObs:
 
         # Edit, so that only river points appear
 
-        if self.max_width != None:
+        if type(self.max_width) != type(None):
             self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
 
@@ -166,7 +166,7 @@ class RiverObs:
         if (len(obs) != self.ndata) and (len(obs) != self.nedited_data):
             raise Exception('Observation size incompatible with initial observations')
 
-        if (self.max_width != None) and (len(obs) == self.ndata):
+        if (type(self.max_width) != type(None)) and (len(obs) == self.ndata):
             obs = obs[self.in_channel]
         
         exec('self.%s = obs'%obs_name)
@@ -191,7 +191,7 @@ class RiverObs:
 
         # If only certain observations have been kept, get the edited vector
         
-        if (self.max_width != None) and (len(obs) == self.ndata):
+        if (type(self.max_width) != type(None)) and (len(obs) == self.ndata):
             obs = obs[self.in_channel] 
 
         return N.asarray(obs)[self.obs_to_node_map[node]]

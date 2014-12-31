@@ -54,7 +54,7 @@ class IteratedRiverObs(RiverObs):
                  **kwds):
 
         # Right now, things do not work for width observations along the
-        # reach, due to ambiguities when the true reac is far from the original
+        # reach, due to ambiguities when the true reach is far from the original
 
         if N.iterable(max_width):
             raise Exception('maximum_width arrays must be added using add_maximum_width_array')
@@ -93,29 +93,29 @@ class IteratedRiverObs(RiverObs):
         ----------
 
         alpha : float
-                Smoothing constant. If the centerline is given by (x0,y0) and the
-                data centroid is given by (xc,yc), the updated centerline coordinates
-                will be (x1, y1) = (x0,y0) + alpha*( (xc,yc) - (x0,y0) ). For alpha=1,
-                this is equivalent to straight replacement, but may overshoot.
+            Smoothing constant. If the centerline is given by (x0,y0) and the
+            data centroid is given by (xc,yc), the updated centerline coordinates
+            will be (x1, y1) = (x0,y0) + alpha*( (xc,yc) - (x0,y0) ). For alpha=1,
+            this is equivalent to straight replacement, but may overshoot.
         stat : str
-               Statistic to use to get the centroid based on the observation coordinates.
-               It should be implemented by RiverNode. Choices could be 'mean', 'median', etc.
-               The default is 'mean'.
+            Statistic to use to get the centroid based on the observation coordinates.
+            It should be implemented by RiverNode. Choices could be 'mean', 'median', etc.
+            The default is 'mean'.
         std_stat : str
-                   Statistic to use to get the centroid dispersionbased on the observation
-                   coordinates. It should be implemented by RiverNode. Choices could be
-                   'std', 'stderr', etc. The default is 'std'.                              
+            Statistic to use to get the centroid dispersionbased on the observation
+            coordinates. It should be implemented by RiverNode. Choices could be
+            'std', 'stderr', etc. The default is 'std'.                              
 
         Returns
         -------
 
         x1, y1 : array_like
-                New centerline coordinate proposals.
+            New centerline coordinate proposals.
         eps : float
-              Maximum coordinate change in any direction.
+            Maximum coordinate change in any direction.
         xdelta, ydelta : array_like
-                         Estimates of data point dispersion, to be used for
-                         weigting the centerline fit.
+            Estimates of data point dispersion, to be used for
+            weigting the centerline fit.
                           
         """
 
@@ -154,31 +154,31 @@ class IteratedRiverObs(RiverObs):
         ----------
 
         max_iter : int
-                   Maximum number of iterations
+            Maximum number of iterations
         alpha : float <= 1
-                Smoothing constant. If the centerline is given by (x0,y0) and the
-                data centroid is given by (xc,yc), the updated centerline coordinates
-                will be (x1, y1) = (x0,y0) + alpha*( (xc,yc) - (x0,y0) ). For alpha=1,
-                this is equivalent to straight replacement, but may overshoot.
+            Smoothing constant. If the centerline is given by (x0,y0) and the
+            data centroid is given by (xc,yc), the updated centerline coordinates
+            will be (x1, y1) = (x0,y0) + alpha*( (xc,yc) - (x0,y0) ). For alpha=1,
+            this is equivalent to straight replacement, but may overshoot.
         stat : str
-               Statistic to use to get the centroid based on the observation coordinates.
-               It should be implemented by RiverNode. Choices could be 'mean', 'median', etc.
-               The default is 'mean'.
+            Statistic to use to get the centroid based on the observation coordinates.
+            It should be implemented by RiverNode. Choices could be 'mean', 'median', etc.
+            The default is 'mean'.
         std_stat : str
-                   Statistic to use to get the centroid dispersionbased on the observation
-                   coordinates. It should be implemented by RiverNode. Choices could be
-                   'std', 'stderr', etc. The default is 'std'.               
+            Statistic to use to get the centroid dispersionbased on the observation
+            coordinates. It should be implemented by RiverNode. Choices could be
+            'std', 'stderr', etc. The default is 'std'.               
         tol : float
-              Maximum coordinate change to stop iteration.
+            Maximum coordinate change to stop iteration.
         weights : bool
-                  If True, compute weights from point dispersion to pass to Centerline.
+            If True, compute weights from point dispersion to pass to Centerline.
         smooth : float
-                 Smoothing parameter to pass to Centerline, if weight = True.
-                 This is the related to the splrep s parameter by s = smooth*len(x),
-                 so that smooth = 1. would be the appropriate weighting when
-                 w = 1/std.
+            Smoothing parameter to pass to Centerline, if weight = True.
+            This is the related to the splrep s parameter by s = smooth*len(x),
+            so that smooth = 1. would be the appropriate weighting when
+            w = 1/std.
         **kwds :
-                 Additional keywords o pass to Centerline 
+            Additional keywords o pass to Centerline 
 
         Notes
         -----
@@ -220,7 +220,7 @@ class IteratedRiverObs(RiverObs):
                 wx, wy = None, None
 
             # Recalculate the centerline for the next iteration
-            
+
             self.reinit_centerline_nodes(x1, y1, smooth=smooth, wx=wx, wy=wy)
 
     def reinit_centerline_nodes(self,x1,y1, smooth=None, wx=None, wy=None):
@@ -229,7 +229,7 @@ class IteratedRiverObs(RiverObs):
         # If weights and smoothing are given, estimate the centerline points
         # from a smoothed spline
 
-        if smooth != None and wx != None and wy != None:
+        if type(smooth) != type(None) and type(wx) != type(None) and type(wy) != type(None):
             centerline = Centerline(x1,y1,k=self.k,ds=self.ds_init,
                                     smooth=smooth,wx=wx,wy=wy)
             x1 = splev(centerline.s,centerline.xtck)
@@ -239,6 +239,16 @@ class IteratedRiverObs(RiverObs):
         # Calculate the centerline for this reach
 
         self.centerline = Centerline(x1,y1,k=self.k,ds=self.ds_init)
+
+        # Associate an along-track dimension to each node
+
+        if self.ds_init != None: # Evenly spaced nodes
+            self.ds = N.ones(len(self.centerline.s),dtype=self.centerline.s.dtype)*self.ds_init
+        else:
+            self.ds = N.ones(len(self.centerline.s),dtype=self.centerline.s.dtype)
+            self.ds[1:-1] = (self.centerline.s[2:] - self.centerline.s[0:-2])/2.
+            self.ds[0] = self.ds[1]
+            self.ds[-1] = self.ds[-2]
 
         # Calculate the local coordiantes for each observation point
         # index: the index of the nearest point

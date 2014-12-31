@@ -83,7 +83,7 @@ class WidthDataBase:
 
         # If a bounding box has been specified, extract the appropriate records
 
-        if inbbox != None:
+        if type(inbbox) != type(None):
             df = df.iloc[inbbox]
 
         # Return the desired columns in the desired format
