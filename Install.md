@@ -34,13 +34,13 @@ To create an anaconda virtual environment, execute:
 	cd $RIVER_DIR
 	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook
 	matplotlib gdal scipy pip scikit-image statsmodels pysal pandas
-	pytables shapely netcdf4
+	pytables shapely netcdf4 sphinx
 
 or (Simplest)
 
 	conda create -n RiverObs numpy ipython ipython-notebook matplotlib
 	gdal scipy pip scikit-image statsmodels pysal pandas pytables
-	shapely netcdf4
+	shapely netcdf4 sphinx
 	
 To activate this environment, type
 
@@ -125,6 +125,12 @@ anaconda installation:
 	./configure --prefix=~/anaconda
 	make
 	make install
+
+###Install numpydoc for sphinx documentation (Optional)
+
+This is only required if you want to build the sphinx documentation:
+
+	pip install numpydoc
 
 ##Build the package
 
