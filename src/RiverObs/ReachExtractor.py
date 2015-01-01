@@ -8,25 +8,7 @@ to the same bounding box  as the data set.
 import numpy as N
 import pysal
 from GeometryDataBase import GeometryDataBase2D
-
-class RiverReach:
-    """Class containing river reach coordinates and metadata.
-
-    Initialize with empty information and, optionally,
-    a set of keywords that get turned into class members. 
-    The metadata is stored as dictionary variable_name:value.
-    """
-
-    def __init__(self,**kwds):
-        self.lat = None
-        self.lon = None
-        self.x = None
-        self.y = None
-        self.metadata = {}
-
-        for k in kwds:
-            v = kwds[k]
-            exec('self.%s = v'%k)
+from RiverReach import RiverReach
 
 class ReachExtractor:
     """Extract all of the reaches overlapping a given bounding box and 
@@ -47,6 +29,7 @@ class ReachExtractor:
         an object providing the following members:
         lat_lon_region.bounding_box (lonmin,latmin,lonmax,latmax)
         lat_lon_region.proj: a pyproj.Proj projection (lon,lat) -> (x,y)
+        and (x,y) -> (lon,lat) when called when called with inverse=True
     clip : bool
         Clip to the bounding box?
     clip_buffer : float
