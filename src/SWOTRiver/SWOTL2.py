@@ -1,5 +1,5 @@
 """
-Access SWOT L2 data conveniently.
+Access SWOT L2 data conveniently and provides LatLonRegion protocol.
 """
 
 import numpy as N
@@ -7,7 +7,9 @@ from netCDF4 import Dataset
 from pyproj import Proj
 
 class SWOTL2:
-    """Access SWOT L2 data conveniently.
+    """Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion object
+    interfaces in that it provides a  bounding_box member and a proj function that goes
+    from (lon,lat) -> (x,y) and backwards.
 
     Parameters
     ----------
