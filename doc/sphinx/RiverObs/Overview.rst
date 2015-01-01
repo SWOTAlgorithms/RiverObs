@@ -1,13 +1,11 @@
-.. _Overview:
-
-RiverObs Package Overview
-==================
+RiverObs
+========
 
 This is a package written initially by `Ernesto
 Rodriguez <mailto:ernesto.rodriguez@jpl.nasa.gov>`__ to estimate various
 river parameters starting from remote sensing data.
 
-Detailed installation instructions are in the :ref:`Installation`.
+Detailed installation instructions are in the Install.md file.
 
 Summary of packages provided
 ----------------------------

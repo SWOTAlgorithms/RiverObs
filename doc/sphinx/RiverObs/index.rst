@@ -26,6 +26,7 @@ Contents:
    :maxdepth: 1
 
    RiverObsConcepts
+   ReachPreProcessorExample
    CenterlineUsageExample
    RiverNodeUsageExample
    RiverObsUsageExample
