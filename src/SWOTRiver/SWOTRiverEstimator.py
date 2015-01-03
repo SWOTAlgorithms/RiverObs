@@ -32,17 +32,48 @@ class SWOTRiverEstimator(SWOTL2):
         bounding box, otherwise, get the bounding box from the data
         itself. bounding_box should be of the form
         (lonmin,latmin,lonmax,latmax) 
-    good_class : list
-        a list of class labels where the data are returned.
-    class_list : list
-        a list of the class labels for what is considered good data
     lon_kwd, lat_kwd : str
         netcdf names for the longitudes and latitudes to be used
-        for georeferencing the data set.
-    class_kwd : str
+        for georeferencing the data set. The a priori geolocation can be retrieved
+        using 'no_layover_longitude' and 'no_layover_latitude'. The estimated
+        latitude and longitude can be retrieved using 'longitude' and 'latitude',
+        respectively.
+    class_kwd : str, default 'classification'
         the netcdf name of the classification layer to use.
+        'classification' will return the result of applying a classifier to the simulated data.
+        'no_layover_classification' can be used as the thruth
+    class_list : list, default [2,3,4]
+        a list of the class labels for what is considered good water data.
+        This should be piched as any classes that might contain water, even
+        if partially. If truth data are desired (class_kwd='no_layover_classification'),
+        the this should be set to [1]. The default has interior water pixels(4),
+        border water pixels (3), and border land pixels (2). This should be used with
+        inundation_fraction turned on.
+    fractional_inundation_kwd : str, default 'continuous_classification'
+        Netcdf keyword containing the inundation fraction. If None, the no inundation
+        fraction is used. The inundation fraction is, in theory, a number between 0 and
+        1 estimating the fraction of the pixel covered with water. In practice, because of noise,
+        it can be outside the bounds and even be negative! It will produced an ensemble
+        unbiased estimate if the class mean cross sections are known.
+    use_fractional_inundation : bool list, default [True, True, False]
+        For which classes should the inundation fraction be used instead of a binary classification?
+        the default is to assume that interior pixels are 100% water, but to use both land
+        and water edge pixels partially by using the fractional inundation kwd.
     min_points : int
         If the number of good points is less than this, raise an exception.
+    height_kwd : str, default 'height'
+        These are the heights to exract from the water file.
+    true_height_kwd : str, default 'water_height'
+        These are the reference heights to use for performance assessment
+    no_noise_height_kwd : str, default 'no_noise_height'
+        These are the a priori heights used for phase unwrapping
+    xtrack_kwd : str, 'no_layover_cross_track'
+        This is the distance to the nadir track.
+    xtrack_res_kwd : str, default 'flat_pixel_resolution'
+        This is the cross-track dimension of the radar pixel. The netcdf file
+        has an estimate 'no_layover_ground_resolution' that takes into account
+        a priori surface slopes to derive an incidence angle. However, this runs
+        into trouble if water
 
     The final set of keywords are projection options for pyproj. See Notes.
 
@@ -62,21 +93,32 @@ class SWOTRiverEstimator(SWOTL2):
     +y_0=False Northing, set to 0
     """
 
-    xtrack_res_max = 100. # Maximum allowed cross-track range resolution 
+    xtrack_res_max = 200. # Maximum allowed cross-track range resolution
+    platform_height = 970.e3
+    earth_radius = 6378e3
 
-    def __init__(self,swotL2_file,bounding_box=None,class_list=[1],
+    def __init__(self,swotL2_file,bounding_box=None,
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
-                 class_kwd='no_layover_classification',
+                 class_list=[2,3,4],class_kwd='classification',
+                 fractional_inundation_kwd='continuous_classification',
+                 use_fractional_inundation=[True, True, False],
                  min_points=100,
                  height_kwd='height',true_height_kwd='water_height',
                  no_noise_height_kwd='no_noise_height',
                  xtrack_kwd='no_layover_cross_track',
-                 xtrack_res_kwd = 'no_layover_ground_resolution',
+                 xtrack_res_kwd = 'flat_pixel_resolution',
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
 
         self.input_file = split(swotL2_file)[-1]
         self.output_file = None
+
+        # Classification inputs
+
+        self.class_kwd = class_kwd
+        self.class_list = class_list
+        self.fractional_inundation_kwd = fractional_inundation_kwd
+        self.use_fractional_inundation = use_fractional_inundation
 
         # Initialize the base class
 
@@ -88,20 +130,40 @@ class SWOTRiverEstimator(SWOTL2):
                         proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
                         ellps=ellps,**proj_kwds)
 
-        
-
         self.h_noise = self.get(height_kwd)
         self.h_no_noise = self.get(no_noise_height_kwd)
         self.h_true = self.get(true_height_kwd)
         self.xtrack = self.get(xtrack_kwd)
-        self.xtrack_res = self.get(xtrack_res_kwd)
+        look_angle = self.get('no_layover_look_angle')
+        self.incidence_angle = N.sin(N.radians(look_angle)*(1. + self.platform_height/self.earth_radius))
+        self.range_resolution = float(self.nc.range_resolution)
 
-        # This is necessary as some pixel values seem flaky (TO BE FIXED)
+        # Get the pixel area, depending on the choice of range resolution
+
+        if xtrack_res_kwd != 'flat_pixel_resolution':
+            self.xtrack_res = self.get(xtrack_res_kwd)
+
+            # This is necessary as some pixel values seem flaky (TO BE FIXED)
         
-        self.xtrack_res = N.where(self.xtrack_res > self.xtrack_res_max,
-                                  self.xtrack_res_max, self.xtrack_res)
+            self.xtrack_res = N.where(self.xtrack_res > self.xtrack_res_max,
+                                    self.xtrack_res_max, self.xtrack_res)
+        else:
+            self.xtrack_res = self.range_resolution/self.incidence_angle
 
         self.pixel_area = self.azimuth_spacing*self.xtrack_res
+
+        # Calculate the inundated area for each pixel
+
+        if fractional_inundation_kwd == None: # all water pixels are inundated
+            self.fractional_inundation = None
+            self.inundated_area = self.pixel_area
+        else:
+            self.fractional_inundation = self.get(fractional_inundation_kwd)
+            self.inundated_area = self.pixel_area
+            for i,k in enumerate(class_list):
+                if use_fractional_inundation[i]:
+                    index = self.klass == k
+                    self.inundated_area[index] = self.pixel_area[index]*self.fractional_inundation[index]
         
         print('Data loaded')
 
@@ -213,7 +275,7 @@ class SWOTRiverEstimator(SWOTL2):
                         min_fit_points=150,
                         step=None,fit_types=['OLS','WLS','RLM'],
                         ds=None,smin=0,minobs=10,max_width=None):
-        """Estimate the result for one reach.
+        """Estimate the width, height, and slope for one reach.
 
         Parameters
         ----------
@@ -290,9 +352,9 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('lon',self.lon)
         self.river_obs.add_obs('lat',self.lat)
         self.river_obs.add_obs('xtrack',self.xtrack)
-        self.river_obs.add_obs('pixel_area',self.pixel_area)
+        self.river_obs.add_obs('inundated_area',self.inundated_area)
         self.river_obs.load_nodes(['h_noise','h_true','h_no_noise',
-                                   'lon','lat','xtrack','pixel_area'])
+                                   'lon','lat','xtrack','inundated_area'])
         print('Observations added to nodes')
 
         # Get various  node statistics
@@ -313,8 +375,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         # These are area based estimates, the nominal SWOT approach
         
-        area = N.asarray( self.river_obs.get_node_stat('sum','pixel_area') )
-        width_area = N.asarray( self.river_obs.get_node_stat('width_area','pixel_area') )
+        area = N.asarray( self.river_obs.get_node_stat('sum','inundated_area') )
+        width_area = N.asarray( self.river_obs.get_node_stat('width_area','inundated_area') )
 
         # Initialize the fitter
         

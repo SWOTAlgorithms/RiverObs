@@ -110,6 +110,8 @@ class SWOTL2:
         for i in range(1,len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
+        print 'Number of points in these classes: %d'%(N.sum(self.class_index))
+        
         lat = self.nc.variables[lat_kwd][:]
         lon = self.nc.variables[lon_kwd][:]
             
@@ -125,9 +127,11 @@ class SWOTL2:
                        (lon >= self.lonmin) &
                        (lat <= self.latmax) &
                        (lon <= self.lonmax) )
+        print 'Number of points in bounding box: %d'%(N.sum(self.index))
 
         self.index = self.index & self.class_index
-
+        print 'Number of good: %d'%(N.sum(self.index))
+        
         lat = lat[self.index]
         lon = lon[self.index]
         
@@ -136,6 +140,10 @@ class SWOTL2:
         self.lonmax = lon.max()
         self.latmax = lat.max()
         self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
+
+        # Update the classification
+
+        self.klass = self.klass[self.index]
 
     def get(self,var):
         """Get the values of the variable var within the desired index of good sites."""

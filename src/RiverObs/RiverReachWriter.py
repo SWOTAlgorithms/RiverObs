@@ -52,7 +52,7 @@ class RiverReachWriter:
         """Write the nodes as points in a format supporter by OGR."""
 
         self.fields = {}
-        self.fields['reach_index'] = 'int'
+        self.fields['reach_idx'] = 'int'
         for var in self.node_output_variables:
             if  ((self.node_vars[var][0].dtype == N.float64) or
                  (self.node_vars[var][0].dtype == N.float32) ):
@@ -72,7 +72,7 @@ class RiverReachWriter:
                 x = [reach.lon[j]]
                 y = [reach.lat[j]]
                 field_record = {}
-                field_record['reach_index'] = i
+                field_record['reach_idx'] = i
                 for var in self.node_vars:
                     if self.fields[var] == 'int':
                         v = int(self.node_vars[var][i][j])
@@ -119,6 +119,141 @@ class RiverReachWriter:
             ogr_writer.add_xy_feature(x,y,field_record)
                  
         ogr_writer.close()
+
+    def write_width_db(self,width_db_file,output_format='h5'):
+        """Write a pytables width db file.
+
+        The output_format can be 'h5' or 'csv'.
+        """
+            
+        for i,reach in enumerate(self.reaches):
+            n = len(reach.lat)
+            
+            river_data = odict()
+            river_data['width'] = reach.width.astype(N.int16)
+            try:
+                river_data['nchannels'] = reach.nchannels.astype(N.int8)
+            except:
+                river_data['nchannels'] = N.ones(n,dtype=N.int8)
+            try:
+                river_data['reservoir'] = reach.reservoir.astype(N.int8)
+            except:
+                river_data['reservoir'] = N.zeros(n,dtype=N.int8)
+            river_data['long'] = reach.lon.astype(N.float32)
+            river_data['lat'] = reach.lat.astype(N.float32)
+            river_data['reach_index'] = N.ones(n,dtype=N.int32)*i
+            
+            try:
+                ds = arc_distance_xy(reach.x,reach.y)
+            except:
+                ds = arc_distance(reach.lon,reach.lat)
+            river_data['reach'] = N.cumsum(ds).astype(N.float32)
+
+            df = DataFrame(river_data)
+            if i == 0:
+                river_df = df
+            else:
+                river_df = river_df.append(df,ignore_index=True)
+
+        # Fill in the reach data base
+
+        break_idx = []
+        npoints = []
+        reach_index = []
+        total_reach = []
+        lonmin = []
+        lonmax = []
+        latmin = []
+        latmax = []
+        width_mean = []
+        width_std = []
+        width_min = []
+        width_max = []
+        ibreak = -1
+        for i,reach in enumerate(self.reaches):
+            n = len(reach.lat)
+            ibreak += n
+            break_idx.append(ibreak)
+            npoints.append(n)
+            reach_index.append(i)
+            lonmin.append(reach.lon.min())
+            lonmax.append(reach.lon.max())
+            latmin.append(reach.lat.min())
+            latmax.append(reach.lat.max())
+            width_mean.append(reach.width.mean())
+            width_std.append(reach.width.std())
+            width_min.append(reach.width.min())
+            width_max.append(reach.width.max())
+            try:
+                ds = arc_distance_xy(reach.x,reach.y)
+            except:
+                ds = arc_distance(reach.lon,reach.lat)
+            s = N.cumsum(ds)
+            total_reach = s[-1]
+
+        reach_df = DataFrame({'break_idx':break_idx,
+                            'npoints':npoints,
+                            'reach':total_reach,
+                            'lonmin':lonmin,
+                            'lonmax':lonmax,
+                            'latmin':latmin,
+                            'latmax':latmax,
+                            'width_mean':width_mean,
+                            'width_std':width_std,
+                            'width_min':width_min,
+                            'width_max':width_max,
+                            })
+
+        # Write the width data base
+
+        if output_format == 'h5':
+            if not '.h5' in width_db_file:
+                width_db_file = width_db_file+'.h5'
+            store = HDFStore(width_db_file,mode='w',complevel=9)
+            store['river'] = river_df
+            store['reach'] = reach_df
+            store.close()
+        else:
+            river_df.to_csv(width_db_file+'_river_df.csv')
+            reach_df.to_csv(width_db_file+'_reach_df.csv')
+            
+
+        return river_df, reach_df
+
+
+
+def arc_distance(lon,lat):
+    """Calculate distance in meters between subsequent points."""
+    
+    R = 6378.e3 # approximate earth radius
+    deg2rad = N.pi/180.
+    
+    lon = N.asarray(lon)
+    lat = N.asarray(lat)
+    d = N.zeros(len(lon),dtype=N.float32)
+    
+    dlon = (lon[1:] - lon[0:-1])*deg2rad
+    dlat = (lat[1:] - lat[0:-1])*deg2rad
+    latmean = N.mean(lat)*deg2rad
+    
+    dx = dlon*N.cos(latmean)*R
+    dy = dlat*R
+    
+    d[0:-1] = N.sqrt(dx**2 + dy**2)
+    
+    return d
+
+def arc_distance_xy(x,y):
+    """Calculate the arc distance, give Cartesian coordinates."""
+
+    d = N.zeros(len(lon),dtype=N.float32)
+    dx = x[1:] - x[0:-1]
+    dy = y[1:] - y[0:-1]
+
+    d[0:-1] = N.sqrt(dx**2 + dy**2)
+    
+    return d
+        
 
 
         

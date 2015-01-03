@@ -174,15 +174,21 @@ class RiverObs:
     def obs_to_node(self,obs,node):
         """Get all of the observations in an array obs which map to a node.
 
-        obs: iterable of the same size as the xobs, yobs 
-             or the same size as self.x, self.y. If the same size
-             as xobs, the observations will be limited to in channel
-             observations, if this has been computed. If the same
-             size as self.x, no editing occurs.
+        Parameters
+        ----------
+        obs : iterable
+            iterable of the same size as the xobs, yobs 
+            or the same size as self.x, self.y. If the same size
+            as xobs, the observations will be limited to in channel
+            observations, if this has been computed. If the same
+            size as self.x, no editing occurs.
 
-        node: node to match
+        node : int
+            node to match
 
-        Returns the observations for that node, or an empty array if there
+        Returns
+        -------
+        The observations for that node, or an empty array if there
         are no observations for that node.
         """
 

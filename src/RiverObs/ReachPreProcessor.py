@@ -98,6 +98,8 @@ class ReachPreProcessor(ReachExtractor):
         """
 
         self.edited_reach = []
+        reach_idx = 0
+        ibreak = -1
         for i in range(len(reach_start_list)):
             
             # Project to the centerline coordinates
@@ -111,23 +113,37 @@ class ReachPreProcessor(ReachExtractor):
 
             lon,lat = reach_end_list[i]
             x,y = self.lat_lon_region.proj(lon,lat)
+            
             indexend, _ , dmin = self.nearest_centerline_node(x,y,max_distance=max_distance,
                                                               cl_index=icl)
+
+            if (indexend - indexstart + 1) < 2:
+                continue
+
             # Extract the reach
             if indexend > -1:
                 x = self.centerline[icl].x[indexstart:indexend+1]
                 y = self.centerline[icl].y[indexstart:indexend+1]
                 lon, lat = self.lat_lon_region.proj(x,y,inverse=True)
                 reach_length = self.centerline[icl].s[indexend] - self.centerline[icl].s[indexstart]
+                n = len(lat)
+                ibreak += n
                 metadata = odict([
-                    ('parent_reach_idx',icl),
-                    ('parent_start_s',self.centerline[icl].s[indexstart]),
-                    ('parent_end_s',self.centerline[icl].s[indexend]),
-                    ('indexstart',indexstart),
-                    ('indexend',indexend),
+                    ('reach_idx',reach_idx),
+                    ('lonmin',lon.min()),
+                    ('lonmax',lon.max()),
+                    ('latmin',lat.min()),
+                    ('latmax',lat.max()),
+                    ('reach',reach_length),
                     ('npoints',indexend - indexstart + 1),
-                    ('reach_length',reach_length)
+                    ('break_idx',ibreak),
+                    ('preach_idx',icl),
+                    ('pstart_s',self.centerline[icl].s[indexstart]),
+                    ('pend_s',self.centerline[icl].s[indexend]),
+                    ('pidxstart',indexstart),
+                    ('pidxend',indexend),
                     ])
+                reach_idx += 1
                 if  self.width_db == None:
                     reach = RiverReach(lat=lat,lon=lon,x=x,y=y,metadata=metadata)
                 else:
@@ -135,6 +151,7 @@ class ReachPreProcessor(ReachExtractor):
                     metadata['width_mean'] = N.mean(width)
                     metadata['width_max'] = N.max(width)
                     metadata['width_min'] = N.min(width)
+                    metadata['width_std'] = N.std(width)
                     reach = RiverReach(lat=lat,lon=lon,x=x,y=y,metadata=metadata,width=width)
                     
                 self.edited_reach.append(reach)
@@ -142,7 +159,7 @@ class ReachPreProcessor(ReachExtractor):
         return self.edited_reach
 
 
-    def nearest_centerline_node(self,x,y,max_distance=None,cl_index=None):
+    def nearest_centerline_node(self,xp,yp,max_distance=None,cl_index=None):
         """Find the nearest centerline and node to a centerline or set of centerlines."""
              
         if cl_index == None:
@@ -157,8 +174,9 @@ class ReachPreProcessor(ReachExtractor):
         icl = -1
         indexmin = -1
         for i,centerline in enumerate(CL):
-            index, distance,x,y,s,n = centerline(x,y)
-            if (distance < dmin) and (distance < max_distance):
+            
+            index, distance,x,y,s,n = centerline(xp,yp)
+            if (distance[0] < dmin) and (distance[0] < max_distance):
                 dmin = distance[0]
                 indexmin = index[0]
                 icl = i
@@ -187,6 +205,8 @@ class ReachPreProcessor(ReachExtractor):
         self.ds,self.start_s,self.end_s = ds,start_s,end_s
         
         self.edited_reach = []
+        reach_idx = 0
+        ibreak = -1
         for icl,reach in enumerate(self.reach):
             s = self.centerline[icl].s
 
@@ -198,7 +218,6 @@ class ReachPreProcessor(ReachExtractor):
             s1 = s0 + ds
 
             while s1 <= smax:
-                print smax, s0, s1
                 i0 = N.flatnonzero(s >= s0 )
                 if len(i0) > 0:
                     i0 = i0[0]
@@ -215,15 +234,24 @@ class ReachPreProcessor(ReachExtractor):
                 y = self.centerline[icl].y[i0:i1+1]
                 lon, lat = self.lat_lon_region.proj(x,y,inverse=True)
                 reach_length = self.centerline[icl].s[i1] - self.centerline[icl].s[i0]
+                n = len(lat)
+                ibreak += n
                 metadata = odict([
-                    ('parent_reach_idx',icl),
-                    ('parent_start_s',self.centerline[icl].s[i0]),
-                    ('parent_end_s',self.centerline[icl].s[i1]),
-                    ('indexstart',i0),
-                    ('indexend',i1),
+                    ('reach_idx',reach_idx),
+                    ('lonmin',lon.min()),
+                    ('lonmax',lon.max()),
+                    ('latmin',lat.min()),
+                    ('latmax',lat.max()),
+                    ('reach',reach_length),
                     ('npoints',i1 - i0 + 1),
-                    ('reach_length',reach_length)
+                    ('break_idx',ibreak),
+                    ('preach_idx',icl),
+                    ('pstart_s',self.centerline[icl].s[i0]),
+                    ('pend_s',self.centerline[icl].s[i1]),
+                    ('pidxstart',i0),
+                    ('pidxend',i1),
                     ])
+                reach_idx += 1
                 if  self.width_db == None:
                     reach = RiverReach(lat=lat,lon=lon,x=x,y=y,metadata=metadata)
                 else:
