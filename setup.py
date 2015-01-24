@@ -109,3 +109,15 @@ setup(name='RDF',
       packages=['RDF',],
       ## scripts=[script_dir+'']
      )
+
+setup(name='toggle_input',
+      version=__version__,
+      description='Toggle notebook input cells.',
+      author='Ernesto Rodriguez',
+      author_email='ernesto.rodriguez@jpl.nasa.gov',
+      ##      url='http://www.python.org/sigs/distutils-sig/',
+      package_dir = {'': 'src'},
+      ## packages = find_packages()
+      packages=['toggle_input',],
+      ## scripts=[script_dir+'']
+     )
