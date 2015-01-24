@@ -164,53 +164,53 @@ class MRDF:
         return self
 
 
-    def rdfParseString(self,rdfString):
-        """Parse a string containing RDF lines separated by \\n."""
+    ## def rdfParseString(self,rdfString):
+    ##     """Parse a string containing RDF lines separated by \\n."""
 
-        for line in rdfString.split('\n'):
+    ##     for line in rdfString.split('\n'):
 
-            # strip comments
+    ##         # strip comments
 
-            line = self.stripComments(line)
+    ##         line = self.stripComments(line)
                 
-            # while continuation line, read next line and append
-            m = re.match("(.*)"+self.rdfCont,line) #regexp match
-            if m: line = m.group(1)
-            while ( m != None ):
-                nextLine = self.stripComments(fin.readline())
-                m = re.match("(.*)"+self.rdfCont,nextLine)
-                if m: line = line + m.group(1)
-                else: line = line + nextLine
+    ##         # while continuation line, read next line and append
+    ##         m = re.match("(.*)"+self.rdfCont,line) #regexp match
+    ##         if m: line = m.group(1)
+    ##         while ( m != None ):
+    ##             nextLine = self.stripComments(fin.readline())
+    ##             m = re.match("(.*)"+self.rdfCont,nextLine)
+    ##             if m: line = line + m.group(1)
+    ##             else: line = line + nextLine
                     
-            # extract keyword and value
-            m = re.match("([^=]+)"+self.rdfSep+"(.*)",line)
-            if m: #an RDF line
+    ##         # extract keyword and value
+    ##         m = re.match("([^=]+)"+self.rdfSep+"(.*)",line)
+    ##         if m: #an RDF line
                 
-                k = m.group(1)
-                v = m.group(2)
-                v = string.strip(v)
+    ##             k = m.group(1)
+    ##             v = m.group(2)
+    ##             v = string.strip(v)
                 
-                # units key separation
-                m = re.match("(.*)\((.*)\).*",k)
-                if m:
-                    u = string.strip(m.group(2))
-                    if u == "": u = "-"
+    ##             # units key separation
+    ##             m = re.match("(.*)\((.*)\).*",k)
+    ##             if m:
+    ##                 u = string.strip(m.group(2))
+    ##                 if u == "": u = "-"
 
-                    k = string.lower(string.strip(m.group(1)))
-                    self.units[k].append(u)
-                else:
-                    k = string.lower(string.strip(k))
-                    self.units[k].append("-")
+    ##                 k = string.lower(string.strip(m.group(1)))
+    ##                 self.units[k].append(u)
+    ##             else:
+    ##                 k = string.lower(string.strip(k))
+    ##                 self.units[k].append("-")
                     
-                self.value[k].append(v)
-                if k not in self.key_list: self.key_list.append(k)
+    ##             self.value[k].append(v)
+    ##             if k not in self.key_list: self.key_list.append(k)
                     
-                # if the keyword eof is set, the end of the header of
-                #  an RDF/binary file has been reached. Exit parsing loop
+    ##             # if the keyword eof is set, the end of the header of
+    ##             #  an RDF/binary file has been reached. Exit parsing loop
 
-                if re.match(self.eof,k): break
+    ##             if re.match(self.eof,k): break
 
-        return self
+    ##     return self
 
     def float(self,key):
         x = []
