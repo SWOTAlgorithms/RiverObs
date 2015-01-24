@@ -5,16 +5,30 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from os.path import splitext, split, exists
 from collections import OrderedDict as odict
 import numpy as N
+from numpy.ma import is_masked
 import pandas as pd
 from SWOTL2 import SWOTL2
 from RiverObs import ReachExtractor
+from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import FitRiver
+from RiverObs import RiverNode
+from RiverObs import RiverReach
 
 class SWOTRiverEstimator(SWOTL2):
     """Given a SWOTL2 file, fit all of the reaches observed and output results.
 
     This class is derived from the SWOTL2 class.
+
+    This class contains four basic components:
+
+    1. It is a subclass of the SWOTL2, and therefor is a LatLonRegion and also contains SWOT data.
+    2. For each reach of interest, it keeps a dictionary RiverObs instances for each reach.
+    3. It keeps a dictionary of RiverReach instances, containing the results of height/slope fitting and width estimation.
+    4. A dictionary of FitRiver instances, containing the full fit diagnostics.
+
+    Keeping copies for each observation, although useful for visualization, can be a tax on memory
+    for a large number of reaches and observation, so that storing can be turned off, if so desired.
 
     Parameters
     ----------
@@ -74,6 +88,16 @@ class SWOTRiverEstimator(SWOTL2):
         has an estimate 'no_layover_ground_resolution' that takes into account
         a priori surface slopes to derive an incidence angle. However, this runs
         into trouble if water
+    trim_ends : bool, default False
+        If True, the first and last nodes are not used, to avoid potential edge effects.
+    store_obs : bool, default True
+        If True, store each RiverObs instance in a dictionary.
+    store_reaches : bool, default True
+        If True, store each RiverRiver instance in a dictionary.
+    store_fits : bool, default True
+        If True, store each fit result in a dictionary.        
+    verbose : bool, default False
+        If True, print to sdtout while processing.
 
     The final set of keywords are projection options for pyproj. See Notes.
 
@@ -107,9 +131,21 @@ class SWOTRiverEstimator(SWOTL2):
                  no_noise_height_kwd='no_noise_height',
                  xtrack_kwd='no_layover_cross_track',
                  xtrack_res_kwd = 'flat_pixel_resolution',
+                 trim_ends=False,
+                 store_obs=True,
+                store_reaches=True,
+                store_fits=True,
+                verbose=False,
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
 
+        
+        self.trim_ends = trim_ends
+        self.store_obs=store_obs
+        self.store_reaches=store_reaches
+        self.store_fits=store_fits
+        self.verbose=verbose
+                
         self.input_file = split(swotL2_file)[-1]
         self.output_file = None
 
@@ -127,29 +163,67 @@ class SWOTRiverEstimator(SWOTL2):
                         lat_kwd=lat_kwd, lon_kwd=lon_kwd,
                         class_kwd=class_kwd,
                         min_points=min_points,
+                        verbose=verbose,
                         proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
                         ellps=ellps,**proj_kwds)
-
+        if is_masked(self.lat):
+            mask = self.lat.mask
+        else:
+            mask = N.zeros(len(self.lat),dtype=N.bool)
+        
         self.h_noise = self.get(height_kwd)
+        if is_masked(self.h_noise):
+            mask = mask | self.h_noise.mask
+            
         self.h_no_noise = self.get(no_noise_height_kwd)
+        if is_masked(self.h_no_noise):
+            mask = mask | self.h_no_noise.mask
+            
         self.h_true = self.get(true_height_kwd)
+        if is_masked(self.h_true):
+            mask = mask | self.h_true.mask
+            
         self.xtrack = self.get(xtrack_kwd)
+        if is_masked(self.xtrack):
+            mask = mask | self.xtrack.mask
+            
         look_angle = self.get('no_layover_look_angle')
-        self.incidence_angle = N.sin(N.radians(look_angle)*(1. + self.platform_height/self.earth_radius))
+        if is_masked(look_angle):
+            mask = mask | look_angle.mask
+            
+        self.incidence_angle = (look_angle)*(1. + self.platform_height/self.earth_radius)
         self.range_resolution = float(self.nc.range_resolution)
 
         # Get the pixel area, depending on the choice of range resolution
 
         if xtrack_res_kwd != 'flat_pixel_resolution':
             self.xtrack_res = self.get(xtrack_res_kwd)
+            if is_masked(self.xtrack_res):
+                mask = mask | self.xtrack_res.mask
 
             # This is necessary as some pixel values seem flaky (TO BE FIXED)
         
             self.xtrack_res = N.where(self.xtrack_res > self.xtrack_res_max,
                                     self.xtrack_res_max, self.xtrack_res)
         else:
-            self.xtrack_res = self.range_resolution/self.incidence_angle
+            self.xtrack_res = self.range_resolution/N.sin(N.radians(self.incidence_angle))
 
+        # Make sure all of the arrays are valid over the same points
+
+        good = ~mask
+        self.lat = self.lat[good]
+        self.lon = self.lon[good]
+        self.x = self.x[good]
+        self.y = self.y[good]
+        self.klass = self.klass[good]
+        
+        self.h_noise = self.h_noise[good]
+        self.h_no_noise = self.h_no_noise[good]
+        self.h_true = self.h_true[good] 
+        self.xtrack = self.xtrack[good]
+        self.incidence_angle = self.incidence_angle[good]
+        self.xtrack_res = self.xtrack_res[good]
+            
         self.pixel_area = self.azimuth_spacing*self.xtrack_res
 
         # Calculate the inundated area for each pixel
@@ -165,7 +239,13 @@ class SWOTRiverEstimator(SWOTL2):
                     index = self.klass == k
                     self.inundated_area[index] = self.pixel_area[index]*self.fractional_inundation[index]
         
-        print('Data loaded')
+        if self.verbose: print('Data loaded')
+
+        # Initialize the list of observations and reaches
+
+        self.river_obs_collection = odict()
+        self.river_reach_collection = odict()
+        self.fit_collection = odict()
 
     def get_reaches(self,shape_file_root, clip=True,clip_buffer=0.1):
         """Get all of the reaches using a ReachExtractor."""
@@ -201,80 +281,92 @@ class SWOTRiverEstimator(SWOTL2):
         self.output_file = output_file
         self.store = pd.HDFStore(output_file,mode=mode)
 
-    def process_reaches(self,use_width_db=True,refine_centerline=True,
-                        smooth=1.e-2,alpha=1.,max_iter=1,
-                        scalar_max_width=600.,
-                        subreach_size=10.e3,
-                        min_fit_points=150,
-                        step=None,fit_types=['OLS','WLS','RLM'],
-                        ds=None,smin=0,minobs=10,max_width=None):
+    def process_reaches(self,
+                scalar_max_width=600.,
+                minobs=10,min_fit_points=3,
+                fit_types=['OLS','WLS','RLM'],
+                use_width_db = False,
+                ds=None,
+                refine_centerline=False,
+                smooth=1.e-2,alpha=1.,max_iter=1,
+                ):
         """Process all of the reaches in the data bounding box.
 
         Parameters
         ----------
 
-        use_width_db : bool
-            Use the width data base for setting widths?
-        refine_centerline: bool
-            Refine the centerline?
-        smooth : float
-            Centerline smoothing constant (see Centerline)
-        alpha : float
-            Centerline refinement update weight
-        max_iter : int
-            Maximum number of centerline iterations
-        scalar_max_width : float
+        scalar_max_width : float, default 600
             How far away to look for points
-        subreach_size : float
-            Size of each subreach (in m)
-        min_fit_points : int
-            Minimum number of points required for fit                
-        step : float
-            Change smin (in m) with each new estimate for this reach
-            (if None -> subreach_size)
+        minobs : int, default 10
+            Minimum number of observations for valid node.
+        min_fit_points : int, default 3
+            Minimum number of populated nodes required for height/slope fit
         fit_types : list
             A list of fit types to perform. Can contain 'OLS','WLS','RLM'.
-        ds : float
-            Separation between centerline nodes (in m)
-        smin : float
-            Start reach distance (in m).
-        minobs : int
-            Minimum number of observations for valid node.
-        max_width: float or array_like
-            Maximum width to use for accepting points.                           
+        use_width_db : bool, default False
+            Use the width data base for setting widths?
+        ds : float, optional
+            Separation between centerline nodes (in m). If None, uses reach points.
+        refine_centerline: bool, default True
+            Refine the centerline?
+        smooth : float, default 1.e-2
+            Centerline smoothing constant (see Centerline)
+        alpha : float, default 1
+            Centerline refinement update weight
+        max_iter : int, default 1
+            Maximum number of centerline iterations
+
+        Returns
+        -------
+
+        Returns a list containg a RiverReach instance for each reach in the bounding box.
         """
 
+        river_reach_collection = []
         for i, reach_idx in enumerate(self.reaches.reach_idx):
-            print('Reach %d/%d Reach index: %d'%(i+1,self.reaches.nreaches,reach_idx))
+            if self.verbose: print('Reach %d/%d Reach index: %d'%(i+1,self.reaches.nreaches,reach_idx))
             
             if use_width_db:
                 max_width = self.get_max_width_from_db(reach_idx)
-                print('max_width read')
+                if self.verbose: print('max_width read')
+            else:
+                max_width = None
 
-            results_df = self.process_reach(self.reaches[i],subreach_size,
-                            refine_centerline=refine_centerline,
-                            smooth=smooth,alpha=alpha,max_iter=max_iter,
-                            scalar_max_width=scalar_max_width,
-                            min_fit_points=min_fit_points,
-                            step=step,fit_types=fit_types,
-                            ds=ds,smin=smin,minobs=minobs,max_width=max_width)
-            print('reach pocessed')
-
-            if self.output_file != None:
+            if type(max_width) == type(None):
                 try:
-                    csv_file = splitext(self.input_file)[0]+'_fit_%d.csv'%reach_idx
-                    results_df.to_csv(csv_file)
-                    self.store.append('fit_results',results_df)
+                    max_width = reach.metadata['width_max']
                 except:
-                    print 'Could not write results'
+                    max_width = scalar_max_width
 
-    def process_reach(self,reach,subreach_size,
-                      refine_centerline=True,
-                        smooth=1.e-2,alpha=1.,max_iter=1,
-                        scalar_max_width=600.,
-                        min_fit_points=150,
-                        step=None,fit_types=['OLS','WLS','RLM'],
-                        ds=None,smin=0,minobs=10,max_width=None):
+            river_reach = self.process_reach(self.reaches[i],i,reach_idx,
+                                            scalar_max_width=scalar_max_width,
+                                            minobs=minobs,min_fit_points=min_fit_points,
+                                            fit_types=fit_types,
+                                            use_width_db = use_width_db,
+                                            max_width=max_width,
+                                            ds=ds,
+                                            refine_centerline=refine_centerline,
+                                            smooth=smooth,alpha=alpha,max_iter=max_iter)
+
+            river_reach_collection.append(river_reach)
+
+            if self.store_reaches:
+                self.river_reach_collection[i] = river_reach
+
+            if self.verbose: print('reach pocessed')
+            
+        return river_reach_collection
+
+    def process_reach(self,reach,reach_id,reach_idx=None,
+                scalar_max_width=600.,
+                minobs=10,min_fit_points=3,
+                fit_types=['OLS','WLS','RLM'],
+                use_width_db = False,
+                max_width=None,
+                ds=None,
+                refine_centerline=False,
+                smooth=1.e-2,alpha=1.,max_iter=1
+                ):
         """Estimate the width, height, and slope for one reach.
 
         Parameters
@@ -282,55 +374,58 @@ class SWOTRiverEstimator(SWOTL2):
 
         reach : Reach instance
             One of the reaches from ReachExtractor.
-        use_width_db : bool
-            Use the width data base for setting widths?
-        refine_centerline: bool
-            Refine the centerline?
-        smooth : float
-            Centerline smoothing constant (see Centerline)
-        alpha : float
-            Centerline refinement update weight
-        max_iter : int
-            Maximum number of centerline iterations
-        scalar_max_width : float
-            How far away to look for points                
-        subreach_size : float
-            Size of each subreach (in m)
-        min_fit_points : int
-            Minimum number of points required for fit
-        step : float
-            Change smin (in m) with each new estimate for this reach
-            (if None -> subreach_size)
+        reach_id : int
+            Index in the list of reaches extracted for this scene.
+        reach_idx, int
+            Reach index used as pointer to a reach collection that may be different than
+            the one used as input (e.g., a global reach collection).
+            If using a width database, the retrieved width will be associated with this reach index.
+            If None, it will be set equal to the reach_id. 
+        scalar_max_width : float, default 600
+            How far away to look for points
+        minobs : int, default 10
+            Minimum number of observations for valid node.
+        min_fit_points : int, default 3
+            Minimum number of populated nodes required for height/slope fit
         fit_types : list
             A list of fit types to perform. Can contain 'OLS','WLS','RLM'.
-        ds : float
-            Separation between centerline nodes (in m)
-        smin : float
-            Start reach distance (in m).
-        minobs : int
-            Minimum number of observations for valid node.
-        max_width: float or array_like
-            Maximum width to use for accepting points.
-        """
+        use_width_db : bool, default False
+            Use the width data base for setting widths?
+        max_width: float or array_like, optional
+            Maximum width to use for accepting points. From width database or apriori.
+        ds : float, optional
+            Separation between centerline nodes (in m). If None, uses reach points.
+        refine_centerline: bool, default True
+            Refine the centerline?
+        smooth : float, default 1.e-2
+            Centerline smoothing constant (see Centerline)
+        alpha : float, default 1
+            Centerline refinement update weight
+        max_iter : int, default 1
+            Maximum number of centerline iterations
 
-        if max_width == None:
-            max_width = reach.metadata['width_max']
+        Returns
+        -------
+
+        Return a RiverReach instance with the reach information.
+        """
 
         # Initialize the observations
 
-        if refine_centerline:
-            self.river_obs = IteratedRiverObs(reach,self.x,self.y,ds=ds,
-                                              max_width=scalar_max_width,minobs=minobs)
-        else:
-            self.river_obs = IteratedRiverObs(reach,self.x,self.y,ds=ds,
-                                              max_width=max_width,minobs=minobs)
-        print('river_obs initilized')
+        self.river_obs = IteratedRiverObs(reach,
+                                          self.x,
+                                          self.y,
+                                          ds=ds,
+                                          max_width=scalar_max_width,
+                                          minobs=minobs,
+                                          verbose=self.verbose)
+        if self.verbose: print('river_obs initilized')
 
         # Refine the centerline, if desired
 
         if refine_centerline:
             self.river_obs.iterate(max_iter=max_iter,alpha=alpha,
-                                weights=True,smooth=smooth)
+                                        weights=True,smooth=smooth)
 
             # Associate the width to the new centerline
 
@@ -342,31 +437,54 @@ class SWOTRiverEstimator(SWOTL2):
             # Reinitialize to the new centerline and max_width
 
             self.river_obs.reinitialize()
-            print('centerline refined')
+            if self.verbose: print('centerline refined')
+        else:
+            # Associate the width to the new centerline
 
-        # Add the abservations
-        
+            if N.iterable(max_width):
+                xw = reach.x
+                yw = reach.y
+                self.river_obs.add_centerline_obs(xw,yw,max_width,'max_width')
+
+        # Exclude beginning and end nodes, if desired
+
+        if self.trim_ends:
+            first_node = self.river_obs.populated_nodes[0]
+            last_node = self.river_obs.populated_nodes[-1]
+            self.river_obs.remove_nodes([first_node,last_node])
+
+        # Add the observations
+
         self.river_obs.add_obs('h_true',self.h_true)
         self.river_obs.add_obs('h_noise',self.h_noise)
         self.river_obs.add_obs('h_no_noise',self.h_no_noise)
         self.river_obs.add_obs('lon',self.lon)
         self.river_obs.add_obs('lat',self.lat)
+        self.river_obs.add_obs('xobs',self.x)
+        self.river_obs.add_obs('yobs',self.y)
         self.river_obs.add_obs('xtrack',self.xtrack)
         self.river_obs.add_obs('inundated_area',self.inundated_area)
         self.river_obs.load_nodes(['h_noise','h_true','h_no_noise',
-                                   'lon','lat','xtrack','inundated_area'])
-        print('Observations added to nodes')
+                                  'lon','lat','xobs','yobs','xtrack','inundated_area'])
+        if self.verbose: print('Observations added to nodes')
 
-        # Get various  node statistics
-        
-        s = N.asarray( self.river_obs.get_node_stat('mean','s') )
-        xtrack_mean = N.asarray( self.river_obs.get_node_stat('mean','xtrack') )
-        xtrack_min = N.asarray( self.river_obs.get_node_stat('min','xtrack') )
-        xtrack_max = N.asarray( self.river_obs.get_node_stat('max','xtrack') )
-        lon_min = N.asarray( self.river_obs.get_node_stat('min','lon') )
-        lon_max = N.asarray( self.river_obs.get_node_stat('max','lon') )
-        lat_min = N.asarray( self.river_obs.get_node_stat('min','lat') )
-        lat_max = N.asarray( self.river_obs.get_node_stat('max','lat') )
+        # Get various node statistics
+
+        nobs = N.asarray( self.river_obs.get_node_stat('count','') )
+        s_median = N.asarray( self.river_obs.get_node_stat('median','s') )
+        x_median = N.asarray( self.river_obs.get_node_stat('median','xobs') )
+        y_median = N.asarray( self.river_obs.get_node_stat('median','yobs') )
+        xtrack_median = N.asarray( self.river_obs.get_node_stat('median','xtrack') )
+        lon_median = N.asarray( self.river_obs.get_node_stat('median','lon') )
+        lat_median = N.asarray( self.river_obs.get_node_stat('median','lat') )
+        ds = N.asarray( self.river_obs.get_node_stat('value','ds') )
+
+        h_true_ave = N.asarray( self.river_obs.get_node_stat('median','h_true') )
+        h_true_std = N.asarray( self.river_obs.get_node_stat('std','h_true') )
+        h_noise_ave = N.asarray( self.river_obs.get_node_stat('median','h_noise') )
+        h_noise_std = N.asarray( self.river_obs.get_node_stat('std','h_noise') )
+        h_no_noise_ave = N.asarray( self.river_obs.get_node_stat('median','h_no_noise') )
+        h_no_noise_std = N.asarray( self.river_obs.get_node_stat('std','h_no_noise') )
 
         # The following are estimates of river width
 
@@ -378,73 +496,87 @@ class SWOTRiverEstimator(SWOTL2):
         area = N.asarray( self.river_obs.get_node_stat('sum','inundated_area') )
         width_area = N.asarray( self.river_obs.get_node_stat('width_area','inundated_area') )
 
+        # These are the values from the width database
+
+        width_db = N.ones(self.river_obs.n_nodes,dtype=N.float64)*self.river_obs.missing_value
+        if use_width_db:
+            windex = self.river_obs.centerline_obs['max_width'].populated_nodes
+            width_db[windex] = self.river_obs.centerline_obs['max_width'].v
+            width_db = width_db[self.river_obs.populated_nodes]
+
+        # Get the start and end
+
+        smin = s_median.min()
+        smax = s_median.max()
+
         # Initialize the fitter
         
         self.fitter = FitRiver(self.river_obs)
 
-        sstop = self.river_obs.centerline.s.max()
-        smax = smin + subreach_size
-
-        first = True
-        results_df = None
-        while smax <= sstop:
-
-            print('Processing subreach smin: %.0f smax: %.0f'%(smin/1.e3,smax/1.e3))
-
-            # Check to see if there are sufficient number of points for fit
+        # Check to see if there are sufficient number of points for fit
             
-            good = ( s >= smin ) & ( s <= smax )
-            ngood = N.sum(good)
-            print('number of fit points: %d'%ngood)
+
+        ngood = len(s_median)
+        if self.verbose: print('number of fit points: %d'%ngood)
             
-            if ngood < min_fit_points:
-                print('not enough good points going to next reach')
-                smin += step
-                smax += step
-                continue
+        if ngood < min_fit_points:
+            nresults = None
+            nnresults = None
+            tresults = None
+            if self.verbose: print('not enough good points for fit')
+        else:
                 
-            # Do the fitting for this subreach
+            # Do the fitting for this reach
           
-            nresults, nnresults, tresults = self.process_subreach(smin,smax,
-                                                                  fit_types=fit_types)
-            print('Estimation finished')
+            nresults, nnresults, tresults = self.estimate_height_slope(smin,smax,
+                                                                        fit_types=fit_types,
+                                                                        mean_stat='median')
+            if self.verbose: print('Estimation finished')
 
-            # Get the reach statistics for this subreach
+        if self.store_fits:
+            self.fit_collection[reach_id,'true'] = tresults
+            self.fit_collection[reach_id,'noise'] = nresults
+            self.fit_collection[reach_id,'no_noise'] = nnresults
 
-            reach_stats = self.get_reach_stats(good,
-                                               lon_min, lat_min, lon_max, lat_max,
-                                               xtrack_mean,xtrack_min,xtrack_max,
-                                               width_ptp,width_std,width_area,area)
-            print('stats calculated')
-            print('width_ptp: %.1f'%reach_stats.width_ptp_mean)
-            print('width_std: %.1f'%reach_stats.width_std_mean)
-            print('width_area: %.1f'%reach_stats.width_area_mean)
+        # Get the reach statistics for this subreach
+        
+        reach_stats = self.get_reach_stats(reach_id,reach_idx,smin,smax,
+                                           lon_median, lat_median, 
+                                            xtrack_median,
+                                            width_ptp,width_std,width_area,area,
+                                            tresults,nresults,nnresults)
 
-            # Put the results into a data frame
+        # Put the results into a RiverReach object
 
-            if first:
-                results_df = self.get_results_df(smin,smax,reach,
-                                            nresults, nnresults, tresults,
-                                            reach_stats)
-                first = False
-            else:
-                df = self.get_results_df(smin,smax,reach,
-                                        nresults, nnresults, tresults,
-                                        reach_stats)
-                print df.shape
-                #results_df.append(df)#,ignore_index=True)
-                results_df = pd.concat([results_df, df])
-                print results_df.shape
-                
-            print('Data frame updated')
-                
+        river_reach = RiverReach(lat=lat_median,
+                                 lon=lon_median,
+                                 x = x_median,
+                                 y = y_median,
+                                 nobs = nobs,
+                                 s = s_median,
+                                 ds = ds,                                 
+                                 xtrack = xtrack_median,
+                                 w_ptp = width_ptp,
+                                 w_std = width_std,
+                                 w_area = width_area,
+                                 w_db = width_db,
+                                 area = area,
+                                 h_t_ave = h_true_ave,
+                                 h_t_std = h_true_std,                                 
+                                 h_n_ave = h_noise_ave,
+                                 h_n_std = h_noise_std,
+                                 h_nn_ave = h_no_noise_ave,
+                                 h_nn_std = h_no_noise_std,
+                                 metadata = reach_stats)
 
-            smin += step
-            smax += step
+        # Store, if desired
+        
+        if self.store_obs:
+            self.river_obs_collection[reach_idx] = self.river_obs
+                        
+        return river_reach
 
-        return results_df
-
-    def process_subreach(self,smin,smax,fit_types=['OLS','WLS','RLM']):
+    def estimate_height_slope(self,smin,smax,fit_types=['OLS','WLS','RLM'],mean_stat='median'):
         """Get fit results for this subreach."""
         
         if type(fit_types) == str:
@@ -452,17 +584,18 @@ class SWOTRiverEstimator(SWOTL2):
 
         tresults = odict()
         load_inputs=True
-        for fit_type in ['OLS']: #fit_types:
-            tresults[fit_type] = self.fitter.fit_linear(smin,smax,'h_true',
-                                                       fit=fit_type,
-                                                       load_inputs=load_inputs)
-            load_inputs = False
+        tresults['OLS'] = self.fitter.fit_linear(smin,smax,'h_true',
+                                                    fit='OLS',
+                                                    mean_stat=mean_stat,
+                                                    load_inputs=load_inputs)
+        load_inputs = False
 
         nresults = odict()
         load_inputs=True
         for fit_type in fit_types:
             nresults[fit_type] = self.fitter.fit_linear(smin,smax,'h_noise',
                                                        fit=fit_type,
+                                                       mean_stat=mean_stat,
                                                        load_inputs=load_inputs)
             load_inputs = False
 
@@ -471,118 +604,94 @@ class SWOTRiverEstimator(SWOTL2):
         for fit_type in fit_types:
             nnresults[fit_type] = self.fitter.fit_linear(smin,smax,'h_no_noise',
                                                        fit=fit_type,
+                                                       mean_stat=mean_stat,
                                                        load_inputs=load_inputs)
             load_inputs = False
 
         return nresults, nnresults, tresults
 
-    def get_reach_stats(self,good,
-                        lon_min, lat_min, lon_max, lat_max,
-                        xtrack_mean,xtrack_min,xtrack_max,
-                        width_ptp,width_std,width_area,area):
+    def get_reach_stats(self,reach_id,reach_idx,smin,smax,
+                        lon_median, lat_median, 
+                        xtrack_median,
+                        width_ptp,width_std,width_area,area,
+                        tresults,nresults,nnresults):
         """Get statistics for a given reach."""
 
-        class reach_stats:
-            pass
+        reach_stats = odict()
 
-        reach_stats.lon_min = N.min(lon_min[good])
-        reach_stats.lon_max = N.max(lon_max[good])
-        reach_stats.lat_min = N.min(lat_min[good])
-        reach_stats.lat_max = N.max(lat_max[good])
-        reach_stats.xtrack_mean = N.mean(xtrack_mean[good])
-        reach_stats.xtrack_min = N.min(xtrack_mean[good])
-        reach_stats.xtrack_max = N.max(xtrack_mean[good])
-        reach_stats.width_ptp_mean = N.mean(width_ptp[good])
-        reach_stats.width_ptp_min = N.min(width_ptp[good])
-        reach_stats.width_ptp_max = N.max(width_ptp[good])
-        reach_stats.width_std_mean = N.mean(width_std[good])
-        reach_stats.width_std_min = N.min(width_std[good])
-        reach_stats.width_std_max = N.max(width_std[good])
-        reach_stats.width_area_mean = N.mean(width_area[good])
-        reach_stats.width_area_min = N.min(width_area[good])
-        reach_stats.width_area_max = N.max(width_area[good])
-        reach_stats.area = N.sum(area[good])
+        reach_stats['reach_id'] = reach_id
+        reach_stats['reach_idx'] = reach_idx
+        reach_stats['lon_min'] = N.min(lon_median)
+        reach_stats['lon_max'] = N.max(lon_median)
+        reach_stats['lat_min'] = N.min(lat_median)
+        reach_stats['lat_max'] = N.max(lat_median)
+        reach_stats['area'] = N.sum(area)
+        reach_stats['length'] = smax - smin
+        reach_stats['smin'] = smin
+        reach_stats['smax'] = smax
+        reach_stats['w_ptp_ave'] = N.median(width_ptp)
+        reach_stats['w_ptp_min'] = N.min(width_ptp)
+        reach_stats['w_ptp_max'] = N.max(width_ptp)
+        reach_stats['w_std_ave'] = N.median(width_std)
+        reach_stats['w_std_min'] = N.min(width_std)
+        reach_stats['w_std_max'] = N.max(width_std)
+        reach_stats['w_area_ave'] = N.median(width_area)
+        reach_stats['w_area_min'] = N.min(width_area)
+        reach_stats['w_area_max'] = N.max(width_area)
+        reach_stats['xtrck_ave'] = N.median(xtrack_median)
+        reach_stats['xtrck_min'] = N.min(xtrack_median)
+        reach_stats['xtrck_max'] = N.max(xtrack_median)
 
+        # fitting results for h_true
+
+        if type(tresults) != type(None):
+            reach_stats['h_t'] = tresults['OLS'].params[1]
+            reach_stats['slp_t'] = tresults['OLS'].params[0]
+            reach_stats['t_rsqrd'] = tresults['OLS'].rsquared
+            reach_stats['t_mse'] = tresults['OLS'].mse_resid
+        else:
+            reach_stats['h_t'] = self.river_obs.missing_value
+            reach_stats['slp_t'] = self.river_obs.missing_value
+            reach_stats['t_rsqrd'] = self.river_obs.missing_value
+            reach_stats['t_mse'] = self.river_obs.missing_value
+            
+        tag = {'OLS':'o','WLS':'w','RLM':'r'}
+
+        if type(nresults) != type(None):
+            for fit_type in ['OLS','WLS','RLM']:
+                if fit_type in nresults:
+                    reach_stats['h_n%s'%tag[fit_type] ] = nresults[fit_type].params[1]
+                    reach_stats['slp_n%s'%tag[fit_type] ] = nresults[fit_type].params[0]
+                    try:
+                        reach_stats['n%s_rsqrd'%tag[fit_type] ] = nresults[fit_type].rsquared
+                        reach_stats['n%s_mse'%tag[fit_type] ] = nresults[fit_type].mse_resid
+                    except:
+                        reach_stats['n%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
+                        reach_stats['n%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
+                else:
+                    reach_stats['h_n%s'%tag[fit_type] ] = self.river_obs.missing_value
+                    reach_stats['slp_n%s'%tag[fit_type] ] = self.river_obs.missing_value
+                    reach_stats['n%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
+                    reach_stats['n%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
+
+        if type(nnresults) != type(None):                    
+            for fit_type in ['OLS','WLS','RLM']:
+                if fit_type in nresults:
+                    reach_stats['h_nn%s'%tag[fit_type] ] = nnresults[fit_type].params[1]
+                    reach_stats['slp_nn%s'%tag[fit_type] ] = nnresults[fit_type].params[0]
+                    try:
+                        reach_stats['nn%s_rsqrd'%tag[fit_type] ] = nnresults[fit_type].rsquared
+                        reach_stats['nn%s_mse'%tag[fit_type] ] = nnresults[fit_type].mse_resid
+                    except:
+                        reach_stats['nn%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
+                        reach_stats['nn%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
+                else:
+                    reach_stats['h_nn%s'%tag[fit_type] ] = self.river_obs.missing_value
+                    reach_stats['slp_nn%s'%tag[fit_type] ] = self.river_obs.missing_value
+                    reach_stats['nn%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
+                    reach_stats['nn%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
+                            
         return reach_stats
 
-    def get_results_df(self,
-                       smin,smax,reach,nresults, nnresults, tresults,
-                       reach_stats):
-        """Stuff the estimation results into a pandas DataFrame."""
-
-        reach_idx = reach.metadata['reach_idx']
-        
-        results_df = pd.DataFrame(odict([
-
-            # Location results
-            
-            ('reach_idx' , [reach_idx]),
-            ('lonmin' , [reach_stats.lon_min]),
-            ('latmin' , [reach_stats.lat_min]),
-            ('lonmax' , [reach_stats.lon_max]),
-            ('latmax' , [reach_stats.lat_max]),
-            ('input_file' , [self.input_file]),
-            ('smin' , [smin]),
-            ('smax' , [smax]),
-            ('xtrack_mean' , [reach_stats.xtrack_mean]),
-            ('xtrack_min' , [reach_stats.xtrack_min]),
-            ('xtrack_max' , [reach_stats.xtrack_max]),
-            
-            # width results
-            
-            ('width_ptp_mean' , [reach_stats.width_ptp_mean]),
-            ('width_ptp_min' , [reach_stats.width_ptp_min]),
-            ('width_ptp_max' , [reach_stats.width_ptp_max]),
-            ('width_std_mean' , [reach_stats.width_std_mean]),
-            ('width_std_min' , [reach_stats.width_std_min]),
-            ('width_std_max' , [reach_stats.width_std_max]),
-            ('width_area_mean' ,[reach_stats.width_area_mean]),
-            ('width_area_min' , [reach_stats.width_area_min]),
-            ('width_area_max' , [reach_stats.width_area_max]),
-            
-            # fitting results for h_true
-            
-            ('ols_h_true_mean' , [tresults['OLS'].params[1]]),
-            ('ols_h_true_slope' , [tresults['OLS'].params[0]]),
-            ('ols_h_true_rsquared' , [tresults['OLS'].rsquared]),
-            ('ols_h_true_mse_resid' , [tresults['OLS'].mse_resid]),
-            
-            # fitting results for h_noise
-            
-            ('ols_h_noise_mean' , [nresults['OLS'].params[1]]),
-            ('ols_h_noise_slope' , [nresults['OLS'].params[0]]),
-            ('ols_h_noise_rsquared' , [nresults['OLS'].rsquared]),
-            ('ols_h_noise_mse_resid' , [nresults['OLS'].mse_resid]),
-            
-            ('wls_h_noise_mean' , [nresults['WLS'].params[1]]),
-            ('wls_h_noise_slope' , [nresults['WLS'].params[0]]),
-            ('wls_h_noise_rsquared' , [nresults['WLS'].rsquared]),
-            ('wls_h_noise_mse_resid' , [nresults['WLS'].mse_resid]),
-            
-            ('rlm_h_noise_mean' , [nresults['RLM'].params[1]]),
-            ('rlm_h_noise_slope' , [nresults['RLM'].params[0]]),
-            #('rlm_h_noise_rsquared' , [nresults['RLM'].rsquared]),
-            #('rlm_h_noise_mse_resid' , [nresults['RLM'].mse_resid]),                        
-            
-            # fitting results for h_no_noise
-            
-            ('ols_h_no_noise_mean' , [nnresults['OLS'].params[1]]),
-            ('ols_h_no_noise_slope' , [nnresults['OLS'].params[0]]),
-            ('ols_h_no_noise_rsquared' , [nnresults['OLS'].rsquared]),
-            ('ols_h_no_noise_mse_resid' , [nnresults['OLS'].mse_resid]),
-            
-            ('wls_h_no_noise_mean' , [nnresults['WLS'].params[1]]),
-            ('wls_h_no_noise_slope' , [nnresults['WLS'].params[0]]),
-            ('wls_h_no_noise_rsquared' , [nnresults['WLS'].rsquared]),
-            ('wls_h_no_noise_mse_resid' , [nnresults['WLS'].mse_resid]),
-            
-            ('rlm_h_no_noise_mean' , [nnresults['RLM'].params[1]]),
-            ('rlm_h_no_noise_slope' , [nnresults['RLM'].params[0]]),
-            #('rlm_h_no_noise_rsquared' , [nnresults['RLM'].rsquared]),
-            #('rlm_h_no_noise_mse_resid' , [nnresults['RLM'].mse_resid]),                        
-            
-            ]))
-
-        return results_df
 
         

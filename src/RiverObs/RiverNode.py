@@ -87,6 +87,19 @@ class RiverNode:
         else:
             exec('self.%s = N.asarray(obs)'%obs_name)
 
+    def count(self,*pars,**kwds):
+        """Return the number of points in the node."""
+
+        return self.ndata
+
+    def value(self,var):
+        """Return self.value. Useful when getting stats for all nodes and a scalar variable
+        is desired."""
+
+        exec('value = self.%s'%var)
+        
+        return value
+
     def mean(self,var):
         """Return mean of a variable"""
 

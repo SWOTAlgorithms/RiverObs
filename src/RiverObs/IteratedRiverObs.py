@@ -364,7 +364,7 @@ class IteratedRiverObs(RiverObs):
 
         # Initialize the base class
 
-        print len(reach.x),len(reach.y),len(max_width)
+        ## print len(reach.x),len(reach.y),len(max_width)
         RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds_init,
                           max_width=max_width,
                             minobs=self.minobs,**self.robs_kwds)

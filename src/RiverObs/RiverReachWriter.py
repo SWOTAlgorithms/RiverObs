@@ -51,7 +51,7 @@ class RiverReachWriter:
     def write_nodes_ogr(self,output_file,driver='ESRI Shapefile'):
         """Write the nodes as points in a format supporter by OGR."""
 
-        self.fields = {}
+        self.fields = odict()
         self.fields['reach_idx'] = 'int'
         for var in self.node_output_variables:
             if  ((self.node_vars[var][0].dtype == N.float64) or
@@ -89,7 +89,7 @@ class RiverReachWriter:
     def write_reaches_ogr(self,output_file,driver='ESRI Shapefile'):
         """Write the nodes as points in a format supporter by OGR."""
 
-        self.reach_fields = {}
+        self.reach_fields = odict()
         for var in self.reach_output_variables:
             t = type(self.reach_vars[var][0])
             if  (t == float):
@@ -106,7 +106,7 @@ class RiverReachWriter:
         for i,reach in enumerate(self.reaches):
             x = reach.lon
             y = reach.lat
-            field_record = {}
+            field_record = odict()
             for var in self.reach_vars:
                 if self.reach_fields[var] == 'int':
                     v = int(self.reach_vars[var][i])

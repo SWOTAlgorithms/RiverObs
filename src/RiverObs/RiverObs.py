@@ -7,6 +7,7 @@ The class supports extracting summary observations from each node and
 returning them for analaysis (e.g., fitting).
 """
 
+from copy import copy
 from collections import OrderedDict as odict
 import numpy as N
 from Centerline import Centerline
@@ -44,11 +45,18 @@ class RiverObs:
         minimum number of observations for each node.
     node_class: class
         either RiverNode, or a class derived from it.
+    missing_value : float, default -999999999
+        This value is reported when a node_stat is requested of an empty node.
+    verbose : bool, default False
+        Output progress to stdout
 
     """
 
     def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1,
-                 node_class=RiverNode):
+                 node_class=RiverNode,missing_value=-999999999,verbose=False):
+        
+        self.verbose = verbose
+        self.missing_value = missing_value
 
         # Register the node class
 
@@ -72,7 +80,7 @@ class RiverObs:
             self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds,
                                          obs=[max_width],obs_names=['max_width'])
         self.max_width = self.centerline.max_width
-        print('Centerline initialized')
+        if self.verbose: print('Centerline initialized')
 
         # Associate an along-track dimension to each node
 
@@ -92,7 +100,7 @@ class RiverObs:
         # relative to the nearest point coordinate system.
 
         self.index,self.d,self.x,self.y,self.s,self.n = self.centerline(xobs,yobs)
-        print('Local coordiantes calculated')
+        if self.verbose: print('Local coordiantes calculated')
 
         # Assign to each point the actual along-track distance, not just the delta s
 
@@ -151,7 +159,19 @@ class RiverObs:
                 self.populated_nodes.append(node)
                 self.obs_to_node_map[node] = obs_index
                 self.nobs[node] = nobs
+                
+        self.n_populated_nodes = len(self.populated_nodes)
 
+        # Store also a list of all the potential nodes and all the unpopulated nodes
+
+        self.n_nodes = len(self.centerline.s)
+        self.all_nodes = N.arange(self.n_nodes,dtype=N.int32)
+        self.unpopulated_nodes = []
+        for node in self.all_nodes:
+            if not node in self.populated_nodes:
+                self.unpopulated_nodes.append(node)
+        self.n_unpopulated_nodes = len(self.unpopulated_nodes)
+        
         return self.populated_nodes, self.obs_to_node_map
 
     def add_obs(self,obs_name,obs):
@@ -224,7 +244,7 @@ class RiverObs:
                 exec('obs = self.obs_to_node(self.%s,node)'%var)
                 self.river_nodes[node].add_obs(var,obs,sort=False)
 
-    def get_node_stat(self,stat,var):
+    def get_node_stat(self,stat,var,all_nodes=False):
         """Get a list of results of applying a given stat to a river node variable.
         
         Both stat and var are strings. var should be the name of an instance variable
@@ -234,12 +254,27 @@ class RiverObs:
         result given the variable name.
 
         Example stats are: 'mean', 'std', 'cdf'
+
+        If all_nodes is True, populated and unpopulated nodes are returned.
+        Otherwise, only populated nodes are returned.
+
+        The result is a list over desired nodes, with the populated nodes
+        holding the result and the unpopulated nodes (when requested) holding the
+        missing_value.
         """
 
         result = []
-        for node, river_node in self.river_nodes.iteritems():
-            exec('result.append( river_node.%s("%s") )'%(stat,var) )
-
+        if all_nodes:
+            for node in self.all_nodes:
+                if node in self.populated_nodes:
+                    river_node = self.river_nodes[node]
+                    exec('result.append( river_node.%s("%s") )'%(stat,var) )
+                else:
+                    result.append(self.missing_value)
+        else:
+            for node, river_node in self.river_nodes.iteritems():
+                exec('result.append( river_node.%s("%s") )'%(stat,var) )
+                
         return result
 
 
@@ -256,4 +291,36 @@ class RiverObs:
         for node, river_node in self.river_nodes.iteritems():
             river_node.sort(sort_variable=sort_variable)
             river_node.trim(fraction,mode=mode)
+
+    def remove_nodes(self,node_list,reverse=False):
+        """Move nodes from the populated node list to the unpopulated node list.
+
+        If reverse is True, move in the opposite direction. No information is
+        lost during this process and it is invertible. Both lists are kept
+        sorted at each step."""
+
+        if not reverse:
+            from_list = copy(self.populated_nodes)
+            to_list = copy(self.unpopulated_nodes)
+        else:
+            to_list = copy(self.populated_nodes)
+            from_list = copy(self.unpopulated_nodes)
+
+        for node in node_list:
+            try:
+                index = from_list.index(node)
+                from_list.pop(node)
+                to_list.append(node)
+            except:
+                pass
+
+        from_list.sort()
+        to_list.sort()
+        if not reverse:
+            self.populated_nodes = from_list
+            self.unpopulated_nodes = to_list
+        else:
+            self.populated_nodes = to_list
+            self.unpopulated_nodes = from_list
+                
                 

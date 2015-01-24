@@ -85,15 +85,16 @@ class ReachExtractor:
 
             x, y = lat_lon_region.proj(lon, lat)
 
-            # Get the metadata
+            # Get the metadata and reach index
 
             metadata = {}
             record = self.dbf[i][0]
-            for i,field in enumerate(self.dbf_header):
-                metadata[field] = record[i]
+            reach_index = i
+            for j,field in enumerate(self.dbf_header):
+                metadata[field] = record[j]
                 if field == 'reach_idx':
-                    reach_index = record[i]
-                    self.reach_idx.append(reach_index)
+                    reach_index = record[j]
+            self.reach_idx.append(reach_index)
 
             # Append the river reach
 

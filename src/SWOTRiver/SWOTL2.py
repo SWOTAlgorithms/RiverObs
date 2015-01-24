@@ -30,6 +30,8 @@ class SWOTL2:
         the netcdf name of the classification layer to use.
     min_points : int
         If the number of good points is less than this, raise an exception.
+    verbose : bool, default False
+        If True, print to sdtout while processing.
 
     Notes
     ------
@@ -55,13 +57,16 @@ class SWOTL2:
                  class_kwd='no_layover_classification',
                  min_points=100,
                  project_data=True,
+                 verbose=False,
                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
                 ellps='WGS84',**proj_kwds):
 
+        self.verbose = verbose
+        
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
         
         self.nc = Dataset(swotL2_file)
-        print('Dataset opened')
+        if self.verbose: print('Dataset opened')
 
         # Get some of the metadata
 
@@ -72,13 +77,13 @@ class SWOTL2:
             
         self.set_index_and_bounding_box(bounding_box,lat_kwd,lon_kwd,
                                         class_list,class_kwd=class_kwd)
-        print('Good data selected & bounding box calculated.')
+        if self.verbose: print('Good data selected & bounding box calculated.')
 
         # Get locations for these data (note that these should be the reference values)
 
         self.lat = self.get(lat_kwd)
         self.lon = self.get(lon_kwd)
-        print('lat/lon read')
+        if self.verbose: print('lat/lon read')
 
         # If not enough good points are found, raise Exception
 
@@ -91,7 +96,7 @@ class SWOTL2:
         if project_data:
             self.x, self.y = self.project(proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
                                         ellps=ellps,**proj_kwds)
-            print('projection set and x,y calculated')
+            if self.verbose: print('projection set and x,y calculated')
 
     def set_index_and_bounding_box(self,bounding_box,lat_kwd,lon_kwd,
                                    class_list,class_kwd='no_layover_classification'):
@@ -110,7 +115,7 @@ class SWOTL2:
         for i in range(1,len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
-        print 'Number of points in these classes: %d'%(N.sum(self.class_index))
+        if self.verbose: print 'Number of points in these classes: %d'%(N.sum(self.class_index))
         
         lat = self.nc.variables[lat_kwd][:]
         lon = self.nc.variables[lon_kwd][:]
@@ -127,10 +132,10 @@ class SWOTL2:
                        (lon >= self.lonmin) &
                        (lat <= self.latmax) &
                        (lon <= self.lonmax) )
-        print 'Number of points in bounding box: %d'%(N.sum(self.index))
+        if self.verbose: print 'Number of points in bounding box: %d'%(N.sum(self.index))
 
         self.index = self.index & self.class_index
-        print 'Number of good: %d'%(N.sum(self.index))
+        if self.verbose: print 'Number of good: %d'%(N.sum(self.index))
         
         lat = lat[self.index]
         lon = lon[self.index]
