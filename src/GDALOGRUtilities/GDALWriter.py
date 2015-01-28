@@ -144,7 +144,7 @@ def write_numpy_to_gdal(data,geotransform,wkt_proj,
             data.data[data.mask] = nodata_value
         band.WriteArray( data.data )
     else:
-        band.WriteArray( llh_data )
+        band.WriteArray( data.data )
         
     # Clean up by closing the dataset
 

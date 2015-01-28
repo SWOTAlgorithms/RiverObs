@@ -3,7 +3,7 @@ Make a parallel project tree, make desired files into C files, and copy other
 files over as Python files.
 """
 
-import os.path
+import os, os.path
 from subprocess import call
 from Cython.Build import cythonize
 
@@ -36,7 +36,6 @@ class CythonizeProject:
     def make_extensions(self,force_compile=True):
         """Return a list with all of the extensions for this package."""
 
-        #c_files = []
         modules = []
         for dir_ in self.included_dirs:
             for dirname, dirnames, filenames in os.walk(dir_):
@@ -47,24 +46,18 @@ class CythonizeProject:
                     file_ = os.path.join(dirname, filename)
                     stripped_name = os.path.split(file_)[-1] #os.path.relpath(file_, code_python_path)
                     file_name, extension = os.path.splitext(stripped_name)
-                    if extension == '.py':
-                        #target_file = os.path.join(src_dir, file_name + '.c')
+                    print file_
+                    if (extension == '.py') or (extension == '.pyx'):
                         if filename not in self.ignored_files:
-                            #c_files.append(stripped_name.replace('.py', '.c'))
-                            #file_dir = os.path.dirname(target_file)
-                            #if not os.path.exists(file_dir):
-                            #    os.makedirs(file_dir)
-                            #print stripped_name,build_dir
-                            #extension = cythonize(file_, #stripped_name,
-                            #                        force=force_compile,
-                            #                        build_dir=build_dir)
-                            print file_
                             modules += cythonize(file_,
                                             force=force_compile,
                                             build_dir=self.build_dir)
                             
                         else: # Copy the file to the source directory
                             file_copy = os.path.join(self.build_dir,file_)
+                            cp_dir = os.path.split(file_copy)[0]
+                            if not os.path.exists(cp_dir):
+                                os.makedirs(cp_dir)
                             call(['cp',file_,file_copy])
 
         return modules

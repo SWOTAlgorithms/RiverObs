@@ -5,7 +5,7 @@ various sources.
 
 from os.path import split,splitext
 from osgeo import ogr, osr
-from shapely.geometry import asShape, asPoint, asLineString
+from shapely.geometry import asShape, asPoint, asPolygon, asLineString
 from collections import OrderedDict
 
 class OGRWriter:

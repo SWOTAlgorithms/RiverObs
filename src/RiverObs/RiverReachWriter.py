@@ -34,6 +34,7 @@ class RiverReachWriter:
             
         for reach in self.reaches:
             for var in node_output_variables:
+                v = 0 # fake cython compiler
                 exec('v = reach.%s'%var)
                 self.node_vars[var].append(v)
 
@@ -246,7 +247,7 @@ def arc_distance(lon,lat):
 def arc_distance_xy(x,y):
     """Calculate the arc distance, give Cartesian coordinates."""
 
-    d = N.zeros(len(lon),dtype=N.float32)
+    d = N.zeros(len(x),dtype=N.float32)
     dx = x[1:] - x[0:-1]
     dy = y[1:] - y[0:-1]
 

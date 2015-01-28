@@ -9,3 +9,5 @@ HTML(toggle_input)
 """
 
 from toggle_input import *
+
+from version import __version__

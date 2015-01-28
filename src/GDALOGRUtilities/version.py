@@ -10,4 +10,8 @@
 
 # Fixed GDALWriter to accommodate NS or SN row order on input.
 
-__version__ = '0.2.2'
+#__version__ = '0.2.2'
+
+# Fixed GDALWriter and OGRWriter after compiling with cython
+
+__version__ = '0.2.3'

@@ -3,21 +3,9 @@
 
 ##Preliminaries
 
-These are the instructions for installing the RiverObs package
+These are the instructions for installing the RiverObs **binary** package
 written by Ernesto Rodriguez in a Unix (linux or Mac) machine with an
-[anaconda](https://store.continuum.io/cshop/anaconda) python setup,
-or using a [virtualenv](http://www.virtualenv.org/en/latest) with another python
-installation. In both cases, it is assumed that
-[numpy](http://scipy.org) is available. In addition, to use the
-ipython notebooks, it is assumed that [ipython](http://ipython.org) is also installed.
-If you do not have a lot of python experience, it is recommended that
-you follow the anaconda install route.
-
-In what follows, it is assumed that the environment variable RIVER_DIR has been 
-set to point to the root directory of the RiverObs package cloned
-by git. For instance, using bash
-
-	export RIVER_DIR=/home/erodrigu/SWOT/RiverObs
+[anaconda](https://store.continuum.io/cshop/anaconda) python setup.
 
 ##Python virtual environment installation
 
@@ -29,18 +17,19 @@ this writing).
 
 ###Setting up an anaconda virtual environment (Simplest)
 
-To create an anaconda virtual environment, execute:
+To create an anaconda virtual environment in a preselected directory
+(here, pointed by the environment variable RIVER_DIR):
 
 	cd $RIVER_DIR
 	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook
 	matplotlib gdal scipy pip scikit-image statsmodels pysal pandas
 	pytables shapely netcdf4 sphinx  numpydoc cython
 
-or (Simplest)
+or, to create an environment in the user's anaconda distribution  (Simplest)
 
-	conda create -n RiverObs numpy ipython ipython-notebook matplotlib
+	conda create -n RiverObsBinary numpy ipython ipython-notebook matplotlib
 	gdal scipy pip scikit-image statsmodels pysal pandas pytables
-	shapely netcdf4 sphinx  numpydoc cython
+	shapely netcdf4 sphinx numpydoc cython
 	
 To activate this environment, type
 
@@ -48,7 +37,7 @@ To activate this environment, type
 
 or 
 
-	source activate RiverObs
+	source activate RiverObsBinary
 	
 if anaconda/bin is in your path. Otherwise, use /path/to/anaconda/bin/source.
 
@@ -59,22 +48,6 @@ To deactivate this environment, type
 Equivalnetly, one can set
 
 	export PATH=$RIVER_DIR/anaconda/bin:$PATH
-
-###Setting up a python virtual environment
-
-In case you have a prexisting python environment with virtualenv,
-numpy, and ipython already installed, create a virtual environment for
-this project as follows:
-
-	virtualenv --system-site-packages $RIVER_DIR
-
-To activate this environment, type
-
-	source $RIVER_DIR/bin/activate
-
-and to deactivate
-
-	source deactivate
 
 
 ##Build additional package requirements
@@ -132,30 +105,8 @@ This is only required if you want to build the sphinx documentation:
 
 	pip install numpydoc
 
-##Build the package
+##Install the binary package
 
-Then, to build the RiverObs and associated packages:
-
-	cd $RIVER_DIR
-	python setup.py install --force
-
-For an anaconada local virtual environment, this will install the libraries in
-
-	$RIVER_DIR/anaconda/python2.7/site-packages
-
-and the executables in
-
-	$RIVER_DIR/anaconda/bin
-
-Otherwise, they are in similar directories in ~/anaconda/envs/RiverObs 
-
-For a virtualenv virtual environment, this will install the libraries in
-
-	$RIVER_DIR/lib/python2.7/site-packages
-
-and the executables in
-
-	$RIVER_DIR/bin
 
 
 

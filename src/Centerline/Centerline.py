@@ -207,6 +207,7 @@ class Centerline:
 
         self.obs_tck = {}
         for name in self.obs_names:
+            x = 0 # to fool cython compiler
             exec('x = self.%s'%name)
             self.obs_tck[name] = splrep(scoord,x,k=k,s=s,w=w,**kwds)
 

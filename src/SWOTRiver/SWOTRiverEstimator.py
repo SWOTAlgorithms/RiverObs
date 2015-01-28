@@ -334,7 +334,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             if type(max_width) == type(None):
                 try:
-                    max_width = reach.metadata['width_max']
+                    max_width = self.reaches[i].metadata['width_max']
                 except:
                     max_width = scalar_max_width
 

@@ -96,6 +96,7 @@ class RiverNode:
         """Return self.value. Useful when getting stats for all nodes and a scalar variable
         is desired."""
 
+        value = 0 # fake cython compiler
         exec('value = self.%s'%var)
         
         return value
@@ -103,6 +104,7 @@ class RiverNode:
     def mean(self,var):
         """Return mean of a variable"""
 
+        mean = 0 # fake cython compiler
         exec('mean = N.mean(self.%s[self.good])'%var)        
                  
         return mean
@@ -110,13 +112,15 @@ class RiverNode:
     def median(self,var):
         """Return mean of a variable"""
 
+        median = 0 # fake cython compiler
         exec('median = N.median(self.%s[self.good])'%var)        
                  
         return median
 
     def std(self,var):
         """Return std of a variable"""
-
+        
+        std = 0 # fake cython compiler
         exec('std = N.std(self.%s[self.good])'%var)        
                  
         return std
@@ -124,6 +128,7 @@ class RiverNode:
     def stderr(self,var):
         """Return standrad error of a variable"""
 
+        stderr = 0 # fake cython compiler
         scale = 1./N.sqrt(N.sum(self.good).astype(N.float))
         exec('stderr = scale*N.std(self.%s[self.good])'%var)        
                  
@@ -132,6 +137,7 @@ class RiverNode:
     def min(self,var):
         """Return min of a variable"""
 
+        min = 0 # fake cython compiler
         exec('min = N.min(self.%s[self.good])'%var)        
                  
         return min
@@ -139,6 +145,7 @@ class RiverNode:
     def max(self,var):
         """Return max of a variable"""
 
+        max = 0 # fake cython compiler
         exec('max = N.max(self.%s[self.good])'%var)        
                  
         return max
@@ -146,6 +153,7 @@ class RiverNode:
     def ptp(self,var):
         """Return peak to peak variation of a variable"""
 
+        ptp = 0 # fake cython compiler
         exec('ptp = N.ptp(self.%s[self.good])'%var)        
                  
         return ptp
@@ -153,6 +161,7 @@ class RiverNode:
     def percentile(self,var,q):
         """Return qth percentile of a variable"""
 
+        percentile = 0 # fake cython compiler
         exec('percentile = N.percentile(self.%s[self.good],q)'%var)        
                  
         return percentile
@@ -160,6 +169,7 @@ class RiverNode:
     def sum(self,var):
         """Return the sum of all variable values (e.g., for area)."""
 
+        sum = 0 # fake cython compiler
         exec('sum = N.sum(self.%s[self.good])'%var)        
                  
         return sum
@@ -167,6 +177,7 @@ class RiverNode:
     def cdf(self,var):
         """Get the cdf for a variable."""
 
+        x = 0 # fake cython compiler
         ngood = N.sum(self.good.astype(N.int32))
         cdf = N.cumsum(N.ones(ngood,dtype=N.float64))
         cdf /= cdf[-1]
@@ -178,6 +189,7 @@ class RiverNode:
         """Update the good flag to places where the variable var_name
         is within a range of values."""
 
+        x = 0 # fake cython compiler
         exec('x = self.%s'%var_name)
 
         good = ( x >= var_min ) & ( x <= var_max)

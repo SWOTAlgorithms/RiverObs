@@ -241,6 +241,7 @@ class RiverObs:
             n = self.obs_to_node(self.n,node)
             self.river_nodes[node] = self.node_class(node,d,x,y,s,n,ds=self.ds[node])
             for var in vars:
+                obs = None # fake cython compiler
                 exec('obs = self.obs_to_node(self.%s,node)'%var)
                 self.river_nodes[node].add_obs(var,obs,sort=False)
 
