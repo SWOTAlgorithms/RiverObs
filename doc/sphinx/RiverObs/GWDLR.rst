@@ -1,27 +1,30 @@
-GWDLR Package
+GWDLR package
 =============
 
-:mod:`GWDLR` Package
---------------------
+Submodules
+----------
 
-.. automodule:: GWDLR
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`GWDLR` Module
--------------------
+GWDLR.GWDLR module
+------------------
 
 .. automodule:: GWDLR.GWDLR
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`GWDLR2shape` Module
--------------------------
+GWDLR.GWDLR2shape module
+------------------------
 
 .. automodule:: GWDLR.GWDLR2shape
     :members:
     :undoc-members:
     :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: GWDLR
+    :members:
+    :undoc-members:
+    :show-inheritance:

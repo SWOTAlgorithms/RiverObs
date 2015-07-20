@@ -16,8 +16,18 @@ should get familiar with the basic :ref:`Concepts`. The
 :ref:`Overview` presents a brief description of the packages that form
 part of the distribution, and their dependencies. The :ref:`Installation`
 give detailed instructions on how to set up and build the
-package. Finally, the :ref:`API` contains a detailed listing of all of
-the packages, documentation, and links to the source code.
+package. The :ref:`API` contains a detailed listing of all of
+the packages, and interface documentation.
+
+Tutorial examples of how to use some of the basic classes using simulated data
+are contained in :ref:`centerline-usage` and
+:ref:`centerline-refinement`.
+
+Finally, a typical workflow will consist in making a set of input
+reaches, reading these reaches and some data, estimating river
+widths, heights and slopes, and, finally, writing out the results in
+files that can be read by GIS programs. These steps are illustrated in
+:ref:`reach-preprocessing` and :ref:`end-to-end-example`. 
 
 
 Contents:
@@ -26,12 +36,12 @@ Contents:
    :maxdepth: 1
 
    RiverObsConcepts
-   ReachPreProcessorExample
+   Overview 
+   Installation 
    CenterlineUsageExample
-   RiverNodeUsageExample
-   RiverObsUsageExample
-   Overview
-   Install
+   CenterlineRefinementExample
+   ReachPreProcessorExample 
+   EndToEndProcessingExample.rst
    API
 
 

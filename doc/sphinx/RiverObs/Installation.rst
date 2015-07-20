@@ -1,4 +1,6 @@
-RiverObs Installation Instructions
+.. _Installation:
+
+Installation
 ==================================
 
 Preliminaries

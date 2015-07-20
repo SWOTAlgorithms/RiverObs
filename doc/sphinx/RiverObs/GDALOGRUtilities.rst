@@ -1,83 +1,86 @@
-GDALOGRUtilities Package
+GDALOGRUtilities package
 ========================
 
-:mod:`GDALOGRUtilities` Package
--------------------------------
+Submodules
+----------
 
-.. automodule:: GDALOGRUtilities
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`CoordinateTransformations` Module
----------------------------------------
+GDALOGRUtilities.CoordinateTransformations module
+-------------------------------------------------
 
 .. automodule:: GDALOGRUtilities.CoordinateTransformations
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`GDALInfo` Module
-----------------------
+GDALOGRUtilities.GDALInfo module
+--------------------------------
 
 .. automodule:: GDALOGRUtilities.GDALInfo
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`GDALLatLonLayer` Module
------------------------------
+GDALOGRUtilities.GDALLatLonLayer module
+---------------------------------------
 
 .. automodule:: GDALOGRUtilities.GDALLatLonLayer
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`GDALWriter` Module
-------------------------
+GDALOGRUtilities.GDALWriter module
+----------------------------------
 
 .. automodule:: GDALOGRUtilities.GDALWriter
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`GDALutilities` Module
----------------------------
+GDALOGRUtilities.GDALutilities module
+-------------------------------------
 
 .. automodule:: GDALOGRUtilities.GDALutilities
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`GeodeticPath` Module
---------------------------
+GDALOGRUtilities.GeodeticPath module
+------------------------------------
 
 .. automodule:: GDALOGRUtilities.GeodeticPath
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`OGR2Shapely` Module
--------------------------
+GDALOGRUtilities.OGR2Shapely module
+-----------------------------------
 
 .. automodule:: GDALOGRUtilities.OGR2Shapely
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`OGRWriter` Module
------------------------
+GDALOGRUtilities.OGRWriter module
+---------------------------------
 
 .. automodule:: GDALOGRUtilities.OGRWriter
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`version` Module
----------------------
+GDALOGRUtilities.version module
+-------------------------------
 
 .. automodule:: GDALOGRUtilities.version
     :members:
     :undoc-members:
     :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: GDALOGRUtilities
+    :members:
+    :undoc-members:
+    :show-inheritance:

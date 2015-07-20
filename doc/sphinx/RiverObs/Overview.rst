@@ -1,4 +1,4 @@
-RiverObs
+RiverObs Packages Overview
 ========
 
 This is a package written initially by `Ernesto

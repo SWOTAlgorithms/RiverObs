@@ -12,10 +12,10 @@ Contents:
    GDALOGRUtilities
    GWDLR
    GeometryDataBase
+   PyRivWidth
    RDF
    RiverObs
    SWOTRiver
-
 
 Indices and tables
 ==================

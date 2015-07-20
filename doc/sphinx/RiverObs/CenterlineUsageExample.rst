@@ -1,3 +1,4 @@
+.. _centerline-usage:
 
 Centerline Usage Example
 ========================

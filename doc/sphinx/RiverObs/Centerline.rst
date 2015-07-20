@@ -1,27 +1,30 @@
-Centerline Package
+Centerline package
 ==================
 
-:mod:`Centerline` Package
--------------------------
+Submodules
+----------
 
-.. automodule:: Centerline
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`Centerline` Module
-------------------------
+Centerline.Centerline module
+----------------------------
 
 .. automodule:: Centerline.Centerline
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`version` Module
----------------------
+Centerline.version module
+-------------------------
 
 .. automodule:: Centerline.version
     :members:
     :undoc-members:
     :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: Centerline
+    :members:
+    :undoc-members:
+    :show-inheritance:

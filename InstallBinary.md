@@ -20,26 +20,11 @@ this writing).
 To create an anaconda virtual environment in a preselected directory
 (here, pointed by the environment variable RIVER_DIR):
 
-	cd $RIVER_DIR
-	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook
-	matplotlib gdal scipy pip scikit-image statsmodels pysal pandas
-	pytables shapely netcdf4 sphinx  numpydoc cython
-
-or, to create an environment in the user's anaconda distribution  (Simplest)
-
-	conda create -n RiverObsBinary numpy ipython ipython-notebook matplotlib
-	gdal scipy pip scikit-image statsmodels pysal pandas pytables
-	shapely netcdf4 sphinx numpydoc cython
+	conda create -p $RIVER_DIR/RiverObsBinary --file RiverObsSetupPackages.txt
 	
 To activate this environment, type
 
-	source activate $RIVER_DIR/anaconda
-
-or 
-
-	source activate RiverObsBinary
-	
-if anaconda/bin is in your path. Otherwise, use /path/to/anaconda/bin/source.
+	source activate $RIVER_DIR/RiverObsBinary
 
 To deactivate this environment, type
 
@@ -47,7 +32,7 @@ To deactivate this environment, type
 
 Equivalnetly, one can set
 
-	export PATH=$RIVER_DIR/anaconda/bin:$PATH
+	export PATH=$RIVER_DIR/RiverObsBinary/bin:$PATH
 
 
 ##Build additional package requirements
@@ -75,14 +60,22 @@ libspatial index:
 	conda install -c https://conda.binstar.org/dougal libspatialindex
 	conda install -c https://conda.binstar.org/dougal rtree
 
-###Install Using pip and brew or manual compilation
+However, it has been reported that, depending of the linux
+distribution, these packages may have problems of library
+dependency. If these installations have problems, remove them using
+
+	conda remove libspatialindex
+	conda remove rtree
+
+and use the manual installation methods below.
+
+###Install Using pip and brew (OSX) or manual compilation
 
 Working inside the virtual environment, the following command:
 
 	pip install pyproj
-	pip install rtree
 
-In addition, [rtree](https://github.com/Toblerity/rtree) requires the
+[Rtree](https://github.com/Toblerity/rtree) requires the
 [libspatialindex](http://libspatialindex.github.io) library. On a Mac with
 [brew](http://brew.sh) this can be done easily:
 
@@ -90,25 +83,133 @@ In addition, [rtree](https://github.com/Toblerity/rtree) requires the
 
 On a generic Unix system, this can be done by downloading the code from
 [osgeo](http://download.osgeo.org/libspatialindex), and following the
-usual Unix install process. To avoid pat/ownership conflict, one can install into the
-anaconda installation:
+usual Unix install process. To avoid ownership conflict, one can install into the
+RiverObsBinary installation (e.g.):
 
-	tar xvzf spatialindex-src-1.8.1.tar.gz
-	cd spatialindex-src-1.8.1
-	./configure --prefix=~/anaconda
+	tar xvzf spatialindex-src-1.8.5.tar.gz
+	cd spatialindex-src-1.8.5
+	./configure --prefix=$RIVER_DIR/RiverObsBinary
 	make
 	make install
 
-###Install numpydoc for sphinx documentation (Optional)
+This should put the library in $RIVER_DIR/RiverObsBinary/lib and the
+includes in $RIVER_DIR/RiverObsBinary/include. To make sure they are
+in the load path, you may have to do the following in *nix systems:
 
-This is only required if you want to build the sphinx documentation:
+	export LD_LIBRARY_PATH=$RIVER_DIR/RiverObsBinary/lib
 
-	pip install numpydoc
+To install rtree, it should just be possible to issue the following
+command from within the virtual environment:
+
+	pip install rtree
+
+Unfortunately, this does not always work because in some systems
+ctypes.util.find_library fails to find the libspatialindex
+libraries. If you do have problems, you will have to download and
+install the riverobs branch of rtree as follows:
+
+	git clone https://github.com/skinkpad/rtree.git
+	cd rtree
+	git checkout riverobs
+	pip install .
+
+If for some reason that still does not work, point to the location of the libspatialindex_c library as follows
+(modify according to your system and installation):
+
+	export LIBSPATIALINDEX=$RIVER_DIR/RiverObsBinary/lib/libspatialindex_c.so
+
+before installing with pip as above.
+	
 
 ##Install the binary package
 
+For release 1.0.0, RiverObs packages for OSX and 64-bit linux
+architectures are provided. Once the appropriate package has been
+obtained, the RiverObs binary installation is completed by
 
+	cd $RIVER_DIR
+	tar xvzf RiverObsBinary_ARCH_version1.0.0.tgz
 
+where ARCH is either linux64 or OSX. The packages can the be accessed
+while working in the RiverObsBinary environment. The the actual
+packages provided are:
 
+    tar tzf RiverObsBinary_linux64_version1.0.0.tgz 
+    RiverObsBinary/bin/estimate_swot_river.py
+    RiverObsBinary/lib/python2.7/site-packages/Centerline/
+    RiverObsBinary/lib/python2.7/site-packages/Centerline/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/Centerline/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/Centerline/version.py
+    RiverObsBinary/lib/python2.7/site-packages/Centerline/Centerline.so
+    RiverObsBinary/lib/python2.7/site-packages/Centerline/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/GDALWriter.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/GDALutilities.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/GeodeticPath.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/CoordinateTransformations.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/OGRWriter.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/version.py
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/GDALLatLonLayer.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/OGR2Shapely.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/GDALInfo.so
+    RiverObsBinary/lib/python2.7/site-packages/GDALOGRUtilities/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/GeometryDataBase/
+    RiverObsBinary/lib/python2.7/site-packages/GeometryDataBase/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/GeometryDataBase/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/GeometryDataBase/version.py
+    RiverObsBinary/lib/python2.7/site-packages/GeometryDataBase/GeometryDataBase.so
+    RiverObsBinary/lib/python2.7/site-packages/GeometryDataBase/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/GWDLR2shape.so
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/version.py
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/GWDLR.so
+    RiverObsBinary/lib/python2.7/site-packages/GWDLR/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/RDF/
+    RiverObsBinary/lib/python2.7/site-packages/RDF/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/RDF/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/RDF/RDF_to_class.so
+    RiverObsBinary/lib/python2.7/site-packages/RDF/version.py
+    RiverObsBinary/lib/python2.7/site-packages/RDF/MRDF.so
+    RiverObsBinary/lib/python2.7/site-packages/RDF/ExecuteRDF.so
+    RiverObsBinary/lib/python2.7/site-packages/RDF/RDF.so
+    RiverObsBinary/lib/python2.7/site-packages/RDF/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/LatLonRegion.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/RiverNode.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/version.py
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/ReachPreProcessor.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/RiverReach.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/IteratedRiverObs.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/ReachExtractor.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/RiverObs.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/WidthDataBase.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/FitRiver.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/RiverReachWriter.so
+    RiverObsBinary/lib/python2.7/site-packages/RiverObs/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/SWOTL2.so
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/version.py
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/version.pyc
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/EstimateSWOTRiver.so
+    RiverObsBinary/lib/python2.7/site-packages/SWOTRiver/SWOTRiverEstimator.so
+    RiverObsBinary/lib/python2.7/site-packages/toggle_input/
+    RiverObsBinary/lib/python2.7/site-packages/toggle_input/__init__.py
+    RiverObsBinary/lib/python2.7/site-packages/toggle_input/__init__.pyc
+    RiverObsBinary/lib/python2.7/site-packages/toggle_input/toggle_input.so
+    RiverObsBinary/lib/python2.7/site-packages/toggle_input/version.py
+    RiverObsBinary/lib/python2.7/site-packages/toggle_input/version.pyc
 
+The files are owned by erodrigu. To correct this (which should
+not matter) you can do
 
+	chown -R user RiverObsBinary
+
+where user is your user name.

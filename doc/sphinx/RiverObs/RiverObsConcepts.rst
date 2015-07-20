@@ -33,18 +33,54 @@ and functions to gather information for all the nodes.
 Centerline
 ---------
  
-The
+The Centerline object can be thought of as a curved one-dimensional
+coordinate line, with a set of river node locations defined along it, and  with
+the capability to provide a mapping between any point in the plane (as
+long as it is not too far from the Centerline) to one of its node locations,
+and assigning normal and tangential coordinates relative to the node
+location. The basic functionality of the Centerline is reviewed in
+:ref:`centerline-usage`. Refining the Centerline so that it follows
+the data more closely is reviewed in :ref:`centerline-refinement`. 
 
 .. _river-node-overview:
 
 RiverNode
 ---------
 
-The
+A RiverNode is a data container associated with points on the
+Centerline. At a minimum, a RiverNode has the following elements:
+
+    index : int
+        index in the center line corresponding to this node
+    d : array_like
+        distance from the node to each of the data points
+    x : array_like
+        x coordinate of each measurement associated with the node
+    y : array_like
+        y coordinate of each measurement associated with the node
+    s : array_like
+        along-track coordinate (relative to the node center) for each point 
+    n : array_like
+        across-track (normal) coordinate (relative to the node center) for each point
+    ds : float
+        along-track dimension for this node. Defaults to 1. Needs to be set
+        correctly for width_area to work.
+
+In addition to this basic data, any other object can be stored in a
+RiverNode. Once data is stored in a node, it can be queried to produce
+a node statistic; e.g., the mean and standard deviations of the data
+stored in the node. Several statistic functions are provided in the
+RiverNode API.
 
 .. _river-obs-overview:
 
 RiverObs
 --------
 
-The
+A RiverObs is an object which contains a Centerline and a set of
+RiverNodes associated with that centerline. In addition, it stores the
+observation data and can provide statistic lists for each node. A
+derived class, IteratedRiverObs, also has the capability to iterate
+the centerline to fit the data better. An example of using an
+IteratedRiberObs to refine the centerline and load data onto all the
+nodes is provided in :ref:`centerline-refinement`.

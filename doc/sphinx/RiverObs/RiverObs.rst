@@ -1,67 +1,102 @@
-RiverObs Package
+RiverObs package
 ================
 
-:mod:`RiverObs` Package
------------------------
+Submodules
+----------
 
-.. automodule:: RiverObs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`FitRiver` Module
-----------------------
+RiverObs.FitRiver module
+------------------------
 
 .. automodule:: RiverObs.FitRiver
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`IteratedRiverObs` Module
-------------------------------
+RiverObs.IteratedRiverObs module
+--------------------------------
 
 .. automodule:: RiverObs.IteratedRiverObs
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`ReachExtractor` Module
+RiverObs.LatLonRegion module
 ----------------------------
+
+.. automodule:: RiverObs.LatLonRegion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+RiverObs.ReachExtractor module
+------------------------------
 
 .. automodule:: RiverObs.ReachExtractor
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`RiverNode` Module
------------------------
+RiverObs.ReachPreProcessor module
+---------------------------------
+
+.. automodule:: RiverObs.ReachPreProcessor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+RiverObs.RiverNode module
+-------------------------
 
 .. automodule:: RiverObs.RiverNode
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`RiverObs` Module
-----------------------
+RiverObs.RiverObs module
+------------------------
 
 .. automodule:: RiverObs.RiverObs
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`WidthDataBase` Module
----------------------------
+RiverObs.RiverReach module
+--------------------------
+
+.. automodule:: RiverObs.RiverReach
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+RiverObs.RiverReachWriter module
+--------------------------------
+
+.. automodule:: RiverObs.RiverReachWriter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+RiverObs.WidthDataBase module
+-----------------------------
 
 .. automodule:: RiverObs.WidthDataBase
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`version` Module
----------------------
+RiverObs.version module
+-----------------------
 
 .. automodule:: RiverObs.version
     :members:
     :undoc-members:
     :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: RiverObs
+    :members:
+    :undoc-members:
+    :show-inheritance:

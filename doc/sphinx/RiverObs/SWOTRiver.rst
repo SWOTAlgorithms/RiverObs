@@ -1,35 +1,38 @@
-SWOTRiver Package
+SWOTRiver package
 =================
 
-:mod:`SWOTRiver` Package
-------------------------
+Submodules
+----------
 
-.. automodule:: SWOTRiver
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`SWOTL2` Module
---------------------
+SWOTRiver.SWOTL2 module
+-----------------------
 
 .. automodule:: SWOTRiver.SWOTL2
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`SWOTRiverEstimator` Module
---------------------------------
+SWOTRiver.SWOTRiverEstimator module
+-----------------------------------
 
 .. automodule:: SWOTRiver.SWOTRiverEstimator
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`version` Module
----------------------
+SWOTRiver.version module
+------------------------
 
 .. automodule:: SWOTRiver.version
     :members:
     :undoc-members:
     :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: SWOTRiver
+    :members:
+    :undoc-members:
+    :show-inheritance:

@@ -1,3 +1,4 @@
+.. _reach-preprocessing:
 
 ReachPreProcessor Example
 =========================
@@ -246,3 +247,77 @@ as KML:
 
     reach_writer.write_nodes_ogr(node_output_name+'.kml',driver='KML')
     reach_writer.write_reaches_ogr(reach_output_name+'.kml',driver='KML')
+    !ls *.kml
+
+.. parsed-literal::
+
+    edited_nodes.kml   edited_reaches.kml
+
+
+Finally, one can write a new width data base, if one was provided to
+begin width.
+
+.. code:: python
+
+    width_db_file = 'edited_width_db'
+    river_df, reach_df = reach_writer.write_width_db(width_db_file,output_format='h5')
+    !ls *.h5
+
+.. parsed-literal::
+
+    edited_width_db.h5
+
+
+.. code:: python
+
+    print reach_df.head()
+
+.. parsed-literal::
+
+       break_idx     latmax     latmin      lonmax      lonmin  npoints  \
+    0        216  39.767700  39.730701 -121.955002 -122.023003      217   
+    1        468  39.730400  39.673801 -121.942001 -121.966003      252   
+    2        691  39.676601  39.647301 -121.967003 -121.999001      223   
+    3        930  39.648998  39.600498 -121.969002 -121.997002      239   
+    
+             reach  width_max  width_mean  width_min  width_std  
+    0  9950.324219        258  143.566820         60  42.893464  
+    1  9950.324219        381  140.880952         42  61.197262  
+    2  9950.324219        296  141.309417         60  49.618619  
+    3  9950.324219        270  132.682008         60  38.002413  
+
+
+.. code:: python
+
+    print river_df.head()
+
+.. parsed-literal::
+
+       width  nchannels  reservoir        long        lat  reach_index       reach
+    0    150          1          0 -122.023003  39.767700            0   22.081333
+    1    108          1          0 -122.023003  39.767502            0   55.627975
+    2     84          1          0 -122.023003  39.767200            0  147.514374
+    3     84          1          0 -122.022003  39.766899            0  180.636383
+    4    127          1          0 -122.022003  39.766602            0  203.142365
+
+
+.. code:: python
+
+    print river_df.tail()
+
+.. parsed-literal::
+
+         width  nchannels  reservoir        long        lat  reach_index  \
+    926    150          1          0 -121.997002  39.601501            3   
+    927    150          1          0 -121.997002  39.601299            3   
+    928    192          1          0 -121.997002  39.601002            3   
+    929    150          1          0 -121.997002  39.600700            3   
+    930    192          1          0 -121.997002  39.600498            3   
+    
+               reach  
+    926  9861.149414  
+    927  9894.271484  
+    928  9927.818359  
+    929  9950.324219  
+    930  9950.324219  
+

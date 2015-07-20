@@ -1,27 +1,30 @@
-GeometryDataBase Package
+GeometryDataBase package
 ========================
 
-:mod:`GeometryDataBase` Package
--------------------------------
+Submodules
+----------
 
-.. automodule:: GeometryDataBase
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`GeometryDataBase` Module
-------------------------------
+GeometryDataBase.GeometryDataBase module
+----------------------------------------
 
 .. automodule:: GeometryDataBase.GeometryDataBase
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`version` Module
----------------------
+GeometryDataBase.version module
+-------------------------------
 
 .. automodule:: GeometryDataBase.version
     :members:
     :undoc-members:
     :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: GeometryDataBase
+    :members:
+    :undoc-members:
+    :show-inheritance:
