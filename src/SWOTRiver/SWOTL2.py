@@ -64,7 +64,7 @@ class SWOTL2:
         self.verbose = verbose
         
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
-        
+        #print(swotL2_file)
         self.nc = Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
@@ -83,6 +83,19 @@ class SWOTL2:
 
         self.lat = self.get(lat_kwd)
         self.lon = self.get(lon_kwd)
+        #### added B. Williams Apr 24, 2017:
+        # need to put in the radar/image coordinates too
+        try:
+            self.img_x = self.get('range_index')
+            self.img_y = self.get('azimuth_index')
+        except:
+            print('Cant Find range_index, or azimuth_index variables, assuming 2D-image image coordinates (like from a gdem)')
+            Ny,Nx = N.shape(self.nc.variables[lat_kwd])# this should break if it is not an image like a gdem or an L2 pixel cloud
+            ix,iy = N.meshgrid(N.arange(Nx),N.arange(Ny))
+            self.img_x = ix[self.index]
+            self.img_y = iy[self.index]
+        ####
+
         if self.verbose: print('lat/lon read')
 
         # If not enough good points are found, raise Exception
@@ -140,10 +153,11 @@ class SWOTL2:
         lat = lat[self.index]
         lon = lon[self.index]
         
-        self.lonmin = lon.min()
-        self.latmin = lat.min()
-        self.lonmax = lon.max()
-        self.latmax = lat.max()
+        #self.lonmin = lon.min()
+        #self.latmin = lat.min()
+        #self.lonmax = lon.max()
+        #self.latmax = lat.max()
+        print(lon.min(),lon.max(),lat.min(),lat.max())
         self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
 
         # Update the classification
@@ -179,11 +193,13 @@ class SWOTL2:
         # Find lat_0 and lon_0 if not specified previously
 
         if lat_0 == None:
-            lat_0 = N.mean(self.lat)
-
+            #lat_0 = N.mean(self.lat)
+            # use center of bouding box instead of data centroid
+            lat_0=(self.bounding_box[3]+self.bounding_box[1])/2.0
         if lon_0 == None:
-            lon_0 = N.mean(self.lon)
-
+            #lon_0 = N.mean(self.lon)
+            # use center of bouding box instead of data centroid
+            lon_0=(self.bounding_box[2]+self.bounding_box[0])/2.0
         self.proj = Proj(proj=proj,lat_0=lat_0,lon_0=lon_0,x_0=x_0,y_0=y_0,ellps=ellps,**proj_kwds)
 
         self.x, self.y = self.proj(self.lon,self.lat)

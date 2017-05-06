@@ -70,7 +70,7 @@ class RiverObs:
             self.metadata = None
 
         self.ndata = len(xobs)
-            
+        #print('shape(xobs):',N.shape(xobs))    
         # Calculate the centerline for this reach
 
         if type(max_width) == type(None) or not N.iterable(max_width):
@@ -98,7 +98,8 @@ class RiverObs:
         # x,y: The coordiantes of the nearest point
         # s,n: The along and across track coordinates of the point
         # relative to the nearest point coordinate system.
-
+        
+        #print('centerline.x',self.centerline.x)
         self.index,self.d,self.x,self.y,self.s,self.n = self.centerline(xobs,yobs)
         if self.verbose: print('Local coordiantes calculated')
 

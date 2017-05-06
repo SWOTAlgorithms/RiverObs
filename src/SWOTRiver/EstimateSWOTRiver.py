@@ -59,6 +59,7 @@ l2_file = ../../data/OhioRightSwathData/heights/swot_intf_ohio_cycle_0001_pass_0
 
 fout_reach = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach 
 fout_node = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach 
+fout_index = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
 
 ! The bounding box tells what region is of interest. 
 ! It is sometimes required because the simulator sometimes has anomalous
@@ -76,14 +77,14 @@ bounding_box = lonmin,latmin,lonmax,latmax
 ! water file.
 
 ! either 'no_layover_latitude' (a priori lat) or 'latitude' (estimated lat)
-lat_kwd = 'latitude' 
+lat_kwd = latitude 
 ! either 'no_layover_longitude' (a priori lon) or 'longitude' (estimated lat)
-lon_kwd = 'longitude' 
+lon_kwd = longitude 
 ! either 'classification' (estimated classification)
 ! or 'no_layover_classification' (truth classification)
-class_kwd = 'classification'
+class_kwd = classification
 ! either 'height' (estimated height) or 'water_height' (truth height)
-height_kwd = 'height'
+height_kwd = height
 
 ! The third set of inputs have to do with how to use the classification
 ! to estimate river width
@@ -165,6 +166,10 @@ input_vars = {
 
     'l2_file' : ('l2_file','s'),
 
+    'fout_node' : ('fout_node','s'),
+    'fout_reach' : ('fout_reach','s'),
+    'fout_index' : ('fout_index','s'),
+    
     'lonmin' : ('lonmin','f'),
     'latmin' : ('latmin','f'),
     'lonmax' : ('lonmax','f'),
@@ -226,7 +231,11 @@ def main():
     # Parse the input RDF
 
     pars = RDF_to_class(input_vars,file=args.rdf_file)
-
+    
+    print(pars.l2_file)
+    print(pars.fout_reach)
+    print(pars.fout_node)
+    print(pars.fout_index)
     # Reformat some inputs
 
     bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
@@ -250,16 +259,17 @@ def main():
                                         min_points=pars.min_points,
                                         verbose=True,store_obs=False,
                                         store_reaches=False,
-                                        store_fits=False)
+                                        store_fits=False,
+                                        output_file=pars.fout_index)
 
     # Load the reaches and width data base
 
-    river_estimator.get_reaches(pars.shape_file_root, clip_buffer=pars.clip_buffer)
+    river_estimator.get_reaches(pars.shape_file_root,clip_buffer=pars.clip_buffer)
     if use_width_db:
         river_estimator.get_width_db(pars.width_db_file)
 
     # Process all of the reaches
-
+    #print "&&&&&&river_estimator:",river_estimator
     river_reach_collection = river_estimator.process_reaches(scalar_max_width=pars.scalar_max_width,
                     minobs=pars.minobs,min_fit_points=pars.min_fit_points,
                     fit_types=fit_types,
@@ -269,12 +279,17 @@ def main():
                     smooth=pars.smooth,alpha=pars.alpha,max_iter=pars.max_iter)
 
     # Initialize the output writer
-
+    #print river_reach_collection
     reach_output_variables = river_reach_collection[0].metadata.keys()
+    """
     node_output_variables = ['lat','lon','x','y','nobs','s','xtrack',
                             'w_ptp','w_std','w_area','w_db','area',
                             'h_t_ave','h_t_std','h_n_ave','h_n_std',
                             'h_nn_ave','h_nn_std']
+    """
+    node_output_variables = ['lat','lon','x','y','nobs','s',
+                            'w_ptp','w_std','w_area','w_db','area',
+                            'h_n_ave','h_n_std','x_prior','y_prior','node_indx','reach_indx']
 
     writer = RiverReachWriter(river_reach_collection,
                           node_output_variables,
@@ -285,7 +300,7 @@ def main():
     driver = args.format
     writer.write_nodes_ogr(pars.fout_node,driver=driver)
     writer.write_reaches_ogr(pars.fout_reach,driver=driver)
-
+    
     print('Successfuly estimated river heights and slopes')
 
 

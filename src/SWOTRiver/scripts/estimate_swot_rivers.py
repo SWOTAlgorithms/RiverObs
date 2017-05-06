@@ -20,7 +20,7 @@ def search_for_libraries():
         sys.stderr.write("Libraries not found. Make sure you are running in the SWOTRiver environment.\n")
         sys.exit(1)
         
-search_for_libraries()
+#search_for_libraries()
 
 # Imports
 
@@ -28,7 +28,8 @@ from os.path import join, split
 import argparse
 from glob import glob
 from SWOTRiver import SWOTRiverEstimator
-from SWOTRiver import WidthDataBase
+from RiverObs import WidthDataBase
+#from SWOTRiver import WidthDataBase
 from GDALOGRUtilities import OGRWriter
 from shapely.geometry import box
 from RDF import RDF_to_class, RDF
@@ -304,7 +305,7 @@ def main():
         # Process the reaches
 
         try:
-
+            """
             estimator.process_reaches(use_width_db=bool(pars.use_width_db),
                                     refine_centerline=bool(pars.refine_centerline),
                                     smooth=pars.smooth,alpha=pars.alpha,
@@ -313,7 +314,20 @@ def main():
                                     min_fit_points=pars.min_fit_points,
                                     step=pars.step,fit_types=pars.fit_types,
                                     ds=pars.ds,smin=pars.smin,minobs=pars.minobs,max_width=None)
+                                    """
+            estimator.process_reaches(use_width_db=bool(pars.use_width_db),
+                                    refine_centerline=bool(pars.refine_centerline),
+                                    smooth=pars.smooth,alpha=pars.alpha,
+                                    max_iter=pars.max_iter,scalar_max_width=pars.scalar_max_width,
+                                    min_fit_points=pars.min_fit_points,
+                                    fit_types=pars.fit_types,
+                                    ds=pars.ds,minobs=pars.minobs)
             print('reaches processed')
+            #print estimator.river_reach_collection[0]
+            #print estimator.river_reach_collection[0].h_n_ave
+            #estimator.store.append('reachHeights',estimator.river_reach_collection[0].h_n_ave)
+            #estimator.store.append('fits',estimator.fit_collection)
+            #estimator.store.append('obs',estimator.river_obs_collection)
         except:
             estimator.store.close()
             print('HDFStore closed')

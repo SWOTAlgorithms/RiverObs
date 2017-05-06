@@ -126,7 +126,15 @@ anaconda installation:
 	make
 	make install
 
+
+##### one can also just add the conda-forge channel and then import rtree with
+
+conda install rtree
+
+which will install rtere and libspatialindex
+
 ###Install numpydoc for sphinx documentation (Optional)
+
 
 This is only required if you want to build the sphinx documentation:
 

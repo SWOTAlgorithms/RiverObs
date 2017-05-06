@@ -79,7 +79,8 @@ setup(name='SWOTRiver',
       ## packages = find_packages()
       packages=['SWOTRiver',],
       scripts=[script_dir+'make_simulation_catalog.py',
-               script_dir+'estimate_swot_rivers.py',]
+               script_dir+'estimate_swot_rivers.py',
+               script_dir+'estimate_swot_river.py',]
      )
 
 exec(open('src/RiverObs/version.py').read())

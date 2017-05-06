@@ -47,7 +47,7 @@ class ReachExtractor:
     def __init__(self, shape_file_root, lat_lon_region,clip=True,
                  clip_buffer=0.1):
         # Open the geometry data base and shape files
-
+        #print('shape_file_root:',shape_file_root)
         self.db = GeometryDataBase2D(shape_file_root)
 
         # Open the shape and dbf files
@@ -59,12 +59,14 @@ class ReachExtractor:
         # Get the list of applicable reaches and extract them
 
         self.shape_idx = self.db.intersects_xy_bbox(lat_lon_region.bounding_box)
+        #print "####### SHAPE_IDX:",self.shape_idx
         self.reach_idx = []
 
         # Store the reaches in a list of RiverReaches
 
         self.reach = []
         bbox = lat_lon_region.bounding_box
+        #print('bbox:',bbox)
         for i in self.shape_idx:
 
             # Get the coordinates as arrays
@@ -84,23 +86,39 @@ class ReachExtractor:
             # Project into the L2 projection
 
             x, y = lat_lon_region.proj(lon, lat)
-
+            #print('lat_lon_region.proj',lat_lon_region.proj)
+            #print('lat_lon_region.x_0',lat_lon_region.x_0)
+            #print('lat_lon_region.y_0',lat_lon_region.y_0)
+            #print('clip_buffer:',clip_buffer)
+            #print('x,y',x,y)
+            #print('lat,lon',lat,lon)
             # Get the metadata and reach index
 
             metadata = {}
             record = self.dbf[i][0]
             reach_index = i
+            max_width = None
             for j,field in enumerate(self.dbf_header):
                 metadata[field] = record[j]
-                if field == 'reach_idx':
+                if field == 'reach_idx':#old grwl way
                     reach_index = record[j]
+                if field == 'reachID':#new database
+                    reach_index = record[j]
+                #if field == 'Wmean':#new database mean width
+                #    max_width = record[j]
+                #    print "max width:", max_width
             self.reach_idx.append(reach_index)
 
             # Append the river reach
-
+            #if max_width==None:
             self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,
                                          metadata=metadata,
                                          reach_index=reach_index))
+            #else:
+            #    self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,
+            #                                 metadata=metadata,
+            #                                 reach_index=reach_index,
+            #                                 width_max=width_max))
 
         
         # Set the iterator indexes
