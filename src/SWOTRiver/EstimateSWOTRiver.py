@@ -45,10 +45,10 @@ optional arguments:
 
 ! These are the locations of the reach data and the width data base (if desired)
 
-! This is the width database (if desired)
+! This is the width database (if desired), no longer needed since prior database has al this info
 width_db_file = ../../data/Databases/OhioRightSwath_GRWDL.h5
 
-! This is the path to the reach files (not including the .shp suffix)
+! This is the path to the reach files (not including the .shp suffix), this is the prior reach database
 shape_file_root = ../../data/Databases/OhioRightSwath_GRWDL_river_topo/OhioRightSwath_GRWDL_river_topo
 
 ! This is the location of the simulated water file
@@ -62,10 +62,10 @@ fout_node = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLo
 fout_index = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
 
 ! The bounding box tells what region is of interest. 
-! It is sometimes required because the simulator sometimes has anomalous
-! latitudes and longitudes. If this is not the case, it can be set to None.
-! It does not have to be very accurate, just good enough to exclude location anomalies.
-! It will be updated to the true bounding box by the program.
+! The center of this bounding box defines the x,y projection that the nodes are defined on.
+! Generally, should make this to just cover the "tile" (or gdem or gdem_dem extent).
+! The bounding box is no longer updated based on the data to enable processing gdem as well as pixc
+! and get the same node locations 
 
 lonmin = -125.
 latmin = 30.
@@ -95,7 +95,7 @@ height_kwd = height
 ! use_fractional_inundation is set.
 ! If it is not set, either [3,4] or [4] should be used.
 ! If it is set, [2,3,4] or [3,4] should be used.
-class_list = [2,3,4]
+class_list = [2,3,4,5]
 
 ! If the L2 water file has been updated to contain the fractional
 ! inundation, this is the name of the variable. If it has not been
@@ -105,7 +105,15 @@ fractional_inundation_kwd = 'continuous_classification'
 ! This corresponds to the clases set above. 
 ! If True, use fractional inundation estimate to get the inundated area for this class.
 ! If False, assume that this class is fully flooded.
-use_fractional_inundation=[True, True, False]
+use_fractional_inundation=[True, True, False, False]
+
+! This corresponds to the clases set above.
+! if true, assume this class if water for feature segmentation purposes
+use_segmentation=[False, True, True, True]
+
+! This corresponds to the clases set above.
+! if true, assume this class is good for estimating heights
+use_heights=[False, False, True, False]
 
 ! This is the minimum number of measurements that the data set must have.
 min_points=100
@@ -158,6 +166,8 @@ fit_types=['OLS','WLS','RLM']
 
 ! These are the minimum number of points required for a slope fit
 min_fit_points = 3
+
+!TODO: should simplify this rdf by using standard defaluts
 """
 
 # Input directory for RDF_to_class
@@ -183,6 +193,8 @@ input_vars = {
     'class_list' : ('class_list','s'),
     'fractional_inundation_kwd' : ('fractional_inundation_kwd','s'),
     'use_fractional_inundation' : ('use_fractional_inundation','s'),
+    'use_segmentation' : ('use_segmentation','s'),
+    'use_heights' : ('use_heights','s'),
     'min_points' : ('min_points','d'),
 
     'shape_file_root' : ('shape_file_root','s'),
@@ -241,6 +253,8 @@ def main():
     bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
     class_list = eval(pars.class_list)
     use_fractional_inundation = eval(pars.use_fractional_inundation)
+    use_segmentation = eval(pars.use_segmentation)
+    use_heights = eval(pars.use_heights)
     use_width_db = eval(pars.use_width_db)
     refine_centerline = eval(pars.refine_centerline)
     fit_types = eval(pars.fit_types)
@@ -256,6 +270,8 @@ def main():
                                         class_list=class_list,
                                         fractional_inundation_kwd=pars.fractional_inundation_kwd,
                                         use_fractional_inundation=use_fractional_inundation,
+                                        use_segmentation=use_segmentation,
+                                        use_heights=use_heights,
                                         min_points=pars.min_points,
                                         verbose=True,store_obs=False,
                                         store_reaches=False,
@@ -269,7 +285,6 @@ def main():
         river_estimator.get_width_db(pars.width_db_file)
 
     # Process all of the reaches
-    #print "&&&&&&river_estimator:",river_estimator
     river_reach_collection = river_estimator.process_reaches(scalar_max_width=pars.scalar_max_width,
                     minobs=pars.minobs,min_fit_points=pars.min_fit_points,
                     fit_types=fit_types,
@@ -277,24 +292,20 @@ def main():
                     ds=pars.ds,
                     refine_centerline=refine_centerline,
                     smooth=pars.smooth,alpha=pars.alpha,max_iter=pars.max_iter)
-
+    
     # Initialize the output writer
     #print river_reach_collection
     reach_output_variables = river_reach_collection[0].metadata.keys()
-    """
-    node_output_variables = ['lat','lon','x','y','nobs','s','xtrack',
-                            'w_ptp','w_std','w_area','w_db','area',
-                            'h_t_ave','h_t_std','h_n_ave','h_n_std',
-                            'h_nn_ave','h_nn_std']
-    """
+    # Brent williams May 2017: added extra fields
     node_output_variables = ['lat','lon','x','y','nobs','s',
-                            'w_ptp','w_std','w_area','w_db','area',
-                            'h_n_ave','h_n_std','x_prior','y_prior','node_indx','reach_indx']
-
+                                 'w_ptp','w_std','w_area','w_db','area',
+                                 'h_n_ave','h_n_std','h_a_ave','h_a_std',
+                                 'nobs_h','x_prior','y_prior','node_indx','reach_indx']
+    
     writer = RiverReachWriter(river_reach_collection,
                           node_output_variables,
                           reach_output_variables)
-
+    
     # Write shapefiles
 
     driver = args.format

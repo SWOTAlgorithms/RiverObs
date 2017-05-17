@@ -86,14 +86,10 @@ class ReachExtractor:
             # Project into the L2 projection
 
             x, y = lat_lon_region.proj(lon, lat)
-            #print('lat_lon_region.proj',lat_lon_region.proj)
-            #print('lat_lon_region.x_0',lat_lon_region.x_0)
-            #print('lat_lon_region.y_0',lat_lon_region.y_0)
-            #print('clip_buffer:',clip_buffer)
-            #print('x,y',x,y)
-            #print('lat,lon',lat,lon)
+            
             # Get the metadata and reach index
-
+            # Brent Williams, May 2017: Changed a few things here to handle newer river reach database
+            # (may have broken abnility to read old one though, havent tested)
             metadata = {}
             record = self.dbf[i][0]
             reach_index = i

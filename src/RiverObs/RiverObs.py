@@ -12,6 +12,7 @@ from collections import OrderedDict as odict
 import numpy as N
 from Centerline import Centerline
 from RiverNode import RiverNode
+from scipy.stats import mode
 
 class RiverObs:
     """A class for holding all of the river observations associated with a reach.
@@ -51,8 +52,8 @@ class RiverObs:
         Output progress to stdout
 
     """
-
-    def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1,
+    
+    def __init__(self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,
                  node_class=RiverNode,missing_value=-999999999,verbose=False):
         
         self.verbose = verbose
@@ -70,7 +71,6 @@ class RiverObs:
             self.metadata = None
 
         self.ndata = len(xobs)
-        #print('shape(xobs):',N.shape(xobs))    
         # Calculate the centerline for this reach
 
         if type(max_width) == type(None) or not N.iterable(max_width):
@@ -91,33 +91,69 @@ class RiverObs:
             self.ds[1:-1] = (self.centerline.s[2:] - self.centerline.s[0:-2])/2.
             self.ds[0] = self.ds[1]
             self.ds[-1] = self.ds[-2]
-
+        
         # Calculate the local coordiantes for each observation point
         # index: the index of the nearest point
         # d: distance to the point
         # x,y: The coordiantes of the nearest point
-        # s,n: The along and across track coordinates of the point
+        # s,n: The along and across river coordinates of the point
         # relative to the nearest point coordinate system.
         
-        #print('centerline.x',self.centerline.x)
         self.index,self.d,self.x,self.y,self.s,self.n = self.centerline(xobs,yobs)
         if self.verbose: print('Local coordiantes calculated')
 
+        dst0 = abs(self.s)-abs(self.ds[self.index])
         # Assign to each point the actual along-track distance, not just the delta s
 
         self.s += self.centerline.s[self.index]
 
         # Edit, so that only river points appear
-
+        """
         if type(self.max_width) != type(None):
             self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
-
+        #print "got here,",self.in_channel
+        
+        # edit so only pixels of one segmentation label for entire reach is used for all nodes
+        if type(seg_label) != type(None):
+            self.in_label = self.flag_out_label(seg_label[self.in_channel])
+            #self.in_channel = self.in_label
+        self.nedited_data = len(self.x)
+        """
+        # added Brent Williams May 2017 to flag out pixels not in the dominant segmentation label
+        if (type(self.max_width) != type(None))&(type(seg_label) != type(None)):
+            self.in_channel = self.flag_out_channel_and_label(self.max_width,seg_label,dst0)
+        self.nedited_data = len(self.x)
+        
         # Get the mapping from observation to node position (1 -> many); i.e., the inverse
         # of index (many -> 1), which maps node position to observations
 
         self.minobs = minobs
         self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(self.index,self.minobs)
+
+    def flag_out_channel_and_label(self,max_width,seg_label,dst0):
+        """Get the indexes of all of the points inside a channel of
+        max_width and a segmentation label
+        and remove the points from the list of observations."""
+        # Brent Williams, May 2017: added this function to handle segmentation/exclude unconnected-to-river pixels
+        # get dominant label 
+        dominant_label=mode(seg_label[seg_label>0])[0][0]
+        print "DOMINANT_LABEL:",dominant_label
+        if N.iterable(max_width): # Map centerline observalble to measurements
+            max_distance = max_width[self.index]/2.
+        else:
+            max_distance = max_width/2.
+        #
+        
+        self.in_channel = (N.abs(self.n) <= max_distance)&(seg_label == dominant_label)&(dst0<=0)
+        
+        self.index = self.index[self.in_channel]
+        self.d = self.d[self.in_channel]
+        self.x = self.x[self.in_channel]
+        self.y = self.y[self.in_channel]
+        self.s = self.s[self.in_channel]
+        self.n = self.n[self.in_channel]
+        return self.in_channel
 
     def flag_out_channel(self,max_width):
         """Get the indexes of all of the points inside a channel of max_width,
@@ -136,7 +172,6 @@ class RiverObs:
         self.y = self.y[self.in_channel]
         self.s = self.s[self.in_channel]
         self.n = self.n[self.in_channel]
-
         return self.in_channel
 
     def get_obs_to_node_map(self,index,minobs=1):
@@ -240,6 +275,7 @@ class RiverObs:
             y = self.obs_to_node(self.y,node)
             s = self.obs_to_node(self.s,node)
             n = self.obs_to_node(self.n,node)
+            #h_flg = self.obs_to_node(self.h_flg,node)
             self.river_nodes[node] = self.node_class(node,d,x,y,s,n,ds=self.ds[node])
             for var in vars:
                 obs = None # fake cython compiler

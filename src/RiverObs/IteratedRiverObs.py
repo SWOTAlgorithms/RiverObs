@@ -37,6 +37,8 @@ class IteratedRiverObs(RiverObs):
         Centerline spline smoothing degree (default 3).
     ds : float
         Centerline point separation (default None).
+    seg_label : array_like
+        Array giving a different index to each feature (connected region)
     max_width : float
         If !=None, exclude all observations more than max_width/2
         away from the centerline in the normal direction. 
@@ -50,7 +52,7 @@ class IteratedRiverObs(RiverObs):
         Additional keywords to pass to RiverObs.__init__
     """
 
-    def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1,
+    def __init__(self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,
                  **kwds):
 
         # Right now, things do not work for width observations along the
@@ -62,7 +64,7 @@ class IteratedRiverObs(RiverObs):
         # Initialize the base class
 
         self.robs_kwds = kwds
-        RiverObs.__init__(self,reach,xobs,yobs,k=k,ds=ds,max_width=max_width,
+        RiverObs.__init__(self,reach,xobs,yobs,k=k,ds=ds,seg_label=seg_label,max_width=max_width,
                            minobs=minobs,**kwds)
 
         # Unlike the base class, keep a copy of the original data and some

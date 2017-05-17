@@ -64,7 +64,6 @@ class SWOTL2:
         self.verbose = verbose
         
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
-        #print(swotL2_file)
         self.nc = Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
@@ -152,12 +151,14 @@ class SWOTL2:
         
         lat = lat[self.index]
         lon = lon[self.index]
-        
+
+        # Brent Williams: comented out next lines to handle setting of bounding box not by data
+        # so that you can run with gdem and L2 file and get same nodes
         #self.lonmin = lon.min()
         #self.latmin = lat.min()
         #self.lonmax = lon.max()
         #self.latmax = lat.max()
-        print(lon.min(),lon.max(),lat.min(),lat.max())
+        #print(lon.min(),lon.max(),lat.min(),lat.max())
         self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
 
         # Update the classification
@@ -191,10 +192,11 @@ class SWOTL2:
         """
 
         # Find lat_0 and lon_0 if not specified previously
-
+        # modified by Brent Williams, May 2017 to use center of bouding box instead of data centroid
+        # in order to get same nodes for gdem and l2 file
         if lat_0 == None:
             #lat_0 = N.mean(self.lat)
-            # use center of bouding box instead of data centroid
+            # use center of bouding box instead of data centroid 
             lat_0=(self.bounding_box[3]+self.bounding_box[1])/2.0
         if lon_0 == None:
             #lon_0 = N.mean(self.lon)

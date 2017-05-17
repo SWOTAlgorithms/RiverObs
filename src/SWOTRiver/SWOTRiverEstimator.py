@@ -15,6 +15,10 @@ from RiverObs import IteratedRiverObs
 from RiverObs import FitRiver
 from RiverObs import RiverNode
 from RiverObs import RiverReach
+from scipy.ndimage import label, grey_dilation
+
+# Brent Williams, May 2017: changed several things to be more consistent with current pixel cloud
+# took out some of the fields that we only have access to in the simulator, added output the index file etc...
 
 class SWOTRiverEstimator(SWOTL2):
     """Given a SWOTL2 file, fit all of the reaches observed and output results.
@@ -57,7 +61,7 @@ class SWOTRiverEstimator(SWOTL2):
         the netcdf name of the classification layer to use.
         'classification' will return the result of applying a classifier to the simulated data.
         'no_layover_classification' can be used as the thruth
-    class_list : list, default [2,3,4]
+    class_list : list, default [2,3,4,5]
         a list of the class labels for what is considered good water data.
         This should be piched as any classes that might contain water, even
         if partially. If truth data are desired (class_kwd='no_layover_classification'),
@@ -70,10 +74,14 @@ class SWOTRiverEstimator(SWOTL2):
         1 estimating the fraction of the pixel covered with water. In practice, because of noise,
         it can be outside the bounds and even be negative! It will produced an ensemble
         unbiased estimate if the class mean cross sections are known.
-    use_fractional_inundation : bool list, default [True, True, False]
+    use_fractional_inundation : bool list, default [True, True, False, False]
         For which classes should the inundation fraction be used instead of a binary classification?
         the default is to assume that interior pixels are 100% water, but to use both land
         and water edge pixels partially by using the fractional inundation kwd.
+    use_segmentation :  bool list, default [False, True, True, True]
+        Selects which classes to assume as water for segmentation purposes 
+    use_heights : bool list, default [False, False, True, False]
+        Selects which classes to use for estimating heights
     min_points : int
         If the number of good points is less than this, raise an exception.
     height_kwd : str, default 'height'
@@ -99,7 +107,9 @@ class SWOTRiverEstimator(SWOTL2):
         If True, store each fit result in a dictionary.        
     verbose : bool, default False
         If True, print to sdtout while processing.
-
+    use_segmentation : bool list, default [False, True, True, True]
+        Defines which classes should the assumed as water for segmatation
+        algorithm to label disjoint features
     The final set of keywords are projection options for pyproj. See Notes.
 
     Notes
@@ -124,9 +134,11 @@ class SWOTRiverEstimator(SWOTL2):
 
     def __init__(self,swotL2_file,bounding_box=None,
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
-                 class_list=[2,3,4],class_kwd='classification',
+                 class_list=[2,3,4,5],class_kwd='classification',
                  fractional_inundation_kwd='continuous_classification',
-                 use_fractional_inundation=[True, True, False],
+                 use_fractional_inundation=[True, True, False, False],
+                 use_segmentation=[False, True, True, True],
+                 use_heights=[False, False, True, False],
                  min_points=100,
                  height_kwd='height',#true_height_kwd='water_height',no_noise_height_kwd='no_noise_height',xtrack_kwd='no_layover_cross_track',xtrack_res_kwd = 'flat_pixel_resolution',
                  trim_ends=False,
@@ -146,8 +158,6 @@ class SWOTRiverEstimator(SWOTL2):
                 
         self.input_file = split(swotL2_file)[-1]
         self.output_file = output_file # index file
-        #self.index_file = swotL2_file+'.nc'
-        #print('self.output_file:',self.output_file)
         self.createIndexFile()
         # Classification inputs
 
@@ -155,6 +165,9 @@ class SWOTRiverEstimator(SWOTL2):
         self.class_list = class_list
         self.fractional_inundation_kwd = fractional_inundation_kwd
         self.use_fractional_inundation = use_fractional_inundation
+
+        self.use_segmentation = use_segmentation
+        self.use_heights = use_heights
 
         # Initialize the base class
 
@@ -175,42 +188,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.h_noise = self.get(height_kwd)
         if is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
-        """
-        #print('got here2')
-        self.h_no_noise = self.get(no_noise_height_kwd)
-        #print('got here2.5')
-        if is_masked(self.h_no_noise):
-            mask = mask | self.h_no_noise.mask
-        #print('got here3')  
-        self.h_true = self.get(true_height_kwd)
-        if is_masked(self.h_true):
-            mask = mask | self.h_true.mask
-          
-        self.xtrack = self.get(xtrack_kwd)
-        if is_masked(self.xtrack):
-            mask = mask | self.xtrack.mask
-            
-        look_angle = self.get('no_layover_look_angle')
-        if is_masked(look_angle):
-            mask = mask | look_angle.mask
-            
-        self.incidence_angle = (look_angle)*(1. + self.platform_height/self.earth_radius)
-        self.range_resolution = float(self.nc.range_resolution)
-
-        # Get the pixel area, depending on the choice of range resolution
-        
-        if xtrack_res_kwd != 'flat_pixel_resolution':
-            self.xtrack_res = self.get(xtrack_res_kwd)
-            if is_masked(self.xtrack_res):
-                mask = mask | self.xtrack_res.mask
-
-            # This is necessary as some pixel values seem flaky (TO BE FIXED)
-        
-            self.xtrack_res = N.where(self.xtrack_res > self.xtrack_res_max,
-                                    self.xtrack_res_max, self.xtrack_res)
-        else:
-            self.xtrack_res = self.range_resolution/N.sin(N.radians(self.incidence_angle))
-        """
         
         # Make sure all of the arrays are valid over the same points
         #print('got here')
@@ -222,18 +199,13 @@ class SWOTRiverEstimator(SWOTL2):
         self.klass = self.klass[good]
         
         self.h_noise = self.h_noise[good]
-        #self.h_no_noise = self.h_no_noise[good]
-        #self.h_true = self.h_true[good] 
-        #self.xtrack = self.xtrack[good]
-        #self.incidence_angle = self.incidence_angle[good]
-        #self.xtrack_res = self.xtrack_res[good]
-            
-        #self.pixel_area = self.azimuth_spacing*self.xtrack_res
-        #self.pixel_area = 10.0*N.zeros(len(self.h_noise))
+        
+        self.img_x = self.img_x[good] # range or x index
+        self.img_y = self.img_y[good] # azimuth or y index
+        
         #try to read the pixel area from the L2 file, or compute it from look angle and azimuth spacing, or from azimuth spacing and ground spacing
         try:
             #read directly from file
-            #print "trying to get pixel area from l2 file"
             self.pixel_area = self.get('pixel_area')
             
             print "got pixel area from l2 file"
@@ -260,11 +232,9 @@ class SWOTRiverEstimator(SWOTL2):
                     self.pixel_area = 10.0*N.zeros(len(self.h_noise))
                     print "could not find correct pixel area parameters setting to zero"
         # Calculate the inundated area for each pixel
-        #print('got Here')
         if fractional_inundation_kwd == None: # all water pixels are inundated
             self.fractional_inundation = None
             self.inundated_area = self.pixel_area
-            #print('Got Here')
         else:
             self.fractional_inundation = self.get(fractional_inundation_kwd)
             self.inundated_area = self.pixel_area
@@ -272,8 +242,27 @@ class SWOTRiverEstimator(SWOTL2):
                 if use_fractional_inundation[i]:
                     index = self.klass == k
                     self.inundated_area[index] = self.pixel_area[index]*self.fractional_inundation[index]
-            #print('GOT Here')
-        
+        # Segment the image into disjoint features
+        if len(self.use_segmentation) == len(self.class_list):
+            self.isWater=N.zeros(N.shape(self.h_noise))
+            for i,k in enumerate(class_list):
+                if self.use_segmentation[i]:
+                    index = self.klass == k
+                    self.isWater[index] = 1
+            self.segmentWaterClass()
+        else:
+            self.seg_label=None
+        # set which class pixels to use for heights (should be modified by layover flag later)
+        if len(self.use_heights) == len(self.class_list):
+            self.h_flg=N.zeros(N.shape(self.h_noise))
+            for i,k in enumerate(class_list):
+                if self.use_heights[i]:
+                    index = self.klass == k
+                    self.h_flg[index] = 1
+        else:
+            self.h_flg=None
+        print "shape h_noise",N.shape(self.h_noise)
+        print "shape h_flg",N.shape(self.h_flg)
         if self.verbose: print('Data loaded')
         
         # Initialize the list of observations and reaches
@@ -281,7 +270,32 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs_collection = odict()
         self.river_reach_collection = odict()
         self.fit_collection = odict()
-
+    def segmentWaterClass(self):
+        """do image segmentation algorithm on the water class to label unconnected features"""
+        # added by Brent Williams, May 2017
+        # put pixc back into radar/image coordinates
+        maxX=N.max(self.img_x)
+        #minX=N.min(self.img_x)
+        maxY=N.max(self.img_y)
+        #minY=N.min(self.img_y)
+        cls_img=N.zeros((maxY+1,maxX+1))
+        cls_img[self.img_y,self.img_x]=self.isWater
+        # Do some regularization with morphological operations? (TODO)
+        #
+        # segment the water class image
+        lbl,nlbl=label(cls_img)
+        #
+        # assign land edge segments (label 0) to nearest water feature (label >0)
+        """using grey dilation for this, probably need to re-think 
+        how to handle land edge pixels that touch two different 
+        segments (this will arbitrarily assign it to the one with 
+        the largest label index)"""
+        lbl2=grey_dilation(lbl,3)
+        lbl_out=lbl.copy()
+        lbl_out[lbl==0]=lbl2[lbl==0]
+        #
+        # create the segmentation label variable 
+        self.seg_label=lbl_out[self.img_y,self.img_x]
     def get_reaches(self,shape_file_root, clip=True,clip_buffer=0.1):
         """Get all of the reaches using a ReachExtractor."""
 
@@ -369,6 +383,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             if type(max_width) == type(None):
                 try:
+                    # probably should scale this to look some fraction farther than the database width
                     #max_width = self.reaches[i].metadata['width_max']#
                     max_width = self.reaches[i].metadata['Wmean']*N.ones(N.shape(self.reaches[i].x))
                     #print '^^^^^^^ Wmean[0:3]',max_width[0:3]
@@ -446,13 +461,14 @@ class SWOTRiverEstimator(SWOTL2):
 
         Return a RiverReach instance with the reach information.
         """
-
+        #print self.seg_label
         # Initialize the observations
         try:
             self.river_obs = IteratedRiverObs(reach,
                                               self.x,
                                               self.y,
                                               ds=ds,
+                                              seg_label=self.seg_label,#h_flg=self.h_flg,
                                               max_width=scalar_max_width,
                                               minobs=minobs,
                                               verbose=self.verbose)
@@ -485,32 +501,24 @@ class SWOTRiverEstimator(SWOTL2):
                 xw = reach.x
                 yw = reach.y
                 self.river_obs.add_centerline_obs(xw,yw,max_width,'max_width')
-
+        
         # Exclude beginning and end nodes, if desired
-
+        
         if self.trim_ends:
             first_node = self.river_obs.populated_nodes[0]
             last_node = self.river_obs.populated_nodes[-1]
             self.river_obs.remove_nodes([first_node,last_node])
-        # write out the river_obs.obs_to_node_map
-        #print('GOT HERE-3')
-        #print("&&&&&&&&&&&&&& writting obs_to_node_map")
-        #print(self.river_obs.index)
-        #print(N.shape(self.river_obs.index),N.shape(self.x),N.shape(self.img_x))
-        #print(self.img_x[self.river_obs.in_channel])
-        #print(self.img_y[self.river_obs.in_channel])
-        # write out the image coordinates for each node in a netcdf file
-        self.writeIndexFile(self.img_x[self.river_obs.in_channel],self.img_y[self.river_obs.in_channel],self.river_obs.index,self.river_obs.d,reach_idx)
-        #print(self.river_obs.obs_to_node_map)
         
-
+        # write out the image coordinates for each node in a netcdf file
+        self.writeIndexFile(self.img_x[self.river_obs.in_channel],self.img_y[self.river_obs.in_channel],self.river_obs.index,self.river_obs.d,reach_idx,self.seg_label[self.river_obs.in_channel],self.h_flg[self.river_obs.in_channel])
+        #print(self.river_obs.obs_to_node_map)
+        #print "seg_label[in_channel]",self.seg_label[self.river_obs.in_channel]
+        
         # get the prior locations and indices of the nodes
         xw=reach.x
         yw=reach.y
-        #ni=N.arange(len(xw))
         self.river_obs.add_centerline_obs(xw,yw,xw,'x_prior')
         self.river_obs.add_centerline_obs(xw,yw,yw,'y_prior')
-        #self.river_obs.add_centerline_obs(xw,yw,ni,'node_index')
         # should probably compute prior lat/lon from prior x,y too
         windex = self.river_obs.centerline_obs['x_prior'].populated_nodes
         x_prior=xw
@@ -525,100 +533,82 @@ class SWOTRiverEstimator(SWOTL2):
         y_prior = y_prior[self.river_obs.populated_nodes]
         reach_index=N.ones(len(node_index))*(reach_idx)
         #
-        #windex = self.river_obs.centerline_obs['node_index'].populated_nodes
-        #node_index=ni
-        #node_index[windex] = self.river_obs.centerline_obs['node_index'].v
-        #node_index = node_index[self.river_obs.populated_nodes]
-        #
-
-
         # Add the observations
-
-        #self.river_obs.add_obs('h_true',self.h_true)
         self.river_obs.add_obs('h_noise',self.h_noise)
-        #self.river_obs.add_obs('h_no_noise',self.h_no_noise)
+        self.river_obs.add_obs('h_flg',(self.h_flg>0))
+        
         self.river_obs.add_obs('lon',self.lon)
         self.river_obs.add_obs('lat',self.lat)
         
         self.river_obs.add_obs('xobs',self.x)
         self.river_obs.add_obs('yobs',self.y)
-        #self.river_obs.add_obs('xtrack',self.xtrack)
         self.river_obs.add_obs('inundated_area',self.inundated_area)
-        #self.river_obs.load_nodes(['h_noise','h_true','h_no_noise',
-        #                          'lon','lat','xobs','yobs','xtrack','inundated_area'])
-        self.river_obs.load_nodes(['h_noise',
+        self.river_obs.load_nodes(['h_noise','h_flg',
                                   'lon','lat','xobs','yobs','inundated_area'])
         if self.verbose: print('Observations added to nodes')
 
         # Get various node statistics
 
         nobs = N.asarray( self.river_obs.get_node_stat('count','') )
+        
         s_median = N.asarray( self.river_obs.get_node_stat('median','s') )
+        
         x_median = N.asarray( self.river_obs.get_node_stat('median','xobs') )
         y_median = N.asarray( self.river_obs.get_node_stat('median','yobs') )
-        #xtrack_median = N.asarray( self.river_obs.get_node_stat('median','xtrack') )
+        
         lon_median = N.asarray( self.river_obs.get_node_stat('median','lon') )
         lat_median = N.asarray( self.river_obs.get_node_stat('median','lat') )
         ds = N.asarray( self.river_obs.get_node_stat('value','ds') )
-        #print('GOT HERE-2')
-        #h_true_ave = N.asarray( self.river_obs.get_node_stat('median','h_true') )
-        #h_true_std = N.asarray( self.river_obs.get_node_stat('std','h_true') )
-        h_noise_ave = N.asarray( self.river_obs.get_node_stat('median','h_noise') )
-        h_noise_std = N.asarray( self.river_obs.get_node_stat('std','h_noise') )
-        #h_no_noise_ave = N.asarray( self.river_obs.get_node_stat('median','h_no_noise') )
-        #h_no_noise_std = N.asarray( self.river_obs.get_node_stat('std','h_no_noise') )
+        
+        # number of good heights
+        nobs_h = N.asarray( self.river_obs.get_node_stat('countGood','h_flg') )
+        # heights using same pixels as widths
+        h_noise_ave0 = N.asarray( self.river_obs.get_node_stat('median','h_noise') )
+        h_noise_std0 = N.asarray( self.river_obs.get_node_stat('std','h_noise') )
+        # heights using only "good" heights
+        h_noise_ave = N.asarray( self.river_obs.get_node_stat('median','h_noise','h_flg') )
+        h_noise_std = N.asarray( self.river_obs.get_node_stat('std','h_noise','h_flg') )
+        
+        
         
         # The following are estimates of river width
-
+        
         width_ptp =  N.asarray( self.river_obs.get_node_stat('width_ptp','') )
         width_std =  N.asarray( self.river_obs.get_node_stat('width_std','') )
-
+        
         # These are area based estimates, the nominal SWOT approach
         
         area = N.asarray( self.river_obs.get_node_stat('sum','inundated_area') )
         width_area = N.asarray( self.river_obs.get_node_stat('width_area','inundated_area') )
-
+        
         # These are the values from the width database
-        #print('GOT HERE-1')
+        
         width_db = N.ones(self.river_obs.n_nodes,dtype=N.float64)*self.river_obs.missing_value
-        #print('GOT HERE-0.5')
+       
         #if use_width_db:
         try:
-            #print '^^^^^^^ max_width[0:3]',max_width[0:3]
             windex = self.river_obs.centerline_obs['max_width'].populated_nodes
             width_db[windex] = self.river_obs.centerline_obs['max_width'].v
             width_db = width_db[self.river_obs.populated_nodes]
-            #print '^^^^^^^ width_db[0:3]',max_width[0:3]
         except:
             width_db = N.ones(self.river_obs.n_nodes,dtype=N.float64)*self.river_obs.missing_value
-            #print 'ussie here'
-        #print('GOT HERE-0.2')
+            
         # Get the start and end
         #smin = s_median.min()
         #smax = s_median.max()
-
+        
         # Initialize the fitter
-        #print('GOT HERE0')
+        print('GOT HERE0')
         self.fitter = FitRiver(self.river_obs)
-
+        
         # Check to see if there are sufficient number of points for fit
-        #print('GOT HERE')
-        #print('nobs',nobs)
-        #print('s_median:',s_median)
         ngood = len(s_median)
         if self.verbose: print('number of fit points: %d'%ngood)
-            
+        #print('GOT HERE00')
         if ngood < min_fit_points:
             nresults = None
-            #nnresults = None
-            #tresults = None
             if self.verbose: print('not enough good points for fit')
             return None #only process reaches with min number of nodes
-            #if ngood==0:
-            #    return None
-            #else:
-            #    smin = s_median.min()# make a node but no reach fits
-            #    smax = s_median.max()
         else:
             # Get the start and end
             smin = s_median.min()
@@ -627,47 +617,16 @@ class SWOTRiverEstimator(SWOTL2):
             
             nresults = self.estimate_height_slope(smin,smax,fit_types=fit_types,mean_stat='median')
             if self.verbose: print('Estimation finished')
-            
+        print('got here00') 
         if self.store_fits:
-            #self.fit_collection[reach_id,'true'] = tresults
             self.fit_collection[reach_id,'noise'] = nresults
-            #self.fit_collection[reach_id,'no_noise'] = nnresults
 
         # Get the reach statistics for this subreach
-        #print('got here000')
-        """
-        reach_stats = self.get_reach_stats(reach_id,reach_idx,smin,smax,
-                                           lon_median, lat_median, 
-                                            xtrack_median,
-                                            width_ptp,width_std,width_area,area,
-                                            tresults,nresults,nnresults)"""
         reach_stats = self.get_reach_stats(reach_id,reach_idx,smin,smax,
                                            lon_median, lat_median, 
                                             width_ptp,width_std,width_area,area,
                                             nresults)
-        #print('got here')
         # Put the results into a RiverReach object
-        """
-        river_reach = RiverReach(lat=lat_median,
-                                 lon=lon_median,
-                                 x = x_median,
-                                 y = y_median,
-                                 nobs = nobs,
-                                 s = s_median,
-                                 ds = ds,                                 
-                                 xtrack = xtrack_median,
-                                 w_ptp = width_ptp,
-                                 w_std = width_std,
-                                 w_area = width_area,
-                                 w_db = width_db,
-                                 area = area,
-                                 h_t_ave = h_true_ave,
-                                 h_t_std = h_true_std,                                 
-                                 h_n_ave = h_noise_ave,
-                                 h_n_std = h_noise_std,
-                                 h_nn_ave = h_no_noise_ave,
-                                 h_nn_std = h_no_noise_std,
-                                 metadata = reach_stats)"""
         river_reach = RiverReach(lat=lat_median,
                                  lon=lon_median,
                                  x = x_median,
@@ -682,6 +641,9 @@ class SWOTRiverEstimator(SWOTL2):
                                  area = area,                              
                                  h_n_ave = h_noise_ave,
                                  h_n_std = h_noise_std,
+                                 h_a_ave = h_noise_ave0,
+                                 h_a_std = h_noise_std0,
+                                 nobs_h = nobs_h,
                                  x_prior=x_prior,
                                  y_prior=y_prior,
                                  node_indx=node_index,
@@ -689,10 +651,8 @@ class SWOTRiverEstimator(SWOTL2):
                                  metadata = reach_stats)
 
         # Store, if desired
-        #print('got here1')
         if self.store_obs:
             self.river_obs_collection[reach_idx] = self.river_obs
-        #print('got here2')
         return river_reach
 
     def estimate_height_slope(self,smin,smax,fit_types=['OLS','WLS','RLM'],mean_stat='median'):
@@ -701,15 +661,6 @@ class SWOTRiverEstimator(SWOTL2):
         if type(fit_types) == str:
             fit_types = [fit_types]
 
-        """
-        tresults = odict()
-        load_inputs=True
-        tresults['OLS'] = self.fitter.fit_linear(smin,smax,'h_true',
-                                                    fit='OLS',
-                                                    mean_stat=mean_stat,
-                                                    load_inputs=load_inputs)
-        load_inputs = False
-        """
         nresults = odict()
         load_inputs=True
         for fit_type in fit_types:
@@ -718,16 +669,6 @@ class SWOTRiverEstimator(SWOTL2):
                                                        mean_stat=mean_stat,
                                                        load_inputs=load_inputs)
             load_inputs = False
-        """
-        nnresults = odict()
-        load_inputs=True
-        for fit_type in fit_types:
-            nnresults[fit_type] = self.fitter.fit_linear(smin,smax,'h_no_noise',
-                                                       fit=fit_type,
-                                                       mean_stat=mean_stat,
-                                                       load_inputs=load_inputs)
-            load_inputs = False
-        """
         return nresults#, tresults
 
     def get_reach_stats(self,reach_id,reach_idx,smin,smax,
@@ -757,23 +698,9 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_area_ave'] = N.median(width_area)
         reach_stats['w_area_min'] = N.min(width_area)
         reach_stats['w_area_max'] = N.max(width_area)
-        #reach_stats['xtrck_ave'] = N.median(xtrack_median)
-        #reach_stats['xtrck_min'] = N.min(xtrack_median)
-        #reach_stats['xtrck_max'] = N.max(xtrack_median)
-
+        
         # fitting results for h_true
-        """
-        if type(tresults) != type(None):
-            reach_stats['h_t'] = tresults['OLS'].params[1]
-            reach_stats['slp_t'] = tresults['OLS'].params[0]
-            reach_stats['t_rsqrd'] = tresults['OLS'].rsquared
-            reach_stats['t_mse'] = tresults['OLS'].mse_resid
-        else:
-            reach_stats['h_t'] = self.river_obs.missing_value
-            reach_stats['slp_t'] = self.river_obs.missing_value
-            reach_stats['t_rsqrd'] = self.river_obs.missing_value
-            reach_stats['t_mse'] = self.river_obs.missing_value
-        """
+        
         tag = {'OLS':'o','WLS':'w','RLM':'r'}
 
         if type(nresults) != type(None):
@@ -792,27 +719,10 @@ class SWOTRiverEstimator(SWOTL2):
                     reach_stats['slp_n%s'%tag[fit_type] ] = self.river_obs.missing_value
                     reach_stats['n%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
                     reach_stats['n%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
-        """
-        if type(nnresults) != type(None):                    
-            for fit_type in ['OLS','WLS','RLM']:
-                if fit_type in nresults:
-                    reach_stats['h_nn%s'%tag[fit_type] ] = nnresults[fit_type].params[1]
-                    reach_stats['slp_nn%s'%tag[fit_type] ] = nnresults[fit_type].params[0]
-                    try:
-                        reach_stats['nn%s_rsqrd'%tag[fit_type] ] = nnresults[fit_type].rsquared
-                        reach_stats['nn%s_mse'%tag[fit_type] ] = nnresults[fit_type].mse_resid
-                    except:
-                        reach_stats['nn%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
-                        reach_stats['nn%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
-                else:
-                    reach_stats['h_nn%s'%tag[fit_type] ] = self.river_obs.missing_value
-                    reach_stats['slp_nn%s'%tag[fit_type] ] = self.river_obs.missing_value
-                    reach_stats['nn%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
-                    reach_stats['nn%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
-        """
+        
         return reach_stats
 
-    
+    # Brent Williams, May 2017: added these functions to output node/reach/slantrangeimage indices to a file 
     def createIndexFile(self):#fname,img_x,img_y,node_index,reach_index):
         """
         Create an empty file with appropriate variable to append to 
@@ -824,10 +734,12 @@ class SWOTRiverEstimator(SWOTL2):
         ai=f.createVariable('azimuth_index','i4','record',fill_value=-128)
         ni=f.createVariable('node_index','i4','record',fill_value=-128)
         rri=f.createVariable('reach_index','i4','record',fill_value=-128)
+        seglbl=f.createVariable('segmentation_label','i4','record',fill_value=-128)
+        hflg=f.createVariable('good_height_flag','i1','record',fill_value=-1)
         d=f.createVariable('distance_to_node','f4','record',fill_value=-128)       
         f.close()
         return
-    def writeIndexFile(self,img_x,img_y,node_index,dst,reach_index):
+    def writeIndexFile(self,img_x,img_y,node_index,dst,reach_index,seg_lbl,h_flg):
         """
         Write out the river obs indices for each pixel that get mapped to a node 
         as well as the pixel cloud coordinates (range and azimuth, or original 
@@ -841,6 +753,8 @@ class SWOTRiverEstimator(SWOTL2):
         ai=f.variables['azimuth_index']
         ni=f.variables['node_index']
         rri=f.variables['reach_index']
+        seglbl=f.variables['segmentation_label']
+        hflg=f.variables['good_height_flag']
         d=f.variables['distance_to_node']
         # append the new data
         L=len(ri[:])
@@ -849,6 +763,8 @@ class SWOTRiverEstimator(SWOTL2):
         ai[L:L+K]=img_y
         ni[L:L+K]=node_index
         rri[L:L+K]=reach_index
+        seglbl[L:L+K]=seg_lbl
+        hflg[L:L+K]=h_flg
         d[L:L+K]=dst
         f.close()
         return
