@@ -89,7 +89,7 @@ class ReachExtractor:
             
             # Get the metadata and reach index
             # Brent Williams, May 2017: Changed a few things here to handle newer river reach database
-            # (may have broken abnility to read old one though, havent tested)
+            # (may have broken ability to read old one though, havent tested)
             metadata = {}
             record = self.dbf[i][0]
             reach_index = i
@@ -104,7 +104,9 @@ class ReachExtractor:
                 #    max_width = record[j]
                 #    print "max width:", max_width
             self.reach_idx.append(reach_index)
-
+            
+            #print "reachID:",reach_index
+            #print "reach x:",x
             # Append the river reach
             #if max_width==None:
             self.reach.append(RiverReach(lon=lon,lat=lat,x=x,y=y,

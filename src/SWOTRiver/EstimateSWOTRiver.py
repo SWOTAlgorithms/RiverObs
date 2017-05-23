@@ -183,7 +183,7 @@ input_vars = {
     'lonmin' : ('lonmin','f'),
     'latmin' : ('latmin','f'),
     'lonmax' : ('lonmax','f'),
-    'latmax' : ('latmax','f'),
+    'latmax' : ('latmax','f'),#'proj_lon_0' : ('proj_lon_0','f'),#'proj_lat_0' : ('proj_lat_0','f'),
 
     'lat_kwd' : ('lat_kwd','s'),
     'lon_kwd' : ('lon_kwd','s'),
@@ -251,6 +251,7 @@ def main():
     # Reformat some inputs
 
     bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
+    lat_0,lon_0=None,None#pars.proj_lat_0,pars.proj_lon_0
     class_list = eval(pars.class_list)
     use_fractional_inundation = eval(pars.use_fractional_inundation)
     use_segmentation = eval(pars.use_segmentation)
@@ -276,7 +277,8 @@ def main():
                                         verbose=True,store_obs=False,
                                         store_reaches=False,
                                         store_fits=False,
-                                        output_file=pars.fout_index)
+                                        output_file=pars.fout_index,
+                                        proj='laea',x_0=0,y_0=0,lat_0=lat_0,lon_0=lon_0)
 
     # Load the reaches and width data base
 

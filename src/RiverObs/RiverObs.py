@@ -101,12 +101,12 @@ class RiverObs:
         
         self.index,self.d,self.x,self.y,self.s,self.n = self.centerline(xobs,yobs)
         if self.verbose: print('Local coordiantes calculated')
-
+        
         dst0 = abs(self.s)-abs(self.ds[self.index])
         # Assign to each point the actual along-track distance, not just the delta s
-
+        
         self.s += self.centerline.s[self.index]
-
+        
         # Edit, so that only river points appear
         """
         if type(self.max_width) != type(None):
@@ -121,6 +121,7 @@ class RiverObs:
         self.nedited_data = len(self.x)
         """
         # added Brent Williams May 2017 to flag out pixels not in the dominant segmentation label
+        # should probably put switch to do old-style flag_out chanel is segmentation label is None
         if (type(self.max_width) != type(None))&(type(seg_label) != type(None)):
             self.in_channel = self.flag_out_channel_and_label(self.max_width,seg_label,dst0)
         self.nedited_data = len(self.x)

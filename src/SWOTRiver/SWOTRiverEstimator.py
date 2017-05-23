@@ -179,18 +179,18 @@ class SWOTRiverEstimator(SWOTL2):
                         verbose=verbose,
                         proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
                         ellps=ellps,**proj_kwds)
-        #print('got here0')
+        
         if is_masked(self.lat):
             mask = self.lat.mask
         else:
             mask = N.zeros(len(self.lat),dtype=N.bool)
-        #print('got here1')
+        
         self.h_noise = self.get(height_kwd)
         if is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
         
         # Make sure all of the arrays are valid over the same points
-        #print('got here')
+        
         good = ~mask
         self.lat = self.lat[good]
         self.lon = self.lon[good]
@@ -208,7 +208,7 @@ class SWOTRiverEstimator(SWOTL2):
             #read directly from file
             self.pixel_area = self.get('pixel_area')
             
-            print "got pixel area from l2 file"
+            print("got pixel area from l2 file")
         except:
             try:
                 # read the old style pixc
@@ -222,15 +222,15 @@ class SWOTRiverEstimator(SWOTL2):
                 self.xtrack_res = float(self.nc.range_resolution)/N.sin(N.radians(self.incidence_angle))
                 
                 self.pixel_area = float(self.nc.azimuth_spacing)*self.xtrack_res
-                print "computed pixel area from look angle and azimuth spacing"
+                print("computed pixel area from look angle and azimuth spacing")
             except:
                 try:
                     # compute from gdem-like attributes
                     self.pixel_area = float(self.nc.azimuth_spacing)*float(self.nc.ground_spacing)*N.ones(N.shape(self.h_noise))
-                    print "computed pixel area from gdem style attributes"
+                    print("computed pixel area from gdem style attributes")
                 except:
                     self.pixel_area = 10.0*N.zeros(len(self.h_noise))
-                    print "could not find correct pixel area parameters setting to zero"
+                    print("could not find correct pixel area parameters setting to zero")
         # Calculate the inundated area for each pixel
         if fractional_inundation_kwd == None: # all water pixels are inundated
             self.fractional_inundation = None
@@ -261,8 +261,8 @@ class SWOTRiverEstimator(SWOTL2):
                     self.h_flg[index] = 1
         else:
             self.h_flg=None
-        print "shape h_noise",N.shape(self.h_noise)
-        print "shape h_flg",N.shape(self.h_flg)
+        #print "shape h_noise",N.shape(self.h_noise)
+        #print "shape h_flg",N.shape(self.h_flg)
         if self.verbose: print('Data loaded')
         
         # Initialize the list of observations and reaches
@@ -385,11 +385,11 @@ class SWOTRiverEstimator(SWOTL2):
                 try:
                     # probably should scale this to look some fraction farther than the database width
                     #max_width = self.reaches[i].metadata['width_max']#
-                    max_width = self.reaches[i].metadata['Wmean']*N.ones(N.shape(self.reaches[i].x))
-                    #print '^^^^^^^ Wmean[0:3]',max_width[0:3]
+                    max_width = self.reaches[i].metadata['Wmean']*N.ones(N.shape(self.reaches[i].x))*2.0
                 except:
                     max_width = scalar_max_width
-            #print '$$$$$$$ Wmean',max_width[0]
+            #print "reach idx",reach_idx
+            #print "reaches[i].x",self.reaches[i].x
             river_reach = self.process_reach(self.reaches[i],i,reach_idx,
                                             scalar_max_width=scalar_max_width,
                                             minobs=minobs,min_fit_points=min_fit_points,
@@ -476,20 +476,24 @@ class SWOTRiverEstimator(SWOTL2):
             return None
 
         if self.verbose: print('river_obs initilized')
-        #print(N.shape(self.river_obs.in_channel))
+        
         # Refine the centerline, if desired
 
+        if len(self.river_obs.x)==0:
+            print('No observations mapped to nodes in this reach')
+            return None
+        
         if refine_centerline:
             self.river_obs.iterate(max_iter=max_iter,alpha=alpha,
                                         weights=True,smooth=smooth)
-
+            
             # Associate the width to the new centerline
 
             if N.iterable(max_width):
                 xw = reach.x
                 yw = reach.y
                 self.river_obs.add_centerline_obs(xw,yw,max_width,'max_width')
-
+                
             # Reinitialize to the new centerline and max_width
 
             self.river_obs.reinitialize()
@@ -511,8 +515,7 @@ class SWOTRiverEstimator(SWOTL2):
         
         # write out the image coordinates for each node in a netcdf file
         self.writeIndexFile(self.img_x[self.river_obs.in_channel],self.img_y[self.river_obs.in_channel],self.river_obs.index,self.river_obs.d,reach_idx,self.seg_label[self.river_obs.in_channel],self.h_flg[self.river_obs.in_channel])
-        #print(self.river_obs.obs_to_node_map)
-        #print "seg_label[in_channel]",self.seg_label[self.river_obs.in_channel]
+        
         
         # get the prior locations and indices of the nodes
         xw=reach.x
@@ -598,13 +601,13 @@ class SWOTRiverEstimator(SWOTL2):
         #smax = s_median.max()
         
         # Initialize the fitter
-        print('GOT HERE0')
+        
         self.fitter = FitRiver(self.river_obs)
         
         # Check to see if there are sufficient number of points for fit
         ngood = len(s_median)
         if self.verbose: print('number of fit points: %d'%ngood)
-        #print('GOT HERE00')
+        
         if ngood < min_fit_points:
             nresults = None
             if self.verbose: print('not enough good points for fit')
@@ -617,7 +620,7 @@ class SWOTRiverEstimator(SWOTL2):
             
             nresults = self.estimate_height_slope(smin,smax,fit_types=fit_types,mean_stat='median')
             if self.verbose: print('Estimation finished')
-        print('got here00') 
+        
         if self.store_fits:
             self.fit_collection[reach_id,'noise'] = nresults
 

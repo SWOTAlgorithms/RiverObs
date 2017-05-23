@@ -77,6 +77,8 @@ class IteratedRiverObs(RiverObs):
         self.xobs = xobs
         self.yobs = yobs
 
+        self.seg_label = seg_label
+
         # Now add the observed coordinates at each node
 
         self.add_obs('xo',self.xobs)
@@ -133,14 +135,15 @@ class IteratedRiverObs(RiverObs):
         
         x0 = N.asarray(self.get_node_stat(stat,'x'))
         y0 = N.asarray(self.get_node_stat(stat,'y'))
-
+        #print "xc:",xc
+        #print "x:",x0
         dx = xc - x0
         dy = yc - y0
 
         # Compute for stopping criterion
-         
+        
         eps = max(N.abs(dx).max(), N.abs(dy).max())
-
+        
         # New coordinates
 
         x1 = (1-alpha)*x0 + alpha*xc
@@ -367,7 +370,8 @@ class IteratedRiverObs(RiverObs):
         # Initialize the base class
 
         ## print len(reach.x),len(reach.y),len(max_width)
-        RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds_init,
+        #self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,node_class=RiverNode,missing_value=-999999999,verbose=False
+        RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds_init,seg_label=self.seg_label,
                           max_width=max_width,
                             minobs=self.minobs,**self.robs_kwds)
 
