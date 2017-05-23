@@ -496,8 +496,13 @@ class SWOTRiverEstimator(SWOTL2):
         if len(self.river_obs.x)==0:
             print('No observations mapped to nodes in this reach')
             return None
-        
-        if refine_centerline:
+        # get the number of node inthe reach and only refine if there are enough to do spline
+        enough_nodes=False
+        numNodes=len(N.unique(self.river_obs.index))
+        print "numNodes,k:",numNodes,self.river_obs.k
+        if (numNodes-1>self.river_obs.k):
+            enough_nodes=True
+        if (refine_centerline)&(enough_nodes):
             self.river_obs.iterate(max_iter=max_iter,alpha=alpha,
                                         weights=True,smooth=smooth)
             

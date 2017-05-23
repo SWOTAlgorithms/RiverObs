@@ -112,9 +112,10 @@ class Centerline:
         self.s = N.cumsum(self.delta)
 
         # Compute the spline for evaluating x and y as a function of s
-
         if smooth != None:
             smooth *= len(self.x)
+
+        #    
         self.xtck = splrep(self.s,self.x,k=k,w=wx,s=smooth,**kwds)
         self.ytck = splrep(self.s,self.y,k=k,w=wy,s=smooth,**kwds)
         if obs != None:

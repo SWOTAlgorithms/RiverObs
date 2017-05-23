@@ -101,8 +101,11 @@ class RiverObs:
         
         self.index,self.d,self.x,self.y,self.s,self.n = self.centerline(xobs,yobs)
         if self.verbose: print('Local coordiantes calculated')
+
+        # dst0 is so that we dont go farther than a node-length away in s (along river) when assigning to nodes
+        # for some reason the nodes on hte ends were being located bad because they were accumulating pixels too far away in s
+        dst0 = abs(self.s)-abs(self.ds[self.index]) 
         
-        dst0 = abs(self.s)-abs(self.ds[self.index])
         # Assign to each point the actual along-track distance, not just the delta s
         
         self.s += self.centerline.s[self.index]
@@ -126,7 +129,7 @@ class RiverObs:
         elif type(self.max_width) != type(None):
             self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
-        
+        print("num nodes in reach %d"%len(N.unique(self.index)))
         # Get the mapping from observation to node position (1 -> many); i.e., the inverse
         # of index (many -> 1), which maps node position to observations
 
@@ -149,7 +152,7 @@ class RiverObs:
         
         #print "seg_lbl",seg_label[msk]
         dominant_label=mode(seg_label[msk])[0][0]
-        print("DOMINANT LABEL in reach: %d",dominant_label)
+        print("DOMINANT LABEL in reach: %d"%dominant_label)
         """
         #get dominant label on a node level?
         ui=N.unique(self.index)

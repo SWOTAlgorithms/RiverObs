@@ -225,7 +225,7 @@ class IteratedRiverObs(RiverObs):
                 wx, wy = None, None
 
             # Recalculate the centerline for the next iteration
-
+            
             self.reinit_centerline_nodes(x1, y1, smooth=smooth, wx=wx, wy=wy)
 
     def reinit_centerline_nodes(self,x1,y1, smooth=None, wx=None, wy=None):
@@ -242,7 +242,7 @@ class IteratedRiverObs(RiverObs):
 
 
         # Calculate the centerline for this reach
-
+        
         self.centerline = Centerline(x1,y1,k=self.k,ds=self.ds_init)
 
         # Associate an along-track dimension to each node
