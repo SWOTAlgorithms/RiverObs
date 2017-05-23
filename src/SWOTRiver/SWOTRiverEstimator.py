@@ -284,6 +284,7 @@ class SWOTRiverEstimator(SWOTL2):
         #
         # segment the water class image
         lbl,nlbl=label(cls_img)
+        
         #
         # assign land edge segments (label 0) to nearest water feature (label >0)
         """using grey dilation for this, probably need to re-think 
@@ -293,6 +294,19 @@ class SWOTRiverEstimator(SWOTL2):
         lbl2=grey_dilation(lbl,3)
         lbl_out=lbl.copy()
         lbl_out[lbl==0]=lbl2[lbl==0]
+        #
+        # write out segmentation images to a nc file for testing
+        dumpLbl=False
+        if dumpLbl:
+            M0,M1=N.shape(lbl)
+            f=nc.Dataset("segDump.nc",'w')
+            f.createDimension('azimuth',M0)
+            f.createDimension('range',M1)
+            ol=f.createVariable('orig_label','i4',('azimuth','range'),fill_value=-128)
+            fl=f.createVariable('final_label','i4',('azimuth','range'),fill_value=-128)
+            ol[:]=lbl[:]
+            fl[:]=lbl_out[:]
+            f.close()
         #
         # create the segmentation label variable 
         self.seg_label=lbl_out[self.img_y,self.img_x]
@@ -385,7 +399,7 @@ class SWOTRiverEstimator(SWOTL2):
                 try:
                     # probably should scale this to look some fraction farther than the database width
                     #max_width = self.reaches[i].metadata['width_max']#
-                    max_width = self.reaches[i].metadata['Wmean']*N.ones(N.shape(self.reaches[i].x))*2.0
+                    max_width = self.reaches[i].metadata['Wmean']*N.ones(N.shape(self.reaches[i].x))#*2.0
                 except:
                     max_width = scalar_max_width
             #print "reach idx",reach_idx
@@ -514,7 +528,11 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.remove_nodes([first_node,last_node])
         
         # write out the image coordinates for each node in a netcdf file
-        self.writeIndexFile(self.img_x[self.river_obs.in_channel],self.img_y[self.river_obs.in_channel],self.river_obs.index,self.river_obs.d,reach_idx,self.seg_label[self.river_obs.in_channel],self.h_flg[self.river_obs.in_channel])
+        try:
+            segOut=self.seg_label[self.river_obs.in_channel]
+        except:
+            segOut=None
+        self.writeIndexFile(self.img_x[self.river_obs.in_channel],self.img_y[self.river_obs.in_channel],self.river_obs.index,self.river_obs.d,reach_idx,segOut,self.h_flg[self.river_obs.in_channel])
         
         
         # get the prior locations and indices of the nodes
@@ -766,7 +784,8 @@ class SWOTRiverEstimator(SWOTL2):
         ai[L:L+K]=img_y
         ni[L:L+K]=node_index
         rri[L:L+K]=reach_index
-        seglbl[L:L+K]=seg_lbl
+        if not(type(seg_lbl) == type(None)):
+            seglbl[L:L+K]=seg_lbl
         hflg[L:L+K]=h_flg
         d[L:L+K]=dst
         f.close()

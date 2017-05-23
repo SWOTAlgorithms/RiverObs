@@ -121,9 +121,10 @@ class RiverObs:
         self.nedited_data = len(self.x)
         """
         # added Brent Williams May 2017 to flag out pixels not in the dominant segmentation label
-        # should probably put switch to do old-style flag_out chanel is segmentation label is None
         if (type(self.max_width) != type(None))&(type(seg_label) != type(None)):
             self.in_channel = self.flag_out_channel_and_label(self.max_width,seg_label,dst0)
+        elif type(self.max_width) != type(None):
+            self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
         
         # Get the mapping from observation to node position (1 -> many); i.e., the inverse
@@ -137,14 +138,32 @@ class RiverObs:
         max_width and a segmentation label
         and remove the points from the list of observations."""
         # Brent Williams, May 2017: added this function to handle segmentation/exclude unconnected-to-river pixels
-        # get dominant label 
-        dominant_label=mode(seg_label[seg_label>0])[0][0]
-        print "DOMINANT_LABEL:",dominant_label
+        # get dominant label
         if N.iterable(max_width): # Map centerline observalble to measurements
             max_distance = max_width[self.index]/2.
         else:
             max_distance = max_width/2.
         #
+        
+        msk = (N.abs(self.n) <= max_distance)&(seg_label>0)&(dst0<=0)
+        
+        #print "seg_lbl",seg_label[msk]
+        dominant_label=mode(seg_label[msk])[0][0]
+        print("DOMINANT LABEL in reach: %d",dominant_label)
+        """
+        #get dominant label on a node level?
+        ui=N.unique(self.index)
+        print "ui",ui
+        
+        dominant_label=N.zeros(N.shape(seg_label))-1
+        for ind in ui:
+            tmp=seg_label[self.index==ind]
+            #print "mode",mode(tmp[tmp>0])[0][0]
+            dominant_label[self.index==ind]=mode(tmp[tmp>0])[0][0]
+        #
+        
+        print "dominant label in node :",dominant_label
+        """
         
         self.in_channel = (N.abs(self.n) <= max_distance)&(seg_label == dominant_label)&(dst0<=0)
         
