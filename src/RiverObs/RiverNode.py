@@ -66,7 +66,8 @@ class RiverNode:
 
         for k in kwds:
             v = kwds[k]
-            exec('self.%s = v'%k)
+            #exec('self.%s = v'%k)
+            setattr(self,k,v)
 
         self.ndata = len(self.x)
         self.good = np.ones(self.ndata,dtype=np.bool)
@@ -86,9 +87,11 @@ class RiverNode:
         self.sort_vars.append(obs_name)
 
         if sort and self.sorted:
-            exec('self.%s = np.asarray(obs[self.sort_index])'%obs_name)
+            #exec('self.%s = np.asarray(obs[self.sort_index])'%obs_name)
+            setattr(self,obs_name,np.asarray(obs[self.sort_index]))
         else:
-            exec('self.%s = np.asarray(obs)'%obs_name)
+            #exec('self.%s = np.asarray(obs)'%obs_name)
+            setattr(self,obs_name,np.asarray(obs))
 
     def count(self,*pars,**kwds):
         """Return the number of points in the node."""
@@ -98,115 +101,128 @@ class RiverNode:
     def countGood(self,goodvar):
         """Return the number of good points in the node."""
         tmp=np.zeros(self.ndata)
-        exec('tmp[self.%s]=1'%goodvar)
+        #exec('tmp[self.%s]=1'%goodvar)
+        tmp[getattr(self,goodvar)] = 1
         return sum(tmp)
 
     def value(self,var):
         """Return self.value. Useful when getting stats for all nodes and a scalar variable
         is desired."""
 
-        value = 0 # fake cython compiler
-        exec('value = self.%s'%var)
+        #exec('value = self.%s'%var)
+        value = getattr(self,var)
 
         return value
 
-    def mean(self,var):
+    def mean(self,var,goodvar='good'):
         """Return mean of a variable"""
 
-        mean = 0 # fake cython compiler
-        exec('mean = np.mean(self.%s[self.good])'%var)
+        #exec('mean = np.mean(self.%s[self.good])'%var)
+        good = getattr(self,goodvar)
+        mean = np.mean(getattr(self,var)[good])
 
         return mean
+
     # modified by Brent Williams, May 2017:
     # added goodvar to allow height aggregation to use different pixels than rest
     def median(self,var,goodvar='good'):
         """Return mean of a variable"""
 
-        median = 0 # fake cython compiler
         #exec('median = np.median(self.%s[self.good])'%var)
-        exec('median = np.median(self.%s[self.%s])'%(var,goodvar))
+        #exec('median = np.median(self.%s[self.%s])'%(var,goodvar))
+        good = getattr(self,goodvar)
+        median = np.median(getattr(self,var)[good])
 
         return median
 
     def std(self,var,goodvar='good'):
         """Return std of a variable"""
 
-        std = 0 # fake cython compiler
         #exec('std = np.std(self.%s[self.good])'%var)
-        exec('std = np.std(self.%s[self.%s])'%(var,goodvar))
+        #exec('std = np.std(self.%s[self.%s])'%(var,goodvar))
+        good = getattr(self,goodvar)
+        std = np.std(getattr(self,var)[good])
 
         return std
 
-    def stderr(self,var):
+    def stderr(self,var,goodvar='good'):
         """Return standrad error of a variable"""
 
-        stderr = 0 # fake cython compiler
-        scale = 1./np.sqrt(np.sum(self.good).astype(np.float))
-        exec('stderr = scale*np.std(self.%s[self.good])'%var)
+        good = getattr(self,goodvar)
+        scale = 1./np.sqrt(np.sum(good).astype(np.float))
+        #exec('stderr = scale*np.std(self.%s[self.good])'%var)
+        stderr = scale*np.std(getattr(self,var)[good])
 
         return stderr
 
-    def min(self,var):
+    def min(self,var,goodvar='good'):
         """Return min of a variable"""
 
-        min = 0 # fake cython compiler
-        exec('min = np.min(self.%s[self.good])'%var)
+        #exec('min = np.min(self.%s[self.good])'%var)
+        good = getattr(self,goodvar)
+        vmin = np.min(getattr(self,var)[good])
 
-        return min
+        return vmin
 
-    def max(self,var):
+    def max(self,var,goodvar='good'):
         """Return max of a variable"""
 
-        max = 0 # fake cython compiler
-        exec('max = np.max(self.%s[self.good])'%var)
+        #exec('max = np.max(self.%s[self.good])'%var)
+        good = getattr(self,goodvar)
+        vmax = np.max(getattr(self,var)[good])
 
-        return max
+        return vmax
 
-    def ptp(self,var):
+    def ptp(self,var,goodvar='good'):
         """Return peak to peak variation of a variable"""
 
-        ptp = 0 # fake cython compiler
-        exec('ptp = np.ptp(self.%s[self.good])'%var)
+        #exec('ptp = np.ptp(self.%s[self.good])'%var)
+        good = getattr(self,goodvar)
+        ptp = np.ptp(getattr(self,var)[good])
 
         return ptp
 
-    def percentile(self,var,q):
+    def percentile(self,var,q,goodvar='good'):
         """Return qth percentile of a variable"""
 
-        percentile = 0 # fake cython compiler
-        exec('percentile = np.percentile(self.%s[self.good],q)'%var)
+        #exec('percentile = np.percentile(self.%s[self.good],q)'%var)
+        good = getattr(self,goodvar)
+        percentile = np.percentile(getattr(self,var)[good],q)
 
         return percentile
 
-    def sum(self,var):
+    def sum(self,var,goodvar='good'):
         """Return the sum of all variable values (e.g., for area)."""
 
-        sum = 0 # fake cython compiler
-        exec('sum = np.sum(self.%s[self.good])'%var)
+        #exec('sum = np.sum(self.%s[self.good])'%var)
+        good = getattr(self,goodvar)
+        Sum = np.sum(getattr(self,var)[good])
 
-        return sum
+        return Sum
 
-    def cdf(self,var):
+    def cdf(self,var,goodvar='good'):
         """Get the cdf for a variable."""
 
-        x = 0 # fake cython compiler
-        ngood = np.sum(self.good.astype(np.int32))
+        good = getattr(self,goodvar)
+        ngood = np.sum(good.astype(np.int32))
         cdf = np.cumsum(np.ones(ngood,dtype=np.float64))
         cdf /= cdf[-1]
-        exec('x = np.sort(self.%s[self.good])'%var)
+        #exec('x = np.sort(self.%s[self.good])'%var)
+        x = np.sort(getattr(self,var)[good])
 
         return x, cdf
 
-    def flag_extent(self,var_name,var_min,var_max):
+    def flag_extent(self,var_name,var_min,var_max,goodvar='good'):
         """Update the good flag to places where the variable var_name
         is within a range of values."""
 
-        x = 0 # fake cython compiler
-        exec('x = self.%s'%var_name)
+        good_init = getattr(self,goodvar)
+        #exec('x = self.%s'%var_name)
+        x = getattr(self,var_name)
 
         good = ( x >= var_min ) & ( x <= var_max)
 
-        self.good = self.good & good
+        self.good = good_init & good
 
     def add_sort_variables(self,vars):
         """Add sort variables to the sort list.
@@ -227,12 +243,14 @@ class RiverNode:
 
         # Get the index for sorting
 
-        exec('self.sort_index = np.argsort(self.%s)'%sort_variable)
+        #exec('self.sort_index = np.argsort(self.%s)'%sort_variable)
+        self.sort_index = np.argsort(getattr(self,sort_variable))
 
         # Sort all of the desired variables
 
         for var in self.sort_vars:
-            exec('self.%s = self.%s[self.sort_index]'%(var,var))
+            #exec('self.%s = self.%s[self.sort_index]'%(var,var))
+            setattr(self,var,getattr(self,var)[self.sort_index])
 
         # Make sure the good flag is also sorted
 
