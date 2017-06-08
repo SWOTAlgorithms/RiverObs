@@ -1,4 +1,4 @@
-# Track the version number and associated changes. 
+# Track the version number and associated changes.
 # First version tracked is 0.2.0
 
 #__version__ = '0.2.0'
@@ -14,4 +14,8 @@
 
 # Fixed GDALWriter and OGRWriter after compiling with cython
 
-__version__ = '0.2.3'
+#__version__ = '0.2.3'
+
+# Python 2.7/3.6 compatibility.
+
+__version__ = '0.2.4'

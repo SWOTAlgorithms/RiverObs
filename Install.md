@@ -1,25 +1,22 @@
 # RiverObs Installation Instructions
 
 
-##Preliminaries
+## Preliminaries
 
 These are the instructions for installing the RiverObs package
 written by Ernesto Rodriguez in a Unix (linux or Mac) machine with an
-[anaconda](https://store.continuum.io/cshop/anaconda) python setup,
-or using a [virtualenv](http://www.virtualenv.org/en/latest) with another python
-installation. In both cases, it is assumed that
-[numpy](http://scipy.org) is available. In addition, to use the
-ipython notebooks, it is assumed that [ipython](http://ipython.org) is also installed.
-If you do not have a lot of python experience, it is recommended that
-you follow the anaconda install route.
+[anaconda](https://store.continuum.io/cshop/anaconda) python setup.
+The nominal installation instructions have been tested with python3.6,
+but should also work with python2.7. Future developments may stop
+supporting python2.7, as it is no longer the community standard.
 
-In what follows, it is assumed that the environment variable RIVER_DIR has been 
+In what follows, it is assumed that the environment variable RIVER_DIR has been
 set to point to the root directory of the RiverObs package cloned
 by git. For instance, using bash
 
 	export RIVER_DIR=/home/erodrigu/SWOT/RiverObs
 
-##Python virtual environment installation
+## Python virtual environment installation
 
 Note that the dependence on scikit-image is optional and
 required only if one wants to vectorize GWDLR data. In
@@ -27,124 +24,57 @@ that case, a working grass installation is required (tested
 with grass 6.4; grass70 beta has a bug in r.to.vector as of
 this writing).
 
-###Setting up an anaconda virtual environment (Simplest)
+### Setting up an anaconda virtual environment
 
-To create an anaconda virtual environment, execute:
+To make sure that you are retrieving the same version packages as have
+been used for testing, make sure that the conda-forge channel is added
+to your conda configuration. This can be done by issuing the command
 
-	cd $RIVER_DIR
-	conda create -p $RIVER_DIR/anaconda numpy ipython ipython-notebook
-	matplotlib gdal scipy pip scikit-image statsmodels pysal pandas
-	pytables shapely netcdf4 sphinx  numpydoc cython
+    conda config --add channels conda-forge
 
-or (Simplest)
+or modifying your ~/.condarc file to look something like this:
 
-	conda create -n RiverObs numpy ipython ipython-notebook matplotlib
-	gdal scipy pip scikit-image statsmodels pysal pandas pytables
-	shapely netcdf4 sphinx  numpydoc cython
-	
-To activate this environment, type
+    channels:
+      - conda-forge
+      - defaults
+    show_channel_urls: true
 
-	source activate $RIVER_DIR/anaconda
+To create an anaconda virtual environment, execute (Simplest):
 
-or 
+    conda create -n RiverObs python=3.6 numpy jupyter notebook matplotlib
+    gdal scipy pip scikit-image statsmodels pysal pandas pytables
+    shapely netcdf4 sphinx  numpydoc rtree pyproj
+
+or, if you want to keep the code and executables under the RiverObs folder:
+
+    cd $RIVER_DIR
+    conda create -p $RIVER_DIR/anaconda python=3.6 numpy jupyter notebook matplotlib
+    gdal scipy pip scikit-image statsmodels pysal pandas pytables
+    shapely netcdf4 sphinx  numpydoc rtree pyproj
+
+Note: if you must run python 2.7, substitute python=2.7 in the lines above
+(not recommended).
+
+To activate this environment, if the first option was used, type
 
 	source activate RiverObs
-	
+
+or, if building in the RiverObs folder,
+
+    source activate $RIVER_DIR/anaconda
+
 if anaconda/bin is in your path. Otherwise, use /path/to/anaconda/bin/source.
 
 To deactivate this environment, type
 
 	source deactivate
 
-Equivalnetly, one can set
+If you would like to use jupyter notebooks within the RiverObs environment,
+issue the following command while inside the environment:
 
-	export PATH=$RIVER_DIR/anaconda/bin:$PATH
+    python -m ipykernel install --user
 
-###Setting up a python virtual environment
-
-In case you have a prexisting python environment with virtualenv,
-numpy, and ipython already installed, create a virtual environment for
-this project as follows:
-
-	virtualenv --system-site-packages $RIVER_DIR
-
-To activate this environment, type
-
-	source $RIVER_DIR/bin/activate
-
-and to deactivate
-
-	source deactivate
-
-
-##Build additional package requirements
-
-In addition to the packages installed by conda, pyproj, rtree are
-required, and they are not directly part of the official anaconda
-distribution.  There are two ways to install these packages: either
-through conda and [binstar](https://binstar.org/) or by using (inside the conda
-virtual environment) pip and compilation.
-
-###Install Using Binstar (Simplest)
-
-There are multiple versions of these packages in binstar for linux or
-osx architectures. The user can select which one he wants to install
-by searching in the binstar site. The following instructions are valid
-as of December 30, 2014.
-
-For osx or linux installation of pyproj:
-
-	conda install -c https://conda.binstar.org/pingucarsti pyproj
-
-For osx or linux installation of rtree and the required library
-libspatial index:
-
-	conda install -c https://conda.binstar.org/dougal libspatialindex
-	conda install -c https://conda.binstar.org/dougal rtree
-
-###Install Using pip and brew or manual compilation
-
-Working inside the virtual environment, the following command:
-
-	pip install pyproj
-	pip install rtree
-
-In addition, [rtree](https://github.com/Toblerity/rtree) requires the
-[libspatialindex](http://libspatialindex.github.io) library. On a Mac with
-[brew](http://brew.sh) this can be done easily:
-
-	brew install spatialindex
-
-On a generic Unix system, this can be done by downloading the code from
-[osgeo](http://download.osgeo.org/libspatialindex), and following the
-usual Unix install process. To avoid pat/ownership conflict, one can install into the
-anaconda installation:
-
-	tar xvzf spatialindex-src-1.8.1.tar.gz
-	cd spatialindex-src-1.8.1
-	./configure --prefix=~/anaconda
-	make
-	make install
-
-
-##### one can also just add the conda-forge channel with
-
-conda config --add channels conda-forge
-
-###and then import rtree with
-
-conda install rtree
-
-which will install rtree and libspatialindex
-
-###Install numpydoc for sphinx documentation (Optional)
-
-
-This is only required if you want to build the sphinx documentation:
-
-	pip install numpydoc
-
-##Build the package
+## Build the package
 
 Then, to build the RiverObs and associated packages:
 
@@ -153,23 +83,10 @@ Then, to build the RiverObs and associated packages:
 
 For an anaconada local virtual environment, this will install the libraries in
 
-	$RIVER_DIR/anaconda/python2.7/site-packages
+	$RIVER_DIR/anaconda/python3.6/site-packages
 
 and the executables in
 
 	$RIVER_DIR/anaconda/bin
 
-Otherwise, they are in similar directories in ~/anaconda/envs/RiverObs 
-
-For a virtualenv virtual environment, this will install the libraries in
-
-	$RIVER_DIR/lib/python2.7/site-packages
-
-and the executables in
-
-	$RIVER_DIR/bin
-
-
-
-
-
+Otherwise, they are in similar directories in ~/anaconda/envs/RiverObs

@@ -3,6 +3,8 @@ A river node holds all of the measurements associated with a node in a centerlin
 It returns various data characteristics when queried.
 """
 
+from __future__ import absolute_import, division, print_function
+
 import numpy as N
 from scipy.stats import trimboth
 
@@ -25,7 +27,7 @@ class RiverNode:
     y : array_like
         y coordinate of each measurement associated with the node
     s : array_like
-        along-track coordinate (relative to the node center) for each point 
+        along-track coordinate (relative to the node center) for each point
     n : array_like
         across-track (normal) coordinate (relative to the node center) for each point
     h_flg: array_like
@@ -39,15 +41,15 @@ class RiverNode:
 
     To edit the data, it is useful to sort it by order in one of the variables.
     To sort the data, set sort=True and set sort_variable one of ['d','s','n','h'].
-    If the data are not sorted intially, they can be sorted later, as desired by calling 
+    If the data are not sorted intially, they can be sorted later, as desired by calling
     RiverNode.sort.
-    
+
     """
 
     # These variables are sorted simultaneously when sort is called. Append
-    # to this list after class instantiation if you want to add an additional 
+    # to this list after class instantiation if you want to add an additional
     # sort variable
-    
+
     sort_vars = ['d','x','y','s','n']
 
     def __init__(self,index,d,x,y,s,n,ds=1,**kwds):
@@ -56,18 +58,18 @@ class RiverNode:
 
         self.index = index
         self.ds = ds
-        self.d = N.asarray(d)
-        self.x = N.asarray(x)
-        self.y = N.asarray(y)
-        self.s = N.asarray(s)
-        self.n = N.asarray(n)
+        self.d = np.asarray(d)
+        self.x = np.asarray(x)
+        self.y = np.asarray(y)
+        self.s = np.asarray(s)
+        self.n = np.asarray(n)
 
         for k in kwds:
             v = kwds[k]
             exec('self.%s = v'%k)
 
         self.ndata = len(self.x)
-        self.good = N.ones(self.ndata,dtype=N.bool)
+        self.good = np.ones(self.ndata,dtype=np.bool)
         self.sorted = False
 
     def add_obs(self,obs_name,obs,sort=True):
@@ -82,38 +84,38 @@ class RiverNode:
             raise Exception('length of observations not consistent with number of node points')
 
         self.sort_vars.append(obs_name)
-        
+
         if sort and self.sorted:
-            exec('self.%s = N.asarray(obs[self.sort_index])'%obs_name)
+            exec('self.%s = np.asarray(obs[self.sort_index])'%obs_name)
         else:
-            exec('self.%s = N.asarray(obs)'%obs_name)
+            exec('self.%s = np.asarray(obs)'%obs_name)
 
     def count(self,*pars,**kwds):
         """Return the number of points in the node."""
 
         return self.ndata
-    
+
     def countGood(self,goodvar):
         """Return the number of good points in the node."""
-        tmp=N.zeros(self.ndata)
+        tmp=np.zeros(self.ndata)
         exec('tmp[self.%s]=1'%goodvar)
         return sum(tmp)
-    
+
     def value(self,var):
         """Return self.value. Useful when getting stats for all nodes and a scalar variable
         is desired."""
 
         value = 0 # fake cython compiler
         exec('value = self.%s'%var)
-        
+
         return value
 
     def mean(self,var):
         """Return mean of a variable"""
 
         mean = 0 # fake cython compiler
-        exec('mean = N.mean(self.%s[self.good])'%var)        
-                 
+        exec('mean = np.mean(self.%s[self.good])'%var)
+
         return mean
     # modified by Brent Williams, May 2017:
     # added goodvar to allow height aggregation to use different pixels than rest
@@ -121,77 +123,77 @@ class RiverNode:
         """Return mean of a variable"""
 
         median = 0 # fake cython compiler
-        #exec('median = N.median(self.%s[self.good])'%var)
-        exec('median = N.median(self.%s[self.%s])'%(var,goodvar))  
-                 
+        #exec('median = np.median(self.%s[self.good])'%var)
+        exec('median = np.median(self.%s[self.%s])'%(var,goodvar))
+
         return median
 
     def std(self,var,goodvar='good'):
         """Return std of a variable"""
-        
+
         std = 0 # fake cython compiler
-        #exec('std = N.std(self.%s[self.good])'%var)
-        exec('std = N.std(self.%s[self.%s])'%(var,goodvar))
-                 
+        #exec('std = np.std(self.%s[self.good])'%var)
+        exec('std = np.std(self.%s[self.%s])'%(var,goodvar))
+
         return std
-    
+
     def stderr(self,var):
         """Return standrad error of a variable"""
 
         stderr = 0 # fake cython compiler
-        scale = 1./N.sqrt(N.sum(self.good).astype(N.float))
-        exec('stderr = scale*N.std(self.%s[self.good])'%var)        
-                 
+        scale = 1./np.sqrt(np.sum(self.good).astype(np.float))
+        exec('stderr = scale*np.std(self.%s[self.good])'%var)
+
         return stderr
 
     def min(self,var):
         """Return min of a variable"""
 
         min = 0 # fake cython compiler
-        exec('min = N.min(self.%s[self.good])'%var)        
-                 
+        exec('min = np.min(self.%s[self.good])'%var)
+
         return min
 
     def max(self,var):
         """Return max of a variable"""
 
         max = 0 # fake cython compiler
-        exec('max = N.max(self.%s[self.good])'%var)        
-                 
+        exec('max = np.max(self.%s[self.good])'%var)
+
         return max
 
     def ptp(self,var):
         """Return peak to peak variation of a variable"""
 
         ptp = 0 # fake cython compiler
-        exec('ptp = N.ptp(self.%s[self.good])'%var)        
-                 
+        exec('ptp = np.ptp(self.%s[self.good])'%var)
+
         return ptp
 
     def percentile(self,var,q):
         """Return qth percentile of a variable"""
 
         percentile = 0 # fake cython compiler
-        exec('percentile = N.percentile(self.%s[self.good],q)'%var)        
-                 
+        exec('percentile = np.percentile(self.%s[self.good],q)'%var)
+
         return percentile
 
     def sum(self,var):
         """Return the sum of all variable values (e.g., for area)."""
 
         sum = 0 # fake cython compiler
-        exec('sum = N.sum(self.%s[self.good])'%var)        
-                 
+        exec('sum = np.sum(self.%s[self.good])'%var)
+
         return sum
 
     def cdf(self,var):
         """Get the cdf for a variable."""
 
         x = 0 # fake cython compiler
-        ngood = N.sum(self.good.astype(N.int32))
-        cdf = N.cumsum(N.ones(ngood,dtype=N.float64))
+        ngood = np.sum(self.good.astype(np.int32))
+        cdf = np.cumsum(np.ones(ngood,dtype=np.float64))
         cdf /= cdf[-1]
-        exec('x = N.sort(self.%s[self.good])'%var)
+        exec('x = np.sort(self.%s[self.good])'%var)
 
         return x, cdf
 
@@ -207,7 +209,7 @@ class RiverNode:
         self.good = self.good & good
 
     def add_sort_variables(self,vars):
-        """Add sort variables to the sort list. 
+        """Add sort variables to the sort list.
 
         vars is a string variable name, or an iterable of variable names."""
 
@@ -224,8 +226,8 @@ class RiverNode:
         """
 
         # Get the index for sorting
-        
-        exec('self.sort_index = N.argsort(self.%s)'%sort_variable)
+
+        exec('self.sort_index = np.argsort(self.%s)'%sort_variable)
 
         # Sort all of the desired variables
 
@@ -233,11 +235,11 @@ class RiverNode:
             exec('self.%s = self.%s[self.sort_index]'%(var,var))
 
         # Make sure the good flag is also sorted
-            
+
         self.good = self.good[self.sort_index]
 
-        # This flag is checked when calling 
-        
+        # This flag is checked when calling
+
         self.sorted = True
 
     def trim(self,fraction,mode='both'):
@@ -256,7 +258,7 @@ class RiverNode:
 
         ntrim = int(self.ndata*fraction + 0.5)
 
-        self.trim_index = N.ones(self.ndata, dtype=N.bool)
+        self.trim_index = np.ones(self.ndata, dtype=np.bool)
 
         if mode == 'both':
             self.trim_index[:ntrim] = False
@@ -291,7 +293,7 @@ class RiverNode:
         no inputs."""
 
         nstd = self.std('n')
-        width_std = N.sqrt(12.)*nstd # uniformly distributed (~ 3.5 sigma Gaussian)
+        width_std = np.sqrt(12.)*nstd # uniformly distributed (~ 3.5 sigma Gaussian)
 
         return width_std
 

@@ -3,6 +3,8 @@ Given a SWOTL2 file, estimate all of the reaches within it and
 output the results to a file
 """
 
+from __future__ import absolute_import, division, print_function
+
 # make sure the libraries are importable
 
 def search_for_libraries():
@@ -10,14 +12,14 @@ def search_for_libraries():
 
     import os, os.path
     import sys
-        
+
     # Try importing the root library
     try:
         from SWOTRiver import SWOTRiverEstimator
     except:
         sys.stderr.write("Libraries not found. Make sure you are running in the SWOTRiver environment.\n")
         sys.exit(1)
-        
+
 # Imports
 
 from os.path import join, split
@@ -57,15 +59,15 @@ l2_file = ../../data/OhioRightSwathData/heights/swot_intf_ohio_cycle_0001_pass_0
 
 ! This is the location of the output data
 
-fout_reach = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach 
-fout_node = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach 
+fout_reach = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
+fout_node = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
 fout_index = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
 
-! The bounding box tells what region is of interest. 
+! The bounding box tells what region is of interest.
 ! The center of this bounding box defines the x,y projection that the nodes are defined on.
 ! Generally, should make this to just cover the "tile" (or gdem or gdem_dem extent).
 ! The bounding box is no longer updated based on the data to enable processing gdem as well as pixc
-! and get the same node locations 
+! and get the same node locations
 
 lonmin = -125.
 latmin = 30.
@@ -77,9 +79,9 @@ bounding_box = lonmin,latmin,lonmax,latmax
 ! water file.
 
 ! either 'no_layover_latitude' (a priori lat) or 'latitude' (estimated lat)
-lat_kwd = latitude 
+lat_kwd = latitude
 ! either 'no_layover_longitude' (a priori lon) or 'longitude' (estimated lat)
-lon_kwd = longitude 
+lon_kwd = longitude
 ! either 'classification' (estimated classification)
 ! or 'no_layover_classification' (truth classification)
 class_kwd = classification
@@ -102,7 +104,7 @@ class_list = [2,3,4,5]
 ! updated or you do not wish to use it, set this to None
 fractional_inundation_kwd = 'continuous_classification'
 
-! This corresponds to the clases set above. 
+! This corresponds to the clases set above.
 ! If True, use fractional inundation estimate to get the inundated area for this class.
 ! If False, assume that this class is fully flooded.
 use_fractional_inundation=[True, True, False, False]
@@ -124,9 +126,9 @@ min_points=100
 ! bounding box so that the full reach is included and is not broken if
 ! the river. 0.01 ~ 1km
 clip_buffer=0.02
-                 
-    
-! The fifth set of options has to do with how the data are sampled and 
+
+
+! The fifth set of options has to do with how the data are sampled and
 ! quantities are estimated
 
 ! This option is only possible if you have an a priori estimate
@@ -139,7 +141,7 @@ use_width_db = True
 ! The units are meters. The default is to use the input reach spacing.
 ds = 300.
 
-! The next set of options are required if one desires to refine 
+! The next set of options are required if one desires to refine
 ! the centerline if it does not align well with the data.
 ! If you do not know what these are, don't change them.
 refine_centerline=False ! Set to True if you want to refine the centerline.
@@ -179,7 +181,7 @@ input_vars = {
     'fout_node' : ('fout_node','s'),
     'fout_reach' : ('fout_reach','s'),
     'fout_index' : ('fout_index','s'),
-    
+
     'lonmin' : ('lonmin','f'),
     'latmin' : ('latmin','f'),
     'lonmax' : ('lonmax','f'),
@@ -203,7 +205,7 @@ input_vars = {
     'use_width_db' : ('use_width_db','s'),
     'width_db_file' : ('width_db_file', 's'),
     'ds' : ('ds','f'),
-    'refine_centerline' : ('refine_centerline','s'), 
+    'refine_centerline' : ('refine_centerline','s'),
     'smooth' : ('smooth','f'),
     'alpha' : ('alpha','f'),
     'scalar_max_width' : ('scalar_max_width','f'),
@@ -228,7 +230,7 @@ def parse_inputs():
     args = parser.parse_args()
 
     return args
-                        
+
 
 def main():
 
@@ -243,11 +245,11 @@ def main():
     # Parse the input RDF
 
     pars = RDF_to_class(input_vars,file=args.rdf_file)
-    
-    print(pars.l2_file)
-    print(pars.fout_reach)
-    print(pars.fout_node)
-    print(pars.fout_index)
+
+    print((pars.l2_file))
+    print((pars.fout_reach))
+    print((pars.fout_node))
+    print((pars.fout_index))
     # Reformat some inputs
 
     bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
@@ -259,12 +261,12 @@ def main():
     use_width_db = eval(pars.use_width_db)
     refine_centerline = eval(pars.refine_centerline)
     fit_types = eval(pars.fit_types)
-    
+
     # Read the data and estimate the flooded area.
 
     river_estimator = SWOTRiverEstimator(pars.l2_file,
                                         bounding_box=bounding_box,
-                                        lat_kwd=pars.lat_kwd, 
+                                        lat_kwd=pars.lat_kwd,
                                         lon_kwd=pars.lon_kwd,
                                         class_kwd=pars.class_kwd,
                                         height_kwd=pars.height_kwd,
@@ -294,26 +296,24 @@ def main():
                     ds=pars.ds,
                     refine_centerline=refine_centerline,
                     smooth=pars.smooth,alpha=pars.alpha,max_iter=pars.max_iter)
-    
+
     # Initialize the output writer
     #print river_reach_collection
-    reach_output_variables = river_reach_collection[0].metadata.keys()
+    reach_output_variables = list(river_reach_collection[0].metadata.keys())
     # Brent williams May 2017: added extra fields
     node_output_variables = ['lat','lon','x','y','nobs','s',
                                  'w_ptp','w_std','w_area','w_db','area',
                                  'h_n_ave','h_n_std','h_a_ave','h_a_std',
                                  'nobs_h','x_prior','y_prior','node_indx','reach_indx']
-    
+
     writer = RiverReachWriter(river_reach_collection,
                           node_output_variables,
                           reach_output_variables)
-    
+
     # Write shapefiles
 
     driver = args.format
     writer.write_nodes_ogr(pars.fout_node,driver=driver)
     writer.write_reaches_ogr(pars.fout_reach,driver=driver)
-    
+
     print('Successfuly estimated river heights and slopes')
-
-

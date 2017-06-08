@@ -3,17 +3,18 @@ Get relevant information about a GDAL supported raster layer and support various
 queries regarding extent via Shapely.
 """
 
+from __future__ import absolute_import, division, print_function
+
 from os.path import join
 from osgeo import gdal, gdalconst, osr
 from pyproj import Proj, transform
-import numpy as N
 from shapely.geometry import Polygon
 
 # Useful fotmatting functions to print lat/lon in gdalinfo format
 
 def format_lon(lon):
     """Get a longitude string in deg, min, sec."""
-    
+
     if lon < 0:
         EW = 'W'
     else:
@@ -23,12 +24,12 @@ def format_lon(lon):
     fminutes = (lon - ideg)*60
     iminutes = int(fminutes)
     fseconds = (fminutes - iminutes)*60
-    
+
     return """%dd%2d'%4.2f"%s"""%(ideg,iminutes,fseconds,EW)
 
 def format_lat(lat):
     """Get a latitude string in deg, min, sec."""
-    
+
     if lat < 0:
         NS = 'S'
     else:
@@ -38,7 +39,7 @@ def format_lat(lat):
     fminutes = (lat - ideg)*60
     iminutes = int(fminutes)
     fseconds = (fminutes - iminutes)*60
-    
+
     return """%dd%2d'%4.2f"%s"""%(ideg,iminutes,fseconds,NS)
 
 class GDALInfo:
@@ -73,7 +74,7 @@ class GDALInfo:
         self.band_type = self.data_set.GetRasterBand(1).DataType
 
         # Get corner locations in native coordinates
-        
+
         self.ulx = self.geotransform[0]
         self.uly = self.geotransform[3]
         self.lrx = self.ulx + self.geotransform[1] * self.xsize
@@ -95,7 +96,7 @@ class GDALInfo:
         self.dataset_proj = Proj(self.proj4_proj) # Projection with this data set
 
         # This takes you to lon/lat
-        
+
         destination_projection='+units=m +ellps=WGS84 +datum=WGS84 +proj=longlat '
         self.destination_projection = Proj(destination_projection)
 
@@ -109,10 +110,10 @@ class GDALInfo:
 
         # Get the lat/lon bounding box
 
-        self.lonmin = min(self.ullon, self.lrlon, self.lllon, self.urlon) 
-        self.lonmax = max(self.ullon, self.lrlon, self.lllon, self.urlon) 
-        self.latmin = min(self.ullat, self.lrlat, self.lllat, self.urlat) 
-        self.latmax = max(self.ullat, self.lrlat, self.lllat, self.urlat) 
+        self.lonmin = min(self.ullon, self.lrlon, self.lllon, self.urlon)
+        self.lonmax = max(self.ullon, self.lrlon, self.lllon, self.urlon)
+        self.latmin = min(self.ullat, self.lrlat, self.lllat, self.urlat)
+        self.latmax = max(self.ullat, self.lrlat, self.lllat, self.urlat)
 
         # Get the shapely polygons
 
@@ -147,29 +148,29 @@ class GDALInfo:
     def print_corners(self,minsec=True):
         """Print the corners information. If minsec, use minutes and seconds format."""
 
-        print "Corner Coordinates:"
+        print("Corner Coordinates:")
         if minsec:
-            print "Upper Left  ( %.3f, %.3f) (%s, %s)"%(self.ulx,self.uly, 
-                                                       format_lon(self.ullon), format_lat(self.ullat))
-            print "Lower Left  ( %.3f, %.3f) (%s, %s)"%(self.llx,self.lly, 
-                                            format_lon(self.lllon), format_lat(self.lllat))
-            print "Upper Right ( %.3f, %.3f) (%s, %s)"%(self.urx,self.ury, 
-                                            format_lon(self.urlon), format_lat(self.urlat))
-            print "Lower Right ( %.3f, %.3f) (%s, %s)"%(self.lrx,self.lry, 
-                                                        format_lon(self.lrlon), format_lat(self.lrlat))
-            print "Center      ( %.3f, %.3f) (%s, %s)"%(self.centerx,self.centery, 
-                                                    format_lon(self.centerlon), format_lat(self.centerlat))
+            print("Upper Left  ( %.3f, %.3f) (%s, %s)"%(self.ulx,self.uly,
+                                                       format_lon(self.ullon), format_lat(self.ullat)))
+            print("Lower Left  ( %.3f, %.3f) (%s, %s)"%(self.llx,self.lly,
+                                            format_lon(self.lllon), format_lat(self.lllat)))
+            print("Upper Right ( %.3f, %.3f) (%s, %s)"%(self.urx,self.ury,
+                                            format_lon(self.urlon), format_lat(self.urlat)))
+            print("Lower Right ( %.3f, %.3f) (%s, %s)"%(self.lrx,self.lry,
+                                                        format_lon(self.lrlon), format_lat(self.lrlat)))
+            print("Center      ( %.3f, %.3f) (%s, %s)"%(self.centerx,self.centery,
+                                                    format_lon(self.centerlon), format_lat(self.centerlat)))
         else:
-            print "Upper Left  ( %.3f, %.3f) (%.6f, %.6f)"%(self.ulx,self.uly, 
-                                                       self.ullon, self.ullat)
-            print "Lower Left  ( %.3f, %.3f) (%.6f, %.6f)"%(self.llx,self.lly, 
-                                            self.lllon, self.lllat)
-            print "Upper Right ( %.3f, %.3f) (%.6f, %.6f)"%(self.urx,self.ury, 
-                                            self.urlon, self.urlat)
-            print "Lower Right ( %.3f, %.3f) (%.6f, %.6f)"%(self.lrx,self.lry, 
-                                                        self.lrlon, self.lrlat)
-            print "Center      ( %.3f, %.3f) (%.6f, %.6f)"%(self.centerx,self.centery, 
-                                                    self.centerlon, self.centerlat)
+            print("Upper Left  ( %.3f, %.3f) (%.6f, %.6f)"%(self.ulx,self.uly,
+                                                       self.ullon, self.ullat))
+            print("Lower Left  ( %.3f, %.3f) (%.6f, %.6f)"%(self.llx,self.lly,
+                                            self.lllon, self.lllat))
+            print("Upper Right ( %.3f, %.3f) (%.6f, %.6f)"%(self.urx,self.ury,
+                                            self.urlon, self.urlat))
+            print("Lower Right ( %.3f, %.3f) (%.6f, %.6f)"%(self.lrx,self.lry,
+                                                        self.lrlon, self.lrlat))
+            print("Center      ( %.3f, %.3f) (%.6f, %.6f)"%(self.centerx,self.centery,
+                                                    self.centerlon, self.centerlat))
 
     def llbbox_intersects(self,geom):
         """Does the specified geometry interect the lon/lat bounding box?"""
@@ -180,7 +181,7 @@ class GDALInfo:
         """Does the specified geometry is contained the lon/lat bounding box?"""
 
         return self.lonlat_bbox.contains(geom)
-    
+
     def ll_intersects(self,geom):
         """Does the specified geometry interect the lon/lat polygon?"""
 
@@ -190,7 +191,7 @@ class GDALInfo:
         """Does the specified geometry is contained the lon/lat bounding box?"""
 
         return self.lonlat_poly.contains(geom)
-    
+
     def xy_intersects(self,geom):
         """Does the specified geometry interect the lon/lat polygon?"""
 
@@ -200,5 +201,3 @@ class GDALInfo:
         """Does the specified geometry is contained the lon/lat bounding box?"""
 
         return self.xy_poly.contains(geom)
-            
-            

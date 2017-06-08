@@ -2,11 +2,13 @@
 Base class containing river reach coordinates and metadata.
 """
 
+from __future__ import absolute_import, division, print_function
+
 class RiverReach:
     """Base class containing river reach coordinates and metadata.
 
     Initialize with empty information and, optionally,
-    a set of keywords that get turned into class members. 
+    a set of keywords that get turned into class members.
     The metadata is stored as dictionary variable_name:value.
 
     This base class can be derived to implement specific reach behavior.
@@ -21,4 +23,5 @@ class RiverReach:
 
         for k in kwds:
             v = kwds[k]
-            exec('self.%s = v'%k)
+            #exec('self.%s = v'%k)
+            setattr(self,k,v)

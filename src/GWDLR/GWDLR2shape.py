@@ -3,11 +3,13 @@ Take GWDLR files and turn them into shape files. These programs need to be run i
 a grass shell.
 """
 
+from __future__ import absolute_import, division, print_function
+
 import os
 from os.path import join
 from subprocess import call
 import shlex
-from GWDLR import GWDLR
+from .GWDLR import GWDLR
 
 class GWDLR2shape:
     """Take GWDLR files and turn them into shape files. These programs need to be run in
@@ -31,7 +33,7 @@ class GWDLR2shape:
         """Process a tile based on selecting all widths > min_width."""
 
         # Make the mask file
-        
+
         gwdlr = GWDLR(rootname,data_dir=self.gwdlr_data_dir)
         gwdlr.to_mask(min_width,overwrite=True,thin=True)
 
@@ -70,20 +72,15 @@ class GWDLR2shape:
         dsn = join(self.output_dir,root+'_center_lines_width%d'%min_width)
         command = 'v.out.ogr input=center_line_width%(min_width)d dsn=%(dsn)s'%locals()
         self.exec_command(command)
-        
+
     def exec_command(self,command):
         """Execute a grass command and catch errors."""
 
-        print 'Executing command: %s'%command
+        print('Executing command: %s'%command)
         args = shlex.split(command)
         status = call(args)
 
         if status:
-            print 'Command: "%s" exited with status: %s'%(command,status)
+            print('Command: "%s" exited with status: %s'%(command,status))
 
         return status
-
-        
-        
-        
-

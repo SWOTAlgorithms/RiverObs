@@ -2,7 +2,9 @@
 A class to fit various river parameters over a set of reaches.
 """
 
-import numpy as N
+from __future__ import absolute_import, division, print_function
+
+import numpy as np
 import statsmodels.api as sm
 
 class FitRiver:
@@ -32,7 +34,7 @@ class FitRiver:
             formal errors for weighting the node; e.g., 'stderr', 'std', etc.
         """
 
-        s = N.asarray( self.river_obs.get_node_stat(mean_stat,'s') )
+        s = np.asarray( self.river_obs.get_node_stat(mean_stat,'s') )
 
         good = ( s >= smin ) & ( s <= smax )
 
@@ -41,21 +43,21 @@ class FitRiver:
 
         # To get the values around the center value, subtract the mean
 
-        x = s - N.mean(s)
+        x = s - np.mean(s)
 
         # Observations
-        
-        y = N.asarray( self.river_obs.get_node_stat(mean_stat,fit_var) )[good]
+
+        y = np.asarray( self.river_obs.get_node_stat(mean_stat,fit_var) )[good]
 
         # Weights
-        tmp=N.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
+        tmp=np.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
         w=1.0/tmp
         w[tmp<=0]=1.0
-        #w = 1./N.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
+        #w = 1./np.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
 
         # Fitting matrix for linear fit
 
-        X = N.c_[x, N.ones(nsample,dtype=x.dtype)]
+        X = np.c_[x, np.ones(nsample,dtype=x.dtype)]
 
         self.inputs_computed = True
 
@@ -105,7 +107,3 @@ class FitRiver:
         self.results = self.model.fit()
 
         return self.results
-
-         
-    
-

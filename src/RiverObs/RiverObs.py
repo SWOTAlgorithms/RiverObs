@@ -7,11 +7,13 @@ The class supports extracting summary observations from each node and
 returning them for analaysis (e.g., fitting).
 """
 
+from __future__ import absolute_import, division, print_function
+
 from copy import copy
 from collections import OrderedDict as odict
 import numpy as N
 from Centerline import Centerline
-from RiverNode import RiverNode
+from .RiverNode import RiverNode
 from scipy.stats import mode
 
 class RiverObs:
@@ -38,7 +40,7 @@ class RiverObs:
         centerline point separation (default None)
     max_width :
         if !=None, exclude all observations more than max_width/2
-        away from the centerline in the normal direction. 
+        away from the centerline in the normal direction.
         max_width can be a number or an iterable of the same
         size as reach.x or reach.y. If it is an interable,
         it is added to the centerline as a member.
@@ -52,10 +54,10 @@ class RiverObs:
         Output progress to stdout
 
     """
-    
+
     def __init__(self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,
                  node_class=RiverNode,missing_value=-999999999,verbose=False):
-        
+
         self.verbose = verbose
         self.missing_value = missing_value
 
@@ -64,7 +66,7 @@ class RiverObs:
         self.node_class = node_class
 
         # Copy metadata, in case it is present
-        
+
         try:
             self.metadata = reach.metadata
         except:
@@ -91,32 +93,32 @@ class RiverObs:
             self.ds[1:-1] = (self.centerline.s[2:] - self.centerline.s[0:-2])/2.
             self.ds[0] = self.ds[1]
             self.ds[-1] = self.ds[-2]
-        
+
         # Calculate the local coordiantes for each observation point
         # index: the index of the nearest point
         # d: distance to the point
         # x,y: The coordiantes of the nearest point
         # s,n: The along and across river coordinates of the point
         # relative to the nearest point coordinate system.
-        
+
         self.index,self.d,self.x,self.y,self.s,self.n = self.centerline(xobs,yobs)
         if self.verbose: print('Local coordiantes calculated')
 
         # dst0 is so that we dont go farther than a node-length away in s (along river) when assigning to nodes
         # for some reason the nodes on hte ends were being located bad because they were accumulating pixels too far away in s
-        dst0 = abs(self.s)-abs(self.ds[self.index]) 
-        
+        dst0 = abs(self.s)-abs(self.ds[self.index])
+
         # Assign to each point the actual along-track distance, not just the delta s
-        
+
         self.s += self.centerline.s[self.index]
-        
+
         # Edit, so that only river points appear
         """
         if type(self.max_width) != type(None):
             self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
         #print "got here,",self.in_channel
-        
+
         # edit so only pixels of one segmentation label for entire reach is used for all nodes
         if type(seg_label) != type(None):
             self.in_label = self.flag_out_label(seg_label[self.in_channel])
@@ -129,7 +131,7 @@ class RiverObs:
         elif type(self.max_width) != type(None):
             self.in_channel = self.flag_out_channel(self.max_width)
         self.nedited_data = len(self.x)
-        print("num nodes in reach %d"%len(N.unique(self.index)))
+        print(("num nodes in reach %d"%len(N.unique(self.index))))
         # Get the mapping from observation to node position (1 -> many); i.e., the inverse
         # of index (many -> 1), which maps node position to observations
 
@@ -147,29 +149,29 @@ class RiverObs:
         else:
             max_distance = max_width/2.
         #
-        
+
         msk = (N.abs(self.n) <= max_distance)&(seg_label>0)&(dst0<=0)
-        
+
         #print "seg_lbl",seg_label[msk]
         dominant_label=mode(seg_label[msk])[0][0]
-        print("DOMINANT LABEL in reach: %d"%dominant_label)
+        print(("DOMINANT LABEL in reach: %d"%dominant_label))
         """
         #get dominant label on a node level?
         ui=N.unique(self.index)
         print "ui",ui
-        
+
         dominant_label=N.zeros(N.shape(seg_label))-1
         for ind in ui:
             tmp=seg_label[self.index==ind]
             #print "mode",mode(tmp[tmp>0])[0][0]
             dominant_label[self.index==ind]=mode(tmp[tmp>0])[0][0]
         #
-        
+
         print "dominant label in node :",dominant_label
         """
-        
+
         self.in_channel = (N.abs(self.n) <= max_distance)&(seg_label == dominant_label)&(dst0<=0)
-        
+
         self.index = self.index[self.in_channel]
         self.d = self.d[self.in_channel]
         self.x = self.x[self.in_channel]
@@ -186,7 +188,7 @@ class RiverObs:
             max_distance = max_width[self.index]/2.
         else:
             max_distance = max_width/2.
-         
+
         self.in_channel = N.abs(self.n) <= max_distance
 
         self.index = self.index[self.in_channel]
@@ -205,7 +207,7 @@ class RiverObs:
         """
 
         # Get the list of potential nodes
-        
+
         nodes = N.unique(index)
 
         self.obs_to_node_map = odict()
@@ -218,7 +220,7 @@ class RiverObs:
                 self.populated_nodes.append(node)
                 self.obs_to_node_map[node] = obs_index
                 self.nobs[node] = nobs
-                
+
         self.n_populated_nodes = len(self.populated_nodes)
 
         # Store also a list of all the potential nodes and all the unpopulated nodes
@@ -230,12 +232,12 @@ class RiverObs:
             if not node in self.populated_nodes:
                 self.unpopulated_nodes.append(node)
         self.n_unpopulated_nodes = len(self.unpopulated_nodes)
-        
+
         return self.populated_nodes, self.obs_to_node_map
 
     def add_obs(self,obs_name,obs):
         """Add an observation as a class variable self.obs_name.
-        
+
         The observation is edited to remove measurements outside
         the channel.
 
@@ -247,8 +249,9 @@ class RiverObs:
 
         if (type(self.max_width) != type(None)) and (len(obs) == self.ndata):
             obs = obs[self.in_channel]
-        
-        exec('self.%s = obs'%obs_name)
+
+        #exec('self.%s = obs'%obs_name)
+        setattr(self,obs_name,obs)
 
     def obs_to_node(self,obs,node):
         """Get all of the observations in an array obs which map to a node.
@@ -256,7 +259,7 @@ class RiverObs:
         Parameters
         ----------
         obs : iterable
-            iterable of the same size as the xobs, yobs 
+            iterable of the same size as the xobs, yobs
             or the same size as self.x, self.y. If the same size
             as xobs, the observations will be limited to in channel
             observations, if this has been computed. If the same
@@ -275,9 +278,9 @@ class RiverObs:
             return N.array([])
 
         # If only certain observations have been kept, get the edited vector
-        
+
         if (type(self.max_width) != type(None)) and (len(obs) == self.ndata):
-            obs = obs[self.in_channel] 
+            obs = obs[self.in_channel]
 
         return N.asarray(obs)[self.obs_to_node_map[node]]
 
@@ -302,15 +305,16 @@ class RiverObs:
             self.river_nodes[node] = self.node_class(node,d,x,y,s,n,ds=self.ds[node])
             for var in vars:
                 obs = None # fake cython compiler
-                exec('obs = self.obs_to_node(self.%s,node)'%var)
+                #exec('obs = self.obs_to_node(self.%s,node)'%var)
+                obs = self.obs_to_node(getattr(self,var),node)
                 self.river_nodes[node].add_obs(var,obs,sort=False)
 
     def get_node_stat(self,stat,var,all_nodes=False):
         """Get a list of results of applying a given stat to a river node variable.
-        
+
         Both stat and var are strings. var should be the name of an instance variable
         for the river node.
-        
+
         A stat is a member function of the river node which returns a
         result given the variable name.
 
@@ -329,13 +333,14 @@ class RiverObs:
             for node in self.all_nodes:
                 if node in self.populated_nodes:
                     river_node = self.river_nodes[node]
-                    exec('result.append( river_node.%s("%s") )'%(stat,var) )
+                    #exec('result.append( river_node.%s("%s") )'%(stat,var) )
+                    result.append(getattr(river_node,stat)(var))
                 else:
                     result.append(self.missing_value)
         else:
-            for node, river_node in self.river_nodes.iteritems():
-                exec('result.append( river_node.%s("%s") )'%(stat,var) )
-                
+            for node, river_node in self.river_nodes.items():
+                #exec('result.append( river_node.%s("%s") )'%(stat,var) )
+                result.append( getattr(river_node,stat)(var))
         return result
 
 
@@ -349,7 +354,7 @@ class RiverObs:
         Prior to trimming, the data are sorted according to the sort variable.
         """
 
-        for node, river_node in self.river_nodes.iteritems():
+        for node, river_node in self.river_nodes.items():
             river_node.sort(sort_variable=sort_variable)
             river_node.trim(fraction,mode=mode)
 
@@ -383,5 +388,3 @@ class RiverObs:
         else:
             self.populated_nodes = to_list
             self.unpopulated_nodes = from_list
-                
-                
