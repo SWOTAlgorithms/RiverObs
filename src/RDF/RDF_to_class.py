@@ -90,7 +90,7 @@ class RDF_to_class:
                     setattr(self,self.d[key][0],rdf.float(key))
             except:
                 name = self.d[key][0]
-                if eval("self.%s"%name) is None:
+                if name not in self.__dict__:
                     raise ValueError("Cannot find keyword: %s"%key)
 
 

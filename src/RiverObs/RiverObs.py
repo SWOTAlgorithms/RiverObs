@@ -309,16 +309,16 @@ class RiverObs:
                 obs = self.obs_to_node(getattr(self,var),node)
                 self.river_nodes[node].add_obs(var,obs,sort=False)
 
-    def get_node_stat(self,stat,var,all_nodes=False):
-        """Get a list of results of applying a given stat to a river node variable.
+    def get_node_stat(self,statfn,var,all_nodes=False):
+        """Get a list of results of applying a given statfn to a river node variable.
 
-        Both stat and var are strings. var should be the name of an instance variable
+        Both statfn and var are strings. var should be the name of an instance variable
         for the river node.
 
-        A stat is a member function of the river node which returns a
+        A statfn is a member function of the river node which returns a
         result given the variable name.
 
-        Example stats are: 'mean', 'std', 'cdf'
+        Example statfns are: 'mean', 'std', 'cdf'
 
         If all_nodes is True, populated and unpopulated nodes are returned.
         Otherwise, only populated nodes are returned.
@@ -333,14 +333,14 @@ class RiverObs:
             for node in self.all_nodes:
                 if node in self.populated_nodes:
                     river_node = self.river_nodes[node]
-                    #exec('result.append( river_node.%s("%s") )'%(stat,var) )
-                    result.append(getattr(river_node,stat)(var))
+                    #exec('result.append( river_node.%s("%s") )'%(statfn,var) )
+                    result.append(getattr(river_node,statfn)(var))
                 else:
                     result.append(self.missing_value)
         else:
             for node, river_node in self.river_nodes.items():
-                #exec('result.append( river_node.%s("%s") )'%(stat,var) )
-                result.append( getattr(river_node,stat)(var))
+                #exec('result.append( river_node.%s("%s") )'%(statfn,var) )
+                result.append( getattr(river_node,statfn)(var))
         return result
 
 

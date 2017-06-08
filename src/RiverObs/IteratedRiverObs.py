@@ -91,7 +91,7 @@ class IteratedRiverObs(RiverObs):
 
         self.centerline_obs = {}
 
-    def refine_centerline(self,alpha=1.,stat='mean', std_stat='std'):
+    def refine_centerline(self,alpha=1.,statfn='mean', std_statfn='std'):
         """Calculate coordinate centroids, and change positions by an attenuated step
         to avoid overshooting.
 
@@ -103,11 +103,11 @@ class IteratedRiverObs(RiverObs):
             data centroid is given by (xc,yc), the updated centerline coordinates
             will be (x1, y1) = (x0,y0) + alpha*( (xc,yc) - (x0,y0) ). For alpha=1,
             this is equivalent to straight replacement, but may overshoot.
-        stat : str
+        statfn : str
             Statistic to use to get the centroid based on the observation coordinates.
             It should be implemented by RiverNode. Choices could be 'mean', 'median', etc.
             The default is 'mean'.
-        std_stat : str
+        std_statfn : str
             Statistic to use to get the centroid dispersionbased on the observation
             coordinates. It should be implemented by RiverNode. Choices could be
             'std', 'stderr', etc. The default is 'std'.
@@ -125,18 +125,18 @@ class IteratedRiverObs(RiverObs):
 
         """
 
-        xc = np.asarray(self.get_node_stat(stat,'xo'))
-        yc = np.asarray(self.get_node_stat(stat,'yo'))
+        xc = np.asarray(self.get_node_stat(statfn,'xo'))
+        yc = np.asarray(self.get_node_stat(statfn,'yo'))
 
         # Compute the scatter among the points for spline weighting
 
-        xdelta = np.asarray(self.get_node_stat(std_stat,'xo'))
-        ydelta = np.asarray(self.get_node_stat(std_stat,'yo'))
+        xdelta = np.asarray(self.get_node_stat(std_statfn,'xo'))
+        ydelta = np.asarray(self.get_node_stat(std_statfn,'yo'))
 
         # The following is not efficient (due to copies). Refine later.
 
-        x0 = np.asarray(self.get_node_stat(stat,'x'))
-        y0 = np.asarray(self.get_node_stat(stat,'y'))
+        x0 = np.asarray(self.get_node_stat(statfn,'x'))
+        y0 = np.asarray(self.get_node_stat(statfn,'y'))
         #print "xc:",xc
         #print "x:",x0
         dx = xc - x0
@@ -153,7 +153,7 @@ class IteratedRiverObs(RiverObs):
 
         return x1, y1, eps, xdelta, ydelta
 
-    def iterate(self,max_iter=1,alpha=1.,stat='mean', std_stat='std',
+    def iterate(self,max_iter=1,alpha=1.,statfn='mean', std_statfn='std',
                 tol=1., weights=True, smooth=1.e-2,**kwds):
         """Iterate until the coordinates change by a most tol.
 
@@ -167,11 +167,11 @@ class IteratedRiverObs(RiverObs):
             data centroid is given by (xc,yc), the updated centerline coordinates
             will be (x1, y1) = (x0,y0) + alpha*( (xc,yc) - (x0,y0) ). For alpha=1,
             this is equivalent to straight replacement, but may overshoot.
-        stat : str
+        statfn : str
             Statistic to use to get the centroid based on the observation coordinates.
             It should be implemented by RiverNode. Choices could be 'mean', 'median', etc.
             The default is 'mean'.
-        std_stat : str
+        std_statfn : str
             Statistic to use to get the centroid dispersionbased on the observation
             coordinates. It should be implemented by RiverNode. Choices could be
             'std', 'stderr', etc. The default is 'std'.
@@ -202,8 +202,8 @@ class IteratedRiverObs(RiverObs):
         for i in range(max_iter):
 
             x1, y1, eps, xdelta, ydelta = self.refine_centerline(alpha=alpha,
-                                                                 stat=stat,
-                                                                 std_stat=std_stat)
+                                                                 statfn=statfn,
+                                                                 std_statfn=std_statfn)
 
             print('iteration %d maximum coordinate change: %f'%(i,eps))
 

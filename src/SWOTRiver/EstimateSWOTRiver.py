@@ -22,6 +22,7 @@ def search_for_libraries():
 
 # Imports
 
+import ast
 from os.path import join, split
 import argparse
 from glob import glob
@@ -254,13 +255,13 @@ def main():
 
     bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
     lat_0,lon_0=None,None#pars.proj_lat_0,pars.proj_lon_0
-    class_list = eval(pars.class_list)
-    use_fractional_inundation = eval(pars.use_fractional_inundation)
-    use_segmentation = eval(pars.use_segmentation)
-    use_heights = eval(pars.use_heights)
-    use_width_db = eval(pars.use_width_db)
-    refine_centerline = eval(pars.refine_centerline)
-    fit_types = eval(pars.fit_types)
+    class_list = ast.literal_eval(pars.class_list)
+    use_fractional_inundation = ast.literal_eval(pars.use_fractional_inundation)
+    use_segmentation = ast.literal_eval(pars.use_segmentation)
+    use_heights = ast.literal_eval(pars.use_heights)
+    use_width_db = ast.literal_eval(pars.use_width_db)
+    refine_centerline = ast.literal_eval(pars.refine_centerline)
+    fit_types = ast.literal_eval(pars.fit_types)
 
     # Read the data and estimate the flooded area.
 
