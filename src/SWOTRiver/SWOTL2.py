@@ -86,15 +86,24 @@ class SWOTL2:
         self.lon = self.get(lon_kwd)
         #### added B. Williams Apr 24, 2017:
         # need to put in the radar/image coordinates too
+        # Modified by ER to provide limited compatibility with original data.
         try:
             self.img_x = self.get('range_index')
             self.img_y = self.get('azimuth_index')
         except:
-            print('Cant Find range_index, or azimuth_index variables, assuming 2D-image image coordinates (like from a gdem)')
-            Ny,Nx = np.shape(self.nc.variables[lat_kwd])# this should break if it is not an image like a gdem or an L2 pixel cloud
-            ix,iy = np.meshgrid(np.arange(Nx),np.arange(Ny))
-            self.img_x = ix[self.index]
-            self.img_y = iy[self.index]
+            try:
+                print('Cant Find range_index, or azimuth_index variables,'
+                      ' assuming 2D-image image coordinates (like from a gdem)')
+                # this should break if it is not an image like a gdem or an L2 pixel cloud
+                Ny,Nx = np.shape(self.nc.variables[lat_kwd])
+                ix,iy = np.meshgrid(np.arange(Nx),np.arange(Ny))
+                self.img_x = ix[self.index]
+                self.img_y = iy[self.index]
+            except:
+                print('WARNING: Input file does not contain range/azimuth index. '
+                      'Functions relying on radar coordinates WILL break!')
+                self.img_x = None
+                self.img_y = None
         ####
 
         if self.verbose: print('lat/lon read')
