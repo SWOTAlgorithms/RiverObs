@@ -44,50 +44,52 @@ optional arguments:
   -h, --help   show this help message and exit
   -f, --format OGR file format  (default 'ESRI Shapefile')
 
-  A template RDF file follows:
+  A template RDF file follows (Input after ! is ignored in parsing):
 
 ! These are the locations of the reach data and the width data base (if desired)
 
-! This is the width database (if desired), no longer needed since prior database has al this info
-width_db_file = ../../data/Databases/OhioRightSwath_GRWDL.h5
+! This is the width database (if desired)
 
-! This is the path to the reach files (not including the .shp suffix), this is the prior reach database
-shape_file_root = ../../data/Databases/OhioRightSwath_GRWDL_river_topo/OhioRightSwath_GRWDL_river_topo
+width_db_file = None !../../../RiverObsTestData/GRWDL/nAmerica_GRWDL.h5
+
+! This is the path to the reach files (not including the .shp suffix)
+
+shape_file_root = ../../../RiverObsTestData/River_Prior_Database/ADT_priordatabase_reaches_polylines/NA_reaches_data_discharge_depth_chn_grdc_revised_GCS
 
 ! This is the location of the simulated water file
 
-l2_file = ../../data/OhioRightSwathData/heights/swot_intf_ohio_cycle_0001_pass_0413.RightSwath.EstClass.nc
+l2_file = ../../../RiverObsTestData/L2/L2v1/swot_heights_ohio_example_v1.Multilook_L2PIXC.nc
 
 ! This is the location of the output data
 
-fout_reach = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
-fout_node = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
-fout_index = ../../data/Results/ohio_cycle_0001_pass_0413.RightSwath.EstClass.NLoc.CClass_reach
+fout_reach = ./ohioTest/swot_heights_ohio_example_v1_L2PIXC.NLoc.CClass_reach
+fout_node = ./ohioTest/swot_heights_ohio_example_v1_L2PIXC.NLoc.CClass_node
+fout_index = ./ohioTest/swot_heights_ohio_cycle_example_v1_L2PIXC.NLoc.CClass_index.nc
 
 ! The bounding box tells what region is of interest.
-! The center of this bounding box defines the x,y projection that the nodes are defined on.
-! Generally, should make this to just cover the "tile" (or gdem or gdem_dem extent).
-! The bounding box is no longer updated based on the data to enable processing gdem as well as pixc
-! and get the same node locations
+! It is sometimes required because the simulator sometimes has anomalous
+! latitudes and longitudes. If this is not the case, it can be set to None.
+! It does not have to be very accurate, just good enough to exclude location anomalies.
+! It will be updated to the true bounding box by the program.
 
-lonmin = -125.
-latmin = 30.
-lonmax = -10.
-latmax = 50.
+lonmin =  -83
+latmin =  38
+lonmax =  -82
+latmax =  39
 bounding_box = lonmin,latmin,lonmax,latmax
 
 ! The second set of inputs have to do with what data are extracted from the
 ! water file.
 
-! either 'no_layover_latitude' (a priori lat) or 'latitude' (estimated lat)
-lat_kwd = latitude
-! either 'no_layover_longitude' (a priori lon) or 'longitude' (estimated lat)
-lon_kwd = longitude
-! either 'classification' (estimated classification)
-! or 'no_layover_classification' (truth classification)
+! 'medium' or 'welldone' indicate different levels of averaging in the lines below.
+! either 'latitude_medium' or 'latitude_welldone' for height files, or 'latitude' for GDEM.
+lat_kwd = latitude_medium
+! either 'longitude_medium' or 'longitude_welldone' for height files, or 'longitude' for GDEM.
+lon_kwd = longitude_medium
+! either 'classification' (estimated classification) or 'landtype' for GDEM truth
 class_kwd = classification
-! either 'height' (estimated height) or 'water_height' (truth height)
-height_kwd = height
+! either 'height_medium' or 'height_welldone' (estimated height) or 'elevation' (GDEM)
+height_kwd = height_medium
 
 ! The third set of inputs have to do with how to use the classification
 ! to estimate river width
@@ -97,13 +99,13 @@ height_kwd = height
 ! If estimated classification is used, the choice depends on whether
 ! use_fractional_inundation is set.
 ! If it is not set, either [3,4] or [4] should be used.
-! If it is set, [2,3,4] or [3,4] should be used.
+! If it is set, [2,3,4,5] or [3,4,5] should be used.
 class_list = [2,3,4,5]
 
 ! If the L2 water file has been updated to contain the fractional
 ! inundation, this is the name of the variable. If it has not been
 ! updated or you do not wish to use it, set this to None
-fractional_inundation_kwd = 'continuous_classification'
+fractional_inundation_kwd = continuous_classification
 
 ! This corresponds to the clases set above.
 ! If True, use fractional inundation estimate to get the inundated area for this class.
@@ -128,14 +130,13 @@ min_points=100
 ! the river. 0.01 ~ 1km
 clip_buffer=0.02
 
-
 ! The fifth set of options has to do with how the data are sampled and
 ! quantities are estimated
 
 ! This option is only possible if you have an a priori estimate
 ! of width for each width point. It will load that width into
 ! the centerline for comparison with the estimated data.
-use_width_db = True
+use_width_db =  False !True
 
 ! This option determines the separation between centerline nodes.
 ! If set to None, the the spacing in the input reach is used.
