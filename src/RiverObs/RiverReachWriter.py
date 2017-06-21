@@ -1,7 +1,8 @@
 """
 Output the contents of a RiverReach collection into a GIS or hdf5 format.
 """
-
+import os
+import shutil
 from collections import OrderedDict as odict
 import numpy as N
 from pandas import HDFStore, DataFrame
@@ -52,6 +53,9 @@ class RiverReachWriter:
     def write_nodes_ogr(self,output_file,driver='ESRI Shapefile'):
         """Write the nodes as points in a format supporter by OGR."""
 
+        if os.path.isdir(output_file):
+            shutil.rmtree(output_file)
+
         self.fields = odict()
         self.fields['reach_idx'] = 'int'
         for var in self.node_output_variables:
@@ -89,6 +93,9 @@ class RiverReachWriter:
 
     def write_reaches_ogr(self,output_file,driver='ESRI Shapefile'):
         """Write the nodes as points in a format supporter by OGR."""
+
+        if os.path.isdir(output_file):
+            shutil.rmtree(output_file)
 
         self.reach_fields = odict()
         for var in self.reach_output_variables:
