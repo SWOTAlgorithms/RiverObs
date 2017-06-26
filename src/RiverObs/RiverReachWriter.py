@@ -50,6 +50,30 @@ class RiverReachWriter:
                 exec('v = reach.metadata["%s"]'%var)
                 self.reach_vars[var].append(v)
 
+    @staticmethod
+    def get_type_string(var):
+        """
+        Returns int, float, or str
+        """
+        this_string = 'str'
+
+        # If it is a numpy type this will work
+        # only needed this try block because float32 doesn't inherit from float
+        try:
+            if N.issubdtype(var, float):
+                this_string = 'float'
+            elif N.issubdtype(var, int):
+                this_string = 'int'
+
+        # issubdtype raises TypeError on not a numpy array
+        except TypeError:
+            if isinstance(var, float):
+                this_string = 'float'
+            elif isinstance(var, int):
+                this_string = 'int'
+
+        return this_string
+
     def write_nodes_ogr(self,output_file,driver='ESRI Shapefile'):
         """Write the nodes as points in a format supporter by OGR."""
 
@@ -58,15 +82,11 @@ class RiverReachWriter:
 
         self.fields = odict()
         self.fields['reach_idx'] = 'int'
+        self.fields['node_indx'] = 'int'
+        self.fields['reach_indx'] = 'int'
+
         for var in self.node_output_variables:
-            if  ((self.node_vars[var][0].dtype == N.float64) or
-                 (self.node_vars[var][0].dtype == N.float32) ):
-                self.fields[var] = 'float'
-            elif ((self.node_vars[var][0].dtype == N.int32) or
-                 (self.node_vars[var][0].dtype == N.int16) ):
-                self.fields[var] = 'int'
-            else:
-                self.fields[var] = 'str'
+            self.fields[var] = self.get_type_string(self.node_vars[var][0][0])
 
         ogr_writer = OGRWriter(output_file,layers=[],fields=self.fields,
                                driver=driver,
@@ -99,13 +119,8 @@ class RiverReachWriter:
 
         self.reach_fields = odict()
         for var in self.reach_output_variables:
-            t = type(self.reach_vars[var][0])
-            if  (t == float):
-                self.reach_fields[var] = 'float'
-            elif (t == int ):
-                self.reach_fields[var] = 'int'
-            else:
-                self.reach_fields[var] = 'str'
+            self.reach_fields[var] = self.get_type_string(
+                self.reach_vars[var][0])
 
         ogr_writer = OGRWriter(output_file,layers=[],fields=self.reach_fields,
                                driver=driver,
