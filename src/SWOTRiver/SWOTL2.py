@@ -166,8 +166,10 @@ class SWOTL2:
         self.klass = self.klass[self.index]
 
     def get(self,var):
-        """Get the values of the variable var within the desired index of good sites."""
-
+        """
+        Get the values of the variable var within the desired index of
+        good sites.
+        """
         x = self.nc.variables[var][:]
         return x[self.index]
 

@@ -189,6 +189,7 @@ input_vars = {
     'lon_kwd' : ('lon_kwd','s'),
     'class_kwd' : ('class_kwd','s'),
     'height_kwd' : ('height_kwd','s'),
+    'xtrack_kwd' : ('xtrack_kwd','s'),
 
     'class_list' : ('class_list','s'),
     'fractional_inundation_kwd' : ('fractional_inundation_kwd','s'),
@@ -262,51 +263,45 @@ def main():
     
     # Read the data and estimate the flooded area.
 
-    river_estimator = SWOTRiverEstimator(pars.l2_file,
-                                        bounding_box=bounding_box,
-                                        lat_kwd=pars.lat_kwd, 
-                                        lon_kwd=pars.lon_kwd,
-                                        class_kwd=pars.class_kwd,
-                                        height_kwd=pars.height_kwd,
-                                        class_list=class_list,
-                                        fractional_inundation_kwd=pars.fractional_inundation_kwd,
-                                        use_fractional_inundation=use_fractional_inundation,
-                                        use_segmentation=use_segmentation,
-                                        use_heights=use_heights,
-                                        min_points=pars.min_points,
-                                        verbose=True,store_obs=False,
-                                        store_reaches=False,
-                                        store_fits=False,
-                                        output_file=pars.fout_index,
-                                        proj='laea',x_0=0,y_0=0,lat_0=lat_0,lon_0=lon_0)
+    river_estimator = SWOTRiverEstimator(
+        pars.l2_file, bounding_box=bounding_box, lat_kwd=pars.lat_kwd,
+        lon_kwd=pars.lon_kwd, class_kwd=pars.class_kwd,
+        height_kwd=pars.height_kwd, class_list=class_list,
+        xtrack_kwd=pars.xtrack_kwd,
+        fractional_inundation_kwd=pars.fractional_inundation_kwd,
+        use_fractional_inundation=use_fractional_inundation,
+        use_segmentation=use_segmentation, use_heights=use_heights,
+        min_points=pars.min_points, verbose=True, store_obs=False,
+        store_reaches=False, store_fits=False, output_file=pars.fout_index,
+        proj='laea', x_0=0, y_0=0, lat_0=lat_0, lon_0=lon_0)
 
     # Load the reaches and width data base
 
-    river_estimator.get_reaches(pars.shape_file_root,clip_buffer=pars.clip_buffer)
+    river_estimator.get_reaches(
+        pars.shape_file_root,clip_buffer=pars.clip_buffer)
+
     if use_width_db:
         river_estimator.get_width_db(pars.width_db_file)
 
     # Process all of the reaches
-    river_reach_collection = river_estimator.process_reaches(scalar_max_width=pars.scalar_max_width,
-                    minobs=pars.minobs,min_fit_points=pars.min_fit_points,
-                    fit_types=fit_types,
-                    use_width_db = use_width_db,
-                    ds=pars.ds,
-                    refine_centerline=refine_centerline,
-                    smooth=pars.smooth,alpha=pars.alpha,max_iter=pars.max_iter)
-    
+    river_reach_collection = river_estimator.process_reaches(
+        scalar_max_width=pars.scalar_max_width, minobs=pars.minobs,
+        min_fit_points=pars.min_fit_points, fit_types=fit_types,
+        use_width_db=use_width_db, ds=pars.ds,
+        refine_centerline=refine_centerline, smooth=pars.smooth,
+        alpha=pars.alpha, max_iter=pars.max_iter)
+
     # Initialize the output writer
     #print river_reach_collection
     reach_output_variables = river_reach_collection[0].metadata.keys()
     # Brent williams May 2017: added extra fields
-    node_output_variables = ['lat','lon','x','y','nobs','s',
-                                 'w_ptp','w_std','w_area','w_db','area',
-                                 'h_n_ave','h_n_std','h_a_ave','h_a_std',
-                                 'nobs_h','x_prior','y_prior','node_indx','reach_indx']
-    
-    writer = RiverReachWriter(river_reach_collection,
-                          node_output_variables,
-                          reach_output_variables)
+    node_output_variables = [
+        'lat', 'lon', 'x', 'y', 'nobs', 's', 'w_ptp', 'w_std', 'w_area',
+        'w_db', 'area', 'h_n_ave', 'h_n_std','h_a_ave','h_a_std', 'nobs_h',
+        'x_prior', 'y_prior', 'xtrack', 'node_indx', 'reach_indx']
+
+    writer = RiverReachWriter(
+        river_reach_collection, node_output_variables, reach_output_variables)
     
     # Write shapefiles
 
