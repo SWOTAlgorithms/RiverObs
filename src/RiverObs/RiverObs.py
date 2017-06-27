@@ -46,7 +46,7 @@ class RiverObs:
         minimum number of observations for each node.
     node_class: class
         either RiverNode, or a class derived from it.
-    missing_value : float, default -999999999
+    missing_value : float, default -9999
         This value is reported when a node_stat is requested of an empty node.
     verbose : bool, default False
         Output progress to stdout
@@ -54,7 +54,7 @@ class RiverObs:
     """
     
     def __init__(self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,
-                 node_class=RiverNode,missing_value=-999999999,verbose=False):
+                 node_class=RiverNode,missing_value=-9999,verbose=False):
         
         self.verbose = verbose
         self.missing_value = missing_value
