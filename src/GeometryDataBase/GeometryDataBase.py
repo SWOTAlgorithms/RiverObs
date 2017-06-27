@@ -129,37 +129,41 @@ class GeometryDataBase2D:
         """
 
         # Check that the rtree files are there, otherwise, create them
-
-        if not ( exists(shape_file_root+'.idx') and exists(shape_file_root+'.dat') ):
+        if not (exists(shape_file_root+'.idx') and
+                exists(shape_file_root+'.dat')):
             print("Rtree data base does not exist. Create it now.")
             write_shape_rtree_2D(shape_file_root,store_obj=store_obj)
-        
+
         self.shape = pysal.open(shape_file_root+'.shp')
         p = index.Property()
         p.dimension = dimension
         p.overwrite = False
         self.idx = index.Index(shape_file_root,properties=p)
 
-    def intersects_xy_bbox(self,xy_bbox):
+
+    def intersects_xy_bbox(self, xy_bbox):
         """Return the ids for objects which intersect by the input 2D bbox."""
+        shapely_bbox = Polygon([
+            (xy_bbox[0], xy_bbox[1]), (xy_bbox[0], xy_bbox[3]),
+            (xy_bbox[2], xy_bbox[3]), (xy_bbox[2], xy_bbox[1])])
 
-        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),
-                                (xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])]
-                                )
+        ids = []
+        for id in self.idx.intersection(xy_bbox, objects='raw'):
+            try:
+                if shapely_bbox.intersects(asShape(self.shape[id])):
+                    ids.append(id)
 
-        return [id for id in self.idx.intersection(xy_bbox,objects='raw')
-                if shapely_bbox.intersects(asShape(self.shape[id]))]
+            # some of the ids in the shapefile aren't polygons
+            except ValueError:
+                pass
 
-    def get_reach_intersect_xy_bbox(self,xy_bbox):
+        return ids
+
+    def get_reach_intersect_xy_bbox(self, xy_bbox):
         """Return the shapely objects which intersect by the input 2D bbox."""
+        ids = self.intersects_xy_bbox(xy_bbox)
+        return [asShape(self.shape[id]) for id in ids]
 
-        shapely_bbox = Polygon([(xy_bbox[0],xy_bbox[1]),(xy_bbox[0],xy_bbox[3]),
-                                (xy_bbox[2],xy_bbox[3]),(xy_bbox[2],xy_bbox[1])]
-                                )
-
-        return [asShape(self.shape[id]) for id in self.idx.intersection(xy_bbox,objects='raw') 
-                        if shapely_bbox.intersects(asShape(self.shape[id]))]
-    
     def contains_point(self,x, y,eps=1.e-6):
         """Return the ids for objects which intersect by the input 2D point."""
 
