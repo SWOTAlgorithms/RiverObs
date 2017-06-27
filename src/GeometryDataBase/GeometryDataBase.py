@@ -1,8 +1,7 @@
 """
 Fast access to a data base containing a set of geometries. 
-
-The data base is created by reading a shapefile, and write an rtree index for it for future use.
-
+The data base is created by reading a shapefile, and write an rtree
+index for it for future use.
 All bounding boxes are assumed to be an iterable (xmin,ymin,xmax,ymax)
 """
 
@@ -11,7 +10,7 @@ import pysal
 from rtree import index
 from shapely.geometry import asShape, Polygon
 
-def bbox_generator_3D(shape,dbf,dt,tindex=1,store_obj=False):
+def bbox_generator_3D(shape, dbf, dt, tindex=1, store_obj=False):
     """Following the rtree documentation, a fast way to load iterables
     into the RTree index.
 
@@ -24,15 +23,15 @@ def bbox_generator_3D(shape,dbf,dt,tindex=1,store_obj=False):
     dt : float
         tmin = t - dt/2, tmax = d + dt/2 determines the time bounding box.
     """
-
     if store_obj:
         for i, obj in enumerate(shape):
-            yield (i, shape_bbox_dbf_as_tuple(obj,dbf[i],dt,tindex=tindex) , obj)
+            yield (
+                i, shape_bbox_dbf_as_tuple(obj, dbf[i], dt, tindex=tindex), obj)
     else:
         for i, obj in enumerate(shape):
-            yield (i, shape_bbox_dbf_as_tuple(obj,dbf[i],dt,tindex=tindex)  , i)
+            yield (i, shape_bbox_dbf_as_tuple(obj,dbf[i],dt,tindex=tindex), i)
 
-def bbox_generator_2D(shape,store_obj=False):
+def bbox_generator_2D(shape, store_obj=False):
     """Following the rtree documentation, a fast way to load iterables into
     the RTree index.
 
@@ -90,8 +89,9 @@ def write_shape_rtree_3D(shape_file_root,dt,time_kwd='time',store_obj=False):
     tindex = dbf.header.index(time_kwd)
     p = index.Property()
     p.dimension = 3
-    index.Index(shape_file_root,
-                bbox_generator_3D(shape,dbf,dt,tindex=tindex,store_obj=store_obj),properties=p)
+    index.Index(
+        shape_file_root, bbox_generator_3D(shape, dbf, dt, tindex=tindex,
+        store_obj=store_obj), properties=p)
 
 def write_shape_rtree_2D(shape_file_root,store_obj=False):
     """Write an RTree indexing structure to file.
@@ -124,10 +124,9 @@ class GeometryDataBase2D:
         dimension of the shapes.
     """
 
-    def __init__(self,shape_file_root,store_obj=False,dimension=2):
+    def __init__(self, shape_file_root, store_obj=False, dimension=2):
         """
         """
-
         # Check that the rtree files are there, otherwise, create them
         if not (exists(shape_file_root+'.idx') and
                 exists(shape_file_root+'.dat')):
@@ -186,9 +185,9 @@ class GeometryDataBase3D:
     time_kwd : str
         Keyword for time variable in the dbf file.
     store_obj : bool
-        if the rtree file does not exist, this is passed to write_shape_rtree_2D
-        and determines whether the shape index (store_obj = False) or
-        the shape are stored.
+        if the rtree file does not exist, this is passed to 
+        write_shape_rtree_2D and determines whether the shape index
+        (store_obj = False) or the shape are stored.
     dimension : {2, 3}
         dimension of the shapes.
 
@@ -198,9 +197,11 @@ class GeometryDataBase3D:
                  dimension=3):
         # Check that the rtree files are there, otherwise, create them
 
-        if not ( exists(shape_file_root+'idx') and exists(shape_file_root+'dat') ):
-            write_shape_rtree_3D(shape_file_root,dt,time_kwd=time_kwd,store_obj=store_obj)
-        
+        if not exists(shape_file_root+'.idx') or not
+               exists(shape_file_root+'.dat'):
+            write_shape_rtree_3D(
+                shape_file_root, dt, time_kwd=time_kwd, store_obj=store_obj)
+
         self.shape = pysal.open(shape_file_root+'.shp')
         self.dbf = pysal.open(shape_file_root+'.dbf')
         self.tindex = self.dbf.header.index(time_kwd)
