@@ -117,9 +117,9 @@ class GeometryDataBase2D:
     shape_file_root : str
         root shapefile name
     store_obj : bool
-        if the rtree file does not exist, this is passed to write_shape_rtree_2D
-        and determines whether the shape index (store_obj = False) or
-        the shape are stored.
+        if the rtree file does not exist, this is passed to
+        write_shape_rtree_2D and determines whether the shape index
+        (store_obj = False) or the shape are stored.
     dimension : {2, 3}
         dimension of the shapes.
     """
@@ -165,9 +165,7 @@ class GeometryDataBase2D:
 
     def contains_point(self,x, y,eps=1.e-6):
         """Return the ids for objects which intersect by the input 2D point."""
-
         xy_bbox = (x-eps, y-eps, x+eps, y+eps)
-
         return self.intersects_xy_bbox(xy_bbox)
 
     
@@ -197,8 +195,8 @@ class GeometryDataBase3D:
                  dimension=3):
         # Check that the rtree files are there, otherwise, create them
 
-        if not exists(shape_file_root+'.idx') or not
-               exists(shape_file_root+'.dat'):
+        if (not exists(shape_file_root+'.idx') or
+            not exists(shape_file_root+'.dat')):
             write_shape_rtree_3D(
                 shape_file_root, dt, time_kwd=time_kwd, store_obj=store_obj)
 
