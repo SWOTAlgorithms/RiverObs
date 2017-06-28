@@ -48,8 +48,10 @@ class FitRiver:
         y = N.asarray( self.river_obs.get_node_stat(mean_stat,fit_var) )[good]
 
         # Weights
-
-        w = 1./N.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
+        tmp=N.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
+        w=1.0/tmp
+        w[tmp<=0]=1.0
+        #w = 1./N.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
 
         # Fitting matrix for linear fit
 

@@ -112,9 +112,10 @@ class Centerline:
         self.s = N.cumsum(self.delta)
 
         # Compute the spline for evaluating x and y as a function of s
-
         if smooth != None:
             smooth *= len(self.x)
+
+        #    
         self.xtck = splrep(self.s,self.x,k=k,w=wx,s=smooth,**kwds)
         self.ytck = splrep(self.s,self.y,k=k,w=wy,s=smooth,**kwds)
         if obs != None:
@@ -127,7 +128,7 @@ class Centerline:
         if ds != None:
             ns = int(self.s[-1]/ds + 1)
             if ns < 2:
-                raise Exception('This ds is too large for the data set')
+                raise Exception('This ds is too large for the data set:',ds,ns,self.s[-1])
 
             self.ds =  self.s[-1]/(ns - 1)
             self.s = N.arange(ns)*self.ds

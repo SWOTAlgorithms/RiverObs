@@ -37,6 +37,8 @@ class IteratedRiverObs(RiverObs):
         Centerline spline smoothing degree (default 3).
     ds : float
         Centerline point separation (default None).
+    seg_label : array_like
+        Array giving a different index to each feature (connected region)
     max_width : float
         If !=None, exclude all observations more than max_width/2
         away from the centerline in the normal direction. 
@@ -50,7 +52,7 @@ class IteratedRiverObs(RiverObs):
         Additional keywords to pass to RiverObs.__init__
     """
 
-    def __init__(self,reach,xobs,yobs,k=3,ds=None,max_width=None,minobs=1,
+    def __init__(self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,
                  **kwds):
 
         # Right now, things do not work for width observations along the
@@ -62,7 +64,7 @@ class IteratedRiverObs(RiverObs):
         # Initialize the base class
 
         self.robs_kwds = kwds
-        RiverObs.__init__(self,reach,xobs,yobs,k=k,ds=ds,max_width=max_width,
+        RiverObs.__init__(self,reach,xobs,yobs,k=k,ds=ds,seg_label=seg_label,max_width=max_width,
                            minobs=minobs,**kwds)
 
         # Unlike the base class, keep a copy of the original data and some
@@ -74,6 +76,8 @@ class IteratedRiverObs(RiverObs):
 
         self.xobs = xobs
         self.yobs = yobs
+
+        self.seg_label = seg_label
 
         # Now add the observed coordinates at each node
 
@@ -131,14 +135,15 @@ class IteratedRiverObs(RiverObs):
         
         x0 = N.asarray(self.get_node_stat(stat,'x'))
         y0 = N.asarray(self.get_node_stat(stat,'y'))
-
+        #print "xc:",xc
+        #print "x:",x0
         dx = xc - x0
         dy = yc - y0
 
         # Compute for stopping criterion
-         
+        
         eps = max(N.abs(dx).max(), N.abs(dy).max())
-
+        
         # New coordinates
 
         x1 = (1-alpha)*x0 + alpha*xc
@@ -220,7 +225,7 @@ class IteratedRiverObs(RiverObs):
                 wx, wy = None, None
 
             # Recalculate the centerline for the next iteration
-
+            
             self.reinit_centerline_nodes(x1, y1, smooth=smooth, wx=wx, wy=wy)
 
     def reinit_centerline_nodes(self,x1,y1, smooth=None, wx=None, wy=None):
@@ -237,7 +242,7 @@ class IteratedRiverObs(RiverObs):
 
 
         # Calculate the centerline for this reach
-
+        
         self.centerline = Centerline(x1,y1,k=self.k,ds=self.ds_init)
 
         # Associate an along-track dimension to each node
@@ -365,7 +370,8 @@ class IteratedRiverObs(RiverObs):
         # Initialize the base class
 
         ## print len(reach.x),len(reach.y),len(max_width)
-        RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds_init,
+        #self,reach,xobs,yobs,k=3,ds=None,seg_label=None,max_width=None,minobs=1,node_class=RiverNode,missing_value=-999999999,verbose=False
+        RiverObs.__init__(self,reach,self.xobs,self.yobs,k=self.k,ds=self.ds_init,seg_label=self.seg_label,
                           max_width=max_width,
                             minobs=self.minobs,**self.robs_kwds)
 

@@ -28,6 +28,8 @@ class RiverNode:
         along-track coordinate (relative to the node center) for each point 
     n : array_like
         across-track (normal) coordinate (relative to the node center) for each point
+    h_flg: array_like
+        flag indicating which pixels to use for height stats
     ds : float
         along-track dimension for this node. Defaults to 1. Needs to be set
         correctly for width_area to work.
@@ -66,7 +68,6 @@ class RiverNode:
 
         self.ndata = len(self.x)
         self.good = N.ones(self.ndata,dtype=N.bool)
-
         self.sorted = False
 
     def add_obs(self,obs_name,obs,sort=True):
@@ -91,7 +92,13 @@ class RiverNode:
         """Return the number of points in the node."""
 
         return self.ndata
-
+    
+    def countGood(self,goodvar):
+        """Return the number of good points in the node."""
+        tmp=N.zeros(self.ndata)
+        exec('tmp[self.%s]=1'%goodvar)
+        return sum(tmp)
+    
     def value(self,var):
         """Return self.value. Useful when getting stats for all nodes and a scalar variable
         is desired."""
@@ -108,20 +115,23 @@ class RiverNode:
         exec('mean = N.mean(self.%s[self.good])'%var)        
                  
         return mean
-
-    def median(self,var):
+    # modified by Brent Williams, May 2017:
+    # added goodvar to allow height aggregation to use different pixels than rest
+    def median(self,var,goodvar='good'):
         """Return mean of a variable"""
 
         median = 0 # fake cython compiler
-        exec('median = N.median(self.%s[self.good])'%var)        
+        #exec('median = N.median(self.%s[self.good])'%var)
+        exec('median = N.median(self.%s[self.%s])'%(var,goodvar))  
                  
         return median
 
-    def std(self,var):
+    def std(self,var,goodvar='good'):
         """Return std of a variable"""
         
         std = 0 # fake cython compiler
-        exec('std = N.std(self.%s[self.good])'%var)        
+        #exec('std = N.std(self.%s[self.good])'%var)
+        exec('std = N.std(self.%s[self.%s])'%(var,goodvar))
                  
         return std
     
