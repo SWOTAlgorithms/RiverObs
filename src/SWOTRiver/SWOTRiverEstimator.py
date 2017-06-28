@@ -16,7 +16,6 @@ from RiverObs import FitRiver
 from RiverObs import RiverNode
 from RiverObs import RiverReach
 from scipy.ndimage import label, grey_dilation
-from IPython import embed
 
 class SWOTRiverEstimator(SWOTL2):
     """
@@ -494,15 +493,15 @@ class SWOTRiverEstimator(SWOTL2):
 
         Return a RiverReach instance with the reach information.
         """
-        #print self.seg_label
-        # Initialize the observations
-        try:
-            self.river_obs = IteratedRiverObs(
-                reach, self.x, self.y, ds=ds, seg_label=self.seg_label,
-                max_width=scalar_max_width, minobs=minobs,
-                verbose=self.verbose)
-        except:
+        if len(reach.x) <= 3:
+            print "reach does not have enought points", len(reach.x)
             return None
+
+        # Initialize the observations
+        self.river_obs = IteratedRiverObs(
+            reach, self.x, self.y, ds=ds, seg_label=self.seg_label,
+            max_width=scalar_max_width, minobs=minobs,
+            verbose=self.verbose)
 
         if self.verbose: print('river_obs initilized')
         # Refine the centerline, if desired
@@ -513,11 +512,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # get the number of node inthe reach and only refine if there are
         # enough to do spline
-        enough_nodes=False
-        numNodes=len(N.unique(self.river_obs.index))
-        print "numNodes,k:",numNodes,self.river_obs.k
-        if (numNodes-1>self.river_obs.k):
-            enough_nodes=True
+        numNodes = len(N.unique(self.river_obs.index))
+        enough_nodes = True if numNodes-1 > self.river_obs.k else False
+        if self.verbose: print "numNodes,k:",numNodes,self.river_obs.k
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -527,7 +524,8 @@ class SWOTRiverEstimator(SWOTL2):
             if N.iterable(max_width):
                 xw = reach.x
                 yw = reach.y
-                self.river_obs.add_centerline_obs(xw,yw,max_width,'max_width')
+                self.river_obs.add_centerline_obs(
+                    xw, yw, max_width, 'max_width')
 
             # Reinitialize to the new centerline and max_width
             self.river_obs.reinitialize()
@@ -538,17 +536,18 @@ class SWOTRiverEstimator(SWOTL2):
             if N.iterable(max_width):
                 xw = reach.x
                 yw = reach.y
-                self.river_obs.add_centerline_obs(xw,yw,max_width,'max_width')
+                self.river_obs.add_centerline_obs(
+                    xw, yw, max_width, 'max_width')
 
         # Exclude beginning and end nodes, if desired
         if self.trim_ends:
             first_node = self.river_obs.populated_nodes[0]
             last_node = self.river_obs.populated_nodes[-1]
-            self.river_obs.remove_nodes([first_node,last_node])
+            self.river_obs.remove_nodes([first_node, last_node])
 
         # write out the image coordinates for each node in a netcdf file
         try:
-            segOut=self.seg_label[self.river_obs.in_channel]
+            segOut = self.seg_label[self.river_obs.in_channel]
 
         except:
             segOut=None
