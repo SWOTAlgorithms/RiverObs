@@ -8,8 +8,9 @@ A class for parsing, storing, and writing files of the format:
 from __future__ import absolute_import, division, print_function
 
 import re #regular expressions for parsing
-import string #string library
+#import string #string library
 import types
+import locale
 
 class RDF:
     """A class for parsing, storing, and writing files of the format:
@@ -49,14 +50,14 @@ class RDF:
 
     def __setitem__(self,key,value):
         if type(value) != bytes: value = repr(value)
-        key = string.lower(key)
+        key = str.lower(key)
         self.value[key] = value
         self.units[key] = '-'
         if key not in self.key_list:
             self.key_list.append(key)
 
     def __delitem__(self,key):
-        key = string.lower(key)
+        key = str.lower(key)
         del self.value[key]
         del self.units[key]
         self.key_list.remove(key)
@@ -73,7 +74,7 @@ class RDF:
         return list(self.value.values())
 
     def set(self,key,value,units='-'):
-        key = string.lower(key)
+        key = str.lower(key)
         if type(value) != bytes: value = repr(value)
         self.value[key] = value
         self.units[key] = units
@@ -85,7 +86,7 @@ class RDF:
         m = re.match("(.*)"+self.rdfComm+"(.*)",line)
         while m:
             line = m.group(1)
-            c = string.strip(m.group(2))
+            c = str.strip(m.group(2))
             m = re.match("(.*)"+self.rdfComm+"(.*)",line)
         return line
 
@@ -131,18 +132,18 @@ class RDF:
 
                     k = m.group(1)
                     v = m.group(2)
-                    v = string.strip(v)
+                    v = str.strip(v)
 
                     #units key separation
                     m = re.match("(.*)\((.*)\).*",k)
                     if m:
-                        u = string.strip(m.group(2))
+                        u = str.strip(m.group(2))
                         if u == "": u = "-"
 
-                        k = string.lower(string.strip(m.group(1)))
+                        k = str.lower(str.strip(m.group(1)))
                         self.units[k] = u
                     else:
-                        k = string.lower(string.strip(k))
+                        k = str.lower(str.strip(k))
                         self.units[k] = "-"
 
                     self.value[k] = v
@@ -161,7 +162,7 @@ class RDF:
     ## def rdfParseString(self,rdfString):
     ##     """Parse a string containing RDF lines separated by \\n."""
 
-    ##     for line in rdfString.split('\n'):
+    ##     for line in rdfStr.split('\n'):
 
     ##         # strip comments
 
@@ -182,18 +183,18 @@ class RDF:
 
     ##             k = m.group(1)
     ##             v = m.group(2)
-    ##             v = string.strip(v)
+    ##             v = str.strip(v)
 
     ##             # units key separation
     ##             m = re.match("(.*)\((.*)\).*",k)
     ##             if m:
-    ##                 u = string.strip(m.group(2))
+    ##                 u = str.strip(m.group(2))
     ##                 if u == "": u = "-"
 
-    ##                 k = string.lower(string.strip(m.group(1)))
+    ##                 k = str.lower(str.strip(m.group(1)))
     ##                 self.units[k] = u
     ##             else:
-    ##                 k = string.lower(string.strip(k))
+    ##                 k = str.lower(str.strip(k))
     ##                 self.units[k] = "-"
 
     ##             self.value[k] = v
@@ -207,21 +208,21 @@ class RDF:
     ##     return self
 
     def float(self,key):
-        x = list(map(string.atof,string.split(self.value[key])))
+        x = list(map(locale.atof,str.split(self.value[key])))
         if len(x) == 1:
             return x[0]
         else:
             return x
 
     def int(self,key):
-        x = list(map(string.atoi,string.split(self.value[key])))
+        x = list(map(locale.atoi,str.split(self.value[key])))
         if len(x) == 1:
             return x[0]
         else:
             return x
 
     def long(self,key):
-        x = list(map(string.atol,string.split(self.value[key])))
+        x = list(map(locale.atol,str.split(self.value[key])))
         if len(x) == 1:
             return x[0]
         else:

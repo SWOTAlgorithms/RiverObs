@@ -253,7 +253,7 @@ def main():
     print((pars.fout_node))
     print((pars.fout_index))
     # Reformat some inputs
-
+    print(pars.lonmin)
     bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
     lat_0,lon_0=None,None#pars.proj_lat_0,pars.proj_lon_0
     class_list = ast.literal_eval(pars.class_list)

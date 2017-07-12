@@ -150,7 +150,6 @@ class SWOTL2:
             self.latmin = lat.min()
             self.lonmax = lon.max()
             self.latmax = lat.max()
-
         self.index = ( (lat >= self.latmin) &
                        (lon >= self.lonmin) &
                        (lat <= self.latmax) &
