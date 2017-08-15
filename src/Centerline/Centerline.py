@@ -6,6 +6,9 @@ import numpy as N
 from scipy.spatial import cKDTree
 from scipy.interpolate import splrep, splev
 
+class CenterLineException(Exception):
+    pass
+
 class Centerline:
     """A class for computing the location of a point or set of points
     relative to a curved line defined by a series of two dimentional
@@ -83,9 +86,8 @@ class Centerline:
             self.obs_names = obs_names
             for i,name in enumerate(obs_names):
                 if len(obs[i]) != len(x):
-                    raise Exception('obs size incompatible with x size')
-                
-                exec('self.%s = N.asarray(obs[i])'%name)
+                    raise CenterLineException('obs size incompatible with x size')
+                setattr(self, name, N.asarray(obs[i]))
 
         # Compute the point separation along the curve
 
@@ -105,7 +107,7 @@ class Centerline:
 
         if obs != None:
             for name in self.obs_names:
-                exec('self.%s = self.%s[unique]'%(name,name))
+                setattr(self, name, getattr(self, name)[unique])
 
         # Compute the distance along the curve
                 
@@ -128,7 +130,8 @@ class Centerline:
         if ds != None:
             ns = int(self.s[-1]/ds + 1)
             if ns < 2:
-                raise Exception('This ds is too large for the data set:',ds,ns,self.s[-1])
+                raise CenterLineException(
+                    'This ds is too large for the data set:',ds,ns,self.s[-1])
 
             self.ds =  self.s[-1]/(ns - 1)
             self.s = N.arange(ns)*self.ds
@@ -136,7 +139,7 @@ class Centerline:
             self.y = splev(self.s,self.ytck)
             if obs != None:
                 for name in self.obs_names:
-                    exec('self.%s = splev(self.s,self.obs_tck["%s"])'%(name,name))
+                    setattr(self, name, splev(self.s, self.obs_tck[name]))
 
         # Initialize the cKDtree
 
@@ -209,6 +212,6 @@ class Centerline:
         self.obs_tck = {}
         for name in self.obs_names:
             x = 0 # to fool cython compiler
-            exec('x = self.%s'%name)
+            x = getattr(self, name)
             self.obs_tck[name] = splrep(scoord,x,k=k,s=s,w=w,**kwds)
 

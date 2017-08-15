@@ -16,6 +16,7 @@ from RiverObs import FitRiver
 from RiverObs import RiverNode
 from RiverObs import RiverReach
 from scipy.ndimage import label, grey_dilation
+from Centerline.Centerline import CenterLineException
 
 class SWOTRiverEstimator(SWOTL2):
     """
@@ -498,10 +499,15 @@ class SWOTRiverEstimator(SWOTL2):
             return None
 
         # Initialize the observations
-        self.river_obs = IteratedRiverObs(
-            reach, self.x, self.y, ds=ds, seg_label=self.seg_label,
-            max_width=scalar_max_width, minobs=minobs,
-            verbose=self.verbose)
+        try:
+            self.river_obs = IteratedRiverObs(
+                reach, self.x, self.y, ds=ds, seg_label=self.seg_label,
+                max_width=scalar_max_width, minobs=minobs,
+                verbose=self.verbose)
+
+        except CenterLineException as e:
+            print "CenterLineException: ", e
+            return
 
         if self.verbose: print('river_obs initilized')
         # Refine the centerline, if desired

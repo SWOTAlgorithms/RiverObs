@@ -260,9 +260,8 @@ def main():
     use_width_db = eval(pars.use_width_db)
     refine_centerline = eval(pars.refine_centerline)
     fit_types = eval(pars.fit_types)
-    
-    # Read the data and estimate the flooded area.
 
+    # Read the data and estimate the flooded area.
     river_estimator = SWOTRiverEstimator(
         pars.l2_file, bounding_box=bounding_box, lat_kwd=pars.lat_kwd,
         lon_kwd=pars.lon_kwd, class_kwd=pars.class_kwd,
@@ -291,6 +290,10 @@ def main():
         refine_centerline=refine_centerline, smooth=pars.smooth,
         alpha=pars.alpha, max_iter=pars.max_iter)
 
+    if len(river_reach_collection) == 0:
+        print("No valid nodes")
+        return
+
     # Initialize the output writer
     #print river_reach_collection
     reach_output_variables = river_reach_collection[0].metadata.keys()
@@ -308,7 +311,6 @@ def main():
     driver = args.format
     writer.write_nodes_ogr(pars.fout_node,driver=driver)
     writer.write_reaches_ogr(pars.fout_reach,driver=driver)
-    
     print('Successfuly estimated river heights and slopes')
 
 
