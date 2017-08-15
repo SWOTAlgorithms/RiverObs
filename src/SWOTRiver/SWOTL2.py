@@ -61,8 +61,10 @@ class SWOTL2:
         lat_0=None, lon_0=None, ellps='WGS84', **proj_kwds):
 
         self.verbose = verbose
+        self.lat_kwd = lat_kwd
+        self.lon_kwd = lon_kwd
+        self.class_list = class_list
 
-        self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
         self.nc = Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
@@ -73,16 +75,51 @@ class SWOTL2:
         except AttributeError:
             self.azimuth_spacing = self.default_azimuth_spacing
 
-        self.set_index_and_bounding_box(
-            bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
+        # Read the classification and update the index
+        self.klass = self.nc.variables[class_kwd][:]
+        self.lat = self.nc.variables[lat_kwd][:]
+        self.lon = self.nc.variables[lon_kwd][:]
+
+        # Compute the class mask
+        self.class_index = self.klass == class_list[0]
+        for valid_class in class_list[1::]:
+            np.logical_or(self.class_index, self.klass == valid_class)
+
+        if self.verbose:
+            print 'Number of points in these classes: %d'%(
+                np.sum(self.class_index))
+
+        if bounding_box is None:
+            self.lonmin = self.lon.min()
+            self.latmin = self.lat.min()
+            self.lonmax = self.lon.max()
+            self.latmax = self.lat.max()
+
+        else:
+            self.lonmin, self.latmin, self.lonmax, self.latmax = bounding_box
+
+        self.index = np.logical_and(
+            np.logical_and(self.lat >= self.latmin, self.lon >= self.lonmin),
+            np.logical_and(self.lat <= self.latmax, self.lon <= self.lonmax))
+
+        if self.verbose:
+            print 'Number of points in bounding box: %d' % np.sum(self.index)
+
+        self.index = np.logical_and(self.index, self.class_index)
+
+        if self.verbose:
+            print 'Number of good: %d'%(np.sum(self.index))
+
+        self.bounding_box = (
+            self.lonmin, self.latmin, self.lonmax, self.latmax)
+
+        # Update the classification/lat/lon arrays
+        self.klass = self.klass[self.index]
+        self.lat = self.lat[self.index]
+        self.lon = self.lon[self.index]
 
         if self.verbose:
             print('Good data selected & bounding box calculated.')
-
-        # Get locations for these data (note should be the reference values)
-        self.lat = self.get(lat_kwd)
-        self.lon = self.get(lon_kwd)
-        if self.verbose: print('lat/lon read')
 
         try:
             self.img_x = self.get('range_index')
@@ -107,76 +144,12 @@ class SWOTL2:
             if self.verbose:
                 print('projection set and x,y calculated')
 
-    def set_index_and_bounding_box(
-        self, bounding_box, lat_kwd, lon_kwd, class_list,
-        class_kwd='no_layover_classification'):
-        """
-        Set the index for the good data and computes the bounding box for
-        the good data.
-
-        class_kwd: the netcdf name of the classification layer to use.
-        """
-        bounding_box_specified = True if bounding_box is not None else False
-
-         # Read the classification and update the index
-        self.klass = self.nc.variables[class_kwd][:]
-        self.class_list = class_list
-        self.class_index = self.klass == class_list[0]
-
-        for valid_class in class_list[1::]:
-            np.logical_or(self.class_index, self.klass == valid_class)
-
-        if self.verbose:
-            print 'Number of points in these classes: %d'%(
-                np.sum(self.class_index))
-
-        lat = self.nc.variables[lat_kwd][:]
-        lon = self.nc.variables[lon_kwd][:]
-
-        if bounding_box_specified:
-            self.lonmin, self.latmin, self.lonmax, self.latmax = bounding_box
-
-        else:
-            self.lonmin = lon.min()
-            self.latmin = lat.min()
-            self.lonmax = lon.max()
-            self.latmax = lat.max()
-
-        self.index = np.logical_and(
-            np.logical_and(lat >= self.latmin, lon >= self.lonmin),
-            np.logical_and(lat <= self.latmax, lon <= self.lonmax))
-
-        if self.verbose:
-            print 'Number of points in bounding box: %d' % np.sum(self.index)
-
-        self.index = self.index & self.class_index
-
-        if self.verbose:
-            print 'Number of good: %d'%(np.sum(self.index))
-
-        if bounding_box_specified:
-            lat = lat[self.index]
-            lon = lon[self.index]
-
-            self.lonmin = lon.min()
-            self.latmin = lat.min()
-            self.lonmax = lon.max()
-            self.latmax = lat.max()
-            print(lon.min(), lon.max(), lat.min(), lat.max())
-
-        self.bounding_box = (
-            self.lonmin, self.latmin, self.lonmax, self.latmax)
-
-        # Update the classification
-        self.klass = self.klass[self.index]
-
     def get(self,var):
         """
         Get the values of the variable var within the desired index of
         good sites.
         """
-        x = self.nc.variables[var][:]
-        return x[self.index]
+        return np.array(self.nc.variables[var])[self.index]
 
     def project(
         self, proj='laea', x_0=0, y_0=0, lat_0=None, lon_0=None,
