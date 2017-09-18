@@ -2,7 +2,9 @@
 Query a pandas HDFStore width data base for rivers.
 """
 
-import numpy as N
+from __future__ import absolute_import, division, print_function
+
+import numpy as np
 import pandas as pd
 
 class WidthDataBase:
@@ -17,7 +19,7 @@ class WidthDataBase:
         Name of the pandas DataFrame containing point
         width information (default: 'river').
     reach_df_name : str
-        Name of the pandas DataFrame containing 
+        Name of the pandas DataFrame containing
         reach statistical information (default: 'reach').
     mode: str
         how to open the file (default: 'r' read only).
@@ -43,7 +45,7 @@ class WidthDataBase:
 
         Parameters
         -----------
-        
+
         reach_index : int
             index identifying the reach.
         columns : list
@@ -73,11 +75,11 @@ class WidthDataBase:
             inbbox = None
 
         # Select the DataFrame for this river
-        
+
         df = self.river_df[self.river_df['reach_index'] == reach_index]
 
         # Select the desired columns
-        
+
         if columns != None:
             df = df[columns]
 
@@ -92,9 +94,9 @@ class WidthDataBase:
             return df
         else:
             if transpose:
-                return N.asarray(df).T
+                return np.asarray(df).T
             else:
-                return N.asarray(df)
+                return np.asarray(df)
 
     def get_lon_lat(self,reach_index,lat_kwd='lat',lon_kwd='long',
                     bounding_box=None,clip_buffer=0):
@@ -114,7 +116,7 @@ class WidthDataBase:
 
         Returns
         -------
-        
+
         Returns lon, lat numpy arrays. If bounding_box != None, also returns
         an index array for the good data.
         """
@@ -132,7 +134,7 @@ class WidthDataBase:
                 return lon, lat, inbbox
 
         return lon, lat
-                
+
     def get_xy(self,reach_index,proj,lat_kwd='lat',lon_kwd='long',
                     bounding_box=None,clip_buffer=0):
         """Given a projection function (e.g., from pyproj.Proj ) return x,y.
@@ -163,4 +165,3 @@ class WidthDataBase:
                             bounding_box=bounding_box,clip_buffer=clip_buffer)
 
         return proj(lon, lat)
-

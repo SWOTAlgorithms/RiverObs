@@ -2,7 +2,6 @@
 
 from distutils.core import setup
 from distutils.extension import Extension
-import numpy as N
 
 setup(name='RDF',
       version='1.0',
@@ -42,8 +41,9 @@ setup(name='Centerline',
       ## scripts=[script_dir+'binary_to_netcdf.py']
      )
 
+exec(open('src/GWDLR/version.py').read())
 setup(name='GWDLR',
-      version='0.1',
+      version=__version__,
       description='Read and process Global Width Database for Large River data.',
       author='Ernesto Rodriguez',
       author_email='ernesto.rodriguez@jpl.nasa.gov',
@@ -79,7 +79,8 @@ setup(name='SWOTRiver',
       ## packages = find_packages()
       packages=['SWOTRiver',],
       scripts=[script_dir+'make_simulation_catalog.py',
-               script_dir+'estimate_swot_rivers.py',]
+               script_dir+'estimate_swot_rivers.py',
+               script_dir+'estimate_swot_river.py',]
      )
 
 exec(open('src/RiverObs/version.py').read())
@@ -110,6 +111,7 @@ setup(name='RDF',
       ## scripts=[script_dir+'']
      )
 
+exec(open('src/toggle_input/version.py').read())
 setup(name='toggle_input',
       version=__version__,
       description='Toggle notebook input cells.',

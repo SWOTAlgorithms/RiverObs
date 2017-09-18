@@ -8,4 +8,8 @@
 
 # Added functionality, LatLonRegion, ReachPreProcessor
 
-__version__ = '0.2.0'
+#__version__ = '0.2.0'
+
+# Python 2.7/3.6 compatibility.
+
+__version__ = '0.2.1'

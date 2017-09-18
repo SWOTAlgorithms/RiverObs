@@ -2,7 +2,9 @@
 Access SWOT L2 data conveniently and provides LatLonRegion protocol.
 """
 
-import numpy as N
+from __future__ import absolute_import, division, print_function
+
+import numpy as np
 from netCDF4 import Dataset
 from pyproj import Proj
 
@@ -13,7 +15,7 @@ class SWOTL2:
 
     Parameters
     ----------
-    
+
     bounding_box : tuple or array_like
         should be of the form (lonmin,latmin,lonmax,latmax).
         If the bounding_box is provided, select only the data in the
@@ -39,12 +41,12 @@ class SWOTL2:
     The final set of keywords are projection options for pyproj.
     A full list of projection options to set plus explanations of their
     meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
-        
+
     The default projection is Lambert equiarea, which has a proj4 string with the
     following parameters:
-        
-    +proj=laea  
-    +lat_0=Latitude at projection center, set to bounding box center lat 
+
+    +proj=laea
+    +lat_0=Latitude at projection center, set to bounding box center lat
     +lon_0=Longitude at projection center, set to bounding box center lon
     +x_0=False Easting, set to 0
     +y_0=False Northing, set to 0
@@ -62,9 +64,8 @@ class SWOTL2:
                 ellps='WGS84',**proj_kwds):
 
         self.verbose = verbose
-        
+
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
-        
         self.nc = Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
@@ -74,7 +75,7 @@ class SWOTL2:
             self.azimuth_spacing = float(self.nc.azimuth_spacing)
         except:
             self.azimuth_spacing = self.default_azimuth_spacing
-            
+
         self.set_index_and_bounding_box(bounding_box,lat_kwd,lon_kwd,
                                         class_list,class_kwd=class_kwd)
         if self.verbose: print('Good data selected & bounding box calculated.')
@@ -83,6 +84,28 @@ class SWOTL2:
 
         self.lat = self.get(lat_kwd)
         self.lon = self.get(lon_kwd)
+        #### added B. Williams Apr 24, 2017:
+        # need to put in the radar/image coordinates too
+        # Modified by ER to provide limited compatibility with original data.
+        try:
+            self.img_x = self.get('range_index')
+            self.img_y = self.get('azimuth_index')
+        except:
+            try:
+                print('Cant Find range_index, or azimuth_index variables,'
+                      ' assuming 2D-image image coordinates (like from a gdem)')
+                # this should break if it is not an image like a gdem or an L2 pixel cloud
+                Ny,Nx = np.shape(self.nc.variables[lat_kwd])
+                ix,iy = np.meshgrid(np.arange(Nx),np.arange(Ny))
+                self.img_x = ix[self.index]
+                self.img_y = iy[self.index]
+            except:
+                print('WARNING: Input file does not contain range/azimuth index. '
+                      'Functions relying on radar coordinates WILL break!')
+                self.img_x = None
+                self.img_y = None
+        ####
+
         if self.verbose: print('lat/lon read')
 
         # If not enough good points are found, raise Exception
@@ -115,11 +138,11 @@ class SWOTL2:
         for i in range(1,len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
-        if self.verbose: print 'Number of points in these classes: %d'%(N.sum(self.class_index))
-        
+        if self.verbose: print('Number of points in these classes: %d'%(np.sum(self.class_index)))
+
         lat = self.nc.variables[lat_kwd][:]
         lon = self.nc.variables[lon_kwd][:]
-            
+
         if bounding_box != None:
             self.lonmin,self.latmin,self.lonmax,self.latmax = bounding_box
         else:
@@ -127,23 +150,25 @@ class SWOTL2:
             self.latmin = lat.min()
             self.lonmax = lon.max()
             self.latmax = lat.max()
-
         self.index = ( (lat >= self.latmin) &
                        (lon >= self.lonmin) &
                        (lat <= self.latmax) &
                        (lon <= self.lonmax) )
-        if self.verbose: print 'Number of points in bounding box: %d'%(N.sum(self.index))
+        if self.verbose: print('Number of points in bounding box: %d'%(np.sum(self.index)))
 
         self.index = self.index & self.class_index
-        if self.verbose: print 'Number of good: %d'%(N.sum(self.index))
-        
+        if self.verbose: print('Number of good: %d'%(np.sum(self.index)))
+
         lat = lat[self.index]
         lon = lon[self.index]
-        
-        self.lonmin = lon.min()
-        self.latmin = lat.min()
-        self.lonmax = lon.max()
-        self.latmax = lat.max()
+
+        # Brent Williams: commented out next lines to handle setting of bounding box not by data
+        # so that you can run with gdem and L2 file and get same nodes
+        #self.lonmin = lon.min()
+        #self.latmin = lat.min()
+        #self.lonmax = lon.max()
+        #self.latmax = lat.max()
+        #print(lon.min(),lon.max(),lat.min(),lat.max())
         self.bounding_box = (self.lonmin,self.latmin,self.lonmax,self.latmax)
 
         # Update the classification
@@ -164,12 +189,12 @@ class SWOTL2:
 
         A full list of projection options to set plus explanations of their
         meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
-        
+
         The default projection is Lambert equiarea, which has a proj4 string with the
         following parameters:
-        
-        +proj=laea  
-        +lat_0=Latitude at projection center, set to bounding box center lat 
+
+        +proj=laea
+        +lat_0=Latitude at projection center, set to bounding box center lat
         +lon_0=Longitude at projection center, set to bounding box center lon
         +x_0=False Easting, set to 0
         +y_0=False Northing, set to 0
@@ -177,13 +202,16 @@ class SWOTL2:
         """
 
         # Find lat_0 and lon_0 if not specified previously
-
+        # modified by Brent Williams, May 2017 to use center of bounding box instead of data centroid
+        # in order to get same nodes for gdem and l2 file
         if lat_0 == None:
-            lat_0 = N.mean(self.lat)
-
+            #lat_0 = np.mean(self.lat)
+            # use center of bouding box instead of data centroid
+            lat_0=(self.bounding_box[3]+self.bounding_box[1])/2.0
         if lon_0 == None:
-            lon_0 = N.mean(self.lon)
-
+            #lon_0 = np.mean(self.lon)
+            # use center of bouding box instead of data centroid
+            lon_0=(self.bounding_box[2]+self.bounding_box[0])/2.0
         self.proj = Proj(proj=proj,lat_0=lat_0,lon_0=lon_0,x_0=x_0,y_0=y_0,ellps=ellps,**proj_kwds)
 
         self.x, self.y = self.proj(self.lon,self.lat)

@@ -5,6 +5,8 @@ Given a SWOTL2 file, estimate all of the reaches within it and
 output the results to a file
 """
 
+from __future__ import absolute_import, division, print_function
+
 # make sure the libraries are importable
 
 def search_for_libraries():
@@ -12,15 +14,15 @@ def search_for_libraries():
 
     import os, os.path
     import sys
-        
+
     # Try importing the root library
     try:
         from SWOTRiver import SWOTRiverEstimator
     except:
         sys.stderr.write("Libraries not found. Make sure you are running in the SWOTRiver environment.\n")
         sys.exit(1)
-        
-search_for_libraries()
+
+#search_for_libraries()
 
 # Imports
 
@@ -28,7 +30,8 @@ from os.path import join, split
 import argparse
 from glob import glob
 from SWOTRiver import SWOTRiverEstimator
-from SWOTRiver import WidthDataBase
+from RiverObs import WidthDataBase
+#from SWOTRiver import WidthDataBase
 from GDALOGRUtilities import OGRWriter
 from shapely.geometry import box
 from RDF import RDF_to_class, RDF
@@ -103,41 +106,41 @@ output file                            = sacramento_reach_estimates.h5
 
 input_vars = {
     # SWOT L2 DATA INPUTS
-    
-    'good data labels' : ('class_list','d'),            
-    'latitude keyword' : ('lat_kwd','s'),                        
-    'longitude keyword' : ('lon_kwd','s'),                       
-    'classification keyword' : ('class_kwd','s'),                  
-    'height measurement keyword' : ('height_kwd','s'),              
-    'true height keyword' : ('true_height_kwd','s'),                     
-    'no noise height keyword' : ('no_noise_height_kwd','s'),                 
-    'xtrack keyword' : ('xtrack_kwd','s'),                          
-    'projection' : ('proj','s'),                              
-    'false easting' : ('x_0','f'),                           
-    'false northing' : ('y_0','f'),                          
-    'lat_0' : ('lat_0','s'),                                   
-    'lon_0' : ('lon_0','s'),                                   
-    'ellipsoid' : ('ellps','s'),                               
-                            
-# CENTERLINE DATA BASE INPUTS 
-                            
-    'reach data base directory' : ('reach_db_dir','s'),                     
+
+    'good data labels' : ('class_list','d'),
+    'latitude keyword' : ('lat_kwd','s'),
+    'longitude keyword' : ('lon_kwd','s'),
+    'classification keyword' : ('class_kwd','s'),
+    'height measurement keyword' : ('height_kwd','s'),
+    'true height keyword' : ('true_height_kwd','s'),
+    'no noise height keyword' : ('no_noise_height_kwd','s'),
+    'xtrack keyword' : ('xtrack_kwd','s'),
+    'projection' : ('proj','s'),
+    'false easting' : ('x_0','f'),
+    'false northing' : ('y_0','f'),
+    'lat_0' : ('lat_0','s'),
+    'lon_0' : ('lon_0','s'),
+    'ellipsoid' : ('ellps','s'),
+
+# CENTERLINE DATA BASE INPUTS
+
+    'reach data base directory' : ('reach_db_dir','s'),
     'shape file root name' : ('shape_file_root','s'),
     'width data base directory' : ('width_db_dir','s'),
     'width db file name' : ('width_db_file','s'),
-    'clip to data bounding box' : ('clip','d'),               
+    'clip to data bounding box' : ('clip','d'),
     'clip buffer' : ('clip_buffer','f'),
     'use width db' : ('use_width_db','d'),
 
 # CENTERLINE AND REFINEMENT PARAMETERS
 
     'centerline spacing': ('ds','float'),
-    'refine centerline' : ('refine_centerline','d'), 
-    'smooth parameter' : ('smooth','f'),   
+    'refine centerline' : ('refine_centerline','d'),
+    'smooth parameter' : ('smooth','f'),
     'alpha' : ('alpha','f'),
     'maximum iterations' : ('max_iter','d'),
     'scalar maximum width' : ('scalar_max_width','f'),
-        
+
 # ESTIMATION PARAMETERS
 
     'subreach size' : ('subreach_size','f'),
@@ -184,13 +187,13 @@ def get_bbox_from_files(sim_files,dlat,dlon):
         location = split(name)[-1].split('_')[0]
         EW = location[0]
         NS = location[4]
-        
-        if EW.lower() == 'w': 
+
+        if EW.lower() == 'w':
             lonmin = -float(location[1:4])
         else:
             lonmin = float(location[1:4])
 
-        if NS.lower() == 's': 
+        if NS.lower() == 's':
             latmin = -float(location[5:7])
         else:
             latmin = float(location[5:7])
@@ -209,10 +212,10 @@ def write_catalog(output_file,format,bounding_boxes,sim_files):
 
     for i,bbox in enumerate(bounding_boxes):
         field_record = {'file':split(sim_files[i])[-1]}
-        print split(sim_files[i])[-1][0:7],bbox.wkt
+        print(split(sim_files[i])[-1][0:7],bbox.wkt)
         writer.add_wkt_feature(bbox.wkt,field_record)
     writer.close()
-                        
+
 
 def main():
 
@@ -220,7 +223,7 @@ def main():
 
     # Parse the input RDF
 
-    print args.rdf_file
+    print(args.rdf_file)
     pars = RDF_to_class(input_vars,file=args.rdf_file)
 
     if type(pars.class_list) == int:
@@ -232,12 +235,12 @@ def main():
     try:
         pars.lon_0 = float(pars.lon_0)
     except:
-        pars.lon_0 = None        
+        pars.lon_0 = None
 
     pars.fit_types = pars.fit_types.split()
-    
+
     shape_file_root = join(pars.reach_db_dir, pars.shape_file_root)
-    
+
     # Get a list of the files
 
     sim_files = []
@@ -247,7 +250,7 @@ def main():
             sim_files += files
 
     # Write a catalog of the tiles processed as a GIS file
-    
+
     ## bounding_boxes = get_bbox_from_files(sim_files,args.dlat,args.dlon)
     ## write_catalog(args.output_file,args.format,bounding_boxes,sim_files)
 
@@ -256,7 +259,7 @@ def main():
     if bool(pars.use_width_db):
         width_db_file = join(pars.width_db_dir,pars.width_db_file)
         width_db = WidthDataBase(width_db_file)
-        print('Width data base file opened: %s'%width_db_file)
+        print(('Width data base file opened: %s'%width_db_file))
     else:
         width_db = None
 
@@ -264,13 +267,13 @@ def main():
 
     for sim_file in sim_files:
 
-        print('Reading file: %s'%sim_file)
+        print(('Reading file: %s'%sim_file))
 
         # Initialize the data
 
         for k in pars.__dict__:
             if k not in ['d']:
-                print '%s : %s'%(k,pars.__dict__[k])
+                print('%s : %s'%(k,pars.__dict__[k]))
 
         try:
             estimator = SWOTRiverEstimator(sim_file,class_list=pars.class_list,
@@ -294,7 +297,7 @@ def main():
         reaches = estimator.get_reaches(shape_file_root,
                                         clip=bool(pars.clip),
                                         clip_buffer=pars.clip_buffer)
-        print('Number of reaches read: %d'%reaches.nreaches)
+        print(('Number of reaches read: %d'%reaches.nreaches))
 
         # Set the estimator width data base
 
@@ -304,7 +307,7 @@ def main():
         # Process the reaches
 
         try:
-
+            """
             estimator.process_reaches(use_width_db=bool(pars.use_width_db),
                                     refine_centerline=bool(pars.refine_centerline),
                                     smooth=pars.smooth,alpha=pars.alpha,
@@ -313,7 +316,20 @@ def main():
                                     min_fit_points=pars.min_fit_points,
                                     step=pars.step,fit_types=pars.fit_types,
                                     ds=pars.ds,smin=pars.smin,minobs=pars.minobs,max_width=None)
+                                    """
+            estimator.process_reaches(use_width_db=bool(pars.use_width_db),
+                                    refine_centerline=bool(pars.refine_centerline),
+                                    smooth=pars.smooth,alpha=pars.alpha,
+                                    max_iter=pars.max_iter,scalar_max_width=pars.scalar_max_width,
+                                    min_fit_points=pars.min_fit_points,
+                                    fit_types=pars.fit_types,
+                                    ds=pars.ds,minobs=pars.minobs)
             print('reaches processed')
+            #print estimator.river_reach_collection[0]
+            #print estimator.river_reach_collection[0].h_n_ave
+            #estimator.store.append('reachHeights',estimator.river_reach_collection[0].h_n_ave)
+            #estimator.store.append('fits',estimator.fit_collection)
+            #estimator.store.append('obs',estimator.river_obs_collection)
         except:
             estimator.store.close()
             print('HDFStore closed')

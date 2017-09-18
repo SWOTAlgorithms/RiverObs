@@ -2,8 +2,10 @@
 Read OGR supported vectors from/to shapely arrays.
 """
 
+from __future__ import absolute_import, division, print_function
+
 from osgeo import ogr, osr
-import numpy as N
+import numpy as np
 from shapely import wkt
 
 class ShapelyDataSource:
@@ -15,7 +17,7 @@ class ShapelyDataSource:
 
     def __init__(self,ogr_file=None,ogr_data_source=None):
         # The layers are stored as a dictionary of ShapelyLayers
-        
+
         self.nlayers = 0
         self.layer = {}
         self.name = None
@@ -25,7 +27,7 @@ class ShapelyDataSource:
         self.layer_index = 0
 
         # Read from a file or an OGR data source, if available
-        
+
         if ogr_file != None:
             self.from_ogr_file(ogr_file)
         elif ogr_data_source != None:
@@ -67,8 +69,8 @@ class ShapelyDataSource:
     def get_numpy_shape(self,index,layer_index=0):
         """Return the shape in the index feature as a numpy array."""
 
-        return N.array(self.layer[layer_index].feature[index].shape)
-    
+        return np.array(self.layer[layer_index].feature[index].shape)
+
     def get_field(self,index,layer_index=0):
         """Return the field in the index feature."""
 
@@ -78,16 +80,16 @@ class ShapelyDataSource:
         """Return the all the shapes in the layer features."""
 
         return [self.layer[layer_index].feature[i].shape for i in range(self.layer[layer_index].nfeatures)]
-    
+
     def get_numpy_shapes(self,layer_index=0):
         """Return the all the shapes in the layer features."""
 
-        return N.array([N.array(self.layer[layer_index].feature[i].shape) for i in range(self.layer[layer_index].nfeatures)])
+        return np.array([np.array(self.layer[layer_index].feature[i].shape) for i in range(self.layer[layer_index].nfeatures)])
 
     def get_fields(self,layer_index=0):
         """Return the all the fields in the layer features."""
 
-        return [self.layer[layer_index].feature[i].field for i in range(self.layer[layer_index].nfeatures)]            
+        return [self.layer[layer_index].feature[i].field for i in range(self.layer[layer_index].nfeatures)]
 
 class ShapelyLayer:
     """Holds layer information in a dictionary of ShapelyFeatures."""
@@ -130,8 +132,8 @@ class ShapelyLayer:
     def get_numpy_shape(self,index):
         """Return the shape in the index feature as a numpy array."""
 
-        return N.array(self.feature[index].shape)
-    
+        return np.array(self.feature[index].shape)
+
     def get_field(self,index):
         """Return the field in the index feature."""
 
@@ -145,7 +147,7 @@ class ShapelyLayer:
     def get_numpy_shapes(self):
         """Return the all the shapes in the layer features."""
 
-        return N.array([N.array(self.feature[i].shape) for i in range(self.nfeatures)])
+        return np.array([np.array(self.feature[i].shape) for i in range(self.nfeatures)])
 
 
     def get_fields(self):
@@ -153,7 +155,7 @@ class ShapelyLayer:
 
         return [self.feature[i].field for i in range(self.nfeatures)]
 
- 
+
 class ShapelyFeature:
     """Holds feature information in shapely arrays."""
 
@@ -173,7 +175,7 @@ class ShapelyFeature:
         self.nfields = ogr_feature.GetFieldCount()
 
         for i in range(self.nfields):
-            self.field[ogr_feature.keys()[i]] = ogr_feature.GetField(i)
+            self.field[list(ogr_feature.keys())[i]] = ogr_feature.GetField(i)
 
         # Now get the geometry
 
@@ -182,6 +184,3 @@ class ShapelyFeature:
         self.npoints = self.geometry.GetPointCount()
 
         self.shape = wkt.loads(self.geometry.ExportToWkt())
-        
-        
-
