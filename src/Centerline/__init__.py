@@ -2,5 +2,7 @@
 relative to a curved line defined by a series of two dimentional
 points."""
 
-from Centerline import Centerline
-from version import __version__
+from __future__ import absolute_import
+
+from .Centerline import Centerline
+from .version import __version__

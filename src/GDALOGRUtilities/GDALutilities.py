@@ -2,6 +2,8 @@
 Interfaces to the gdal utility programs, http://www.gdal.org/gdal_utilities.html.
 """
 
+from __future__ import absolute_import, division, print_function
+
 import shlex
 from subprocess import Popen, PIPE
 from GDALOGRUtilities import GDALInfo
@@ -35,7 +37,7 @@ class WarpToLayer:
                   resampling_method=resampling_method,gdal_format=gdal_format)
 
     def init_source_layer(self,source_layer_file):
-        """Get the gdal information from the source layer file, and decide whether 
+        """Get the gdal information from the source layer file, and decide whether
         reprojection is necessary."""
 
         self.source_layer_file = source_layer_file
@@ -43,7 +45,7 @@ class WarpToLayer:
 
         # Check to see if the projections are the same
 
-        self.same_projection = self.reference_layer.spatial_reference.IsSame(self.source_layer.spatial_reference) 
+        self.same_projection = self.reference_layer.spatial_reference.IsSame(self.source_layer.spatial_reference)
 
     def warp(self,dstfile,dstnodata_value=None,executable='gdalwarp',
              resampling_method='bilinear',gdal_format='GTiff'):
@@ -68,7 +70,7 @@ class WarpToLayer:
 
         proj4 = self.reference_layer.proj4_proj
         srcfile = self.source_layer_file
-        
+
         warp_command = "%(executable)s  -t_srs '%(proj4)s' -r %(resampling_method)s "
 
         # Set the no data values
@@ -83,11 +85,11 @@ class WarpToLayer:
         # Set the destination pixel size
 
         xres = abs(self.reference_layer.pixel_width)
-        yres = abs(self.reference_layer.pixel_height)        
+        yres = abs(self.reference_layer.pixel_height)
         warp_command += " -tr %(xres)s %(yres)s "
 
         # Set the destination output window
-        
+
         xmin = self.reference_layer.llx
         ymin = self.reference_layer.lly
         xmax = self.reference_layer.urx
@@ -100,7 +102,7 @@ class WarpToLayer:
         warp_command += " -of %(gdal_format)s %(srcfile)s %(dstfile)s"
         warp_command = warp_command%locals()
 
-        print warp_command
+        print(warp_command)
         args = shlex.split(warp_command)
         p = Popen(args,
                   shell=False,
@@ -108,4 +110,3 @@ class WarpToLayer:
                   stderr=PIPE)
 
         self.warp_stdout, self.warp_stderr = p.communicate()
-

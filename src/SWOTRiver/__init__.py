@@ -1,7 +1,9 @@
 """Extract hydrology observables from SWOT data."""
 
-from SWOTL2 import SWOTL2
-from SWOTRiverEstimator import SWOTRiverEstimator
-import EstimateSWOTRiver
+from __future__ import absolute_import
 
-from version import __version__
+from .SWOTL2 import SWOTL2
+from .SWOTRiverEstimator import SWOTRiverEstimator
+from . import EstimateSWOTRiver
+
+from .version import __version__

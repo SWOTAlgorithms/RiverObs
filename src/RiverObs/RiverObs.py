@@ -7,11 +7,13 @@ The class supports extracting summary observations from each node and
 returning them for analaysis (e.g., fitting).
 """
 
+from __future__ import absolute_import, division, print_function
+
 from copy import copy
 from collections import OrderedDict as odict
 import numpy as N
 from Centerline import Centerline
-from RiverNode import RiverNode
+from .RiverNode import RiverNode
 from scipy.stats import mode
 
 class RiverObs:
@@ -38,7 +40,7 @@ class RiverObs:
         centerline point separation (default None)
     max_width :
         if !=None, exclude all observations more than max_width/2
-        away from the centerline in the normal direction. 
+        away from the centerline in the normal direction.
         max_width can be a number or an iterable of the same
         size as reach.x or reach.y. If it is an interable,
         it is added to the centerline as a member.
@@ -55,7 +57,6 @@ class RiverObs:
     def __init__(
         self, reach, xobs, yobs, k=3, ds=None, seg_label=None, max_width=None,
         minobs=1, node_class=RiverNode, missing_value=-9999, verbose=False):
-        
         self.verbose = verbose
         self.missing_value = missing_value
 
@@ -114,7 +115,7 @@ class RiverObs:
         # added Brent Williams May 2017 to flag out pixels not in the
         # dominant segmentation label
         if self.max_width is not None:
-            self.in_channel = self.flag_out_channel(
+            self.in_channel = self.flag_out_channel_and_label(
                 self.max_width, seg_label, dst0)
 
         self.nedited_data = len(self.x)
@@ -127,12 +128,12 @@ class RiverObs:
         self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(
             self.index,self.minobs)
 
-    def flag_out_channel(self, max_width, seg_label=None, dst0=None):
-        """
-        Get the indexes of all of the points inside a channel of
-        max_width, optionally with a segmentation label.
-        Remove other points not in channel.
-        """
+    def flag_out_channel_and_label(self,max_width,seg_label,dst0):
+        """Get the indexes of all of the points inside a channel of
+        max_width and a segmentation label
+        and remove the points from the list of observations."""
+        # Brent Williams, May 2017: added this function to handle segmentation/exclude unconnected-to-river pixels
+        # get dominant label
         # Map centerline observalble to measurements
         if N.iterable(max_width):
             max_distance = max_width[self.index]/2.
@@ -156,7 +157,26 @@ class RiverObs:
 
             else:
                 self.in_channel = class_mask
-                print "No valid class labels in reach"
+                print("No valid class labels in reach")
+
+        self.index = self.index[self.in_channel]
+        self.d = self.d[self.in_channel]
+        self.x = self.x[self.in_channel]
+        self.y = self.y[self.in_channel]
+        self.s = self.s[self.in_channel]
+        self.n = self.n[self.in_channel]
+        return self.in_channel
+
+    def flag_out_channel(self,max_width):
+        """Get the indexes of all of the points inside a channel of max_width,
+        and remove the points from the list of observations."""
+
+        if N.iterable(max_width): # Map centerline observalble to measurements
+            max_distance = max_width[self.index]/2.
+        else:
+            max_distance = max_width/2.
+
+        self.in_channel = N.abs(self.n) <= max_distance
 
         self.index = self.index[self.in_channel]
         self.d = self.d[self.in_channel]
@@ -189,7 +209,6 @@ class RiverObs:
                 self.populated_nodes.append(node)
                 self.obs_to_node_map[node] = obs_index
                 self.nobs[node] = nobs
-
         self.n_populated_nodes = len(self.populated_nodes)
 
         # Store also a list of all the potential nodes and all the
@@ -219,7 +238,6 @@ class RiverObs:
 
         if self.max_width is not None and len(obs) == self.ndata:
             obs = obs[self.in_channel]
-
         setattr(self, obs_name, obs)
 
     def obs_to_node(self, obs, node):
@@ -229,7 +247,7 @@ class RiverObs:
         Parameters
         ----------
         obs : iterable
-            iterable of the same size as the xobs, yobs 
+            iterable of the same size as the xobs, yobs
             or the same size as self.x, self.y. If the same size
             as xobs, the observations will be limited to in channel
             observations, if this has been computed. If the same
@@ -275,7 +293,6 @@ class RiverObs:
                 node, d, x, y, s, n, ds=self.ds[node])
 
             for var in vars:
-                obs = None # fake cython compiler
                 obs = self.obs_to_node(getattr(self, var), node)
                 self.river_nodes[node].add_obs(var, obs, sort=False)
 
@@ -290,7 +307,7 @@ class RiverObs:
         A stat is a member function of the river node which returns a
         result given the variable name.
 
-        Example stats are: 'mean', 'std', 'cdf'
+        Example statfns are: 'mean', 'std', 'cdf'
 
         If all_nodes is True, populated and unpopulated nodes are returned.
         Otherwise, only populated nodes are returned.
@@ -320,7 +337,7 @@ class RiverObs:
 
         Prior to trimming, the data are sorted according to the sort variable.
         """
-        for node, river_node in self.river_nodes.iteritems():
+        for node, river_node in self.river_nodes.items():
             river_node.sort(sort_variable=sort_variable)
             river_node.trim(fraction, mode=mode)
 

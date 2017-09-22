@@ -8,6 +8,8 @@ or similar.
 This version allows for a keyword having multiple values.
 """
 
+from __future__ import absolute_import, division, print_function
+
 import re #regular expressions for parsing
 import string #string library
 import types
@@ -54,7 +56,7 @@ class MRDF:
         return self.value[key]
 
     def __setitem__(self,key,value):
-        if type(value) != types.StringType: value = `value`
+        if type(value) != bytes: value = repr(value)
         key = string.lower(key)
         self.value[key].append(value)
         self.units[key].append('-')
@@ -72,15 +74,15 @@ class MRDF:
 
     def keys(self):
         """To comply with dictionary interface."""
-        return self.value.keys()
+        return list(self.value.keys())
 
     def values(self):
         """To comply with dictionary interface."""
-        return self.value.values()
-    
+        return list(self.value.values())
+
     def set(self,key,value,units='-'):
         key = string.lower(key)
-        if type(value) != types.StringType: value = `value`
+        if type(value) != bytes: value = repr(value)
         self.value[key].append(value)
         self.units[key].append(units)
         if key not in self.key_list:
@@ -98,9 +100,9 @@ class MRDF:
     def rdfParse(self,files):
 
         #make sure a list was passed
-        if type(files) != types.ListType:
+        if type(files) != list:
             files = [files]
-        
+
         #Loop over all RDF files
 
         for file in files:
@@ -121,7 +123,7 @@ class MRDF:
                 # strip comments
 
                 line = self.stripComments(line)
-                
+
                 #while continuation line, read next line and append
                 m = re.match("(.*)"+self.rdfCont,line) #regexp match
                 if m: line = m.group(1)
@@ -130,7 +132,7 @@ class MRDF:
                     m = re.match("(.*)"+self.rdfCont,nextLine)
                     if m: line = line + m.group(1)
                     else: line = line + nextLine
-                    
+
                 #extract keyword and value
                 m = re.match("([^=]+)"+self.rdfSep+"(.*)",line)
                 if m: #an RDF line
@@ -138,7 +140,7 @@ class MRDF:
                     k = m.group(1)
                     v = m.group(2)
                     v = string.strip(v)
-                
+
                     #units key separation
                     m = re.match("(.*)\((.*)\).*",k)
                     if m:
@@ -150,10 +152,10 @@ class MRDF:
                     else:
                         k = string.lower(string.strip(k))
                         self.units[k].append("-")
-                    
+
                     self.value[k].append(v)
                     if k not in self.key_list: self.key_list.append(k)
-                    
+
                     # if the keyword eof is set, the end of the header of
                     #  an RDF/binary file has been reached. Exit parsing loop
 
@@ -172,7 +174,7 @@ class MRDF:
     ##         # strip comments
 
     ##         line = self.stripComments(line)
-                
+
     ##         # while continuation line, read next line and append
     ##         m = re.match("(.*)"+self.rdfCont,line) #regexp match
     ##         if m: line = m.group(1)
@@ -181,15 +183,15 @@ class MRDF:
     ##             m = re.match("(.*)"+self.rdfCont,nextLine)
     ##             if m: line = line + m.group(1)
     ##             else: line = line + nextLine
-                    
+
     ##         # extract keyword and value
     ##         m = re.match("([^=]+)"+self.rdfSep+"(.*)",line)
     ##         if m: #an RDF line
-                
+
     ##             k = m.group(1)
     ##             v = m.group(2)
     ##             v = string.strip(v)
-                
+
     ##             # units key separation
     ##             m = re.match("(.*)\((.*)\).*",k)
     ##             if m:
@@ -201,10 +203,10 @@ class MRDF:
     ##             else:
     ##                 k = string.lower(string.strip(k))
     ##                 self.units[k].append("-")
-                    
+
     ##             self.value[k].append(v)
     ##             if k not in self.key_list: self.key_list.append(k)
-                    
+
     ##             # if the keyword eof is set, the end of the header of
     ##             #  an RDF/binary file has been reached. Exit parsing loop
 
@@ -215,24 +217,7 @@ class MRDF:
     def float(self,key):
         x = []
         for v in self.value[key]:
-            vv = map(float,v.split())
-            if len(vv) == 1:
-                x.append(vv[0])
-            else:
-                x.append(vv)
-        if len(x) == 1:
-            if type(x[0]) != type([]):
-                return x[0]
-            if len(x[0]) == 1:
-                return x[0][0]
-            return x[0]
-        else:
-            return x                
-
-    def int(self,key):
-        x = []
-        for v in self.value[key]:
-            vv = map(int,v.split())
+            vv = list(map(float,v.split()))
             if len(vv) == 1:
                 x.append(vv[0])
             else:
@@ -245,7 +230,24 @@ class MRDF:
             return x[0]
         else:
             return x
-        
+
+    def int(self,key):
+        x = []
+        for v in self.value[key]:
+            vv = list(map(int,v.split()))
+            if len(vv) == 1:
+                x.append(vv[0])
+            else:
+                x.append(vv)
+        if len(x) == 1:
+            if type(x[0]) != type([]):
+                return x[0]
+            if len(x[0]) == 1:
+                return x[0][0]
+            return x[0]
+        else:
+            return x
+
     def strings(self,key,separator=None):
         """Return a stripped list of strings, originally separated by
         separator (default blank)"""
@@ -259,16 +261,16 @@ class MRDF:
 
     def printRDF(self):
         """Print RDF structure to stdout."""
-        
+
         for k in self.key_list:
-            print "%-30s%10s %s %s"%(k,
+            print("%-30s%10s %s %s"%(k,
                                      '('+self.units[k]+')',
                                      self.rdfSep,
-                                     self.value[k])
+                                     self.value[k]))
 
     def writeRDF(self,fileOut,exclude=None):
         """Print RDF structure to file."""
-        
+
         fout = open(fileOut,"w")
         for k in self.key_list:
             if exclude:
@@ -283,10 +285,10 @@ class MRDF:
                                                 self.rdfSep,
                                                 self.value[k]))
         fout.close()
-        
+
     def writeTemplate(self,fileOut):
         """Print RDF structure to file."""
-        
+
         fout = open(fileOut,"w")
         for k in self.key_list:
             fout.write("%-30s%10s %s \n"%(k,'('+self.units[k]+')',self.rdfSep))
@@ -303,10 +305,9 @@ class MRDF:
 ##     rdf['file 1'] = None
 ##     for i in range(30):
 ##         rdf[`i`] = i
-        
+
 
 ##     rdf.printRDF()
 ##     rdf.writeRDF('junk.rdf')
 ##     rdf.writeTemplate('template.rdf')
 ##     requiredList = ['a','c']
- 
