@@ -8,6 +8,8 @@ from toggle_input import toggle_input
 HTML(toggle_input)
 """
 
-from toggle_input import *
+from __future__ import absolute_import, division, print_function
 
-from version import __version__
+from .toggle_input import *
+
+from .version import __version__

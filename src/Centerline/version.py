@@ -12,4 +12,8 @@
 
 # Version 0.1.3: moved IteratedCenterline to RiverObs package
 
-__version__ = '0.1.3'
+#__version__ = '0.1.3'
+
+# Version 0.1.4: Python 2.7/3.6 compatibility.
+
+__version__ = '0.1.4'

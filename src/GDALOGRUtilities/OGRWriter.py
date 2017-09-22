@@ -3,6 +3,8 @@ A Class to write vector files supported by OGR with inputs from
 various sources.
 """
 
+from __future__ import absolute_import, division, print_function
+
 from os.path import split,splitext
 from osgeo import ogr, osr
 from shapely.geometry import asShape, asPoint, asPolygon, asLineString
@@ -16,7 +18,7 @@ class OGRWriter:
 
     Parameters
     -----------
-    
+
     output_file : str
         Name of the output file.
     layers : a list of layer names.
@@ -61,7 +63,7 @@ class OGRWriter:
 
     # This dictionary translates between various ways of specifying geometries
     # and OGR supported geometries
-    
+
     geom_type = {
         'Point':ogr.wkbPoint, 	 # 0-dimensional geometric object, standard WKB
         'point':ogr.wkbPoint, 	 # 0-dimensional geometric object, standard WKB
@@ -111,7 +113,7 @@ class OGRWriter:
                 self.srs.ImportFromProj4(proj4_string)
 
         # Open the output file
- 
+
         self.driver = ogr.GetDriverByName(driver)
         if self.driver is None:
             raise Exception("%s driver not available" % driver)
@@ -122,7 +124,7 @@ class OGRWriter:
 
         # Create all the layers
 
-        if layers == []: # Create the layer with the file name as the 
+        if layers == []: # Create the layer with the file name as the
             layers = [splitext(split(output_file)[-1])[0]]
         elif type(layers) == type(''):
             layers = [layers]
@@ -148,7 +150,7 @@ class OGRWriter:
                 raise Exception('Could not create layer: %s'%layer)
 
             self.init_fields(lyr,fields[i])
-            
+
             self.layers.append(lyr)
 
     def close(self):
@@ -158,7 +160,7 @@ class OGRWriter:
     def init_fields(self,layer,fields):
         """Add the appropriate fields to an open layer."""
 
-        for field, value in fields.items():
+        for field, value in list(fields.items()):
 
             # Get the field definitions
 
@@ -190,7 +192,7 @@ class OGRWriter:
         layer_index : int
             index of the layer to which the feature will be added.
         layer_name : str
-            overrides layer index 
+            overrides layer index
         """
 
         if layer_name != None:
@@ -199,7 +201,7 @@ class OGRWriter:
         layer = self.layers[layer_index]
         feature = ogr.Feature(layer.GetLayerDefn())
 
-        for name, value in field_record.items():
+        for name, value in list(field_record.items()):
             feature.SetField(name,value)
 
         geometry = ogr.CreateGeometryFromWkt(wkt)
@@ -209,7 +211,7 @@ class OGRWriter:
             raise Exception('Failed to create feature')
 
         feature.Destroy()
-                    
+
     def add_geo_feature(self,object,field_record,layer_index=0,layer_name=None):
         """Add a feature from an object that supports the Python Geo interface and
         can be converted to a Shape object by shapely.geometry.asShape.
@@ -225,7 +227,7 @@ class OGRWriter:
         layer_index : int
             index of the layer to which the feature will be added.
         layer_name: str
-            overrides layer index 
+            overrides layer index
         """
 
         shape = asShape(object)
@@ -233,12 +235,12 @@ class OGRWriter:
 
     def add_xy_feature(self,x,y,field_record,layer_index=0,layer_name=None):
         """Add a feature from x,y numpy arrays (or anything that can be zipped into coordinate pairs).
-        
+
         layer_index: index of the layer to which the feature will be added.
-        layer_name: overrides layer index 
+        layer_name: overrides layer index
         """
 
-        coords = zip(x,y)
+        coords = list(zip(x,y))
         if self.geometry in ['Point','point']:
             shape = asPoint(coords)
         elif self.geometry in ['line','LineString']:
@@ -247,4 +249,3 @@ class OGRWriter:
             shape = asPolygon(coords)
 
         self.add_wkt_feature(shape.wkt,field_record,layer_index=layer_index,layer_name=layer_name)
-            

@@ -1,10 +1,11 @@
 """
 Output the contents of a RiverReach collection into a GIS or hdf5 format.
 """
+from __future__ import absolute_import, division, print_function
 import os
 import shutil
 from collections import OrderedDict as odict
-import numpy as N
+import numpy as np
 from pandas import HDFStore, DataFrame
 from GDALOGRUtilities import OGRWriter
 
@@ -32,11 +33,12 @@ class RiverReachWriter:
         self.node_vars = odict()
         for var in node_output_variables:
             self.node_vars[var] = []
-            
+
         for reach in self.reaches:
             for var in node_output_variables:
                 v = 0 # fake cython compiler
-                exec('v = reach.%s'%var)
+                #exec('v = reach.%s'%var)
+                v = getattr(reach,var)
                 self.node_vars[var].append(v)
 
         # Extract the desired node output data
@@ -44,10 +46,11 @@ class RiverReachWriter:
         self.reach_vars = odict()
         for var in reach_output_variables:
             self.reach_vars[var] = []
-            
+
         for reach in self.reaches:
             for var in reach_output_variables:
-                exec('v = reach.metadata["%s"]'%var)
+                #exec('v = reach.metadata["%s"]'%var)
+                v = reach.metadata[var]
                 self.reach_vars[var].append(v)
 
     @staticmethod
@@ -60,9 +63,9 @@ class RiverReachWriter:
         # If it is a numpy type this will work
         # only needed this try block because float32 doesn't inherit from float
         try:
-            if N.issubdtype(var, float):
+            if np.issubdtype(var, float):
                 this_string = 'float'
-            elif N.issubdtype(var, int):
+            elif np.issubdtype(var, int):
                 this_string = 'int'
 
         # issubdtype raises TypeError on not a numpy array
@@ -105,10 +108,10 @@ class RiverReachWriter:
                         v = float(self.node_vars[var][i][j])
                     else:
                         v = str(self.node_vars[var][i][j])
-                        
+
                     field_record[var] = v
                 ogr_writer.add_xy_feature(x,y,field_record)
-                 
+
         ogr_writer.close()
 
     def write_reaches_ogr(self,output_file,driver='ESRI Shapefile'):
@@ -137,10 +140,10 @@ class RiverReachWriter:
                     v = float(self.reach_vars[var][i])
                 else:
                     v = str(self.reach_vars[var][i])
-                        
+
                 field_record[var] = v
             ogr_writer.add_xy_feature(x,y,field_record)
-                 
+
         ogr_writer.close()
 
     def write_width_db(self,width_db_file,output_format='h5'):
@@ -148,29 +151,29 @@ class RiverReachWriter:
 
         The output_format can be 'h5' or 'csv'.
         """
-            
+
         for i,reach in enumerate(self.reaches):
             n = len(reach.lat)
-            
+
             river_data = odict()
-            river_data['width'] = reach.width.astype(N.int16)
+            river_data['width'] = reach.width.astype(np.int16)
             try:
-                river_data['nchannels'] = reach.nchannels.astype(N.int8)
+                river_data['nchannels'] = reach.nchannels.astype(np.int8)
             except:
-                river_data['nchannels'] = N.ones(n,dtype=N.int8)
+                river_data['nchannels'] = np.ones(n,dtype=np.int8)
             try:
-                river_data['reservoir'] = reach.reservoir.astype(N.int8)
+                river_data['reservoir'] = reach.reservoir.astype(np.int8)
             except:
-                river_data['reservoir'] = N.zeros(n,dtype=N.int8)
-            river_data['long'] = reach.lon.astype(N.float32)
-            river_data['lat'] = reach.lat.astype(N.float32)
-            river_data['reach_index'] = N.ones(n,dtype=N.int32)*i
-            
+                river_data['reservoir'] = np.zeros(n,dtype=np.int8)
+            river_data['long'] = reach.lon.astype(np.float32)
+            river_data['lat'] = reach.lat.astype(np.float32)
+            river_data['reach_index'] = np.ones(n,dtype=np.int32)*i
+
             try:
                 ds = arc_distance_xy(reach.x,reach.y)
             except:
                 ds = arc_distance(reach.lon,reach.lat)
-            river_data['reach'] = N.cumsum(ds).astype(N.float32)
+            river_data['reach'] = np.cumsum(ds).astype(np.float32)
 
             df = DataFrame(river_data)
             if i == 0:
@@ -211,7 +214,7 @@ class RiverReachWriter:
                 ds = arc_distance_xy(reach.x,reach.y)
             except:
                 ds = arc_distance(reach.lon,reach.lat)
-            s = N.cumsum(ds)
+            s = np.cumsum(ds)
             total_reach = s[-1]
 
         reach_df = DataFrame({'break_idx':break_idx,
@@ -239,7 +242,7 @@ class RiverReachWriter:
         else:
             river_df.to_csv(width_db_file+'_river_df.csv')
             reach_df.to_csv(width_db_file+'_reach_df.csv')
-            
+
 
         return river_df, reach_df
 
@@ -247,36 +250,32 @@ class RiverReachWriter:
 
 def arc_distance(lon,lat):
     """Calculate distance in meters between subsequent points."""
-    
+
     R = 6378.e3 # approximate earth radius
-    deg2rad = N.pi/180.
-    
-    lon = N.asarray(lon)
-    lat = N.asarray(lat)
-    d = N.zeros(len(lon),dtype=N.float32)
-    
+    deg2rad = np.pi/180.
+
+    lon = np.asarray(lon)
+    lat = np.asarray(lat)
+    d = np.zeros(len(lon),dtype=np.float32)
+
     dlon = (lon[1:] - lon[0:-1])*deg2rad
     dlat = (lat[1:] - lat[0:-1])*deg2rad
-    latmean = N.mean(lat)*deg2rad
-    
-    dx = dlon*N.cos(latmean)*R
+    latmean = np.mean(lat)*deg2rad
+
+    dx = dlon*np.cos(latmean)*R
     dy = dlat*R
-    
-    d[0:-1] = N.sqrt(dx**2 + dy**2)
-    
+
+    d[0:-1] = np.sqrt(dx**2 + dy**2)
+
     return d
 
 def arc_distance_xy(x,y):
     """Calculate the arc distance, give Cartesian coordinates."""
 
-    d = N.zeros(len(x),dtype=N.float32)
+    d = np.zeros(len(x),dtype=np.float32)
     dx = x[1:] - x[0:-1]
     dy = y[1:] - y[0:-1]
 
-    d[0:-1] = N.sqrt(dx**2 + dy**2)
-    
+    d[0:-1] = np.sqrt(dx**2 + dy**2)
+
     return d
-        
-
-
-        

@@ -2,8 +2,11 @@
 Fast access to a data base containing a set of geometries. 
 The data base is created by reading a shapefile, and write an rtree
 index for it for future use.
+
 All bounding boxes are assumed to be an iterable (xmin,ymin,xmax,ymax)
 """
+
+from __future__ import absolute_import, division, print_function
 
 from os.path import exists
 import pysal
@@ -37,7 +40,7 @@ def bbox_generator_2D(shape, store_obj=False):
 
     Parameters
     ----------
-    
+
     shape : object
         contains the bounding box, shape.bounding_box.left,
         shape.bounding_box.lower, shape.bounding_box.right,
@@ -48,14 +51,14 @@ def bbox_generator_2D(shape, store_obj=False):
             yield (i, shape_bbox_as_tuple(obj) , obj)
     else:
         for i, obj in enumerate(shape):
-            yield (i, shape_bbox_as_tuple(obj)  , i)            
-                   
+            yield (i, shape_bbox_as_tuple(obj)  , i)
+
 def shape_bbox_dbf_as_tuple(shape,dbf,dt,tindex=1):
     """Return a (x,y,time) bbox.
 
     Parameters
     ----------
-    
+
     shape : object
         contains the bounding box, shape.bounding_box.left,
         shape.bounding_box.lower, shape.bounding_box.right,
@@ -72,7 +75,7 @@ def shape_bbox_as_tuple(shape):
 
     Parameters
     ----------
-    
+
     shape : object
         contains the bounding box, shape.bounding_box.left,
         shape.bounding_box.lower, shape.bounding_box.right,
@@ -102,7 +105,7 @@ def write_shape_rtree_2D(shape_file_root,store_obj=False):
 
     shape = pysal.open(shape_file_root+'.shp')
     index.Index(shape_file_root,
-                bbox_generator_2D(shape,store_obj=store_obj))  
+                bbox_generator_2D(shape,store_obj=store_obj))
 
 class GeometryDataBase2D:
     """Read geometry shapefile and rtree and perform queries on it.
@@ -168,7 +171,6 @@ class GeometryDataBase2D:
         xy_bbox = (x-eps, y-eps, x+eps, y+eps)
         return self.intersects_xy_bbox(xy_bbox)
 
-    
 class GeometryDataBase3D:
     """Read geometry shapefile and dbf containing time and rtree and
     perform queries on it.
@@ -238,7 +240,7 @@ class GeometryDataBase3D:
         xyt_bbox = (x-eps, y-eps, time-eps, x+eps, y+eps, time+eps)
 
         return self.intersects_xy_time_bbox(xyt_bbox)
-    
+
     def contains_point(self,x, y,eps=1.e-6):
         """Return the ids for objects which intersect by the input 2D point."""
 

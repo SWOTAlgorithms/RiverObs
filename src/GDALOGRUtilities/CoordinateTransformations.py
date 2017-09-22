@@ -2,10 +2,11 @@
 Classes to take objects from one coordinate system to another.
 """
 
+from __future__ import absolute_import, division, print_function
+
 from os.path import join
 from osgeo import gdal, gdalconst, osr
 from pyproj import Proj, transform
-import numpy as N
 
 class CoordinateTransformation:
     """Base class for coordinate transformations.
@@ -23,6 +24,5 @@ class CoordinateTransformation:
     def transform_xy(self,x,y):
         """Transform sequences of x, y coordinates in the source coordinate system
         to x,y in the target coordinate system."""
-        
-        return transform(self.source_projection,self.destination_projection,x,y)
 
+        return transform(self.source_projection,self.destination_projection,x,y)

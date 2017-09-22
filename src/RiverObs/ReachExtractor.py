@@ -1,17 +1,19 @@
 """
-Extract all of the reaches overlapping a given bounding box and 
+Extract all of the reaches overlapping a given bounding box and
 computes the coordinates in the same projection used by the data.
 The result is contained in a set of RiverReach objects, which can be clipped
 to the same bounding box  as the data set.
 """
 
-import numpy as N
+from __future__ import absolute_import, division, print_function
+
+import numpy as np
 import pysal
 from GeometryDataBase import GeometryDataBase2D
-from RiverReach import RiverReach
+from .RiverReach import RiverReach
 
 class ReachExtractor:
-    """Extract all of the reaches overlapping a given bounding box and 
+    """Extract all of the reaches overlapping a given bounding box and
     computes the coordinates in the same projection used by the data.
     The result is contained in a set of RiverReach objects, which can be clipped
     to the same bounding box  as the data set.
@@ -37,11 +39,11 @@ class ReachExtractor:
 
     Notes
     ------
-    
+
     If clip is true, the reach is clipped to lie in a bounding box defined
-    by the data bounding box plus a buffer given by clip_buffer 
+    by the data bounding box plus a buffer given by clip_buffer
     (default is 0.1 deg or ~11 km).
-    
+
     """
 
     def __init__(self, shape_file_root, lat_lon_region,clip=True,
@@ -70,7 +72,7 @@ class ReachExtractor:
 
             # Get the coordinates as arrays
 
-            lon, lat = N.asarray(self.shp[i].vertices).T
+            lon, lat = np.asarray(self.shp[i].vertices).T
 
             # Clip the data
 
@@ -85,7 +87,7 @@ class ReachExtractor:
             # Project into the L2 projection
 
             x, y = lat_lon_region.proj(lon, lat)
-            
+
             # Get the metadata and reach index
             # Brent Williams, May 2017: Changed a few things here to handle 
             # newer river reach database (may have broken ability to read old
@@ -104,7 +106,7 @@ class ReachExtractor:
                 #    max_width = record[j]
                 #    print "max width:", max_width
             self.reach_idx.append(reach_index)
-            
+
             #print "reachID:",reach_index
             #print "reach x:",x
             # Append the river reach
@@ -127,7 +129,7 @@ class ReachExtractor:
         """This and the next function define an iterator over reaches."""
         return self
 
-    def next(self): ## Python 3: def __next__(self)
+    def __next__(self): ## Python 3: def __next__(self)
         """This and the previous function define an iterator over reaches."""
         if self.idx >= self.nreaches:
             self.idx = 0
@@ -135,6 +137,8 @@ class ReachExtractor:
 
         self.idx += 1
         return self.reach[self.idx - 1]
+
+    next = __next__
 
     def __len__(self):
         """Number of reaches."""
