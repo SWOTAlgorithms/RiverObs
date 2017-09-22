@@ -1,5 +1,9 @@
 # RiverObs Installation Instructions
 
+    declare -x PYTHONPATH=/path/to/RiverObs/src/:$PYTHONPATH
+
+or do the following
+
 
 ## Preliminaries
 
