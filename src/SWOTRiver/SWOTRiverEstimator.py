@@ -619,9 +619,9 @@ class SWOTRiverEstimator(SWOTL2):
         h_noise_std0 = np.asarray(self.river_obs.get_node_stat('std','h_noise'))
         # heights using only "good" heights
         h_noise_ave = np.asarray(
-            self.river_obs.get_node_stat('median', 'h_noise', 'h_flg') )
+            self.river_obs.get_node_stat('median', 'h_noise', good_flag='h_flg'))
         h_noise_std = np.asarray(
-            self.river_obs.get_node_stat('std', 'h_noise', 'h_flg') )
+            self.river_obs.get_node_stat('std', 'h_noise', good_flag='h_flg'))
 
         # The following are estimates of river width
         width_ptp =  np.asarray(self.river_obs.get_node_stat('width_ptp', ''))

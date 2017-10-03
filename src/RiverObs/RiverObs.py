@@ -296,7 +296,7 @@ class RiverObs:
                 obs = self.obs_to_node(getattr(self, var), node)
                 self.river_nodes[node].add_obs(var, obs, sort=False)
 
-    def get_node_stat(self, stat, var, all_nodes=False):
+    def get_node_stat(self, stat, var, all_nodes=False, good_flag=None):
         """
         Get a list of results of applying a given stat to a river node
         variable.
@@ -320,7 +320,11 @@ class RiverObs:
         for node in self.all_nodes:
             if node in self.populated_nodes:
                 river_node = self.river_nodes[node]
-                result.append(getattr(river_node, stat)(var))
+                if good_flag is None:
+                    result.append(getattr(river_node, stat)(var))
+
+                else:
+                    result.append(getattr(river_node, stat)(var, good_flag))
 
             elif all_nodes:
                 result.append(self.missing_value)
