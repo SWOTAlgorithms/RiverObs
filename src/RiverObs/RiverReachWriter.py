@@ -22,7 +22,8 @@ class RiverReachWriter:
     reach_output_variables : list
         A string list of the desired reach output variables.
     """
-    def __init__(self,river_reach_collection,node_output_variables,reach_output_variables):
+    def __init__(self, river_reach_collection, node_output_variables,
+                 reach_output_variables):
 
         self.reaches = river_reach_collection
         self.node_output_variables = node_output_variables

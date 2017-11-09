@@ -247,7 +247,7 @@ def main():
 
     # Parse the input RDF
 
-    pars = RDF_to_class(input_vars,file=args.rdf_file)
+    pars = RDF_to_class(input_vars, file=args.rdf_file)
 
     print((pars.l2_file))
     print((pars.fout_reach))
@@ -255,11 +255,12 @@ def main():
     print((pars.fout_index))
     # Reformat some inputs
     print(pars.lonmin)
-    bounding_box = pars.lonmin,pars.latmin,pars.lonmax,pars.latmax
-    lat_0,lon_0=None,None#pars.proj_lat_0,pars.proj_lon_0
+    bounding_box = pars.lonmin, pars.latmin, pars.lonmax, pars.latmax
+    lat_0, lon_0 = None, None
 
     class_list = ast.literal_eval(pars.class_list)
-    use_fractional_inundation = ast.literal_eval(pars.use_fractional_inundation)
+    use_fractional_inundation = ast.literal_eval(
+        pars.use_fractional_inundation)
     use_segmentation = ast.literal_eval(pars.use_segmentation)
     use_heights = ast.literal_eval(pars.use_heights)
     use_width_db = ast.literal_eval(pars.use_width_db)
@@ -302,17 +303,16 @@ def main():
     # Initialize the output writer
     #print river_reach_collection
     reach_output_variables = list(river_reach_collection[0].metadata.keys())
-    # Brent williams May 2017: added extra fields
-    node_output_variables = [
-        'lat', 'lon', 'x', 'y', 'nobs', 's', 'w_ptp', 'w_std', 'w_area',
-        'w_db', 'area', 'h_n_ave', 'h_n_std','h_a_ave','h_a_std', 'nobs_h',
-        'x_prior', 'y_prior', 'xtrack', 'node_indx', 'reach_indx']
+
+    # get node output variables from populated attributes of river_reaches
+    node_output_variables = river_reach_collection[0].__dict__.keys()
+    node_output_variables.remove('ds')
+    node_output_variables.remove('metadata')
 
     writer = RiverReachWriter(
         river_reach_collection, node_output_variables, reach_output_variables)
-    
-    # Write shapefiles
 
+    # Write shapefiles
     driver = args.format
     writer.write_nodes_ogr(pars.fout_node,driver=driver)
     writer.write_reaches_ogr(pars.fout_reach,driver=driver)

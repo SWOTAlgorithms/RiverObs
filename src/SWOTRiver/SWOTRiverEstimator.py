@@ -196,7 +196,9 @@ class SWOTRiverEstimator(SWOTL2):
         if is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
-        self.xtrack = self.get(xtrack_kwd)
+        self.xtrack = (
+            self.get(xtrack_kwd) if xtrack_kwd in self.nc.variables.keys() else
+            None)
 
         # Make sure all of the arrays are valid over the same points
         good = ~mask
@@ -206,7 +208,8 @@ class SWOTRiverEstimator(SWOTL2):
         self.y = self.y[good]
         self.klass = self.klass[good]
         self.h_noise = self.h_noise[good]
-        self.xtrack = self.xtrack[good]
+        if self.xtrack is not None:
+            self.xtrack = self.xtrack[good]
         self.img_x = self.img_x[good] # range or x index
         self.img_y = self.img_y[good] # azimuth or y index
 
@@ -592,11 +595,17 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('lat',self.lat)
         self.river_obs.add_obs('xobs',self.x)
         self.river_obs.add_obs('yobs',self.y)
-        self.river_obs.add_obs('xtrack',self.xtrack)
+        if self.xtrack is not None:
+            self.river_obs.add_obs('xtrack',self.xtrack)
         self.river_obs.add_obs('inundated_area',self.inundated_area)
-        self.river_obs.load_nodes([
-            'h_noise','h_flg', 'lon', 'lat', 'xobs', 'yobs', 'xtrack',
-            'inundated_area'])
+
+        dsets_to_load = [
+            'h_noise','h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area']
+
+        if self.xtrack is not None:
+            dsets_to_load.append('xtrack')
+
+        self.river_obs.load_nodes(dsets_to_load)
 
         if self.verbose: print('Observations added to nodes')
 
@@ -605,8 +614,13 @@ class SWOTRiverEstimator(SWOTL2):
         s_median = np.asarray(self.river_obs.get_node_stat('median', 's'))
         x_median = np.asarray(self.river_obs.get_node_stat('median', 'xobs'))
         y_median = np.asarray(self.river_obs.get_node_stat('median', 'yobs'))
-        xtrack_median = np.asarray(
-            self.river_obs.get_node_stat('median', 'xtrack'))
+
+        if self.xtrack is not None:
+            xtrack_median = np.asarray(
+                self.river_obs.get_node_stat('median', 'xtrack'))
+        else:
+            xtrack_median = None
+
         lon_median = np.asarray(self.river_obs.get_node_stat('median', 'lon'))
         lat_median = np.asarray(self.river_obs.get_node_stat('median', 'lat'))
         ds = np.asarray(self.river_obs.get_node_stat('value', 'ds'))
@@ -680,29 +694,20 @@ class SWOTRiverEstimator(SWOTL2):
             xtrack_median, width_ptp, width_std, width_area, area, nresults)
 
         # Put the results into a RiverReach object
-        river_reach = RiverReach(lat=lat_median,
-                                 lon=lon_median,
-                                 x = x_median,
-                                 y = y_median,
-                                 nobs = nobs,
-                                 s = s_median,
-                                 ds = ds,             
-                                 xtrack = xtrack_median,
-                                 w_ptp = width_ptp,
-                                 w_std = width_std,
-                                 w_area = width_area,
-                                 w_db = width_db,
-                                 area = area,
-                                 h_n_ave = h_noise_ave,
-                                 h_n_std = h_noise_std,
-                                 h_a_ave = h_noise_ave0,
-                                 h_a_std = h_noise_std0,
-                                 nobs_h = nobs_h,
-                                 x_prior=x_prior,
-                                 y_prior=y_prior,
-                                 node_indx=node_index,
-                                 reach_indx=reach_index,
-                                 metadata = reach_stats)
+        river_reach_kw_args = {
+            'lat': lat_median, 'lon': lon_median, 'x': x_median,
+            'y': y_median, 'nobs': nobs, 's': s_median, 'ds': ds,
+            'w_ptp': width_ptp, 'w_std': width_std, 'w_area': width_area,
+            'w_db': width_db, 'area': area, 'h_n_ave': h_noise_ave,
+            'h_n_std': h_noise_std, 'h_a_ave': h_noise_ave0,
+            'h_a_std': h_noise_std0, 'nobs_h': nobs_h, 'x_prior': x_prior,
+            'y_prior': y_prior, 'node_indx': node_index,
+            'reach_indx': reach_index, 'metadata': reach_stats}
+
+        if xtrack_median is not None:
+            river_reach_kw_args['xtrack'] = xtrack_median
+
+        river_reach = RiverReach(**river_reach_kw_args)
 
         # Store, if desired
         if self.store_obs:
@@ -725,7 +730,7 @@ class SWOTRiverEstimator(SWOTL2):
                 load_inputs=load_inputs)
 
             load_inputs = False
-        return nresults#, tresults
+        return nresults
 
     def get_reach_stats(self,reach_id,reach_idx,smin,smax,
                         lon_median, lat_median, 
@@ -735,7 +740,6 @@ class SWOTRiverEstimator(SWOTL2):
         """Get statistics for a given reach."""
 
         reach_stats = odict()
-
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
         reach_stats['lon_min'] = np.min(lon_median)
@@ -755,30 +759,37 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_area_ave'] = np.median(width_area)
         reach_stats['w_area_min'] = np.min(width_area)
         reach_stats['w_area_max'] = np.max(width_area)
-        reach_stats['xtrck_ave'] = np.median(xtrack_median)
-        reach_stats['xtrck_min'] = np.min(xtrack_median)
-        reach_stats['xtrck_max'] = np.max(xtrack_median)
+        if xtrack_median is not None:
+            reach_stats['xtrck_ave'] = np.median(xtrack_median)
+            reach_stats['xtrck_min'] = np.min(xtrack_median)
+            reach_stats['xtrck_max'] = np.max(xtrack_median)
 
         # fitting results for h_true
+        if nresults is not None:
+            for fit_type in ['OLS', 'WLS', 'RLM']:
 
-        tag = {'OLS':'o','WLS':'w','RLM':'r'}
+                tag = {'OLS': 'o', 'WLS': 'w', 'RLM': 'r'}[fit_type]
+                try:
+                    this_result = nresults[fit_type]
 
-        if type(nresults) != type(None):
-            for fit_type in ['OLS','WLS','RLM']:
-                if fit_type in nresults:
-                    reach_stats['h_n%s'%tag[fit_type] ] = nresults[fit_type].params[1]
-                    reach_stats['slp_n%s'%tag[fit_type] ] = nresults[fit_type].params[0]
-                    try:
-                        reach_stats['n%s_rsqrd'%tag[fit_type] ] = nresults[fit_type].rsquared
-                        reach_stats['n%s_mse'%tag[fit_type] ] = nresults[fit_type].mse_resid
-                    except:
-                        reach_stats['n%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
-                        reach_stats['n%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
-                else:
-                    reach_stats['h_n%s'%tag[fit_type] ] = self.river_obs.missing_value
-                    reach_stats['slp_n%s'%tag[fit_type] ] = self.river_obs.missing_value
-                    reach_stats['n%s_rsqrd'%tag[fit_type] ] = self.river_obs.missing_value
-                    reach_stats['n%s_mse'%tag[fit_type] ] = self.river_obs.missing_value
+                except KeyError:
+                    reach_stats['h_n%s'%tag] = self.river_obs.missing_value
+                    reach_stats['slp_n%s'%tag] = self.river_obs.missing_value
+                    reach_stats['n%s_rsqrd'%tag] = self.river_obs.missing_value
+                    reach_stats['n%s_mse'%tag] = self.river_obs.missing_value
+                    continue
+
+                reach_stats['h_n%s'%tag] = this_result.params[1]
+                reach_stats['slp_n%s'%tag] = this_result.params[0]
+
+                try:
+                    reach_stats['n%s_rsqrd'%tag] = this_result.rsquared
+                    reach_stats['n%s_mse'%tag] = this_result.mse_resid
+
+                except AttributeError:
+                    reach_stats['n%s_rsqrd'%tag] = self.river_obs.missing_value
+                    reach_stats['n%s_mse'%tag] = self.river_obs.missing_value
+                    pass
 
         return reach_stats
 
@@ -787,16 +798,19 @@ class SWOTRiverEstimator(SWOTL2):
         Create an empty file with appropriate variable to append to
         """
         # if the filename does not exist create it
-        f=nc.Dataset(self.output_file,'w')
-        f.createDimension('record',None)
-        ri=f.createVariable('range_index','i4','record',fill_value=-128)
-        ai=f.createVariable('azimuth_index','i4','record',fill_value=-128)
-        ni=f.createVariable('node_index','i4','record',fill_value=-128)
-        rri=f.createVariable('reach_index','i4','record',fill_value=-128)
-        seglbl=f.createVariable('segmentation_label','i4','record',fill_value=-128)
-        hflg=f.createVariable('good_height_flag','i1','record',fill_value=-1)
-        d=f.createVariable('distance_to_node','f4','record',fill_value=-128)
-        f.close()
+        with nc.Dataset(self.output_file, 'w') as ofp:
+            ofp.createDimension('record', None)
+            ofp.createVariable('range_index', 'i4', 'record', fill_value=-128)
+            ofp.createVariable(
+                'azimuth_index', 'i4', 'record', fill_value=-128)
+            ofp.createVariable('node_index', 'i4', 'record', fill_value=-128)
+            ofp.createVariable('reach_index', 'i4', 'record', fill_value=-128)
+            ofp.createVariable(
+                'segmentation_label', 'i4', 'record', fill_value=-128)
+            ofp.createVariable(
+                'good_height_flag', 'i1', 'record', fill_value=-1)
+            ofp.createVariable(
+                'distance_to_node', 'f4', 'record', fill_value=-128)
         return
 
     def writeIndexFile(
@@ -807,26 +821,16 @@ class SWOTRiverEstimator(SWOTL2):
         image coordinate [e.g., gdem along- and cross-track index])
         """
         if self.verbose: print(('Writing to Index File: ',self.output_file))
-        # if the filename does not exist create it
-        f=nc.Dataset(self.output_file,'a')
-        # first get the data
-        ri=f.variables['range_index']
-        ai=f.variables['azimuth_index']
-        ni=f.variables['node_index']
-        rri=f.variables['reach_index']
-        seglbl=f.variables['segmentation_label']
-        hflg=f.variables['good_height_flag']
-        d=f.variables['distance_to_node']
         # append the new data
-        L=len(ri[:])
-        K=len(img_x)
-        ri[L:L+K]=img_x
-        ai[L:L+K]=img_y
-        ni[L:L+K]=node_index
-        rri[L:L+K]=reach_index
-        if not(type(seg_lbl) == type(None)):
-            seglbl[L:L+K]=seg_lbl
-        hflg[L:L+K]=h_flg
-        d[L:L+K]=dst
-        f.close()
+        with nc.Dataset(self.output_file, 'a') as ofp:
+            curr_len = len(ofp.variables['range_index'])
+            new_len = curr_len + len(img_x)
+            ofp.variables['range_index'][curr_len:new_len] = img_x
+            ofp.variables['azimuth_index'][curr_len:new_len] = img_y
+            ofp.variables['node_index'][curr_len:new_len] = node_index
+            ofp.variables['reach_index'][curr_len:new_len] = reach_index
+            ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
+            ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
+            ofp.variables['distance_to_node'][curr_len:new_len] = dst
+
         return

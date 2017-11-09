@@ -14,7 +14,7 @@ class RiverReach:
     This base class can be derived to implement specific reach behavior.
     """
 
-    def __init__(self,**kwds):
+    def __init__(self, **kwds):
         self.lat = None
         self.lon = None
         self.x = None
@@ -23,5 +23,4 @@ class RiverReach:
 
         for k in kwds:
             v = kwds[k]
-            #exec('self.%s = v'%k)
-            setattr(self,k,v)
+            setattr(self, k, v)

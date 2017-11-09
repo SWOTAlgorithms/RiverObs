@@ -19,7 +19,8 @@ class FitRiver:
         self.river_obs = river_obs
         self.inputs_computed = False
 
-    def get_linear_fit_inputs(self,smin,smax,fit_var,mean_stat='mean',err_stat='stderr'):
+    def get_linear_fit_inputs(self, smin, smax, fit_var, mean_stat='mean',
+                              err_stat='stderr'):
         """Get the design matrix, the observations, and the fitting weights
         for all the nodes in the interval [smin,smax].
 
@@ -63,10 +64,11 @@ class FitRiver:
 
         return s, y, X, w
 
-    def fit_linear(self,smin,smax,fit_var,fit='OLS',mean_stat='mean',err_stat='stderr',
-                   load_inputs=True,):
-                   ## norm='HuberT'):
-        """Fit the variable in the interval [smin,smax] using various fitting methods.
+    def fit_linear(self, smin, smax, fit_var, fit='OLS', mean_stat='mean',
+                   err_stat='stderr', load_inputs=True):
+        """
+        Fit the variable in the interval [smin,smax] using various fitting
+        methods.
 
         Parameters
         ----------
@@ -89,9 +91,8 @@ class FitRiver:
         # Get the fit inputs, if desired
 
         if load_inputs or ( not self.inputs_computed ):
-            self.s, self.y, self.X, self.w = self.get_linear_fit_inputs(smin,smax,fit_var,
-                                                                        mean_stat=mean_stat,
-                                                                        err_stat=err_stat)
+            self.s, self.y, self.X, self.w = self.get_linear_fit_inputs(
+                smin, smax, fit_var, mean_stat=mean_stat, err_stat=err_stat)
 
         # Initialize the model depending on the fit
 
