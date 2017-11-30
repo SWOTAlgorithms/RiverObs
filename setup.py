@@ -68,7 +68,7 @@ setup(name='GeometryDataBase',
      )
 
 exec(open('src/SWOTRiver/version.py').read())
-script_dir = 'src/SWOTRiver/scripts/'
+script_dir = 'src/bin/'
 setup(name='SWOTRiver',
       version=__version__,
       description='Extract hydrology observables from SWOT data.',
@@ -78,9 +78,7 @@ setup(name='SWOTRiver',
       package_dir = {'': 'src'},
       ## packages = find_packages()
       packages=['SWOTRiver',],
-      scripts=[script_dir+'make_simulation_catalog.py',
-               script_dir+'estimate_swot_rivers.py',
-               script_dir+'estimate_swot_river.py',]
+      scripts=[script_dir+'estimate_swot_river.py',]
      )
 
 exec(open('src/RiverObs/version.py').read())
