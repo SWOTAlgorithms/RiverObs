@@ -139,6 +139,10 @@ fit_types=['OLS','WLS','RLM']
 min_fit_points = 3
 """
 
+# dict mapping input params for estimate function to RDF key/value pairs
+# each key in dict is the RDF value, while the values in dict are a tuple
+# with the variable name in struct as 1st item and datatype as second.
+# Datatypes: 's' - string; 'd' - int; 'f' - float
 input_vars = {
     'l2_file': ('l2_file', 's'), 'fout_node': ('fout_node', 's'),
     'fout_reach': ('fout_reach', 's'), 'fout_index': ('fout_index', 's'),
