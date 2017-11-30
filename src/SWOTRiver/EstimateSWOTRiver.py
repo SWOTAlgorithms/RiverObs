@@ -162,7 +162,8 @@ input_vars = {
     'alpha': ('alpha', 'f'), 'scalar_max_width': ('scalar_max_width', 'f'),
     'max_iter': ('max_iter', 'd'), 'minobs': ('minobs', 'd'),
     'trim_ends': ('trim_ends', 's'), 'fit_types': ('fit_types', 's'),
-    'min_fit_points': ('min_fit_points', 'd')}
+    'min_fit_points': ('min_fit_points', 'd'),
+    'subsample_factor': ('subsample_factor', 'd')}
 
 
 def estimate(params):
@@ -183,6 +184,9 @@ def estimate(params):
     refine_centerline = ast.literal_eval(params.refine_centerline)
     fit_types = ast.literal_eval(params.fit_types)
 
+    if params.subsample_factor is None:
+        params.subsample_factor = 1
+
     # Read the data and estimate the flooded area.
     river_estimator = SWOTRiver.SWOTRiverEstimator(
         params.l2_file, bounding_box=bounding_box, lat_kwd=params.lat_kwd,
@@ -194,7 +198,8 @@ def estimate(params):
         use_segmentation=use_segmentation, use_heights=use_heights,
         min_points=params.min_points, verbose=True, store_obs=False,
         store_reaches=False, store_fits=False, output_file=params.fout_index,
-        proj='laea', x_0=0, y_0=0, lat_0=lat_0, lon_0=lon_0)
+        proj='laea', x_0=0, y_0=0, lat_0=lat_0, lon_0=lon_0,
+        subsample_factor=params.subsample_factor)
 
     # Load the reaches and width data base
 
