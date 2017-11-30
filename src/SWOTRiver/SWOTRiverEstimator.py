@@ -186,7 +186,7 @@ class SWOTRiverEstimator(SWOTL2):
         if is_masked(self.lat):
             mask = self.lat.mask
         else:
-            mask = np.zeros(len(self.lat),dtype=np.bool)
+            mask = np.zeros(len(self.lat), dtype=np.bool)
 
         self.h_noise = self.get(height_kwd)
         if is_masked(self.h_noise):

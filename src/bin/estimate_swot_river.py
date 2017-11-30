@@ -23,6 +23,8 @@ def main():
     parser.add_argument(
         '-f','--format', help="OGR file format  (default 'ESRI Shapefile')",
         default='ESRI Shapefile')
+    parser.add_argument(
+        '--subsample', help='Subsample factor', type=int)
     args = parser.parse_args()
 
     params = RDF.RDF_to_class(
@@ -34,9 +36,27 @@ def main():
     # Reformat some inputs
     print(params.lonmin)
 
+    # User can specify subsample factor in RDF or on command line;
+    # the command line will overwrite in RDF file.
+    if params.subsample_factor is None:
+        params.subsample_factor = 1
+
+    if args.subsample is not None:
+        params.subsample_factor = args.subsample
+
     # Heavy lifting done in SWOTRiver.EstimateSWOTRiver.estimate
-    node_variables, reach_variables, reach_collection = \
-        SWOTRiver.EstimateSWOTRiver.estimate(params)
+    reach_collection = SWOTRiver.EstimateSWOTRiver.estimate(params)
+
+    if len(reach_collection) == 0:
+        print("No valid nodes")
+        return
+
+    reach_variables = list(reach_collection[0].metadata.keys())
+
+    # get node output variables from populated attributes of river_reaches
+    node_variables = reach_collection[0].__dict__.keys()
+    node_variables.remove('ds')
+    node_variables.remove('metadata')
 
     # Write shapefiles
     writer = RiverObs.RiverReachWriter(

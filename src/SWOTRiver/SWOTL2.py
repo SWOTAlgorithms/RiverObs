@@ -94,7 +94,6 @@ class SWOTL2:
             try:
                 print('Cant Find range_index, or azimuth_index variables,'
                       ' assuming 2D-image image coordinates (like from a gdem)')
-                # this should break if it is not an image like a gdem or L2piXC
                 Ny, Nx = np.shape(self.get(lat_kwd, use_index=False))
                 ix, iy = np.meshgrid(np.arange(Nx), np.arange(Ny))
                 self.img_x = ix[self.index]
@@ -182,21 +181,23 @@ class SWOTL2:
 
         Subsamples input data based on self.subsample_factor (use for GDEMS!)
         """
-        variable = self.nc.variables[var]
-        if len(variable.shape) == 1:
-            x = variable[::self.subsample_factor]
+        # Much faster to read contigous data then sice then slice while reading
+        data = self.nc.variables[var][:]
+        if self.subsample_factor > 1:
+            if len(data.shape) == 1:
+                data = data[::self.subsample_factor]
 
-        elif len(variable.shape) == 2:
-            x = variable[::self.subsample_factor, ::self.subsample_factor]
+            elif len(data.shape) == 2:
+                data = data[::self.subsample_factor, ::self.subsample_factor]
 
-        else:
-            raise Exception('Unexpected size of input data in SWOTL2::get')
+            else:
+                raise Exception('Unexpected size of input data in SWOTL2::get')
 
         # self.index already subsampled in set_index_and_bounding_box
         if use_index:
-            x = x[self.index]
+            data = data[self.index]
 
-        return x
+        return data
 
     def project(self, proj='laea', x_0=0, y_0=0, lat_0=None, lon_0=None,
                 ellps='WGS84', **proj_kwds):

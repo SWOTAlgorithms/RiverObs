@@ -184,9 +184,6 @@ def estimate(params):
     refine_centerline = ast.literal_eval(params.refine_centerline)
     fit_types = ast.literal_eval(params.fit_types)
 
-    if params.subsample_factor is None:
-        params.subsample_factor = 1
-
     # Read the data and estimate the flooded area.
     river_estimator = SWOTRiver.SWOTRiverEstimator(
         params.l2_file, bounding_box=bounding_box, lat_kwd=params.lat_kwd,
@@ -217,17 +214,4 @@ def estimate(params):
         refine_centerline=refine_centerline, smooth=params.smooth,
         alpha=params.alpha, max_iter=params.max_iter)
 
-    if len(reach_collection) == 0:
-        print("No valid nodes")
-        return
-
-    # Initialize the output writer
-    #print river_reach_collection
-    reach_variables = list(reach_collection[0].metadata.keys())
-
-    # get node output variables from populated attributes of river_reaches
-    node_variables = reach_collection[0].__dict__.keys()
-    node_variables.remove('ds')
-    node_variables.remove('metadata')
-
-    return node_variables, reach_variables, reach_collection
+    return reach_collection
