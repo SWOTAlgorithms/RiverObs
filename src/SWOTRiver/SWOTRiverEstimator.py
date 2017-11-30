@@ -141,23 +141,20 @@ class SWOTRiverEstimator(SWOTL2):
     platform_height = 970.e3
     earth_radius = 6378e3
 
-    def __init__(self,swotL2_file,bounding_box=None,
-                 lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
-                 class_list=[2,3,4,5],class_kwd='classification',
-                 fractional_inundation_kwd='continuous_classification',
-                 use_fractional_inundation=[True, True, False, False],
-                 use_segmentation=[False, True, True, True],
-                 use_heights=[False, False, True, False],
-                 min_points=100,
-                 height_kwd='height',
-                 trim_ends=False,
-                 store_obs=True,
-                 store_reaches=True,
-                 store_fits=True,
-                 verbose=True,
-                 xtrack_kwd='no_layover_cross_track',
-                 proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
-                 ellps='WGS84',output_file=None,**proj_kwds):
+    def __init__(
+        self, swotL2_file, bounding_box=None, lat_kwd='no_layover_latitude',
+        lon_kwd='no_layover_longitude', class_list = [2, 3, 4, 5],
+        class_kwd='classification',
+        fractional_inundation_kwd='continuous_classification',
+        use_fractional_inundation=[True, True, False, False],
+        use_segmentation=[False, True, True, True],
+        use_heights=[False, False, True, False],
+        min_points=100, height_kwd='height', trim_ends=False, store_obs=True,
+        store_reaches=True, store_fits=True, verbose=True,
+        xtrack_kwd='no_layover_cross_track', proj='laea', x_0=0, y_0=0,
+        lat_0=None, lon_0=None, ellps='WGS84', output_file=None,
+        subsample_factor=1, **proj_kwds):
+
 
         self.trim_ends = trim_ends
         self.store_obs=store_obs
@@ -166,6 +163,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.verbose=verbose
         self.input_file = split(swotL2_file)[-1]
         self.output_file = output_file # index file
+        self.subsample_factor = subsample_factor
         self.createIndexFile()
 
         # Classification inputs
@@ -178,19 +176,17 @@ class SWOTRiverEstimator(SWOTL2):
         self.use_heights = use_heights
 
         # Initialize the base class
-        SWOTL2.__init__(self,swotL2_file,bounding_box=bounding_box,
-                        class_list=class_list,
-                        lat_kwd=lat_kwd, lon_kwd=lon_kwd,
-                        class_kwd=class_kwd,
-                        min_points=min_points,
-                        verbose=verbose,
-                        proj=proj,x_0=x_0,y_0=y_0,lat_0=lat_0,lon_0=lon_0,
-                        ellps=ellps,**proj_kwds)
+        SWOTL2.__init__(self, swotL2_file, bounding_box=bounding_box,
+                        class_list=class_list, lat_kwd=lat_kwd, lon_kwd=lon_kwd,
+                        class_kwd=class_kwd, min_points=min_points,
+                        verbose=verbose, proj=proj, x_0=x_0, y_0=y_0,
+                        lat_0=lat_0, lon_0=lon_0, ellps=ellps,
+                        subsample_factor=subsample_factor, **proj_kwds)
 
         if is_masked(self.lat):
             mask = self.lat.mask
         else:
-            mask = np.zeros(len(self.lat),dtype=np.bool)
+            mask = np.zeros(len(self.lat), dtype=np.bool)
 
         self.h_noise = self.get(height_kwd)
         if is_masked(self.h_noise):
