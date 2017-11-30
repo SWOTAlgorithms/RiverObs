@@ -80,14 +80,14 @@ class RDF_to_class:
             format = self.d[key][1]
             try:
                 if format == "s":
-                    #exec("self.%s = rdf[key]"%(self.d[key][0]))
                     setattr(self,self.d[key][0],rdf[key])
+
                 elif format == "d":
-                    #exec("self.%s = rdf.int(key)"%(self.d[key][0]))
                     setattr(self,self.d[key][0],rdf.int(key))
+
                 elif format == "f":
-                    #exec("self.%s = rdf.float(key)"%(self.d[key][0]))
                     setattr(self,self.d[key][0],rdf.float(key))
+
             except:
                 name = self.d[key][0]
                 if name not in self.__dict__:
@@ -96,9 +96,7 @@ class RDF_to_class:
 
     def fromFile(self,file):
         """Read from a file."""
-
         self.fromRDF(RDF().rdfParse(file))
-
 
 def test():
 
