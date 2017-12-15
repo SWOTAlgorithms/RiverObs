@@ -54,7 +54,7 @@ def main():
     reach_variables = list(reach_collection[0].metadata.keys())
 
     # get node output variables from populated attributes of river_reaches
-    node_variables = reach_collection[0].__dict__.keys()
+    node_variables = list(reach_collection[0].__dict__.keys())
     node_variables.remove('ds')
     node_variables.remove('metadata')
 
