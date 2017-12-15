@@ -49,6 +49,14 @@ To create an anaconda virtual environment, execute (Simplest):
     gdal scipy pip scikit-image statsmodels pysal pandas pytables
     shapely netcdf4 sphinx  numpydoc rtree pyproj
 
+some thrid party packages may have trouble with the newer python 3.6, if you have trouble you can try with 3.5.  Also, it may be necessary to use version 8d version of jpeg.  If so try the following:
+
+     conda create -n RiverObs python=3.5 numpy jupyter notebook matplotlib gdal scipy pip scikit-image statsmodels pysal pandas pytables shapely netcdf4 sphinx  numpydoc rtree pyproj jpeg=8d
+
+Here is what I got working on a linux box with all the versions explicitly stated:
+
+     conda create -n RiverObs python=3.5 numpy=1.13.1 jupyter=1.0.0 notebook=5.0.0 matplotlib=2.0.2 gdal=2.1.0 libgdal=2.1.0 scipy=0.19.1 pip=9.0.1 scikit-image=0.13.0 statsmodels=0.8.0 pysal=1.13.0 pandas=0.20.3 pytables=3.4.2 shapely=1.5.16 netcdf4=1.2.4 sphinx=1.6.3 numpydoc=0.7.0 rtree=0.8.3 pyproj=1.9.5.1 jpeg=8d
+
 or, if you want to keep the code and executables under the RiverObs folder:
 
     cd $RIVER_DIR

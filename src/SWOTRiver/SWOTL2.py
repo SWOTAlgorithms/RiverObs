@@ -188,7 +188,8 @@ class SWOTL2:
                 data = data[::self.subsample_factor]
 
             elif len(data.shape) == 2:
-                data = data[::self.subsample_factor, ::self.subsample_factor]
+                # only subsample in azimuth
+                data = data[::self.subsample_factor, :]
 
             else:
                 raise Exception('Unexpected size of input data in SWOTL2::get')

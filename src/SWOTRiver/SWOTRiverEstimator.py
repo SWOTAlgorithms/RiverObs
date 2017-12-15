@@ -236,6 +236,10 @@ class SWOTRiverEstimator(SWOTL2):
                     self.pixel_area = 10.0*np.zeros(len(self.h_noise))
                     print("could not find correct pixel area parameters")
 
+        # need to scale pixel area by the subsampling factor if subsampling
+        if (self.subsample_factor > 1):
+            self.pixel_area = self.pixel_area * self.subsample_factor
+        #
         if fractional_inundation_kwd == None: # all water pixels are inundated
             self.fractional_inundation = None
             self.inundated_area = self.pixel_area
