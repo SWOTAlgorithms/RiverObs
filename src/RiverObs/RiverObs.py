@@ -150,8 +150,12 @@ class RiverObs:
             class_mask = N.logical_and(self.in_channel, seg_label > 0)
             if class_mask.any():
                 dominant_label = mode(seg_label[class_mask])[0][0]
-                self.in_channel = N.logical_and(
-                    self.in_channel, seg_label == dominant_label)
+                # keep everything in the max_distance as well as things outside that are the same feature
+                self.in_channel = N.logical_or(
+                    self.in_channel, N.logical_and(seg_label == dominant_label, dst0 <= 0))
+                # this was throwing out some things we dont want to throw out
+                #self.in_channel = N.logical_and(
+                #    self.in_channel, seg_label == dominant_label)
                 if self.verbose:
                     print("Dominant label in reach: %d" % dominant_label)
 
