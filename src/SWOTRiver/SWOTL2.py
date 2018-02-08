@@ -52,7 +52,7 @@ class SWOTL2:
     +y_0=False Northing, set to 0
     """
 
-    azimuth_spacing_default = 5.3 # default azimuth spacing
+    default_azimuth_spacing = 3.125 # default azimuth spacing
 
     def __init__(self, swotL2_file,bounding_box=None, class_list=[1],
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
