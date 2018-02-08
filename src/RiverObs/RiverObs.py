@@ -367,7 +367,7 @@ class RiverObs:
         for node in node_list:
             try:
                 index = from_list.index(node)
-                from_list.pop(node)
+                from_list.pop(index)
                 to_list.append(node)
             except:
                 pass
