@@ -89,7 +89,7 @@ class Centerline:
             for i,name in enumerate(obs_names):
                 if len(obs[i]) != len(x):
                     raise CenterLineException('obs size incompatible with x size')
-                setattr(self, name, N.asarray(obs[i]))
+                setattr(self, name, np.asarray(obs[i]))
 
         # Compute the point separation along the curve
 
