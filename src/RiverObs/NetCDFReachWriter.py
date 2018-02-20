@@ -37,7 +37,8 @@ def gather_outputs(reach_collection):
         reach_outputs[reach_variable] = np.array([
             reach.metadata[reach_variable] for reach in reach_collection])
 
-    node_outputs['reach_idx'] = np.zeros(node_outputs['lat'].shape)
+    node_outputs['reach_idx'] = np.zeros(
+        node_outputs['lat'].shape).astype('int32')
     i_start = 0
     for ireach, num_nodes in enumerate(num_nodes_per_reach):
         node_outputs['reach_idx'][i_start:i_start+num_nodes] = ireach
