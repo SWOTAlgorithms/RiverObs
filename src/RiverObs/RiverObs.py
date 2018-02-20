@@ -66,7 +66,7 @@ class RiverObs:
         # Copy metadata, in case it is present
         try:
             self.metadata = reach.metadata
-        except:
+        except AttributeError:
             self.metadata = None
 
         self.ndata = len(xobs)
@@ -367,9 +367,9 @@ class RiverObs:
         for node in node_list:
             try:
                 index = from_list.index(node)
-                from_list.pop(node)
+                from_list.pop(index)
                 to_list.append(node)
-            except:
+            except ValueError:
                 pass
 
         from_list.sort()
