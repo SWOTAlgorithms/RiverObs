@@ -693,16 +693,66 @@ class SWOTRiverEstimator(SWOTL2):
             reach_id, reach_idx, smin, smax, lon_median, lat_median,
             xtrack_median, width_ptp, width_std, width_area, area, nresults)
 
-        # Put the results into a RiverReach object
+        # type-cast reach outputs explicity
+        reach_stats['reach_id'] = np.int32(reach_stats['reach_id'])
+        reach_stats['reach_idx'] = np.int32(reach_stats['reach_idx'])
+        reach_stats['lon_min'] = np.float32(reach_stats['lon_min'])
+        reach_stats['lon_max'] = np.float32(reach_stats['lon_max'])
+        reach_stats['lat_min'] = np.float32(reach_stats['lat_min'])
+        reach_stats['lat_max'] = np.float32(reach_stats['lat_max'])
+        reach_stats['area'] = np.float32(reach_stats['area'])
+        reach_stats['length'] = np.float32(reach_stats['length'])
+        reach_stats['smin'] = np.float32(reach_stats['smin'])
+        reach_stats['smax'] = np.float32(reach_stats['smax'])
+        reach_stats['w_ptp_ave'] = np.float32(reach_stats['w_ptp_ave'])
+        reach_stats['w_ptp_min'] = np.float32(reach_stats['w_ptp_min'])
+        reach_stats['w_ptp_max'] = np.float32(reach_stats['w_ptp_max'])
+        reach_stats['w_std_ave'] = np.float32(reach_stats['w_std_ave'])
+        reach_stats['w_std_min'] = np.float32(reach_stats['w_std_min'])
+        reach_stats['w_std_max'] = np.float32(reach_stats['w_std_max'])
+        reach_stats['w_area_ave'] = np.float32(reach_stats['w_area_ave'])
+        reach_stats['w_area_min'] = np.float32(reach_stats['w_area_min'])
+        reach_stats['w_area_max'] = np.float32(reach_stats['w_area_max'])
+        reach_stats['xtrck_ave'] = np.float32(reach_stats['xtrck_ave'])
+        reach_stats['xtrck_min'] = np.float32(reach_stats['xtrck_min'])
+        reach_stats['xtrck_max'] = np.float32(reach_stats['xtrck_max'])
+        reach_stats['h_no'] = np.float32(reach_stats['h_no'])
+        reach_stats['slp_no'] = np.float32(reach_stats['slp_no'])
+        reach_stats['no_rsqrd'] = np.float32(reach_stats['no_rsqrd'])
+        reach_stats['no_mse'] = np.float32(reach_stats['no_mse'])
+        reach_stats['h_nw'] = np.float32(reach_stats['h_nw'])
+        reach_stats['slp_nw'] = np.float32(reach_stats['slp_nw'])
+        reach_stats['nw_rsqrd'] = np.float32(reach_stats['nw_rsqrd'])
+        reach_stats['nw_mse'] = np.float32(reach_stats['nw_mse'])
+        reach_stats['h_nr'] = np.float32(reach_stats['h_nr'])
+        reach_stats['slp_nr'] = np.float32(reach_stats['slp_nr'])
+        reach_stats['nr_rsqrd'] = np.float32(reach_stats['nr_rsqrd'])
+        reach_stats['nr_mse'] = np.float32(reach_stats['nr_mse'])
+
+        # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
-            'lat': lat_median, 'lon': lon_median, 'x': x_median,
-            'y': y_median, 'nobs': nobs, 's': s_median, 'ds': ds,
-            'w_ptp': width_ptp, 'w_std': width_std, 'w_area': width_area,
-            'w_db': width_db, 'area': area, 'h_n_ave': h_noise_ave,
-            'h_n_std': h_noise_std, 'h_a_ave': h_noise_ave0,
-            'h_a_std': h_noise_std0, 'nobs_h': nobs_h, 'x_prior': x_prior,
-            'y_prior': y_prior, 'node_indx': node_index,
-            'reach_indx': reach_index, 'metadata': reach_stats}
+            'lat': lat_median.astype('float64'),
+            'lon': lon_median.astype('float64'),
+            'x': x_median.astype('float64'),
+            'y': y_median.astype('float64'),
+            'nobs': nobs.astype('int32'),
+            's': s_median.astype('float64'),
+            'ds': ds.astype('float64'),
+            'w_ptp': width_ptp.astype('float32'),
+            'w_std': width_std.astype('float32'),
+            'w_area': width_area.astype('float32'),
+            'w_db': width_db.astype('float32'),
+            'area': area.astype('float32'),
+            'h_n_ave': h_noise_ave.astype('float32'),
+            'h_n_std': h_noise_std.astype('float32'),
+            'h_a_ave': h_noise_ave0.astype('float32'),
+            'h_a_std': h_noise_std0.astype('float32'),
+            'nobs_h': nobs_h.astype('int32'),
+            'x_prior': x_prior.astype('float64'),
+            'y_prior': y_prior.astype('float64'),
+            'node_indx': node_index.astype('int32'),
+            'reach_indx': reach_index.astype('int32'),
+            'metadata': reach_stats}
 
         if xtrack_median is not None:
             river_reach_kw_args['xtrack'] = xtrack_median
