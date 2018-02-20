@@ -91,7 +91,6 @@ def fixup_metadata(ncfile):
                 base_id = ifp.groups[group][varname]
 
             for attr_name, attr_value in parser[section].items():
-                print(section, attr_name, attr_value)
                 attr_value = cast_metadata(attr_name, attr_value, base_id)
                 setattr(base_id, attr_name, attr_value)
 
