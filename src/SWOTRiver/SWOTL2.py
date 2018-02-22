@@ -52,7 +52,10 @@ class SWOTL2:
     +y_0=False Northing, set to 0
     """
 
-    default_azimuth_spacing = 3.125 # default azimuth spacing
+    # keys: attributes to read from swotL2_file, values: defaults if not there
+    L2_META_KEY_DEFAULTS = {
+        'azimuth_spacing': 3.125, 'cycle_number': '', 'pass_number': '',
+        'tile_ref': '', 'nr_lines': '', 'nr_pixels': ''}
 
     def __init__(self, swotL2_file,bounding_box=None, class_list=[1],
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
@@ -68,33 +71,8 @@ class SWOTL2:
         self.nc = Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
-        # Get some of the metadata
-        try:
-            self.azimuth_spacing = float(self.nc.azimuth_spacing)
-
-        except AttributeError:
-            self.azimuth_spacing = self.default_azimuth_spacing
-
-        try:
-            self.cycle_number = self.nc.cycle_number
-        except AttributeError:
-            self.cycle_number = ''
-        try:
-            self.pass_number = self.nc.pass_number
-        except AttributeError:
-            self.pass_number = ''
-        try:
-            self.tile_ref = self.nc.tile_ref
-        except AttributeError:
-            self.tile_ref = ''
-        try:
-            self.nr_lines = self.nc.nr_lines
-        except AttributeError:
-            self.nr_lines = ''
-        try:
-            self.nr_pixels = self.nc.nr_pixels
-        except AttributeError:
-            self.nr_pixels = ''
+        for att_name, att_value in self.L2_META_KEY_DEFAULTS.items():
+            setattr(self, att_name, getattr(self.nc, att_name, att_value))
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
