@@ -164,7 +164,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.input_file = split(swotL2_file)[-1]
         self.output_file = output_file # index file
         self.subsample_factor = subsample_factor
-        self.createIndexFile()
+        #self.createIndexFile()
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -183,6 +183,8 @@ class SWOTRiverEstimator(SWOTL2):
                         lat_0=lat_0, lon_0=lon_0, ellps=ellps,
                         subsample_factor=subsample_factor, **proj_kwds)
 
+        self.createIndexFile()
+       
         if is_masked(self.lat):
             mask = self.lat.mask
         else:
@@ -196,7 +198,7 @@ class SWOTRiverEstimator(SWOTL2):
             self.get(xtrack_kwd) if xtrack_kwd in self.nc.variables.keys() else
             None)
 
-        # Make sure all of the arrays are valid over the same points
+        
         good = ~mask
         self.lat = self.lat[good]
         self.lon = self.lon[good]
@@ -209,6 +211,12 @@ class SWOTRiverEstimator(SWOTL2):
         self.img_x = self.img_x[good] # range or x index
         self.img_y = self.img_y[good] # azimuth or y index
 
+        # set the pixcvec geolocations to the pixel cloud values
+        # TODO: update these with height constrained geolocation
+        self.lat_vec = self.lat
+        self.lon_vec = self.lon
+        self.height_vec = self.h_noise
+        
         # Try to read the pixel area from the L2 file, or compute it
         # from look angle and azimuth spacing, or from azimuth spacing
         # and ground spacing
@@ -565,7 +573,10 @@ class SWOTRiverEstimator(SWOTL2):
             self.img_x[self.river_obs.in_channel],
             self.img_y[self.river_obs.in_channel], self.river_obs.index,
             self.river_obs.d, reach_idx, segOut,
-            self.h_flg[self.river_obs.in_channel])
+            self.h_flg[self.river_obs.in_channel],
+            self.lat_vec[self.river_obs.in_channel],
+            self.lon_vec[self.river_obs.in_channel],
+            self.height_vec[self.river_obs.in_channel])
 
         # get the prior locations and indices of the nodes
         xw = reach.x
@@ -713,9 +724,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_area_ave'] = np.float32(reach_stats['w_area_ave'])
         reach_stats['w_area_min'] = np.float32(reach_stats['w_area_min'])
         reach_stats['w_area_max'] = np.float32(reach_stats['w_area_max'])
-        reach_stats['xtrck_ave'] = np.float32(reach_stats['xtrck_ave'])
-        reach_stats['xtrck_min'] = np.float32(reach_stats['xtrck_min'])
-        reach_stats['xtrck_max'] = np.float32(reach_stats['xtrck_max'])
+        if xtrack_median is not None:
+            reach_stats['xtrck_ave'] = np.float32(reach_stats['xtrck_ave'])
+            reach_stats['xtrck_min'] = np.float32(reach_stats['xtrck_min'])
+            reach_stats['xtrck_max'] = np.float32(reach_stats['xtrck_max'])
         reach_stats['h_no'] = np.float32(reach_stats['h_no'])
         reach_stats['slp_no'] = np.float32(reach_stats['slp_no'])
         reach_stats['no_rsqrd'] = np.float32(reach_stats['no_rsqrd'])
@@ -855,16 +867,30 @@ class SWOTRiverEstimator(SWOTL2):
                 'azimuth_index', 'i4', 'record', fill_value=-128)
             ofp.createVariable('node_index', 'i4', 'record', fill_value=-128)
             ofp.createVariable('reach_index', 'i4', 'record', fill_value=-128)
+            ofp.createVariable('river_tag', 'i4', 'record', fill_value=-128)
             ofp.createVariable(
                 'segmentation_label', 'i4', 'record', fill_value=-128)
             ofp.createVariable(
                 'good_height_flag', 'i1', 'record', fill_value=-1)
             ofp.createVariable(
                 'distance_to_node', 'f4', 'record', fill_value=-128)
+            ofp.createVariable(
+                'latitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
+            ofp.createVariable(
+                'longitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
+            ofp.createVariable(
+                'height_vectorproc', 'f8', 'record', fill_value=-9990000000)
+            # copy some pixel cloud attributes
+            ofp.cycle_number = self.cycle_number
+            ofp.pass_number = self.pass_number
+            ofp.tile_ref = self.tile_ref
+            ofp.nr_lines = self.nr_lines
+            ofp.nr_pixels = self.nr_pixels
         return
 
     def writeIndexFile(
-        self, img_x, img_y, node_index, dst, reach_index, seg_lbl, h_flg):
+        self, img_x, img_y, node_index, dst, reach_index, seg_lbl, h_flg,
+        lat, lon, height):
         """
         Write out the river obs indices for each pixel that get mapped to a node
         as well as the pixel cloud coordinates (range and azimuth, or original
@@ -879,8 +905,14 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['azimuth_index'][curr_len:new_len] = img_y
             ofp.variables['node_index'][curr_len:new_len] = node_index
             ofp.variables['reach_index'][curr_len:new_len] = reach_index
+            # set river_tag to reach_index + 1 for now (0 assumes not a reach)
+            #  (TODO: figure out what this should be)
+            ofp.variables['river_tag'][curr_len:new_len] = reach_index + 1 
             ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
             ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
             ofp.variables['distance_to_node'][curr_len:new_len] = dst
-
+            # for improved geolocation
+            ofp.variables['latitude_vectorproc'][curr_len:new_len] = lat
+            ofp.variables['longitude_vectorproc'][curr_len:new_len] = lon
+            ofp.variables['height_vectorproc'][curr_len:new_len] = height
         return

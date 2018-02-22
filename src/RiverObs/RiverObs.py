@@ -100,6 +100,13 @@ class RiverObs:
         # relative to the nearest point coordinate system.
         self.index, self.d, self.x, self.y, self.s, self.n = self.centerline(
             xobs, yobs)
+        # squeeze extra dimensions
+        self.index = N.squeeze(self.index)
+        self.d = N.squeeze(self.d)
+        self.x = N.squeeze(self.x)
+        self.y = N.squeeze(self.y)
+        self.s = N.squeeze(self.s)
+        self.n = N.squeeze(self.n)
 
         if self.verbose: print('Local coordiantes calculated')
 
@@ -241,7 +248,8 @@ class RiverObs:
                 'Observation size incompatible with initial observations')
 
         if self.max_width is not None and len(obs) == self.ndata:
-            obs = obs[self.in_channel]
+            #obs = obs[self.in_channel]
+            obs = N.asarray(obs)[self.in_channel]
         setattr(self, obs_name, obs)
 
     def obs_to_node(self, obs, node):

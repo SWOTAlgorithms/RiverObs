@@ -75,6 +75,27 @@ class SWOTL2:
         except AttributeError:
             self.azimuth_spacing = self.default_azimuth_spacing
 
+        try:
+            self.cycle_number = self.nc.cycle_number
+        except AttributeError:
+            self.cycle_number = ''
+        try:
+            self.pass_number = self.nc.pass_number
+        except AttributeError:
+            self.pass_number = ''
+        try:
+            self.tile_ref = self.nc.tile_ref
+        except AttributeError:
+            self.tile_ref = ''
+        try:
+            self.nr_lines = self.nc.nr_lines
+        except AttributeError:
+            self.nr_lines = ''
+        try:
+            self.nr_pixels = self.nc.nr_pixels
+        except AttributeError:
+            self.nr_pixels = ''
+
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
 
