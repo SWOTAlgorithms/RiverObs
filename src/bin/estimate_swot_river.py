@@ -8,7 +8,7 @@ import os
 import ast
 import argparse
 import SWOTRiver.EstimateSWOTRiver
-import RiverObs.RiverReachWriter
+import RiverObs.ShapeWriter
 import RDF
 
 def main():
@@ -51,19 +51,10 @@ def main():
         print("No valid nodes")
         return
 
-    reach_variables = list(reach_collection[0].metadata.keys())
+    RiverObs.ShapeWriter.write(
+        reach_collection, params.fout_node, params.fout_reach,
+        driver=args.format)
 
-    # get node output variables from populated attributes of river_reaches
-    node_variables = list(reach_collection[0].__dict__.keys())
-    node_variables.remove('ds')
-    node_variables.remove('metadata')
-
-    # Write shapefiles
-    writer = RiverObs.RiverReachWriter(
-        reach_collection, node_variables, reach_variables)
-    driver = args.format
-    writer.write_nodes_ogr(params.fout_node, driver=driver)
-    writer.write_reaches_ogr(params.fout_reach, driver=driver)
     print('Successfuly estimated river heights and slopes')
 
 if __name__ == "__main__":
