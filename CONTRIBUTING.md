@@ -8,13 +8,13 @@ We love your input! We want to make contributing to this project as easy and tra
 
 
 ## We Develop with Github
-We use github to host code, to track issues and feature requests, as well as accept pull requests.
+We use github to host code, to track issues and feature requests, as well as accept [pull requests](https://github.com/SWOTAlgorithms/RiverObs/pulls).
 
-## Report bugs using Github's [issues](https://github.com/briandk/transcriptase-atom/issues)
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](); it's that easy!
+## Report bugs using Github's [issues](https://github.com/SWOTAlgorithms/RiverObs/issues)
+We use GitHub issues to track public bugs. Report a bug by opening a new issue; it's that easy!
 
 ## Use a Consistent Coding Style
-Use PEP8 with the exception of CamelCase for module filenames and directories.
+Use [PEP8](https://www.python.org/dev/peps/pep-0008/) with the exception of CamelCase for module filenames and directories.
 
 ## License
 By contributing, you agree that your contributions will be licensed under its GPL liscenes.
