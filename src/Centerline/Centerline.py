@@ -12,7 +12,8 @@ class CenterLineException(Exception):
     pass
 
 class Centerline:
-    """A class for computing the location of a point or set of points
+    """
+    A class for computing the location of a point or set of points
     relative to a curved line defined by a series of two dimentional
     points.
 
@@ -34,7 +35,8 @@ class Centerline:
         coordinate weights. Strictly positive rank-1 array of weights the same
         length as x and y. The weights are used in computing the weighted
         least-squares spline fit. If the errors in the y values have standard
-        deviation given by the vector d, then w should be 1/d. Default is ones(len(x)).
+        deviation given by the vector d, then w should be 1/d. Default is 
+        ones(len(x)).
     smooth : float
         A smoothing condition, related to the splrep s parameter
         by s = smooth*len(x). The amount of smoothness is determined by
@@ -88,7 +90,8 @@ class Centerline:
             self.obs_names = obs_names
             for i,name in enumerate(obs_names):
                 if len(obs[i]) != len(x):
-                    raise CenterLineException('obs size incompatible with x size')
+                    raise CenterLineException(
+                        'obs size incompatible with x size')
                 setattr(self, name, np.asarray(obs[i]))
 
         # Compute the point separation along the curve
@@ -158,7 +161,8 @@ class Centerline:
         self.tangent = np.zeros((len(self.x),2),dtype=np.float64)
         self.tangent[:,0] = self.dx_ds
         self.tangent[:,1] = self.dy_ds
-        self.tangent /= np.sqrt(self.tangent[:,0]**2 + self.tangent[:,1]**2)[:,np.newaxis]
+        self.tangent /= np.sqrt(
+            self.tangent[:,0]**2 + self.tangent[:,1]**2)[:,np.newaxis]
 
         self.normal = np.zeros((len(self.x),2),dtype=np.float64)
         self.normal[:,0] = -self.tangent[:,1]
@@ -168,7 +172,8 @@ class Centerline:
         return self.to_centerline(x0,y0)
 
     def to_centerline(self, x0, y0):
-        """For each point in (x0,y0), return the nearest point, as well
+        """
+        For each point in (x0,y0), return the nearest point, as well
         as the along and across track coordinates for that point in the
         local coordinate system as the point.
 
