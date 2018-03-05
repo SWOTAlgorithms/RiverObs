@@ -572,7 +572,8 @@ class SWOTRiverEstimator(SWOTL2):
         self.writeIndexFile(
             self.img_x[self.river_obs.in_channel],
             self.img_y[self.river_obs.in_channel], self.river_obs.index,
-            self.river_obs.d, reach_idx, segOut,
+            self.river_obs.d, self.river_obs.s, self.river_obs.n,
+            reach_idx, segOut,
             self.h_flg[self.river_obs.in_channel],
             self.lat_vec[self.river_obs.in_channel],
             self.lon_vec[self.river_obs.in_channel],
@@ -875,6 +876,10 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.createVariable(
                 'distance_to_node', 'f4', 'record', fill_value=-128)
             ofp.createVariable(
+                'along_reach', 'f4', 'record', fill_value=-9990000000)
+            ofp.createVariable(
+                'cross_reach', 'f4', 'record', fill_value=-9990000000)
+            ofp.createVariable(
                 'latitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
             ofp.createVariable(
                 'longitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
@@ -888,8 +893,8 @@ class SWOTRiverEstimator(SWOTL2):
         return
 
     def writeIndexFile(
-        self, img_x, img_y, node_index, dst, reach_index, seg_lbl, h_flg,
-        lat, lon, height):
+        self, img_x, img_y, node_index, dst, along_reach, cross_reach,
+        reach_index, seg_lbl, h_flg, lat, lon, height):
         """
         Write out the river obs indices for each pixel that get mapped to a node
         as well as the pixel cloud coordinates (range and azimuth, or original
@@ -910,6 +915,8 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
             ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
             ofp.variables['distance_to_node'][curr_len:new_len] = dst
+            ofp.variables['along_reach'][curr_len:new_len] = along_reach
+            ofp.variables['cross_reach'][curr_len:new_len] = cross_reach
             # for improved geolocation
             ofp.variables['latitude_vectorproc'][curr_len:new_len] = lat
             ofp.variables['longitude_vectorproc'][curr_len:new_len] = lon

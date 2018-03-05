@@ -139,9 +139,9 @@ class RiverObs:
         """Get the indexes of all of the points inside a channel of
         max_width and a segmentation label
         and remove the points from the list of observations."""
-        # Brent Williams, May 2017: added this function to handle segmentation/exclude unconnected-to-river pixels
-        # get dominant label
-        # Map centerline observalble to measurements
+        # Brent Williams, May 2017: added this function to handle
+        # segmentation/exclude unconnected-to-river pixels.
+        # get dominant label & map centerline observalble to measurements
         if N.iterable(max_width):
             max_distance = max_width[self.index]/2.
         else:
@@ -157,9 +157,12 @@ class RiverObs:
             class_mask = N.logical_and(self.in_channel, seg_label > 0)
             if class_mask.any():
                 dominant_label = mode(seg_label[class_mask])[0][0]
-                # keep everything in the max_distance as well as things outside that are the same feature
+                # keep everything in the max_distance as well as things
+                # outside that are the same feature
                 self.in_channel = N.logical_or(
-                    self.in_channel, N.logical_and(seg_label == dominant_label, dst0 <= 0))
+                    self.in_channel, N.logical_and(
+                        seg_label == dominant_label, dst0 <= 0))
+
                 # this was throwing out some things we dont want to throw out
                 #self.in_channel = N.logical_and(
                 #    self.in_channel, seg_label == dominant_label)
