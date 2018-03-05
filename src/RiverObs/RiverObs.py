@@ -135,10 +135,12 @@ class RiverObs:
         self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(
             self.index,self.minobs)
 
-    def flag_out_channel_and_label(self,max_width,seg_label,dst0):
-        """Get the indexes of all of the points inside a channel of
+    def flag_out_channel_and_label(self, max_width, seg_label, dst0):
+        """
+        Get the indexes of all of the points inside a channel of
         max_width and a segmentation label
-        and remove the points from the list of observations."""
+        and remove the points from the list of observations.
+        """
         # Brent Williams, May 2017: added this function to handle
         # segmentation/exclude unconnected-to-river pixels.
         # get dominant label & map centerline observalble to measurements
@@ -181,11 +183,12 @@ class RiverObs:
         self.n = self.n[self.in_channel]
         return self.in_channel
 
-    def flag_out_channel(self,max_width):
-        """Get the indexes of all of the points inside a channel of max_width,
-        and remove the points from the list of observations."""
-
-        if N.iterable(max_width): # Map centerline observalble to measurements
+    def flag_out_channel(self, max_width):
+        """
+        Get the indexes of all of the points inside a channel of max_width,
+        and remove the points from the list of observations.
+        """
+        if N.iterable(max_width):
             max_distance = max_width[self.index]/2.
         else:
             max_distance = max_width/2.
