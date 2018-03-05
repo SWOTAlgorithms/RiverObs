@@ -189,6 +189,8 @@ class Centerline:
 
         index : array_like
                 The index of the nearest point
+        d : array_like
+            the distance to nearest point (from cKDTree query)
         x, y : array_like
                The coordiantes of the nearest point
         s,n : array_like
