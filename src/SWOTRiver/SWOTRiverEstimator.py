@@ -880,12 +880,11 @@ class SWOTRiverEstimator(SWOTL2):
                 'longitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
             ofp.createVariable(
                 'height_vectorproc', 'f8', 'record', fill_value=-9990000000)
-            # copy some pixel cloud attributes
-            ofp.cycle_number = self.cycle_number
-            ofp.pass_number = self.pass_number
-            ofp.tile_ref = self.tile_ref
-            ofp.nr_lines = self.nr_lines
-            ofp.nr_pixels = self.nr_pixels
+
+            # copy attributes from pixel cloud product
+            for key in self.L2_META_KEY_DEFAULTS:
+                setattr(ofp, key, getattr(self, key))
+
         return
 
     def writeIndexFile(

@@ -54,8 +54,15 @@ class SWOTL2:
 
     # keys: attributes to read from swotL2_file, values: defaults if not there
     L2_META_KEY_DEFAULTS = {
-        'azimuth_spacing': 3.125, 'cycle_number': '', 'pass_number': '',
-        'tile_ref': '', 'nr_lines': '', 'nr_pixels': ''}
+        'nr_lines': '', 'nr_pixels': '', 'azimuth_spacing': 3.125,
+        'range_spacing': '', 'pass_number': '', 'cycle_number': '',
+        'tile_ref': '', 'near_range': '', 'looks_to_efflooks': '',
+        'start_time': '', 'stop_time': '', 'noise_power_left': '',
+        'noise_power_right': '', 'wavelength': '',
+        'inner_first_lat': '', 'outer_first_lat': '',
+        'inner_first_lon': '', 'outer_first_lon': '',
+        'inner_last_lat': '', 'outer_last_lat': '',
+        'inner_last_lon': '', 'outer_last_lon': ''}
 
     def __init__(self, swotL2_file,bounding_box=None, class_list=[1],
                  lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
