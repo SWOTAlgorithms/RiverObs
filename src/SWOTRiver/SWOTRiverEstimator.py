@@ -365,22 +365,12 @@ class SWOTRiverEstimator(SWOTL2):
             reach_idx, columns=['width'], asarray=True, transpose=False,
             bounding_box=self.bounding_box, clip_buffer=self.clip_buffer)
 
-    #def init_output_file(self,output_file,mode='a'):
-    #    """Initialize the output file HDFStore for later writing."""
-    #
-    #    self.output_file = output_file
-    #    self.store = pd.HDFStore(output_file,mode=mode)
-
-    def process_reaches(self,
-                scalar_max_width=600.,
-                minobs=10,min_fit_points=3,
-                fit_types=['OLS','WLS','RLM'],
-                use_width_db = False,
-                ds=None,
-                refine_centerline=False,
-                smooth=1.e-2,alpha=1.,max_iter=1
-                ):
-        """Process all of the reaches in the data bounding box.
+    def process_reaches(
+        self, scalar_max_width=600., minobs=10, min_fit_points=3,
+        fit_types=['OLS','WLS','RLM'], use_width_db=False, ds=None,
+        refine_centerline=False, smooth=1.e-2, alpha=1., max_iter=1):
+        """
+        Process all of the reaches in the data bounding box.
 
         Parameters
         ----------
@@ -413,16 +403,18 @@ class SWOTRiverEstimator(SWOTL2):
         Returns a list containg a RiverReach instance for each reach in the
         bounding box.
         """
+        # assign the reaches
+        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
+            scalar_max_width, minobs, use_width_db, ds)
 
         river_reach_collection = []
-        for i, reach_idx in enumerate(self.reaches.reach_idx):
-            if self.verbose: print(
-                'Reach %d/%d Reach index: %d'%(i+1,self.reaches.nreaches,
-                reach_idx))
+        reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
+        for river_obs, reach_idx, ireach in reach_zips:
 
             if use_width_db:
                 max_width = self.get_max_width_from_db(reach_idx)
                 if self.verbose: print('max_width read')
+
             else:
                 max_width = None
 
@@ -432,14 +424,17 @@ class SWOTRiverEstimator(SWOTL2):
                     # farther than the database width
                     #max_width = self.reaches[i].metadata['width_max']#
                     max_width = (
-                        self.reaches[i].metadata['Wmean'] * 
-                        np.ones(np.shape(self.reaches[i].x))) # *2.0
+                        self.reaches[i_reach].metadata['Wmean'] * 
+                        np.ones(np.shape(self.reaches[i_reach].x))) # *2.0
 
                 except:
                     max_width = scalar_max_width
 
+            # Ugly way process_reach uses the data
+            self.river_obs = river_obs
+
             river_reach = self.process_reach(
-                self.reaches[i], i, reach_idx,
+                self.reaches[ireach], ireach, reach_idx,
                 scalar_max_width=scalar_max_width, minobs=minobs,
                 min_fit_points=min_fit_points, fit_types=fit_types,
                 use_width_db=use_width_db, max_width=max_width, ds=ds,
@@ -449,11 +444,95 @@ class SWOTRiverEstimator(SWOTL2):
             if river_reach is not None:
                 river_reach_collection.append(river_reach)
                 if self.store_reaches:
-                    self.river_reach_collection[i] = river_reach
+                    self.river_reach_collection[ireach] = river_reach
                 if self.verbose: print('reach pocessed')
 
         return river_reach_collection
 
+    def assign_reaches(
+        self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
+        """
+        Assigns pixels to nodes for every reach.
+        """
+        # Iterate over reaches, assign pixels to nodes
+        river_obs_list = []
+        reach_idx_list = []
+        ireach_list = []
+        for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
+
+            if len(self.reaches[i_reach].x) <= 3:
+                print("reach does not have enought points", len(reach.x))
+                continue
+
+            if self.verbose:
+                print('Reach %d/%d Reach index: %d' % (i_reach+1,
+                    self.reaches.nreaches, reach_idx))
+
+            try:
+                river_obs = IteratedRiverObs(
+                    self.reaches[i_reach], self.x, self.y, ds=ds,
+                    seg_label=self.seg_label, max_width=scalar_max_width,
+                    minobs=minobs, verbose=self.verbose)
+
+            except CenterLineException as e:
+                print("CenterLineException: ", e)
+                continue
+
+            if len(river_obs.x) == 0:
+                print('No observations mapped to nodes in this reach')
+                continue
+
+            river_obs_list.append(river_obs)
+            reach_idx_list.append(reach_idx)
+            ireach_list.append(i_reach)
+
+        # Ensure unique and optimal assignments of pixels to nodes.
+        min_dist = 9999999 * np.ones(self.x.shape)
+        node_ind = -1 * np.ones(self.x.shape, dtype=int)
+        cnts_assigned = np.zeros(self.x.shape, dtype=int)
+        for ii, river_obs in enumerate(river_obs_list):
+
+            # Get current node assingment and min distance to node for all
+            # assigned to this reach.
+            these_node_inds = node_ind[river_obs.in_channel]
+            these_min_dists = min_dist[river_obs.in_channel]
+
+            # Figure out which ones are better than current assignment
+            mask = river_obs.d < these_min_dists
+
+            # Re-assign the nodes with a better assignment
+            these_node_inds[mask] = ii
+            these_min_dists[mask] = river_obs.d[mask]
+            node_ind[river_obs.in_channel] = these_node_inds
+            min_dist[river_obs.in_channel] = these_min_dists
+            cnts_assigned[river_obs.in_channel] += 1
+
+        # iterate over river_obs again to set it so optimized
+        for ii, river_obs in enumerate(river_obs_list):
+
+            mask_keep = node_ind[river_obs.in_channel] == ii
+
+            # set in_channel mask to exlude the nodes to drop
+            river_obs.in_channel[node_ind != ii] = False
+
+            # Drop pixels that were double-assigned and recompute things
+            # set in RiverObs constructor
+            river_obs.index = river_obs.index[mask_keep]
+            river_obs.d = river_obs.d[mask_keep]
+            river_obs.x = river_obs.x[mask_keep]
+            river_obs.y = river_obs.y[mask_keep]
+            river_obs.s = river_obs.s[mask_keep]
+            river_obs.n = river_obs.n[mask_keep]
+            river_obs.nedited_data = len(river_obs.d)
+            river_obs.populated_nodes, river_obs.obs_to_node_map = \
+                river_obs.get_obs_to_node_map(river_obs.index, river_obs.minobs)
+
+            # Recompute things set in IteratedRiverObs constructor
+            river_obs.add_obs('xo', river_obs.xobs)
+            river_obs.add_obs('yo', river_obs.yobs)
+            river_obs.load_nodes(['xo', 'yo'])
+
+        return river_obs_list, reach_idx_list, ireach_list
 
     def process_reach(
         self, reach, reach_id, reach_idx=None, scalar_max_width=600.,
@@ -506,33 +585,12 @@ class SWOTRiverEstimator(SWOTL2):
 
         Return a RiverReach instance with the reach information.
         """
-        if len(reach.x) <= 3:
-            print("reach does not have enought points", len(reach.x))
-            return None
-
-        # Initialize the observations
-        try:
-            self.river_obs = IteratedRiverObs(
-                reach, self.x, self.y, ds=ds, seg_label=self.seg_label,
-                max_width=scalar_max_width, minobs=minobs,
-                verbose=self.verbose)
-
-        except CenterLineException as e:
-            print("CenterLineException: ", e)
-            return
-
-        if self.verbose: print('river_obs initilized')
-
         # Refine the centerline, if desired
-        if len(self.river_obs.x) == 0:
-            print('No observations mapped to nodes in this reach')
-            return None
-
         # get the number of node inthe reach and only refine if there are
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes-1 > self.river_obs.k else False
-        if self.verbose: print("numNodes,k:",numNodes,self.river_obs.k)
+        if self.verbose: print("numNodes,k:", numNodes, self.river_obs.k)
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -569,6 +627,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         except:
             segOut=None
+
         self.writeIndexFile(
             self.img_x[self.river_obs.in_channel],
             self.img_y[self.river_obs.in_channel], self.river_obs.index,
@@ -672,6 +731,7 @@ class SWOTRiverEstimator(SWOTL2):
             width_db = np.ones(
                 self.river_obs.n_nodes, dtype=np.float64
                 ) * self.river_obs.missing_value
+            width_db = width_db[self.river_obs.populated_nodes]
 
         # Get the start and end
         #smin = s_median.min()
@@ -900,7 +960,6 @@ class SWOTRiverEstimator(SWOTL2):
         as well as the pixel cloud coordinates (range and azimuth, or original
         image coordinate [e.g., gdem along- and cross-track index])
         """
-        if self.verbose: print(('Writing to Index File: ',self.output_file))
         # append the new data
         with nc.Dataset(self.output_file, 'a') as ofp:
             curr_len = len(ofp.variables['range_index'])

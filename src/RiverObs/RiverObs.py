@@ -82,7 +82,7 @@ class RiverObs:
         if self.verbose: print('Centerline initialized')
 
         # Associate an along-track dimension to each node
-        if ds != None: # Evenly spaced nodes
+        if ds is not None: # Evenly spaced nodes
             self.ds = ds*N.ones(
                 len(self.centerline.s), dtype=self.centerline.s.dtype)
         else:
@@ -92,10 +92,10 @@ class RiverObs:
             self.ds[0] = self.ds[1]
             self.ds[-1] = self.ds[-2]
 
-        # Calculate the local coordiantes for each observation point
+        # Calculate the local coordinates for each observation point
         # index: the index of the nearest point
         # d: distance to the point
-        # x,y: The coordiantes of the nearest point
+        # x,y: The coordinates of the nearest point
         # s,n: The along and across river coordinates of the point
         # relative to the nearest point coordinate system.
         self.index, self.d, self.x, self.y, self.s, self.n = self.centerline(
@@ -114,7 +114,7 @@ class RiverObs:
         # s (along river) when assigning to nodes for some reason the nodes
         # on the ends were being located bad because they were accumulating
         # pixels too far away in s.
-        dst0 = abs(self.s) - abs(self.ds[self.index])
+        dst0 = abs(self.s) / abs(self.ds[self.index])
 
         # Assign to each point the along-track distance, not just delta s
         self.s += self.centerline.s[self.index]
@@ -133,7 +133,7 @@ class RiverObs:
 
         self.minobs = minobs
         self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(
-            self.index,self.minobs)
+            self.index, self.minobs)
 
     def flag_out_channel_and_label(self, max_width, seg_label, dst0):
         """
@@ -152,7 +152,7 @@ class RiverObs:
         if dst0 is None:
             dst0 = N.zeros(self.n.shape)
 
-        self.in_channel = N.logical_and(abs(self.n) <= max_distance, dst0 <= 0)
+        self.in_channel = N.logical_and(abs(self.n) <= max_distance, dst0 <= 3)
 
         # apply seg labels
         if seg_label is not None and self.in_channel.any():
@@ -163,7 +163,7 @@ class RiverObs:
                 # outside that are the same feature
                 self.in_channel = N.logical_or(
                     self.in_channel, N.logical_and(
-                        seg_label == dominant_label, dst0 <= 0))
+                        seg_label == dominant_label, dst0 <= 3))
 
                 # this was throwing out some things we dont want to throw out
                 #self.in_channel = N.logical_and(
