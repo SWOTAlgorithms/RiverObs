@@ -8,9 +8,9 @@ We love your input! We want to make contributing to this project as easy and tra
 
 
 ## We Develop with Github
-We use github to host code, to track issues and feature requests, as well as accept [pull requests](https://github.com/SWOTAlgorithms/RiverObs/pulls).
+We use github to host code, to track issues and feature requests, as well as accept [pull requests](../../pulls).
 
-## Report bugs using Github's [issues](https://github.com/SWOTAlgorithms/RiverObs/issues)
+## Report bugs using Github's [issues](../../issues)
 We use GitHub issues to track public bugs. Report a bug by opening a new issue; it's that easy!
 
 ## Use a Consistent Coding Style
