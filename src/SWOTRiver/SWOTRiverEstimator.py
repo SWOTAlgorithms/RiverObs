@@ -486,37 +486,37 @@ class SWOTRiverEstimator(SWOTL2):
             reach_idx_list.append(reach_idx)
             ireach_list.append(i_reach)
 
-        # Ensure unique and optimal assignments of pixels to nodes.
+        # Ensure unique and optimal assignments of pixels to reach.
         min_dist = 9999999 * np.ones(self.x.shape)
-        node_ind = -1 * np.ones(self.x.shape, dtype=int)
+        reach_ind = -1 * np.ones(self.x.shape, dtype=int)
         cnts_assigned = np.zeros(self.x.shape, dtype=int)
         for ii, river_obs in enumerate(river_obs_list):
 
-            # Get current node assingment and min distance to node for all
-            # assigned to this reach.
-            these_node_inds = node_ind[river_obs.in_channel]
+            # Get current reach assingment and min distance to node for all
+            # pixels assigned to this reach.
+            these_reach_inds = reach_ind[river_obs.in_channel]
             these_min_dists = min_dist[river_obs.in_channel]
 
             # Figure out which ones are better than current assignment
             mask = river_obs.d < these_min_dists
 
-            # Re-assign the nodes with a better assignment
-            these_node_inds[mask] = ii
+            # Re-assign the pixels to reaches with a better assignment
+            these_reach_inds[mask] = ii
             these_min_dists[mask] = river_obs.d[mask]
-            node_ind[river_obs.in_channel] = these_node_inds
+            reach_ind[river_obs.in_channel] = these_reach_inds
             min_dist[river_obs.in_channel] = these_min_dists
             cnts_assigned[river_obs.in_channel] += 1
 
         # iterate over river_obs again to set it so optimized
         for ii, river_obs in enumerate(river_obs_list):
 
-            mask_keep = node_ind[river_obs.in_channel] == ii
+            mask_keep = reach_ind[river_obs.in_channel] == ii
 
             # set in_channel mask to exlude the nodes to drop
-            river_obs.in_channel[node_ind != ii] = False
+            river_obs.in_channel[reach_ind != ii] = False
 
-            # Drop pixels that were double-assigned and recompute things
-            # set in RiverObs constructor
+            # Drop pixels that were double-assigned to reaches and
+            # recompute things set in RiverObs constructor
             river_obs.index = river_obs.index[mask_keep]
             river_obs.d = river_obs.d[mask_keep]
             river_obs.x = river_obs.x[mask_keep]
