@@ -532,7 +532,19 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.add_obs('yo', river_obs.yobs)
             river_obs.load_nodes(['xo', 'yo'])
 
-        return river_obs_list, reach_idx_list, ireach_list
+        # Iterate through and only return reaches with no pixels in them.
+        # (don't iterate and modify!)
+        river_obs_list_out = []
+        reach_idx_list_out = []
+        ireach_list_out = []
+        reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
+        for river_obs, reach_idx, ireach in reach_zips:
+            if len(river_obs.s) > 0:
+                river_obs_list_out.append(river_obs)
+                reach_idx_list_out.append(reach_idx)
+                ireach_list_out.append(ireach)
+
+        return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
     def process_reach(
         self, reach, reach_id, reach_idx=None, scalar_max_width=600.,
