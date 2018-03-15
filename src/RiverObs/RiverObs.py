@@ -7,6 +7,7 @@ from Centerline import Centerline
 from .RiverNode import RiverNode
 from scipy.stats import mode
 
+
 class RiverObs:
     """
     A class for holding all of the river observations associated with a reach.
@@ -45,9 +46,19 @@ class RiverObs:
     verbose : bool, default False
         Output progress to stdout
     """
-    def __init__(
-        self, reach, xobs, yobs, k=3, ds=None, seg_label=None, max_width=None,
-        minobs=1, node_class=RiverNode, missing_value=-9999, verbose=False):
+
+    def __init__(self,
+                 reach,
+                 xobs,
+                 yobs,
+                 k=3,
+                 ds=None,
+                 seg_label=None,
+                 max_width=None,
+                 minobs=1,
+                 node_class=RiverNode,
+                 missing_value=-9999,
+                 verbose=False):
         self.verbose = verbose
         self.missing_value = missing_value
 
@@ -64,23 +75,28 @@ class RiverObs:
         # Calculate the centerline for this reach
 
         if max_width is None or not np.iterable(max_width):
-            self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds)
+            self.centerline = Centerline(reach.x, reach.y, k=k, ds=ds)
             self.centerline.max_width = max_width
         else:
             self.centerline = Centerline(
-                reach.x, reach.y, k=k, ds=ds, obs=[max_width],
+                reach.x,
+                reach.y,
+                k=k,
+                ds=ds,
+                obs=[max_width],
                 obs_names=['max_width'])
         self.max_width = self.centerline.max_width
         if self.verbose: print('Centerline initialized')
 
         # Associate an along-track dimension to each node
-        if ds is not None: # Evenly spaced nodes
-            self.ds = ds*np.ones(
+        if ds is not None:  # Evenly spaced nodes
+            self.ds = ds * np.ones(
                 len(self.centerline.s), dtype=self.centerline.s.dtype)
         else:
             self.ds = np.ones(
                 len(self.centerline.s), dtype=self.centerline.s.dtype)
-            self.ds[1:-1] = (self.centerline.s[2:] - self.centerline.s[0:-2])/2.
+            self.ds[1:-1] = (
+                self.centerline.s[2:] - self.centerline.s[0:-2]) / 2.
             self.ds[0] = self.ds[1]
             self.ds[-1] = self.ds[-2]
 
@@ -111,7 +127,7 @@ class RiverObs:
                 self.max_width, seg_label)
 
         self.nedited_data = len(self.x)
-        print("num nodes in reach %d"%len(np.unique(self.index)))
+        print("num nodes in reach %d" % len(np.unique(self.index)))
         # Get the mapping from observation to node position (1 -> many);
         # i.e., the inverse of index (many -> 1), which maps node position
         # to observations
@@ -130,15 +146,17 @@ class RiverObs:
         # segmentation/exclude unconnected-to-river pixels.
         # get dominant label & map centerline observalble to measurements
         if np.iterable(max_width):
-            max_distance = max_width[self.index]/2.
+            max_distance = max_width[self.index] / 2.
         else:
-            max_distance = max_width/2.
+            max_distance = max_width / 2.
 
-        dst0 = abs(self.s-self.centerline.s[self.index])
+        dst0 = abs(self.s - self.centerline.s[self.index])
 
-        extreme_dist = 20.0 * np.maximum(abs(self.ds[self.index]), max_distance)
+        extreme_dist = 20.0 * np.maximum(
+            abs(self.ds[self.index]), max_distance)
         self.in_channel = np.logical_and(
-            abs(self.n) <= max_distance, dst0 <= 3.0*abs(self.ds[self.index]))
+            abs(self.n) <= max_distance,
+            dst0 <= 3.0 * abs(self.ds[self.index]))
 
         # apply seg labels
         if seg_label is not None and self.in_channel.any():
@@ -146,12 +164,14 @@ class RiverObs:
             if class_mask.any():
                 dominant_label = mode(seg_label[class_mask])[0][0]
                 # keep things already in channel as well as things in dominant
-                # segmentation label up to the extreme distance 
+                # segmentation label up to the extreme distance
                 # (along and cross river)
                 self.in_channel = np.logical_or(
-                    self.in_channel, np.logical_and(
-                        seg_label == dominant_label, np.logical_and(
-                            dst0 <= extreme_dist, abs(self.n) <= extreme_dist)))
+                    self.in_channel,
+                    np.logical_and(seg_label == dominant_label,
+                                   np.logical_and(
+                                       dst0 <= extreme_dist,
+                                       abs(self.n) <= extreme_dist)))
 
                 if self.verbose:
                     print("Dominant label in reach: %d" % dominant_label)
@@ -174,9 +194,9 @@ class RiverObs:
         and remove the points from the list of observations.
         """
         if np.iterable(max_width):
-            max_distance = max_width[self.index]/2.
+            max_distance = max_width[self.index] / 2.
         else:
-            max_distance = max_width/2.
+            max_distance = max_width / 2.
 
         self.in_channel = np.abs(self.n) <= max_distance
 
@@ -216,7 +236,7 @@ class RiverObs:
         # Store also a list of all the potential nodes and all the
         # unpopulated nodes
         self.n_nodes = len(self.centerline.s)
-        self.all_nodes = np.arange(self.n_nodes,dtype=np.int32)
+        self.all_nodes = np.arange(self.n_nodes, dtype=np.int32)
         self.unpopulated_nodes = []
         for node in self.all_nodes:
             if not node in self.populated_nodes:
@@ -224,7 +244,7 @@ class RiverObs:
         self.n_unpopulated_nodes = len(self.unpopulated_nodes)
         return self.populated_nodes, self.obs_to_node_map
 
-    def add_obs(self,obs_name,obs):
+    def add_obs(self, obs_name, obs):
         """
         Add an observation as a class variable self.obs_name.
 
@@ -286,11 +306,11 @@ class RiverObs:
         self.river_nodes = odict()
 
         for node in self.populated_nodes:
-            d = self.obs_to_node(self.d,node)
-            x = self.obs_to_node(self.x,node)
-            y = self.obs_to_node(self.y,node)
-            s = self.obs_to_node(self.s,node)
-            n = self.obs_to_node(self.n,node)
+            d = self.obs_to_node(self.d, node)
+            x = self.obs_to_node(self.x, node)
+            y = self.obs_to_node(self.y, node)
+            s = self.obs_to_node(self.s, node)
+            n = self.obs_to_node(self.n, node)
             #h_flg = self.obs_to_node(self.h_flg,node)
             self.river_nodes[node] = self.node_class(
                 node, d, x, y, s, n, ds=self.ds[node])

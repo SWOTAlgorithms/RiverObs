@@ -4,6 +4,7 @@ Base class containing river reach coordinates and metadata.
 
 from __future__ import absolute_import, division, print_function
 
+
 class RiverReach:
     """Base class containing river reach coordinates and metadata.
 

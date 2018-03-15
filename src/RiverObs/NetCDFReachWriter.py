@@ -8,12 +8,15 @@ import numpy as np
 NC_METADATA_FILE = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'nc_metadata.cfg')
 
-
 CASTED_METADATA_NAMES = ['_FillValue', 'valid_max', 'valid_min']
 FLOAT_METADATA_NAMES = [
-     'geospatial_lat_max', 'geospatial_lat_min', 'geospatial_lon_max',
-     'geospatial_lon_min']
-INT_METADATA_NAMES = ['NONE',]
+    'geospatial_lat_max', 'geospatial_lat_min', 'geospatial_lon_max',
+    'geospatial_lon_min'
+]
+INT_METADATA_NAMES = [
+    'NONE',
+]
+
 
 def gather_outputs(reach_collection):
     """
@@ -34,17 +37,18 @@ def gather_outputs(reach_collection):
             [getattr(reach, node_variable) for reach in reach_collection])
 
     for reach_variable in reach_variables:
-        reach_outputs[reach_variable] = np.array([
-            reach.metadata[reach_variable] for reach in reach_collection])
+        reach_outputs[reach_variable] = np.array(
+            [reach.metadata[reach_variable] for reach in reach_collection])
 
     node_outputs['reach_idx'] = np.zeros(
         node_outputs['lat'].shape).astype('int32')
     i_start = 0
     for ireach, num_nodes in enumerate(num_nodes_per_reach):
-        node_outputs['reach_idx'][i_start:i_start+num_nodes] = ireach
+        node_outputs['reach_idx'][i_start:i_start + num_nodes] = ireach
         i_start = i_start + num_nodes
 
     return node_outputs, reach_outputs
+
 
 def cast_metadata(name, value, base_id):
     if name in INT_METADATA_NAMES:
@@ -56,19 +60,20 @@ def cast_metadata(name, value, base_id):
 
     return value
 
+
 def write(nc_file, node_outputs, reach_outputs):
     with netCDF4.Dataset(nc_file, 'w') as ofp:
         ofp.createDimension('node_record', node_outputs['reach_idx'].shape[0])
         ofp.createDimension('reach_record', reach_outputs['area'].shape[0])
 
         for varname, varvalue in node_outputs.items():
-            var = ofp.createVariable(
-                "/nodes/%s" % varname, varvalue.dtype.str, ('node_record',))
+            var = ofp.createVariable("/nodes/%s" % varname, varvalue.dtype.str,
+                                     ('node_record', ))
             var[:] = varvalue
 
         for varname, varvalue in reach_outputs.items():
-            var = ofp.createVariable(
-                "/reaches/%s" % varname, varvalue.dtype.str, ('reach_record',))
+            var = ofp.createVariable("/reaches/%s" % varname,
+                                     varvalue.dtype.str, ('reach_record', ))
             var[:] = varvalue
 
 
@@ -94,5 +99,3 @@ def fixup_metadata(ncfile):
             for attr_name, attr_value in parser[section].items():
                 attr_value = cast_metadata(attr_name, attr_value, base_id)
                 setattr(base_id, attr_name, attr_value)
-
-

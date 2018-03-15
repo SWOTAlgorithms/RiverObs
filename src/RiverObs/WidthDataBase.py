@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import pandas as pd
 
+
 class WidthDataBase:
     """Query a pandas HDFStore width data base for rivers.
 
@@ -28,19 +29,29 @@ class WidthDataBase:
         (default: 'reach_index', but could be the reach name, etc.)
     """
 
-    def __init__(self,db_file,river_df_name='river',reach_df_name='reach',
-                 mode='r',reach_index_kwd='reach_index'):
+    def __init__(self,
+                 db_file,
+                 river_df_name='river',
+                 reach_df_name='reach',
+                 mode='r',
+                 reach_index_kwd='reach_index'):
         """
         """
 
-        self.h5 = pd.HDFStore(db_file,mode=mode)
+        self.h5 = pd.HDFStore(db_file, mode=mode)
 
         self.river_df = self.h5[river_df_name]
         self.reach_df = self.h5[reach_df_name]
 
-    def get_river(self,reach_index,columns=None,asarray=False,transpose=False,
-                  lat_kwd='lat',lon_kwd='long',
-                    bounding_box=None,clip_buffer=0):
+    def get_river(self,
+                  reach_index,
+                  columns=None,
+                  asarray=False,
+                  transpose=False,
+                  lat_kwd='lat',
+                  lon_kwd='long',
+                  bounding_box=None,
+                  clip_buffer=0):
         """Return selected information for the reach index by reach_index.
 
         Parameters
@@ -67,10 +78,12 @@ class WidthDataBase:
         """
 
         if bounding_box != None:
-            lon, lat, inbbox = self.get_lon_lat(reach_index,
-                                                lat_kwd=lat_kwd,
-                                                lon_kwd=lon_kwd,
-                        bounding_box=bounding_box,clip_buffer=clip_buffer)
+            lon, lat, inbbox = self.get_lon_lat(
+                reach_index,
+                lat_kwd=lat_kwd,
+                lon_kwd=lon_kwd,
+                bounding_box=bounding_box,
+                clip_buffer=clip_buffer)
         else:
             inbbox = None
 
@@ -98,8 +111,12 @@ class WidthDataBase:
             else:
                 return np.asarray(df)
 
-    def get_lon_lat(self,reach_index,lat_kwd='lat',lon_kwd='long',
-                    bounding_box=None,clip_buffer=0):
+    def get_lon_lat(self,
+                    reach_index,
+                    lat_kwd='lat',
+                    lon_kwd='long',
+                    bounding_box=None,
+                    clip_buffer=0):
         """Return the latitude and longitude associated with a reach and
         a clip box.
 
@@ -121,22 +138,30 @@ class WidthDataBase:
         an index array for the good data.
         """
 
-        lon, lat = self.get_river(reach_index,columns=[lon_kwd,lat_kwd],
-                                  asarray=True,transpose=True)
+        lon, lat = self.get_river(
+            reach_index,
+            columns=[lon_kwd, lat_kwd],
+            asarray=True,
+            transpose=True)
 
         if bounding_box != None:
-                inbbox = ( (lon >= bounding_box[0] - clip_buffer) &
-                           (lat >= bounding_box[1] - clip_buffer) &
-                           (lon <= bounding_box[2] + clip_buffer) &
-                           (lat <= bounding_box[3] + clip_buffer) )
-                lon = lon[inbbox]
-                lat = lat[inbbox]
-                return lon, lat, inbbox
+            inbbox = ((lon >= bounding_box[0] - clip_buffer) &
+                      (lat >= bounding_box[1] - clip_buffer) &
+                      (lon <= bounding_box[2] + clip_buffer) &
+                      (lat <= bounding_box[3] + clip_buffer))
+            lon = lon[inbbox]
+            lat = lat[inbbox]
+            return lon, lat, inbbox
 
         return lon, lat
 
-    def get_xy(self,reach_index,proj,lat_kwd='lat',lon_kwd='long',
-                    bounding_box=None,clip_buffer=0):
+    def get_xy(self,
+               reach_index,
+               proj,
+               lat_kwd='lat',
+               lon_kwd='long',
+               bounding_box=None,
+               clip_buffer=0):
         """Given a projection function (e.g., from pyproj.Proj ) return x,y.
 
         Parameters
@@ -156,12 +181,18 @@ class WidthDataBase:
         """
 
         if bounding_box == None:
-            lon, lat = self.get_lon_lat(reach_index,lat_kwd=lat_kwd,
-                                        lon_kwd=lon_kwd,
-                        bounding_box=bounding_box,clip_buffer=clip_buffer)
+            lon, lat = self.get_lon_lat(
+                reach_index,
+                lat_kwd=lat_kwd,
+                lon_kwd=lon_kwd,
+                bounding_box=bounding_box,
+                clip_buffer=clip_buffer)
         else:
-            lon, lat, inbbox = self.get_lon_lat(reach_index,lat_kwd=lat_kwd,
-                                            lon_kwd=lon_kwd,
-                            bounding_box=bounding_box,clip_buffer=clip_buffer)
+            lon, lat, inbbox = self.get_lon_lat(
+                reach_index,
+                lat_kwd=lat_kwd,
+                lon_kwd=lon_kwd,
+                bounding_box=bounding_box,
+                clip_buffer=clip_buffer)
 
         return proj(lon, lat)
