@@ -7,7 +7,9 @@ try:
     from .GDALInfo import GDALInfo
     from .GDALutilities import WarpToLayer
 except:
-    print("Warning: ShapelyDataSource, ShapelyLayer, ShapelyFeature, OGRWriter disabled.")
+    print(
+        "Warning: ShapelyDataSource, ShapelyLayer, ShapelyFeature, OGRWriter disabled."
+    )
     print("Warning: GDALInfo, WarpToLayer disabled.")
     print("Please install shapely if you would like to use the classes.")
 from .GDALLatLonLayer import GDALLatLonLayer, GDALDEMLayer

@@ -8,6 +8,7 @@ import numpy as np
 from netCDF4 import Dataset
 from pyproj import Proj
 
+
 class SWOTL2:
     """Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion object
     interfaces in that it provides a  bounding_box member and a proj function that goes
@@ -54,21 +55,47 @@ class SWOTL2:
 
     # keys: attributes to read from swotL2_file, values: defaults if not there
     L2_META_KEY_DEFAULTS = {
-        'nr_lines': '', 'nr_pixels': '', 'azimuth_spacing': 3.125,
-        'range_spacing': '', 'pass_number': '', 'cycle_number': '',
-        'tile_ref': '', 'near_range': '', 'looks_to_efflooks': '',
-        'start_time': '', 'stop_time': '', 'noise_power_left': '',
-        'noise_power_right': '', 'wavelength': '',
-        'inner_first_lat': '', 'outer_first_lat': '',
-        'inner_first_lon': '', 'outer_first_lon': '',
-        'inner_last_lat': '', 'outer_last_lat': '',
-        'inner_last_lon': '', 'outer_last_lon': ''}
+        'nr_lines': '',
+        'nr_pixels': '',
+        'azimuth_spacing': 3.125,
+        'range_spacing': '',
+        'pass_number': '',
+        'cycle_number': '',
+        'tile_ref': '',
+        'near_range': '',
+        'looks_to_efflooks': '',
+        'start_time': '',
+        'stop_time': '',
+        'noise_power_left': '',
+        'noise_power_right': '',
+        'wavelength': '',
+        'inner_first_lat': '',
+        'outer_first_lat': '',
+        'inner_first_lon': '',
+        'outer_first_lon': '',
+        'inner_last_lat': '',
+        'outer_last_lat': '',
+        'inner_last_lon': '',
+        'outer_last_lon': ''
+    }
 
-    def __init__(self, swotL2_file,bounding_box=None, class_list=[1],
-                 lat_kwd='no_layover_latitude', lon_kwd='no_layover_longitude',
-                 class_kwd='no_layover_classification', min_points=100,
-                 project_data=True, verbose=False, proj='laea', x_0=0, y_0=0,
-                 lat_0=None, lon_0=None, ellps='WGS84', subsample_factor=1,
+    def __init__(self,
+                 swotL2_file,
+                 bounding_box=None,
+                 class_list=[1],
+                 lat_kwd='no_layover_latitude',
+                 lon_kwd='no_layover_longitude',
+                 class_kwd='no_layover_classification',
+                 min_points=100,
+                 project_data=True,
+                 verbose=False,
+                 proj='laea',
+                 x_0=0,
+                 y_0=0,
+                 lat_0=None,
+                 lon_0=None,
+                 ellps='WGS84',
+                 subsample_factor=1,
                  **proj_kwds):
 
         self.verbose = verbose
@@ -98,16 +125,18 @@ class SWOTL2:
 
         except KeyError:
             try:
-                print('Cant Find range_index, or azimuth_index variables,'
-                      ' assuming 2D-image image coordinates (like from a gdem)')
+                print(
+                    'Cant Find range_index, or azimuth_index variables,'
+                    ' assuming 2D-image image coordinates (like from a gdem)')
                 Ny, Nx = np.shape(self.get(lat_kwd, use_index=False))
                 ix, iy = np.meshgrid(np.arange(Nx), np.arange(Ny))
                 self.img_x = ix[self.index]
                 self.img_y = iy[self.index]
 
             except:
-                print('WARNING: Input file does not contain range/azimuth index. '
-                      'Functions relying on radar coordinates WILL break!')
+                print(
+                    'WARNING: Input file does not contain range/azimuth index. '
+                    'Functions relying on radar coordinates WILL break!')
                 self.img_x = None
                 self.img_y = None
 
@@ -116,33 +145,40 @@ class SWOTL2:
         # If not enough good points are found, raise Exception
         if len(self.lat) < min_points:
             raise Exception(
-                'number of good points: %d smaller than required: %d'%(
-                len(self.lat),min_points))
+                'number of good points: %d smaller than required: %d' %
+                (len(self.lat), min_points))
 
         # Project to a coordinate system
         if project_data:
             self.x, self.y = self.project(
-                proj=proj, x_0=x_0, y_0=y_0, lat_0=lat_0, lon_0=lon_0,
-                ellps=ellps,**proj_kwds)
+                proj=proj,
+                x_0=x_0,
+                y_0=y_0,
+                lat_0=lat_0,
+                lon_0=lon_0,
+                ellps=ellps,
+                **proj_kwds)
             if self.verbose: print('projection set and x,y calculated')
 
-
-    def set_index_and_bounding_box(
-        self, bounding_box, lat_kwd, lon_kwd, class_list,
-        class_kwd='no_layover_classification'):
+    def set_index_and_bounding_box(self,
+                                   bounding_box,
+                                   lat_kwd,
+                                   lon_kwd,
+                                   class_list,
+                                   class_kwd='no_layover_classification'):
         """
         Set the index for the good data and computes the bounding box for
         the good data.
 
         class_kwd: the netcdf name of the classification layer to use.
         """
-         # Read the classification and update the index
+        # Read the classification and update the index
         self.klass = self.get(class_kwd, use_index=False)
 
         self.class_list = class_list
 
         self.class_index = (self.klass == class_list[0])
-        for i in range(1,len(class_list)):
+        for i in range(1, len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
         if self.verbose:
@@ -161,21 +197,21 @@ class SWOTL2:
             self.lonmax = lon.max()
             self.latmax = lat.max()
 
-        self.index = (
-            (lat >= self.latmin) & (lon >= self.lonmin) &
-            (lat <= self.latmax) & (lon <= self.lonmax))
+        self.index = ((lat >= self.latmin) & (lon >= self.lonmin) &
+                      (lat <= self.latmax) & (lon <= self.lonmax))
 
         if self.verbose:
-            print('Number of points in bounding box: %d'%(np.sum(self.index)))
+            print('Number of points in bounding box: %d' %
+                  (np.sum(self.index)))
 
         self.index = self.index & self.class_index
-        if self.verbose: print('Number of good: %d'%(np.sum(self.index)))
+        if self.verbose: print('Number of good: %d' % (np.sum(self.index)))
 
         lat = lat[self.index]
         lon = lon[self.index]
 
-        self.bounding_box = (
-            self.lonmin, self.latmin, self.lonmax, self.latmax)
+        self.bounding_box = (self.lonmin, self.latmin, self.lonmax,
+                             self.latmax)
 
         # Update the classification
         self.klass = self.klass[self.index]
@@ -206,8 +242,14 @@ class SWOTL2:
 
         return data
 
-    def project(self, proj='laea', x_0=0, y_0=0, lat_0=None, lon_0=None,
-                ellps='WGS84', **proj_kwds):
+    def project(self,
+                proj='laea',
+                x_0=0,
+                y_0=0,
+                lat_0=None,
+                lon_0=None,
+                ellps='WGS84',
+                **proj_kwds):
         """
         Get x and y coordinates for the selected points using a proj4
         projection.
@@ -231,14 +273,19 @@ class SWOTL2:
         # Use center of bounding box instead of data centroid
         # in order to get same nodes for gdem and l2 file
         if lat_0 == None:
-            lat_0 = (self.bounding_box[3]+self.bounding_box[1])/2.0
+            lat_0 = (self.bounding_box[3] + self.bounding_box[1]) / 2.0
 
         if lon_0 == None:
-            lon_0 = (self.bounding_box[2]+self.bounding_box[0])/2.0
+            lon_0 = (self.bounding_box[2] + self.bounding_box[0]) / 2.0
 
         self.proj = Proj(
-            proj=proj, lat_0=lat_0, lon_0=lon_0, x_0=x_0, y_0=y_0,
-            ellps=ellps, **proj_kwds)
+            proj=proj,
+            lat_0=lat_0,
+            lon_0=lon_0,
+            x_0=x_0,
+            y_0=y_0,
+            ellps=ellps,
+            **proj_kwds)
 
-        self.x, self.y = self.proj(self.lon,self.lat)
+        self.x, self.y = self.proj(self.lon, self.lat)
         return self.x, self.y

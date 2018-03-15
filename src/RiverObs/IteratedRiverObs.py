@@ -12,15 +12,17 @@ from .RiverObs import RiverObs
 from Centerline import Centerline
 from .RiverNode import RiverNode
 
+
 class CenterlineObs:
     """
     An auxiliary class to hold values of observations associated
     with the centerline.
     """
-    x = None # Array of x locations
-    y = None # Array of y locations
-    v = None # Value at (x,y)
-    populated_nodes = None # Which of the centerline nodes are populated
+    x = None  # Array of x locations
+    y = None  # Array of y locations
+    v = None  # Value at (x,y)
+    populated_nodes = None  # Which of the centerline nodes are populated
+
 
 class IteratedRiverObs(RiverObs):
     """
@@ -56,19 +58,36 @@ class IteratedRiverObs(RiverObs):
         Additional keywords to pass to RiverObs.__init__
     """
 
-    def __init__(self, reach, xobs, yobs, k=3, ds=None, seg_label=None,
-                 max_width=None, minobs=1, **kwds):
+    def __init__(self,
+                 reach,
+                 xobs,
+                 yobs,
+                 k=3,
+                 ds=None,
+                 seg_label=None,
+                 max_width=None,
+                 minobs=1,
+                 **kwds):
         # Right now, things do not work for width observations along the
         # reach, due to ambiguities when the true reach is far from the original
         if np.iterable(max_width):
             raise Exception(
-                'maximum_width arrays must be added using add_maximum_width_array')
+                'maximum_width arrays must be added using add_maximum_width_array'
+            )
 
         # Initialize the base class
         self.robs_kwds = kwds
         RiverObs.__init__(
-            self, reach, xobs, yobs, k=k, ds=ds, seg_label=seg_label,
-            max_width=max_width, minobs=minobs,**kwds)
+            self,
+            reach,
+            xobs,
+            yobs,
+            k=k,
+            ds=ds,
+            seg_label=seg_label,
+            max_width=max_width,
+            minobs=minobs,
+            **kwds)
 
         # Unlike the base class, keep a copy of the original data and some
         # additional variables
@@ -138,13 +157,20 @@ class IteratedRiverObs(RiverObs):
         eps = max(np.abs(dx).max(), np.abs(dy).max())
 
         # New coordinates
-        x1 = (1-alpha)*x0 + alpha*xc
-        y1 = (1-alpha)*y0 + alpha*yc
+        x1 = (1 - alpha) * x0 + alpha * xc
+        y1 = (1 - alpha) * y0 + alpha * yc
 
         return x1, y1, eps, xdelta, ydelta
 
-    def iterate(self,max_iter=1,alpha=1.,statfn='mean', std_statfn='std',
-                tol=1., weights=True, smooth=1.e-2,**kwds):
+    def iterate(self,
+                max_iter=1,
+                alpha=1.,
+                statfn='mean',
+                std_statfn='std',
+                tol=1.,
+                weights=True,
+                smooth=1.e-2,
+                **kwds):
         """
         Iterate until the coordinates change by a most tol.
 
@@ -190,13 +216,13 @@ class IteratedRiverObs(RiverObs):
         Attempting to iterate until convergence results in a very jagged
         for small point density.
         """
-        tiny = 1.e-6 # avoid averflows
+        tiny = 1.e-6  # avoid averflows
 
         for i in range(max_iter):
             x1, y1, eps, xdelta, ydelta = self.refine_centerline(
                 alpha=alpha, statfn=statfn, std_statfn=std_statfn)
 
-            print('iteration %d maximum coordinate change: %f'%(i,eps))
+            print('iteration %d maximum coordinate change: %f' % (i, eps))
 
             if eps < tol:
                 break
@@ -208,13 +234,13 @@ class IteratedRiverObs(RiverObs):
                 if xstdmax == 0:
                     xstdmax = 1.
 
-                wx = np.where(xdelta > 0,1./(xdelta + tiny),1./xstdmax)
+                wx = np.where(xdelta > 0, 1. / (xdelta + tiny), 1. / xstdmax)
 
                 ystdmax = ydelta.max()
                 if ystdmax == 0:
                     ystdmax = 1.
 
-                wy = np.where(ydelta > 0,1./(ydelta + tiny),1./ystdmax)
+                wy = np.where(ydelta > 0, 1. / (ydelta + tiny), 1. / ystdmax)
 
             else:
                 wx, wy = None, None
@@ -230,22 +256,23 @@ class IteratedRiverObs(RiverObs):
         if smooth is not None and wx is not None and wy is not None:
             centerline = Centerline(
                 x1, y1, k=self.k, ds=self.ds_init, smooth=smooth, wx=wx, wy=wy)
-            x1 = splev(centerline.s,centerline.xtck)
-            y1 = splev(centerline.s,centerline.ytck)
+            x1 = splev(centerline.s, centerline.xtck)
+            y1 = splev(centerline.s, centerline.ytck)
 
         # Calculate the centerline for this reach
         self.centerline = Centerline(x1, y1, k=self.k, ds=self.ds_init)
 
         # Associate an along-track dimension to each node
-        if self.ds_init is not None: # Evenly spaced nodes
+        if self.ds_init is not None:  # Evenly spaced nodes
             self.ds = np.ones(
                 len(self.centerline.s),
-                dtype=self.centerline.s.dtype)*self.ds_init
+                dtype=self.centerline.s.dtype) * self.ds_init
 
         else:
             self.ds = np.ones(
                 len(self.centerline.s), dtype=self.centerline.s.dtype)
-            self.ds[1:-1] = (self.centerline.s[2:] - self.centerline.s[0:-2])/2.
+            self.ds[1:-1] = (
+                self.centerline.s[2:] - self.centerline.s[0:-2]) / 2.
             self.ds[0] = self.ds[1]
             self.ds[-1] = self.ds[-2]
 
@@ -255,8 +282,8 @@ class IteratedRiverObs(RiverObs):
         # x,y: The coordiantes of the nearest point
         # s,n: The along and across track coordinates of the point
         # relative to the nearest point coordinate system.
-        self.index, self.d, self.x, self.y, self.s, self.n = (
-            self.centerline(self.xobs, self.yobs))
+        self.index, self.d, self.x, self.y, self.s, self.n = (self.centerline(
+            self.xobs, self.yobs))
 
         # Assign to each point the actual along-track distance, not just
         # the delta s
@@ -271,8 +298,8 @@ class IteratedRiverObs(RiverObs):
         # Get the mapping from observation to node position (1 -> many);
         # i.e., the inverse of index (many -> 1), which maps node position
         # to observations
-        self.populated_nodes, self.obs_to_node_map = (
-            self.get_obs_to_node_map(self.index, self.minobs) )
+        self.populated_nodes, self.obs_to_node_map = (self.get_obs_to_node_map(
+            self.index, self.minobs))
 
         # Now add the observed coordinates at each node
         self.add_obs('xo', self.xobs)
@@ -283,16 +310,16 @@ class IteratedRiverObs(RiverObs):
         """Return the centerline coordinates."""
         return self.centerline.x, self.centerline.y
 
-    def get_centerline_xyv(self,name):
+    def get_centerline_xyv(self, name):
         """Return the centerline coordinates."""
-        return ( self.centerline_obs[name].x, self.centerline_obs[name].y,
-                 self.centerline_obs[name].v )
+        return (self.centerline_obs[name].x, self.centerline_obs[name].y,
+                self.centerline_obs[name].v)
 
     def get_centerline_xy_max_width(self):
         """Return the centerline coordinates."""
         return self.centerline.x, self.centerline.y, self.max_width
 
-    def add_centerline_obs(self,xv,yv,v,name,minobs=1):
+    def add_centerline_obs(self, xv, yv, v, name, minobs=1):
         """
         Given an array along a line x,y, interpolate it to the centerline.
 
@@ -332,20 +359,21 @@ class IteratedRiverObs(RiverObs):
         self.centerline_obs[name] = CenterlineObs()
         self.centerline_obs[name].populated_nodes = np.asarray(populated_nodes)
 
-        self.centerline_obs[name].x = np.asarray([
-            np.mean(x[obs_to_node_map[node]]) for node in populated_nodes])
+        self.centerline_obs[name].x = np.asarray(
+            [np.mean(x[obs_to_node_map[node]]) for node in populated_nodes])
 
-        self.centerline_obs[name].y = np.asarray([
-            np.mean(y[obs_to_node_map[node]]) for node in populated_nodes])
+        self.centerline_obs[name].y = np.asarray(
+            [np.mean(y[obs_to_node_map[node]]) for node in populated_nodes])
 
         v = np.asarray(v)
-        self.centerline_obs[name].v = np.asarray([
-            np.mean(v[obs_to_node_map[node]]) for node in populated_nodes])
+        self.centerline_obs[name].v = np.asarray(
+            [np.mean(v[obs_to_node_map[node]]) for node in populated_nodes])
 
     def reinitialize(self):
         """
         Reinitialize with the current centerline and max_width measurements.
         """
+
         class reach:
             pass
 
@@ -354,14 +382,21 @@ class IteratedRiverObs(RiverObs):
             reach.metadata = self.metadata
 
         else:
-            reach.x, reach.y  = self.get_centerline_xy()
+            reach.x, reach.y = self.get_centerline_xy()
             reach.metadata = self.metadata
             max_width = self.max_width
 
         # Initialize the base class
         RiverObs.__init__(
-            self, reach, self.xobs, self.yobs, k=self.k, ds=self.ds_init,
-            seg_label=self.seg_label, max_width=max_width, minobs=self.minobs,
+            self,
+            reach,
+            self.xobs,
+            self.yobs,
+            k=self.k,
+            ds=self.ds_init,
+            seg_label=self.seg_label,
+            max_width=max_width,
+            minobs=self.minobs,
             **self.robs_kwds)
 
         # The obs will have to be reprojected

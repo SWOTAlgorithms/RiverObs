@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Compile a Python script into an executable that embeds CPython and run it.
 Requires CPython to be built as a shared library ('libpythonX.Y').

@@ -11,6 +11,7 @@ import SWOTRiver.EstimateSWOTRiver
 import RiverObs.ShapeWriter
 import RDF
 
+
 def main():
     """
     Does the running of RiverObs on a swot river.
@@ -21,10 +22,11 @@ def main():
 
     parser.add_argument('rdf_file', help='Input RDF file')
     parser.add_argument(
-        '-f','--format', help="OGR file format  (default 'ESRI Shapefile')",
+        '-f',
+        '--format',
+        help="OGR file format  (default 'ESRI Shapefile')",
         default='ESRI Shapefile')
-    parser.add_argument(
-        '--subsample', help='Subsample factor', type=int)
+    parser.add_argument('--subsample', help='Subsample factor', type=int)
     args = parser.parse_args()
 
     params = RDF.RDF_to_class(
@@ -52,10 +54,13 @@ def main():
         return
 
     RiverObs.ShapeWriter.write(
-        reach_collection, params.fout_node, params.fout_reach,
+        reach_collection,
+        params.fout_node,
+        params.fout_reach,
         driver=args.format)
 
     print('Successfuly estimated river heights and slopes')
+
 
 if __name__ == "__main__":
     main()

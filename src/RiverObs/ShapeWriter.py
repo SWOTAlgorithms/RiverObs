@@ -1,5 +1,6 @@
 import RiverObs.RiverReachWriter
 
+
 def write(reach_collection, fout_node, fout_reach, driver='ESRI Shapefile'):
     """
     Writes shapefiles
@@ -12,9 +13,8 @@ def write(reach_collection, fout_node, fout_reach, driver='ESRI Shapefile'):
     node_variables.remove('metadata')
 
     # Write shapefiles
-    writer = RiverObs.RiverReachWriter(
-        reach_collection, node_variables, reach_variables)
+    writer = RiverObs.RiverReachWriter(reach_collection, node_variables,
+                                       reach_variables)
 
     writer.write_nodes_ogr(fout_node, driver)
     writer.write_reaches_ogr(fout_reach, driver)
-
