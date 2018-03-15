@@ -67,8 +67,9 @@ class RiverObs:
             self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds)
             self.centerline.max_width = max_width
         else:
-            self.centerline = Centerline(reach.x,reach.y,k=k,ds=ds,
-                                         obs=[max_width],obs_names=['max_width'])
+            self.centerline = Centerline(
+                reach.x, reach.y, k=k, ds=ds, obs=[max_width],
+                obs_names=['max_width'])
         self.max_width = self.centerline.max_width
         if self.verbose: print('Centerline initialized')
 
