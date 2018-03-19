@@ -5,7 +5,7 @@ Query a pandas HDFStore width data base for rivers.
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-import pandas as pd
+import pandas
 
 
 class WidthDataBase:
@@ -38,7 +38,7 @@ class WidthDataBase:
         """
         """
 
-        self.h5 = pd.HDFStore(db_file, mode=mode)
+        self.h5 = pandas.HDFStore(db_file, mode=mode)
 
         self.river_df = self.h5[river_df_name]
         self.reach_df = self.h5[reach_df_name]

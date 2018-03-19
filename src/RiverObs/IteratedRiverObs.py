@@ -2,16 +2,15 @@
 A derived class from RiverObs, which adjusts the initial guess for the
 centerline based on the observation locations.
 """
-
 from __future__ import absolute_import, division, print_function
 
-from collections import OrderedDict as odict
+import collections
 import numpy as np
-from scipy.interpolate import splrep, splev
+import scipy.interpolate
+
 from .RiverObs import RiverObs
 from Centerline import Centerline
 from .RiverNode import RiverNode
-
 
 class CenterlineObs:
     """
@@ -256,8 +255,8 @@ class IteratedRiverObs(RiverObs):
         if smooth is not None and wx is not None and wy is not None:
             centerline = Centerline(
                 x1, y1, k=self.k, ds=self.ds_init, smooth=smooth, wx=wx, wy=wy)
-            x1 = splev(centerline.s, centerline.xtck)
-            y1 = splev(centerline.s, centerline.ytck)
+            x1 = scipy.interpolate.splev(centerline.s, centerline.xtck)
+            y1 = scipy.interpolate.splev(centerline.s, centerline.ytck)
 
         # Calculate the centerline for this reach
         self.centerline = Centerline(x1, y1, k=self.k, ds=self.ds_init)
@@ -346,7 +345,7 @@ class IteratedRiverObs(RiverObs):
         # does not overwrite the observation obs_to_node_map
         nodes = np.unique(index)
 
-        obs_to_node_map = odict()
+        obs_to_node_map = collections.OrderedDict()
         populated_nodes = []
         for node in nodes:
             obs_index = np.flatnonzero(index == node)

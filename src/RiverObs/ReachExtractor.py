@@ -9,6 +9,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import pysal
+
 from GeometryDataBase import GeometryDataBase2D
 from .RiverReach import RiverReach
 

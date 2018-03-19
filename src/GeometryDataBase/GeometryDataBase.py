@@ -9,9 +9,10 @@ All bounding boxes are assumed to be an iterable (xmin,ymin,xmax,ymax)
 from __future__ import absolute_import, division, print_function
 
 from os.path import exists
+import os
 import pysal
-from rtree import index
-from shapely.geometry import asShape, Polygon
+import rtree
+import shapely.geometry
 
 
 def bbox_generator_3D(shape, dbf, dt, tindex=1, store_obj=False):
@@ -97,9 +98,9 @@ def write_shape_rtree_3D(shape_file_root, dt, time_kwd='time',
     shape = pysal.open(shape_file_root + '.shp')
     dbf = pysal.open(shape_file_root + '.dbf')
     tindex = dbf.header.index(time_kwd)
-    p = index.Property()
+    p = rtree.index.Property()
     p.dimension = 3
-    index.Index(
+    rtree.index.Index(
         shape_file_root,
         bbox_generator_3D(shape, dbf, dt, tindex=tindex, store_obj=store_obj),
         properties=p)
@@ -113,7 +114,8 @@ def write_shape_rtree_2D(shape_file_root, store_obj=False):
     """
 
     shape = pysal.open(shape_file_root + '.shp')
-    index.Index(shape_file_root, bbox_generator_2D(shape, store_obj=store_obj))
+    rtree.index.Index(
+        shape_file_root, bbox_generator_2D(shape, store_obj=store_obj))
 
 
 class GeometryDataBase2D:
@@ -140,30 +142,31 @@ class GeometryDataBase2D:
         """
         """
         # Check that the rtree files are there, otherwise, create them
-        if not (exists(shape_file_root + '.idx')
-                and exists(shape_file_root + '.dat')):
+        if not (os.path.exists(shape_file_root + '.idx') and
+                os.path.exists(shape_file_root + '.dat')):
             print("Rtree data base does not exist. Create it now.")
             write_shape_rtree_2D(shape_file_root, store_obj=store_obj)
 
         self.shape = pysal.open(shape_file_root + '.shp')
-        p = index.Property()
+        p = rtree.index.Property()
         p.dimension = dimension
         p.overwrite = False
-        self.idx = index.Index(shape_file_root, properties=p)
+        self.idx = rtree.index.Index(shape_file_root, properties=p)
 
     def intersects_xy_bbox(self, xy_bbox):
         """Return the ids for objects which intersect by the input 2D bbox."""
-        shapely_bbox = Polygon(
+        shapely_bbox = shapely.geometry.Polygon(
             [(xy_bbox[0], xy_bbox[1]), (xy_bbox[0], xy_bbox[3]),
              (xy_bbox[2], xy_bbox[3]), (xy_bbox[2], xy_bbox[1])])
 
         ids = []
         for id in self.idx.intersection(xy_bbox, objects='raw'):
             try:
-                if shapely_bbox.intersects(asShape(self.shape[id])):
+                this_shape = shapely.geometry.asShape(self.shape[id])
+                if shapely_bbox.intersects(this_shape):
                     ids.append(id)
 
-            # some of the ids in the shapefile aren't polygons
+            # some of the ids in the shapefile aren't shapely.geometry.Polygons
             except ValueError:
                 pass
 
@@ -172,7 +175,7 @@ class GeometryDataBase2D:
     def get_reach_intersect_xy_bbox(self, xy_bbox):
         """Return the shapely objects which intersect by the input 2D bbox."""
         ids = self.intersects_xy_bbox(xy_bbox)
-        return [asShape(self.shape[id]) for id in ids]
+        return [shapely.geometry.asShape(self.shape[id]) for id in ids]
 
     def contains_point(self, x, y, eps=1.e-6):
         """Return the ids for objects which intersect by the input 2D point."""
@@ -210,29 +213,29 @@ class GeometryDataBase3D:
                  dimension=3):
         # Check that the rtree files are there, otherwise, create them
 
-        if (not exists(shape_file_root + '.idx')
-                or not exists(shape_file_root + '.dat')):
+        if (not os.path.exists(shape_file_root + '.idx') or
+            not os.path.exists(shape_file_root + '.dat')):
             write_shape_rtree_3D(
                 shape_file_root, dt, time_kwd=time_kwd, store_obj=store_obj)
 
         self.shape = pysal.open(shape_file_root + '.shp')
         self.dbf = pysal.open(shape_file_root + '.dbf')
         self.tindex = self.dbf.header.index(time_kwd)
-        p = index.Property()
+        p = rtree.index.Property()
         p.dimension = dimension
         p.overwrite = False
-        self.idx = index.Index(shape_file_root, properties=p)
+        self.idx = rtree.index.Index(shape_file_root, properties=p)
 
     def intersects_xy_time_bbox(self, xyt_bbox):
         """Return the ids for objects which intersect by the input 3D bbox."""
 
-        shapely_bbox = Polygon(
+        shapely_bbox = shapely.geometry.Polygon(
             [(xyt_bbox[0], xyt_bbox[1]), (xyt_bbox[0], xyt_bbox[4]),
              (xyt_bbox[3], xyt_bbox[4]), (xyt_bbox[3], xyt_bbox[1])])
 
         return [
             id for id in self.idx.intersection(xyt_bbox, objects='raw')
-            if shapely_bbox.intersects(asShape(self.shape[id]))
+            if shapely_bbox.intersects(shapely.geometry.asShape(self.shape[id]))
         ]
 
     def intersects_xy_bbox(self, xy_bbox, large_time=1.e16):
@@ -240,13 +243,13 @@ class GeometryDataBase3D:
 
         xyt_bbox = (xy_bbox[0], xy_bbox[1], -large_time, xy_bbox[2],
                     xy_bbox[3], large_time)
-        shapely_bbox = Polygon(
+        shapely_bbox = shapely.geometry.Polygon(
             [(xy_bbox[0], xy_bbox[1]), (xy_bbox[0], xy_bbox[3]),
              (xy_bbox[2], xy_bbox[3]), (xy_bbox[2], xy_bbox[1])])
 
         return [
             id for id in self.idx.intersection(xyt_bbox, objects='raw')
-            if shapely_bbox.intersects(asShape(self.shape[id]))
+            if shapely_bbox.intersects(shapely.geometry.asShape(self.shape[id]))
         ]
 
     def contains_point_time(self, x, y, time, eps=1.e-6):

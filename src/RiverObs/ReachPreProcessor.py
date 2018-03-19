@@ -5,8 +5,9 @@ subreaches of desired characteristics.
 
 from __future__ import absolute_import, division, print_function
 
-from collections import OrderedDict as odict
+import collections
 import numpy as np
+
 from .ReachExtractor import ReachExtractor
 from .WidthDataBase import WidthDataBase
 from Centerline import Centerline
@@ -14,12 +15,15 @@ from .RiverReach import RiverReach
 
 
 class ReachPreProcessor(ReachExtractor):
-    """Refine an intial set of reaches to iterate the centerline or break the reach into
-    subreaches of desired characteristics. This is derived class of ReachExtractor.
+    """
+    Refine an intial set of reaches to iterate the centerline or break
+    the reach into subreaches of desired characteristics. This is derived
+    class of ReachExtractor.
 
-    On intialization, a candidate set of reaches, which may be much longer than
-    desired or be out of date relative to the actual reach, is provided a a shapefile
-    of line strings. In addition, a lat_lon_region object is provided
+    On intialization, a candidate set of reaches, which may be much longer
+    than desired or be out of date relative to the actual reach, is provided
+    a shapefile of line strings. In addition, a lat_lon_region object is
+    provided.
 
     Parameters
     ----------
@@ -27,7 +31,8 @@ class ReachPreProcessor(ReachExtractor):
     shape_file_root : str
         path to shapefile database (no suffix)
     lat_lon_region : object
-        an object satisfying the LatLonRegion protocol providing the following members:
+        an object satisfying the LatLonRegion protocol providing the
+        following members:
         lat_lon_region.bounding_box: (lonmin,latmin,lonmax,latmax)
         lat_lon_region.proj: a pyproj.Proj projection (lon,lat) -> (x,y)
         and (x,y) -> (lon,lat) when called when called with inverse=True
@@ -98,7 +103,8 @@ class ReachPreProcessor(ReachExtractor):
                              reach_start_list,
                              reach_end_list,
                              max_distance=None):
-        """Split the reaches by a predefined set of reach starts and finishes.
+        """
+        Split the reaches by a predefined set of reach starts and finishes.
 
         Parameters
         ----------
@@ -108,8 +114,8 @@ class ReachPreProcessor(ReachExtractor):
         reach_end_list : list
             List of (lon,lat) tuples of reach start coordinates (degrees)
         max_distance : float
-            Maximum distance allowed between start and stop points and the input reach.
-            If exceeded, no new reach is generated.
+            Maximum distance allowed between start and stop points and the
+            input reach. If exceeded, no new reach is generated.
 
         Returns
         -------
@@ -146,10 +152,12 @@ class ReachPreProcessor(ReachExtractor):
                 x = self.centerline[icl].x[indexstart:indexend + 1]
                 y = self.centerline[icl].y[indexstart:indexend + 1]
                 lon, lat = self.lat_lon_region.proj(x, y, inverse=True)
-                reach_length = self.centerline[icl].s[indexend] - self.centerline[icl].s[indexstart]
+                reach_length = (
+                    self.centerline[icl].s[indexend] -
+                    self.centerline[icl].s[indexstart])
                 n = len(lat)
                 ibreak += n
-                metadata = odict([
+                metadata = collections.OrderedDict([
                     ('reach_idx', reach_idx),
                     ('lonmin', lon.min()),
                     ('lonmax', lon.max()),
@@ -262,10 +270,11 @@ class ReachPreProcessor(ReachExtractor):
                 x = self.centerline[icl].x[i0:i1 + 1]
                 y = self.centerline[icl].y[i0:i1 + 1]
                 lon, lat = self.lat_lon_region.proj(x, y, inverse=True)
-                reach_length = self.centerline[icl].s[i1] - self.centerline[icl].s[i0]
+                reach_length = (
+                    self.centerline[icl].s[i1] - self.centerline[icl].s[i0])
                 n = len(lat)
                 ibreak += n
-                metadata = odict([
+                metadata = collections.OrderedDict([
                     ('reach_idx', reach_idx),
                     ('lonmin', lon.min()),
                     ('lonmax', lon.max()),

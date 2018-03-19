@@ -3,9 +3,7 @@ A base class implemention the LatLonRegion protocol.
 """
 
 from __future__ import absolute_import, division, print_function
-
-from pyproj import Proj
-
+import pyproj
 
 class LatLonRegion:
     """Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion object
@@ -69,7 +67,7 @@ class LatLonRegion:
         if lon_0 == None:
             lon_0 = (lonmax + lonmin) / 2.
 
-        self.proj = Proj(
+        self.proj = pyproj.Proj(
             proj=proj,
             lat_0=lat_0,
             lon_0=lon_0,

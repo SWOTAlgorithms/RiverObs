@@ -1,9 +1,9 @@
 import netCDF4
 import os
 import configparser
-import RiverObs
-import configparser
 import numpy as np
+
+import RiverObs
 
 NC_METADATA_FILE = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'nc_metadata.cfg')

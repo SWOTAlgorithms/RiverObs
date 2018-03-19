@@ -4,9 +4,10 @@ Output the contents of a RiverReach collection into a GIS or hdf5 format.
 from __future__ import absolute_import, division, print_function
 import os
 import shutil
-from collections import OrderedDict as odict
+import collections
 import numpy as np
-from pandas import HDFStore, DataFrame
+import pandas
+
 from GDALOGRUtilities import OGRWriter
 
 
@@ -32,21 +33,16 @@ class RiverReachWriter:
         self.reach_output_variables = reach_output_variables
 
         # Extract the desired node output data
-
-        self.node_vars = odict()
+        self.node_vars = collections.OrderedDict()
         for var in node_output_variables:
             self.node_vars[var] = []
 
         for reach in self.reaches:
             for var in node_output_variables:
-                v = 0  # fake cython compiler
-                #exec('v = reach.%s'%var)
-                v = getattr(reach, var)
-                self.node_vars[var].append(v)
+                self.node_vars[var].append(getattr(reach, var))
 
         # Extract the desired node output data
-
-        self.reach_vars = odict()
+        self.reach_vars = collections.OrderedDict()
         for var in reach_output_variables:
             self.reach_vars[var] = []
 
@@ -86,7 +82,7 @@ class RiverReachWriter:
         if os.path.isdir(output_file):
             shutil.rmtree(output_file)
 
-        self.fields = odict()
+        self.fields = collections.OrderedDict()
         self.fields['reach_idx'] = 'int'
         self.fields['node_indx'] = 'int'
         self.fields['reach_indx'] = 'int'
@@ -127,7 +123,7 @@ class RiverReachWriter:
         if os.path.isdir(output_file):
             shutil.rmtree(output_file)
 
-        self.reach_fields = odict()
+        self.reach_fields = collections.OrderedDict()
         for var in self.reach_output_variables:
             self.reach_fields[var] = self.get_type_string(
                 self.reach_vars[var][0])
@@ -143,7 +139,7 @@ class RiverReachWriter:
         for i, reach in enumerate(self.reaches):
             x = reach.lon
             y = reach.lat
-            field_record = odict()
+            field_record = collections.OrderedDict()
             for var in self.reach_vars:
                 if self.reach_fields[var] == 'int':
                     v = int(self.reach_vars[var][i])
@@ -166,7 +162,7 @@ class RiverReachWriter:
         for i, reach in enumerate(self.reaches):
             n = len(reach.lat)
 
-            river_data = odict()
+            river_data = collections.OrderedDict()
             river_data['width'] = reach.width.astype(np.int16)
             try:
                 river_data['nchannels'] = reach.nchannels.astype(np.int8)
@@ -228,7 +224,7 @@ class RiverReachWriter:
             s = np.cumsum(ds)
             total_reach = s[-1]
 
-        reach_df = DataFrame({
+        reach_df = pandas.DataFrame({
             'break_idx': break_idx,
             'npoints': npoints,
             'reach': total_reach,
@@ -247,7 +243,7 @@ class RiverReachWriter:
         if output_format == 'h5':
             if not '.h5' in width_db_file:
                 width_db_file = width_db_file + '.h5'
-            store = HDFStore(width_db_file, mode='w', complevel=9)
+            store = pandas.HDFStore(width_db_file, mode='w', complevel=9)
             store['river'] = river_df
             store['reach'] = reach_df
             store.close()
