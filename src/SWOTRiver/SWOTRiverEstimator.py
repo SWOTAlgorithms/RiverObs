@@ -4,12 +4,13 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 
 from __future__ import absolute_import, division, print_function
 
-from os.path import splitext, split, exists
-from collections import OrderedDict as odict
+import os
+import scipy.ndimage
 import numpy as np
-from numpy.ma import is_masked
 import pandas as pd
 import netCDF4 as nc
+import collections
+
 from .SWOTL2 import SWOTL2
 from RiverObs import ReachExtractor
 from RiverObs import WidthDataBase
@@ -17,7 +18,6 @@ from RiverObs import IteratedRiverObs
 from RiverObs import FitRiver
 from RiverObs import RiverNode
 from RiverObs import RiverReach
-from scipy.ndimage import label, grey_dilation
 from Centerline.Centerline import CenterLineException
 
 
@@ -176,7 +176,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.store_reaches = store_reaches
         self.store_fits = store_fits
         self.verbose = verbose
-        self.input_file = split(swotL2_file)[-1]
+        self.input_file = os.path.split(swotL2_file)[-1]
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
 
@@ -211,13 +211,13 @@ class SWOTRiverEstimator(SWOTL2):
 
         self.create_index_file()
 
-        if is_masked(self.lat):
+        if np.ma.is_masked(self.lat):
             mask = self.lat.mask
         else:
             mask = np.zeros(len(self.lat), dtype=np.bool)
 
         self.h_noise = self.get(height_kwd)
-        if is_masked(self.h_noise):
+        if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
         self.xtrack = (self.get(xtrack_kwd)
@@ -309,9 +309,9 @@ class SWOTRiverEstimator(SWOTL2):
         if self.verbose: print('Data loaded')
 
         # Initialize the list of observations and reaches
-        self.river_obs_collection = odict()
-        self.river_reach_collection = odict()
-        self.fit_collection = odict()
+        self.river_obs_collection = collections.OrderedDict()
+        self.river_reach_collection = collections.OrderedDict()
+        self.fit_collection = collections.OrderedDict()
 
     def segment_water_class(self):
         """
@@ -325,14 +325,14 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Do some regularization with morphological operations? (TODO)
         # segment the water class image
-        lbl, nlbl = label(cls_img)
+        lbl, nlbl = scipy.ndimage.label(cls_img)
 
         # assign land edge segments (label 0) to nearest water feature (label >0)
         # using grey dilation for this, probably need to re-think
         # how to handle land edge pixels that touch two different
         # segments (this will arbitrarily assign it to the one with
         # the largest label index)
-        lbl2 = grey_dilation(lbl, 3)
+        lbl2 = scipy.ndimage.grey_dilation(lbl, 3)
         lbl_out = lbl.copy()
         lbl_out[lbl == 0] = lbl2[lbl == 0]
 
@@ -355,7 +355,6 @@ class SWOTRiverEstimator(SWOTL2):
 
     def get_reaches(self, shape_file_root, clip=True, clip_buffer=0.1):
         """Get all of the reaches using a ReachExtractor."""
-
         self.clip = clip
         self.clip_buffer = clip_buffer
         self.reaches = ReachExtractor(
@@ -365,17 +364,14 @@ class SWOTRiverEstimator(SWOTL2):
 
     def get_width_db(self, width_db_file):
         """Open the width data base for later use."""
-
         self.width_db = WidthDataBase(width_db_file)
 
     def set_width_db(self, width_db):
         """Set width data base from an already opened version."""
-
         self.width_db = width_db
 
     def get_max_width_from_db(self, reach_idx):
         """Get the width associated with a given reach from the width data base."""
-
         return self.width_db.get_river(
             reach_idx,
             columns=['width'],
@@ -917,7 +913,7 @@ class SWOTRiverEstimator(SWOTL2):
         if type(fit_types) == str:
             fit_types = [fit_types]
 
-        nresults = odict()
+        nresults = collections.OrderedDict()
         load_inputs = True
         for fit_type in fit_types:
             nresults[fit_type] = self.fitter.fit_linear(
@@ -936,7 +932,7 @@ class SWOTRiverEstimator(SWOTL2):
                         width_area, area, nresults):
         """Get statistics for a given reach."""
 
-        reach_stats = odict()
+        reach_stats = collections.OrderedDict()
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
         reach_stats['lon_min'] = np.min(lon_median)

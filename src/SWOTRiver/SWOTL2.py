@@ -5,14 +5,15 @@ Access SWOT L2 data conveniently and provides LatLonRegion protocol.
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-from netCDF4 import Dataset
-from pyproj import Proj
+import netCDF4
+import pyproj
 
 
 class SWOTL2:
-    """Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion object
-    interfaces in that it provides a  bounding_box member and a proj function that goes
-    from (lon,lat) -> (x,y) and backwards.
+    """
+    Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion
+    object interfaces in that it provides a  bounding_box member and a
+    proj function that goes from (lon,lat) -> (x,y) and backwards.
 
     Parameters
     ----------
@@ -43,8 +44,8 @@ class SWOTL2:
     A full list of projection options to set plus explanations of their
     meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
 
-    The default projection is Lambert equiarea, which has a proj4 string with the
-    following parameters:
+    The default projection is Lambert equiarea, which has a proj4 string with
+    the following parameters:
 
     +proj=laea
     +lat_0=Latitude at projection center, set to bounding box center lat
@@ -52,7 +53,6 @@ class SWOTL2:
     +x_0=False Easting, set to 0
     +y_0=False Northing, set to 0
     """
-
     # keys: attributes to read from swotL2_file, values: defaults if not there
     L2_META_KEY_DEFAULTS = {
         'nr_lines': '',
@@ -102,7 +102,7 @@ class SWOTL2:
 
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
         self.subsample_factor = subsample_factor
-        self.nc = Dataset(swotL2_file)
+        self.nc = netCDF4.Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
         for att_name, att_value in self.L2_META_KEY_DEFAULTS.items():
@@ -278,7 +278,7 @@ class SWOTL2:
         if lon_0 == None:
             lon_0 = (self.bounding_box[2] + self.bounding_box[0]) / 2.0
 
-        self.proj = Proj(
+        self.proj = pyproj.Proj(
             proj=proj,
             lat_0=lat_0,
             lon_0=lon_0,
