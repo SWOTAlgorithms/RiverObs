@@ -1,11 +1,12 @@
 from __future__ import absolute_import, division, print_function
 
-from copy import copy
-from collections import OrderedDict as odict
+import copy
+import collections
+import scipy.stats
 import numpy as np
+
 from Centerline import Centerline
 from .RiverNode import RiverNode
-from scipy.stats import mode
 
 
 class RiverObs:
@@ -162,7 +163,7 @@ class RiverObs:
         if seg_label is not None and self.in_channel.any():
             class_mask = np.logical_and(self.in_channel, seg_label > 0)
             if class_mask.any():
-                dominant_label = mode(seg_label[class_mask])[0][0]
+                dominant_label = scipy.stats.mode(seg_label[class_mask])[0][0]
                 # keep things already in channel as well as things in dominant
                 # segmentation label up to the extreme distance
                 # (along and cross river)
@@ -221,7 +222,7 @@ class RiverObs:
         # Get the list of potential nodes
         nodes = np.unique(index)
 
-        self.obs_to_node_map = odict()
+        self.obs_to_node_map = collections.OrderedDict()
         self.nobs = np.zeros(len(self.centerline.x), dtype=np.int32)
         self.populated_nodes = []
         for node in nodes:
@@ -303,7 +304,7 @@ class RiverObs:
         if type(vars) == str:
             vars = [vars]
 
-        self.river_nodes = odict()
+        self.river_nodes = collections.OrderedDict()
 
         for node in self.populated_nodes:
             d = self.obs_to_node(self.d, node)
@@ -377,11 +378,11 @@ class RiverObs:
         sorted at each step.
         """
         if not reverse:
-            from_list = copy(self.populated_nodes)
-            to_list = copy(self.unpopulated_nodes)
+            from_list = copy.copy(self.populated_nodes)
+            to_list = copy.copy(self.unpopulated_nodes)
         else:
-            to_list = copy(self.populated_nodes)
-            from_list = copy(self.unpopulated_nodes)
+            to_list = copy.copy(self.populated_nodes)
+            from_list = copy.copy(self.unpopulated_nodes)
 
         for node in node_list:
             try:
