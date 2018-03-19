@@ -179,7 +179,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.input_file = split(swotL2_file)[-1]
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
-        #self.createIndexFile()
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -210,7 +209,7 @@ class SWOTRiverEstimator(SWOTL2):
             subsample_factor=subsample_factor,
             **proj_kwds)
 
-        self.createIndexFile()
+        self.create_index_file()
 
         if is_masked(self.lat):
             mask = self.lat.mask
@@ -292,7 +291,7 @@ class SWOTRiverEstimator(SWOTL2):
                 if self.use_segmentation[i]:
                     index = self.klass == k
                     self.isWater[index] = 1
-            self.segmentWaterClass()
+            self.segment_water_class()
         else:
             self.seg_label = None
 
@@ -314,49 +313,43 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_reach_collection = odict()
         self.fit_collection = odict()
 
-    def segmentWaterClass(self):
+    def segment_water_class(self):
         """
         do image segmentation algorithm on the water class to label
         unconnected features
         """
-        # added by Brent Williams, May 2017
-        # put pixc back into radar/image coordinates
         maxX = np.max(self.img_x)
-        #minX=np.min(self.img_x)
         maxY = np.max(self.img_y)
-        #minY=np.min(self.img_y)
         cls_img = np.zeros((maxY + 1, maxX + 1))
         cls_img[self.img_y, self.img_x] = self.isWater
+
         # Do some regularization with morphological operations? (TODO)
-        #
         # segment the water class image
         lbl, nlbl = label(cls_img)
 
-        #
         # assign land edge segments (label 0) to nearest water feature (label >0)
-        """using grey dilation for this, probably need to re-think
-        how to handle land edge pixels that touch two different
-        segments (this will arbitrarily assign it to the one with
-        the largest label index)"""
+        # using grey dilation for this, probably need to re-think
+        # how to handle land edge pixels that touch two different
+        # segments (this will arbitrarily assign it to the one with
+        # the largest label index)
         lbl2 = grey_dilation(lbl, 3)
         lbl_out = lbl.copy()
         lbl_out[lbl == 0] = lbl2[lbl == 0]
-        #
+
         # write out segmentation images to a nc file for testing
         dumpLbl = False
         if dumpLbl:
             M0, M1 = np.shape(lbl)
-            f = nc.Dataset("segDump.nc", 'w')
-            f.createDimension('azimuth', M0)
-            f.createDimension('range', M1)
-            ol = f.createVariable(
-                'orig_label', 'i4', ('azimuth', 'range'), fill_value=-128)
-            fl = f.createVariable(
-                'final_label', 'i4', ('azimuth', 'range'), fill_value=-128)
-            ol[:] = lbl[:]
-            fl[:] = lbl_out[:]
-            f.close()
-        #
+            with nc.Dataset("segDump.nc", 'w') as f:
+                f.createDimension('azimuth', M0)
+                f.createDimension('range', M1)
+                ol = f.createVariable(
+                    'orig_label', 'i4', ('azimuth', 'range'), fill_value=-128)
+                fl = f.createVariable(
+                    'final_label', 'i4', ('azimuth', 'range'), fill_value=-128)
+                ol[:] = lbl[:]
+                fl[:] = lbl_out[:]
+
         # create the segmentation label variable
         self.seg_label = lbl_out[self.img_y, self.img_x]
 
@@ -699,14 +692,14 @@ class SWOTRiverEstimator(SWOTL2):
         except:
             segOut = None
 
-        self.writeIndexFile(self.img_x[self.river_obs.in_channel],
-                            self.img_y[self.river_obs.in_channel],
-                            self.river_obs.index, self.river_obs.d,
-                            self.river_obs.s, self.river_obs.n, reach_idx,
-                            segOut, self.h_flg[self.river_obs.in_channel],
-                            self.lat_vec[self.river_obs.in_channel],
-                            self.lon_vec[self.river_obs.in_channel],
-                            self.height_vec[self.river_obs.in_channel])
+        self.write_index_file(self.img_x[self.river_obs.in_channel],
+                              self.img_y[self.river_obs.in_channel],
+                              self.river_obs.index, self.river_obs.d,
+                              self.river_obs.s, self.river_obs.n, reach_idx,
+                              segOut, self.h_flg[self.river_obs.in_channel],
+                              self.lat_vec[self.river_obs.in_channel],
+                              self.lon_vec[self.river_obs.in_channel],
+                              self.height_vec[self.river_obs.in_channel])
 
         # get the prior locations and indices of the nodes
         xw = reach.x
@@ -999,7 +992,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         return reach_stats
 
-    def createIndexFile(self):
+    def create_index_file(self):
         """
         Create an empty file with appropriate variable to append to
         """
@@ -1035,7 +1028,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         return
 
-    def writeIndexFile(self, img_x, img_y, node_index, dst, along_reach,
+    def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
                        cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
                        height):
         """
