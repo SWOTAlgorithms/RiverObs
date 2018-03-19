@@ -5,9 +5,8 @@ points."""
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-from scipy.spatial import cKDTree
-from scipy.interpolate import splrep, splev
-
+import scipy.spatial
+import scipy.interpolate
 
 class CenterLineException(Exception):
     pass
@@ -128,8 +127,10 @@ class Centerline:
         if smooth is not None:
             smooth *= len(self.x)
 
-        self.xtck = splrep(self.s, self.x, k=k, w=wx, s=smooth, **kwds)
-        self.ytck = splrep(self.s, self.y, k=k, w=wy, s=smooth, **kwds)
+        self.xtck = scipy.interpolate.splrep(
+            self.s, self.x, k=k, w=wx, s=smooth, **kwds)
+        self.ytck = scipy.interpolate.splrep(
+            self.s, self.y, k=k, w=wy, s=smooth, **kwds)
         if obs is not None:
             if sobs is not None:
                 sobs *= len(self.x)
@@ -145,8 +146,8 @@ class Centerline:
 
             self.ds = self.s[-1] / (ns - 1)
             self.s = np.arange(ns) * self.ds
-            self.x = splev(self.s, self.xtck)
-            self.y = splev(self.s, self.ytck)
+            self.x = scipy.interpolate.splev(self.s, self.xtck)
+            self.y = scipy.interpolate.splev(self.s, self.ytck)
             if obs is not None:
                 for name in self.obs_names:
                     setattr(self, name, splev(self.s, self.obs_tck[name]))
@@ -156,11 +157,11 @@ class Centerline:
         self.xy[:, 0] = self.x
         self.xy[:, 1] = self.y
 
-        self.kdtree = cKDTree(self.xy)
+        self.kdtree = scipy.spatial.cKDTree(self.xy)
 
         # Calculate the tangent and normal vectors at each point
-        self.dx_ds = splev(self.s, self.xtck, der=1)
-        self.dy_ds = splev(self.s, self.ytck, der=1)
+        self.dx_ds = scipy.interpolate.splev(self.s, self.xtck, der=1)
+        self.dy_ds = scipy.interpolate.splev(self.s, self.ytck, der=1)
 
         self.tangent = np.zeros((len(self.x), 2), dtype=np.float64)
         self.tangent[:, 0] = self.dx_ds
@@ -223,4 +224,5 @@ class Centerline:
         self.obs_tck = {}
         for name in self.obs_names:
             x = getattr(self, name)
-            self.obs_tck[name] = splrep(scoord, x, k=k, s=s, w=w, **kwds)
+            self.obs_tck[name] = scipy.interpolate.splrep(
+                scoord, x, k=k, s=s, w=w, **kwds)
