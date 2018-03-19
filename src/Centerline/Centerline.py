@@ -12,7 +12,6 @@ from scipy.interpolate import splrep, splev
 class CenterLineException(Exception):
     pass
 
-
 class Centerline:
     """
     A class for computing the location of a point or set of points
@@ -93,12 +92,10 @@ class Centerline:
 
         # The following holds the array for cKDTree, which
         # must not be touched during calls
-
         self.x = np.asarray(x)
         self.y = np.asarray(y)
 
         # If observations are provided, store them as class variables
-
         if obs is not None:
             self.obs_names = obs_names
             for i, name in enumerate(obs_names):
@@ -108,14 +105,11 @@ class Centerline:
                 setattr(self, name, np.asarray(obs[i]))
 
         # Compute the point separation along the curve
-
         self.delta = np.zeros((len(x), ), dtype=np.float64)
-
         self.delta[1:] = np.sqrt((self.x[1:] - self.x[:-1])**2 +
                                  (self.y[1:] - self.y[:-1])**2)
 
         # Remove any duplicate points (point separation < eps)
-
         self.delta[0] = 1  # to avoid removing the first point
         unique = self.delta > eps
         self.delta[0] = 0.
@@ -134,7 +128,6 @@ class Centerline:
         if smooth is not None:
             smooth *= len(self.x)
 
-        #
         self.xtck = splrep(self.s, self.x, k=k, w=wx, s=smooth, **kwds)
         self.ytck = splrep(self.s, self.y, k=k, w=wy, s=smooth, **kwds)
         if obs is not None:
@@ -143,7 +136,6 @@ class Centerline:
             self.init_obs_tck(self.s, k=kobs, w=wobs, s=sobs, **kwds)
 
         # If resampling is desired, find the new s, x, and y
-
         if ds is not None:
             ns = int(self.s[-1] / ds + 1)
             if ns < 2:
@@ -160,7 +152,6 @@ class Centerline:
                     setattr(self, name, splev(self.s, self.obs_tck[name]))
 
         # Initialize the cKDtree
-
         self.xy = np.zeros((len(self.x), 2), dtype=np.float64)
         self.xy[:, 0] = self.x
         self.xy[:, 1] = self.y
@@ -168,7 +159,6 @@ class Centerline:
         self.kdtree = cKDTree(self.xy)
 
         # Calculate the tangent and normal vectors at each point
-
         self.dx_ds = splev(self.s, self.xtck, der=1)
         self.dy_ds = splev(self.s, self.ytck, der=1)
 
@@ -225,7 +215,6 @@ class Centerline:
         ty = self.tangent[i][:, 1]
         s = (x0 - x) * tx + (y0 - y) * ty
         n = -(x0 - x) * ty + (y0 - y) * tx
-
         return i, d, x, y, s, n
 
     def init_obs_tck(self, scoord, k=3, s=None, w=None, **kwds):
