@@ -1,0 +1,4 @@
+pixel_cloud_flat_100m_noisy_small.nc filter=lfs diff=lfs merge=lfs -text
+reaches.dbf filter=lfs diff=lfs merge=lfs -text
+reaches.shp filter=lfs diff=lfs merge=lfs -text
+reaches.shx filter=lfs diff=lfs merge=lfs -text
