@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 '''
-Copyright(c) 2018-, California Institute of Technology("Caltech"). U.S.
-Government sponsorship acknowledged.
-All rights reserved.
-
-Author(s): Alex Fore
-
 Analyze RiverObs outputs.
 '''
 import os
