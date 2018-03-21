@@ -7,13 +7,11 @@ A simple GrADS parser is implemented here.
 
 from __future__ import absolute_import, division, print_function
 
-from os.path import join
+import os
+import skimage.morphology
 import numpy as np
-from numpy.ma import masked_array
-from skimage.morphology import skeletonize
 
-from GDALOGRUtilities import write_llh_to_gdal
-
+import GDALOGRUtilities
 
 class GWDLR:
     """A class to read GWDLR files, make masks, and output to GIS raster data."""
@@ -21,10 +19,10 @@ class GWDLR:
     def __init__(self, rootname, data_dir='.'):
         """Read the bin and ctl files, and parse the ctl."""
 
-        self.ctl_file = join(data_dir, rootname + '.ctl')
+        self.ctl_file = os.path.join(data_dir, rootname + '.ctl')
         self.parse_ctl(self.ctl_file)
 
-        self.bin_file = join(data_dir, rootname + '.bin')
+        self.bin_file = os.path.join(data_dir, rootname + '.bin')
         self.data = np.reshape(
             np.fromfile(self.bin_file, dtype=np.float32),
             (self.y.size, self.x.size))
@@ -100,7 +98,7 @@ class GWDLR:
         mask = (self.data >= width).astype(np.uint8)
 
         if thin:
-            mask = skeletonize(mask).astype(np.uint8)
+            mask = skimage.morphology(mask).astype(np.uint8)
 
         if overwrite:
             self.data = mask
@@ -113,7 +111,7 @@ class GWDLR:
         lon_min, dlon, lat_min, dlat = (self.x.coordinates.min(), self.x.step,
                                         self.y.coordinates.min(), self.y.step)
 
-        write_llh_to_gdal(
+        GDALOGRUtilities.write_llh_to_gdal(
             self.data,
             lon_min,
             dlon,

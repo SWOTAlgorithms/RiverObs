@@ -8,7 +8,6 @@ All bounding boxes are assumed to be an iterable (xmin,ymin,xmax,ymax)
 
 from __future__ import absolute_import, division, print_function
 
-from os.path import exists
 import os
 import pysal
 import rtree
