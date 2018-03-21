@@ -5,7 +5,7 @@ A class to fit various river parameters over a set of reaches.
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-import statsmodels.api as sm
+import statsmodels.api
 
 
 class FitRiver:
@@ -108,11 +108,11 @@ class FitRiver:
         # Initialize the model depending on the fit
 
         if fit == 'OLS':
-            self.model = sm.OLS(self.y, self.X)
+            self.model = statsmodels.api.OLS(self.y, self.X)
         elif fit == 'WLS':
-            self.model = sm.WLS(self.y, self.X, weights=self.w)
+            self.model = statsmodels.api.WLS(self.y, self.X, weights=self.w)
         else:
-            self.model = sm.RLM(self.y, self.X)
+            self.model = statsmodels.api.RLM(self.y, self.X)
 
         # Perform the fit and return
 
