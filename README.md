@@ -1,3 +1,4 @@
+![Open Source Love](https://badges.frapsoft.com/os/v1/open-source.png?v=103)
 # RiverObs
 
 This is a package written initially by
