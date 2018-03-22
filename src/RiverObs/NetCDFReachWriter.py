@@ -22,33 +22,35 @@ def gather_outputs(reach_collection):
     """
     Gathers outputs for river tile data product file
     """
-    reach_variables = list(reach_collection[0].metadata.keys())
-    node_variables = list(reach_collection[0].__dict__.keys())
-    node_variables.remove('ds')
-    node_variables.remove('metadata')
+    node_outputs = None
+    reach_outputs = None
+    if len(reach_collection) > 0:
+        reach_variables = list(reach_collection[0].metadata.keys())
+        node_variables = list(reach_collection[0].__dict__.keys())
+        node_variables.remove('ds')
+        node_variables.remove('metadata')
 
-    num_nodes_per_reach = [len(item.lat) for item in reach_collection]
-    num_nodes = sum(num_nodes_per_reach)
+        num_nodes_per_reach = [len(item.lat) for item in reach_collection]
+        num_nodes = sum(num_nodes_per_reach)
 
-    node_outputs = {}
-    reach_outputs = {}
-    for node_variable in node_variables:
-        node_outputs[node_variable] = np.concatenate(
-            [getattr(reach, node_variable) for reach in reach_collection])
+        node_outputs = {}
+        reach_outputs = {}
+        for node_variable in node_variables:
+            node_outputs[node_variable] = np.concatenate(
+                [getattr(reach, node_variable) for reach in reach_collection])
 
-    for reach_variable in reach_variables:
-        reach_outputs[reach_variable] = np.array(
-            [reach.metadata[reach_variable] for reach in reach_collection])
+        for reach_variable in reach_variables:
+            reach_outputs[reach_variable] = np.array(
+                [reach.metadata[reach_variable] for reach in reach_collection])
 
-    node_outputs['reach_idx'] = np.zeros(
-        node_outputs['lat'].shape).astype('int32')
-    i_start = 0
-    for ireach, num_nodes in enumerate(num_nodes_per_reach):
-        node_outputs['reach_idx'][i_start:i_start + num_nodes] = ireach
-        i_start = i_start + num_nodes
+        node_outputs['reach_idx'] = np.zeros(
+            node_outputs['lat'].shape).astype('int32')
+        i_start = 0
+        for ireach, num_nodes in enumerate(num_nodes_per_reach):
+            node_outputs['reach_idx'][i_start:i_start + num_nodes] = ireach
+            i_start = i_start + num_nodes
 
     return node_outputs, reach_outputs
-
 
 def cast_metadata(name, value, base_id):
     if name in INT_METADATA_NAMES:
