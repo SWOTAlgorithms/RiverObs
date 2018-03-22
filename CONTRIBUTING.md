@@ -17,4 +17,4 @@ We use GitHub issues to track public bugs. Report a bug by opening a new issue; 
 Use [PEP8](https://www.python.org/dev/peps/pep-0008/) with the exception of CamelCase for module filenames and directories.
 
 ## License
-By contributing, you agree that your contributions will be licensed under its GPL liscenes.
+By contributing, you agree that your contributions will be licensed under this [liscene](LICENSE.md).
