@@ -1166,15 +1166,9 @@ class SWOTRiverEstimator(SWOTL2):
             this_reach_len = river_reach.s.max() - river_reach.s.min()
             this_reach_id = river_reach.reach_indx[0]
             if enhanced:
-                if this_reach_id > 1:
-                    up = this_reach_id - 1
 
-                else: up = 1
-
-                if this_reach_id < n_reach:
-                    down = this_reach_id + 1
-
-                else: down = n_reach
+                up = np.max([1, this_reach_id - 1])
+                down = np.min([n_reach, this_reach_id + 1])
 
                 if this_reach_id == 1:
                     s_down = river_reach_collection[ind.index(down)].s + river_reach.s[-1]
@@ -1199,15 +1193,8 @@ class SWOTRiverEstimator(SWOTL2):
                     last_node = first_node + len(river_reach.h_n_ave) - 1
 
                 # window size and sigma for Gaussian averaging
-                if this_reach_len > max_window_size:
-                    window_size = max_window_size
-                else:
-                    window_size = this_reach_len
-
-                if window_size/window_size_sigma_ratio < min_sigma:
-                    sigma = min_sigma
-                else:
-                    sigma = window_size/window_size_sigma_ratio
+                window_size = np.min([max_window_size, this_reach_len])
+                sigma = np.max([min_sigma, window_size/window_size_sigma_ratio])
 
                 # smooth h_n_ave, and get slope
                 slope = np.polyfit(reach_smooth_s, reach_smooth_h, 1)[0]
@@ -1215,10 +1202,13 @@ class SWOTRiverEstimator(SWOTL2):
                 h_smth = self.gaussian_averaging(
                     reach_smooth_s, reach_smooth_h_detrend, window_size, sigma)
                 h_smth = h_smth + slope*(reach_smooth_s - reach_smooth_s[0])
-                slp_reach_enhncd.append(-(h_smth[last_node] - h_smth[first_node])/this_reach_len)
+                slp_reach_enhncd.append(
+                    -(h_smth[last_node] - h_smth[first_node])/this_reach_len)
 
             else:
-                slp_reach_enhncd.append((river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])/this_reach_len)
+                slp_reach_enhncd.append(
+                    (river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])
+                    /this_reach_len)
         return slp_reach_enhncd
 
     @classmethod
