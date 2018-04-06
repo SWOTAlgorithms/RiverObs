@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import netCDF4 as nc
 import collections
+import scipy.stats
 
 from .SWOTL2 import SWOTL2
 from RiverObs import ReachExtractor
@@ -19,9 +20,6 @@ from RiverObs import FitRiver
 from RiverObs import RiverNode
 from RiverObs import RiverReach
 from Centerline.Centerline import CenterLineException
-
-from scipy.stats import norm
-import math
 
 class SWOTRiverEstimator(SWOTL2):
     """
@@ -1242,7 +1240,8 @@ class SWOTRiverEstimator(SWOTL2):
                 np.abs(this_distance-distances) <= window_size / 2,
                 ~np.isnan(heights))
 
-            weights = norm.pdf(this_distance, distances[mask], sigma)
+            weights = scipy.stats.norm.pdf(
+                this_distance, distances[mask], sigma)
 
             smooth_heights[ii] = (
                 np.multiply(weights, heights[mask]).sum() /
