@@ -58,9 +58,9 @@ class SWOTRiverEstimator(SWOTL2):
         (lonmin,latmin,lonmax,latmax)
     lon_kwd, lat_kwd : str
         netcdf names for the longitudes and latitudes to be used
-        for georeferencing the data set. The a priori geolocation can be 
+        for georeferencing the data set. The a priori geolocation can be
         retrieved using 'no_layover_longitude' and 'no_layover_latitude'.
-        The estimated latitude and longitude can be retrieved using 
+        The estimated latitude and longitude can be retrieved using
         'longitude' and 'latitude', respectively.
     class_kwd : str, default 'classification'
         the netcdf name of the classification layer to use.
@@ -70,7 +70,7 @@ class SWOTRiverEstimator(SWOTL2):
     class_list : list, default [2,3,4,5]
         a list of the class labels for what is considered good water data.
         This should be piched as any classes that might contain water, even
-        if partially. If truth data are desired (class_kwd = 
+        if partially. If truth data are desired (class_kwd =
         'no_layover_classification'), the this should be set to [1].
         The default has interior water pixels(4), border water pixels (3),
         and border land pixels (2). This should be used with
@@ -132,7 +132,7 @@ class SWOTRiverEstimator(SWOTL2):
     the following parameters:
 
     +proj=laea
-    +lat_0=Latitude at projection center, set to bounding box center lat 
+    +lat_0=Latitude at projection center, set to bounding box center lat
     +lon_0=Longitude at projection center, set to bounding box center lon
     +x_0=False Easting, set to 0
     +y_0=False Northing, set to 0
@@ -271,7 +271,7 @@ class SWOTRiverEstimator(SWOTL2):
         if (self.subsample_factor > 1):
             self.pixel_area = self.pixel_area * self.subsample_factor
         #
-        if fractional_inundation_kwd == None:  # all water pixels are inundated
+        if fractional_inundation_kwd is None:  # all water pixels are inundated
             self.fractional_inundation = None
             self.inundated_area = self.pixel_area
 
@@ -306,7 +306,8 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             self.h_flg = None
 
-        if self.verbose: print('Data loaded')
+        if self.verbose:
+            print('Data loaded')
 
         # Initialize the list of observations and reaches
         self.river_obs_collection = collections.OrderedDict()
@@ -327,8 +328,8 @@ class SWOTRiverEstimator(SWOTL2):
         # segment the water class image
         lbl, nlbl = scipy.ndimage.label(cls_img)
 
-        # assign land edge segments (label 0) to nearest water feature (label >0)
-        # using grey dilation for this, probably need to re-think
+        # assign land edge segments (label 0) to nearest water feature
+        # (label >0) using grey dilation for this, probably need to re-think
         # how to handle land edge pixels that touch two different
         # segments (this will arbitrarily assign it to the one with
         # the largest label index)
@@ -371,7 +372,9 @@ class SWOTRiverEstimator(SWOTL2):
         self.width_db = width_db
 
     def get_max_width_from_db(self, reach_idx):
-        """Get the width associated with a given reach from the width data base."""
+        """
+        Get the width associated with a given reach from the width data base.
+        """
         return self.width_db.get_river(
             reach_idx,
             columns=['width'],
@@ -435,7 +438,8 @@ class SWOTRiverEstimator(SWOTL2):
 
             if use_width_db:
                 max_width = self.get_max_width_from_db(reach_idx)
-                if self.verbose: print('max_width read')
+                if self.verbose:
+                    print('max_width read')
 
             else:
                 max_width = None
@@ -444,7 +448,6 @@ class SWOTRiverEstimator(SWOTL2):
                 try:
                     # probably should scale this to look some fraction
                     # farther than the database width
-                    #max_width = self.reaches[i].metadata['width_max']#
                     max_width = (
                         self.reaches[i_reach].metadata['Wmean'] * np.ones(
                             np.shape(self.reaches[i_reach].x)))  # *2.0
@@ -472,8 +475,9 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach_collection.append(river_reach)
             if self.store_reaches:
                 self.river_reach_collection[ireach] = river_reach
-            if self.verbose: print('reach pocessed')
 
+            if self.verbose:
+                print('reach pocessed')
 
         out_river_reach_collection = []
         # Now iterate over reaches again and do reach average computations
@@ -602,7 +606,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
-
     def process_node(self,
                      reach,
                      reach_id,
@@ -660,7 +663,8 @@ class SWOTRiverEstimator(SWOTL2):
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes - 1 > self.river_obs.k else False
-        if self.verbose: print("numNodes,k:", numNodes, self.river_obs.k)
+        if self.verbose:
+            print("numNodes,k:", numNodes, self.river_obs.k)
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -675,7 +679,8 @@ class SWOTRiverEstimator(SWOTL2):
 
             # Reinitialize to the new centerline and max_width
             self.river_obs.reinitialize()
-            if self.verbose: print('centerline refined')
+            if self.verbose:
+                print('centerline refined')
 
         else:
             # Associate the width to the new centerline
@@ -748,7 +753,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         self.river_obs.load_nodes(dsets_to_load)
 
-        if self.verbose: print('Observations added to nodes')
+        if self.verbose:
+            print('Observations added to nodes')
 
         # Get various node statistics
         nobs = np.asarray(self.river_obs.get_node_stat('count', ''))
@@ -795,7 +801,6 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.n_nodes,
             dtype=np.float64) * self.river_obs.missing_value
 
-        #if use_width_db:
         try:
             windex = self.river_obs.centerline_obs['max_width'].populated_nodes
             width_db[windex] = self.river_obs.centerline_obs['max_width'].v
@@ -892,9 +897,12 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Check to see if there are sufficient number of points for fit
         ngood = len(s_median)
-        if self.verbose: print(('number of fit points: %d' % ngood))
+        if self.verbose:
+            print(('number of fit points: %d' % ngood))
+
         if ngood < min_fit_points:
-            if self.verbose: print('not enough good points for fit')
+            if self.verbose:
+                print('not enough good points for fit')
 
             nresults = None
             return None
@@ -906,7 +914,8 @@ class SWOTRiverEstimator(SWOTL2):
             # Do the fitting for this reach
             nresults = self.estimate_height_slope(
                 smin, smax, fit_types=fit_types, mean_stat='median')
-            if self.verbose: print('Estimation finished')
+            if self.verbose:
+                print('Estimation finished')
 
         if self.store_fits:
             self.fit_collection[reach_id, 'noise'] = nresults
@@ -1078,12 +1087,12 @@ class SWOTRiverEstimator(SWOTL2):
         return
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
-                       cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
-                       height):
+                         cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
+                         height):
         """
-        Write out the river obs indices for each pixel that get mapped to a node
-        as well as the pixel cloud coordinates (range and azimuth, or original
-        image coordinate [e.g., gdem along- and cross-track index])
+        Write out the river obs indices for each pixel that get mapped to a
+        node as well as the pixel cloud coordinates (range and azimuth, or
+        original image coordinate [e.g., gdem along- and cross-track index])
         """
         # append the new data
         with nc.Dataset(self.output_file, 'a') as ofp:
