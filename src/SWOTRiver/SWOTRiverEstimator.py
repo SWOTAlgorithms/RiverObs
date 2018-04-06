@@ -497,8 +497,9 @@ class SWOTRiverEstimator(SWOTL2):
         # Now iterate over reaches again and do reach average computations
         reach_zips = zip(
             river_reach_collection, river_obs_list, reach_idx_list,
-            ireach_list)
-        for river_reach, river_obs, reach_idx, ireach in reach_zips:
+            ireach_list, enhanced_slopes)
+        for river_reach, river_obs, reach_idx, ireach, enhanced_slope in\
+            reach_zips:
 
             # Ugly way process_reach/process_node uses the data
             self.river_obs = river_obs
@@ -510,11 +511,11 @@ class SWOTRiverEstimator(SWOTL2):
                                                  min_fit_points=min_fit_points,
                                                  fit_types=fit_types)
 
-            # add enhanced slope to river reach outputs
-            out_river_reach.metadata['slp_enhncd'] = np.float32(
-                enhanced_slopes[ireach])
-
             if out_river_reach is not None:
+                # add enhanced slope to river reach outputs
+                out_river_reach.metadata['slp_enhncd'] = np.float32(
+                    enhanced_slope)
+
                 out_river_reach_collection.append(out_river_reach)
 
         return out_river_reach_collection
