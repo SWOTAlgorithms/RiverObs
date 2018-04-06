@@ -1158,9 +1158,7 @@ class SWOTRiverEstimator(SWOTL2):
         '''
         # get list of reach index
         n_reach = len(river_reach_collection)
-        ind = []
-        for reach in river_reach_collection:
-            ind.append(reach.reach_indx[0])
+        ind = [reach.reach_indx[0] for reach in river_reach_collection]
 
         # get 1 reach upstream and 1 reach downstream for current reach
         slp_reach_enhncd = []
