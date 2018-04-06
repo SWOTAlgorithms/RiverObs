@@ -1213,9 +1213,8 @@ class SWOTRiverEstimator(SWOTL2):
                 # smooth h_n_ave, and get slope
                 slope = np.polyfit(reach_smooth_s, reach_smooth_h, 1)[0]
                 reach_smooth_h_detrend = reach_smooth_h - slope*reach_smooth_s
-                h_smth = self.GaussianAveraging(reach_smooth_s,
-                                                reach_smooth_h_detrend,
-                                                window_size, sigma)
+                h_smth = self.gaussian_averaging(
+                    reach_smooth_s, reach_smooth_h_detrend, window_size, sigma)
                 h_smth = h_smth + slope*(reach_smooth_s - reach_smooth_s[0])
                 slp_reach_enhncd.append(-(h_smth[last_node] - h_smth[first_node])/this_reach_len)
 
@@ -1223,33 +1222,30 @@ class SWOTRiverEstimator(SWOTL2):
                 slp_reach_enhncd.append((river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])/this_reach_len)
         return slp_reach_enhncd
 
-    def GaussianAveraging(self, s, hght, widnow_size, sigma):
+    @classmethod
+    def gaussian_averaging(distances, heights, window_size, sigma):
         """
-        This function performs smoothing using Gaussian weights
-        inputs:
-        s : Flow distances associated with the nodes
-        hght : Water surface elevations
-        Window_size : Size of the window in the same unit as x
-        sigma : Standard deviation of the normal distribution used to assign
-                the averaging weights
+        Gaussian smoothing of heights using distances
+        distances:   along-flow distance
+        heights:     water heights
+        window_size: size of data window to use for averaging
+        sigma:       STD of Gaussian used for averaging
+
         outputs:
-        yave : smoothed elevations
-        wave : smoothed widths
+        smooth_heights : smoothed elevations
         """
-        yave = np.zeros(len(s))
-        for count in range(0, len(s)):
-            first = count
-            while s[first] > s[count] - widnow_size/2 and first > 1:
-                first = first - 1
-            last = count
-            while s[last] < s[count] + widnow_size/2 and last < len(s)-1:
-                last = last + 1
-            sumweight = 0
-            accy = 0
-            for count2 in range(first, last+1):
-                weight = norm.pdf(s[count2], s[count], sigma)
-                if not math.isnan(hght[count2]):
-                    sumweight = sumweight + weight
-                    accy = accy + weight*hght[count2]
-            yave[count] = accy/sumweight
-        return yave
+        smooth_heights = np.zeros(heights.shape)
+        for ii, this_distance in enumerate(distances):
+
+            # get data window
+            mask = np.logical_and(
+                np.abs(this_distance-distances) <= window_size / 2,
+                ~np.isnan(heights))
+
+            weights = norm.pdf(this_distance, distances[mask], sigma)
+
+            smooth_heights[ii] = (
+                np.multiply(weights, heights[mask]).sum() /
+                weights.sum())
+
+        return smooth_heights
