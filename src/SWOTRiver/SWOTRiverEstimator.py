@@ -487,6 +487,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             if self.verbose:
                 print('reach pocessed')
+
         # calculate reach enhanced slope, and add to river_reach_collection
         slp_reach_enhncd = self.enhanced_reach_slope(river_reach_collection,
                               max_window_size=max_window_size,
@@ -505,12 +506,15 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs = river_obs
 
             out_river_reach = self.process_reach(river_reach,
-                                                 slp_reach_enhncd,
                                                  self.reaches[ireach],
                                                  ireach,
                                                  reach_idx,
                                                  min_fit_points=min_fit_points,
                                                  fit_types=fit_types)
+
+            # add enhanced slope to river reach outputs
+            out_river_reach.metadata['slp_enhncd'] = np.float32(
+                slp_reach_enhncd[ireach])
 
             if out_river_reach is not None:
                 out_river_reach_collection.append(out_river_reach)
@@ -868,7 +872,6 @@ class SWOTRiverEstimator(SWOTL2):
 
     def process_reach(self,
                       river_reach,
-                      slp_enhncd,
                       reach,
                       reach_id,
                       reach_idx=None,
@@ -980,7 +983,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['slp_nr'] = np.float32(reach_stats['slp_nr'])
         reach_stats['nr_rsqrd'] = np.float32(reach_stats['nr_rsqrd'])
         reach_stats['nr_mse'] = np.float32(reach_stats['nr_mse'])
-        reach_stats['slp_enhncd'] = np.float32(slp_enhncd[reach_id])
 
         river_reach.metadata = reach_stats
         return river_reach
