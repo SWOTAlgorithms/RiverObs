@@ -489,11 +489,11 @@ class SWOTRiverEstimator(SWOTL2):
                 print('reach pocessed')
 
         # calculate reach enhanced slope, and add to river_reach_collection
-        slp_reach_enhncd = self.enhanced_reach_slope(river_reach_collection,
-                              max_window_size=max_window_size,
-                              min_sigma=min_sigma,
-                              window_size_sigma_ratio=window_size_sigma_ratio,
-                              enhanced=enhanced)                   
+        enhanced_slopes = self.compute_enhanced_slopes(
+            river_reach_collection, max_window_size=max_window_size,
+            min_sigma=min_sigma,
+            window_size_sigma_ratio=window_size_sigma_ratio,
+            enhanced=enhanced)
 
         out_river_reach_collection = []
         # Now iterate over reaches again and do reach average computations
@@ -514,7 +514,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             # add enhanced slope to river reach outputs
             out_river_reach.metadata['slp_enhncd'] = np.float32(
-                slp_reach_enhncd[ireach])
+                enhanced_slopes[ireach])
 
             if out_river_reach is not None:
                 out_river_reach_collection.append(out_river_reach)
@@ -1138,9 +1138,9 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['height_vectorproc'][curr_len:new_len] = height
         return
 
-    def enhanced_reach_slope(self, river_reach_collection,
-                             max_window_size, min_sigma,
-                             window_size_sigma_ratio, enhanced):
+    def compute_enhanced_slopes(
+        self, river_reach_collection, max_window_size, min_sigma,
+        window_size_sigma_ratio, enhanced):
         '''
         This function calculate enhanced reach slope from smoothed
         node height using Gaussian moving average.
