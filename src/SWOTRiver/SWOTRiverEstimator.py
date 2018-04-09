@@ -1174,7 +1174,8 @@ class SWOTRiverEstimator(SWOTL2):
                 heights = np.array([])
 
                 if this_reach_id < n_reach:
-                    reach_downstream = river_reach_collection[this_reach_id+1]
+                    reach_downstream = river_reach_collection[
+                        ind.index(this_reach_id+1)]
                     distances = np.concatenate([
                         reach_downstream.s, distances])
                     heights = np.concatenate([
@@ -1185,7 +1186,8 @@ class SWOTRiverEstimator(SWOTL2):
                 heights = np.concatenate([heights, river_reach.h_n_ave])
 
                 if this_reach_id > 1:
-                    reach_upstream = river_reach_collection[this_reach_id-1]
+                    reach_upstream = river_reach_collection[
+                        ind.index(this_reach_id-1)]
                     first_node = first_node + len(reach_upstream.h_n_ave)
 
                     distances = np.concatenate([
