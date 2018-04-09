@@ -1140,7 +1140,7 @@ class SWOTRiverEstimator(SWOTL2):
     def compute_enhanced_slopes(
         self, river_reach_collection, max_window_size, min_sigma,
         window_size_sigma_ratio, enhanced):
-        '''
+        """
         This function calculate enhanced reach slope from smoothed
         node height using Gaussian moving average.
         For more information, pleasec see Dr. Renato Frasson's paper:
@@ -1154,62 +1154,68 @@ class SWOTRiverEstimator(SWOTL2):
 
         output:
         slp_reach_enhncd: enhanced reach slopes
-        '''
+        """
         # get list of reach index
         n_reach = len(river_reach_collection)
         ind = [reach.reach_indx[0] for reach in river_reach_collection]
 
-        # get 1 reach upstream and 1 reach downstream for current reach
-        slp_reach_enhncd = []
+        enhanced_slopes = []
         for this, river_reach in enumerate(river_reach_collection):
 
             this_reach_len = river_reach.s.max() - river_reach.s.min()
             this_reach_id = river_reach.reach_indx[0]
+
             if enhanced:
+                # Build up array of data to be smoothed from downstream to
+                # upstream.  Adjust along-reach to be cumulative across
+                # reach boundaries.
+                first_node = 0
+                distances = np.array([])
+                heights = np.array([])
 
-                up = np.max([1, this_reach_id - 1])
-                down = np.min([n_reach, this_reach_id + 1])
+                if this_reach_id < n_reach:
+                    reach_downstream = river_reach_collection[this_reach_id+1]
+                    distances = np.concatenate([
+                        reach_downstream.s, distances])
+                    heights = np.concatenate([
+                        reach_downstream.h_n_ave, heights])
 
-                if this_reach_id == 1:
-                    s_down = river_reach_collection[ind.index(down)].s + river_reach.s[-1]
-                    reach_smooth_s = np.concatenate((river_reach.s, s_down))
-                    reach_smooth_h = np.concatenate((river_reach.h_n_ave, river_reach_collection[ind.index(down)].h_n_ave))
-                    first_node = 0
-                    last_node = len(river_reach.h_n_ave) - 1
+                distances = np.concatenate([
+                    river_reach.s, distances+river_reach.s[-1]])
+                heights = np.concatenate([heights, river_reach.h_n_ave])
 
-                elif this_reach_id == n_reach:
-                    s_down = river_reach.s + river_reach_collection[ind.index(up)].s[-1]
-                    reach_smooth_s = np.concatenate((river_reach_collection[ind.index(up)].s, s_down))
-                    reach_smooth_h = np.concatenate((river_reach_collection[ind.index(up)].h_n_ave, river_reach.h_n_ave))
-                    first_node = len(river_reach_collection[ind.index(up)].h_n_ave)
-                    last_node = first_node + len(river_reach.h_n_ave) - 1
+                if this_reach_id > 1:
+                    reach_upstream = river_reach_collection[this_reach_id-1]
+                    first_node = first_node + len(reach_upstream.h_n_ave)
 
-                else:
-                    s_med = river_reach.s + river_reach_collection[ind.index(up)].s[-1]
-                    s_down = river_reach_collection[ind.index(down)].s + (river_reach_collection[ind.index(up)].s[-1] + river_reach.s[-1])
-                    reach_smooth_s = np.concatenate((river_reach_collection[ind.index(up)].s, s_med, s_down))
-                    reach_smooth_h = np.concatenate((river_reach_collection[ind.index(up)].h_n_ave, river_reach.h_n_ave, river_reach_collection[ind.index(down)].h_n_ave))
-                    first_node = len(river_reach_collection[ind.index(up)].h_n_ave)
-                    last_node = first_node + len(river_reach.h_n_ave) - 1
+                    distances = np.concatenate([
+                        reach_upstream.s, distances+reach_upstream.s[-1]])
+                    heights = np.concatenate([
+                        reach_upstream.h_n_ave, heights])
+
+                last_node = first_node + len(river_reach.h_n_ave) - 1
 
                 # window size and sigma for Gaussian averaging
                 window_size = np.min([max_window_size, this_reach_len])
-                sigma = np.max([min_sigma, window_size/window_size_sigma_ratio])
+                sigma = np.max([
+                    min_sigma, window_size/window_size_sigma_ratio])
 
                 # smooth h_n_ave, and get slope
-                slope = np.polyfit(reach_smooth_s, reach_smooth_h, 1)[0]
-                reach_smooth_h_detrend = reach_smooth_h - slope*reach_smooth_s
-                h_smth = self.gaussian_averaging(
-                    reach_smooth_s, reach_smooth_h_detrend, window_size, sigma)
-                h_smth = h_smth + slope*(reach_smooth_s - reach_smooth_s[0])
-                slp_reach_enhncd.append(
-                    -(h_smth[last_node] - h_smth[first_node])/this_reach_len)
+                slope = np.polyfit(distances, heights, 1)[0]
+                heights_detrend = heights - slope*distances
+                heights_smooth = self.gaussian_averaging(
+                    distances, heights_detrend, window_size, sigma)
+                heights_smooth = heights_smooth + slope*(
+                    distances - distances[0])
+                enhanced_slopes.append(
+                    -(heights_smooth[last_node] - heights_smooth[first_node]
+                    )/this_reach_len)
 
             else:
-                slp_reach_enhncd.append(
+                enhanced_slopes.append(
                     (river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])
                     /this_reach_len)
-        return slp_reach_enhncd
+        return enhanced_slopes
 
     @classmethod
     def gaussian_averaging(distances, heights, window_size, sigma):
