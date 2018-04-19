@@ -1154,7 +1154,7 @@ class SWOTRiverEstimator(SWOTL2):
         window_size_sigma_ratio : default is 5
 
         output:
-        slp_reach_enhncd: enhanced reach slopes
+        enhanced_slopes: enhanced reach slopes
         """
         # get list of reach index
         n_reach = len(river_reach_collection)
@@ -1184,7 +1184,7 @@ class SWOTRiverEstimator(SWOTL2):
 
                 distances = np.concatenate([
                     river_reach.s, distances+river_reach.s[-1]])
-                heights = np.concatenate([heights, river_reach.h_n_ave])
+                heights = np.concatenate([river_reach.h_n_ave, heights])
 
                 if this_reach_id > 1:
                     reach_upstream = river_reach_collection[
@@ -1211,7 +1211,7 @@ class SWOTRiverEstimator(SWOTL2):
                 heights_smooth = heights_smooth + slope*(
                     distances - distances[0])
                 enhanced_slopes.append(
-                    -(heights_smooth[last_node] - heights_smooth[first_node]
+                    (heights_smooth[last_node] - heights_smooth[first_node]
                     )/this_reach_len)
 
             else:
