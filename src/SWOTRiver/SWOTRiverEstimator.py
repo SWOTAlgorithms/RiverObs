@@ -1161,7 +1161,7 @@ class SWOTRiverEstimator(SWOTL2):
         ind = [reach.reach_indx[0] for reach in river_reach_collection]
 
         enhanced_slopes = []
-        for this, river_reach in enumerate(river_reach_collection):
+        for river_reach in river_reach_collection:
 
             this_reach_len = river_reach.s.max() - river_reach.s.min()
             this_reach_id = river_reach.reach_indx[0]
@@ -1220,7 +1220,7 @@ class SWOTRiverEstimator(SWOTL2):
                     /this_reach_len)
         return enhanced_slopes
 
-    @classmethod
+    @staticmethod
     def gaussian_averaging(distances, heights, window_size, sigma):
         """
         Gaussian smoothing of heights using distances
