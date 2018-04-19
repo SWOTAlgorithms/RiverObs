@@ -535,7 +535,8 @@ class SWOTRiverEstimator(SWOTL2):
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
             if len(self.reaches[i_reach].x) <= 3:
-                print("reach does not have enought points", len(reach.x))
+                print("reach does not have enough points",
+                      len(self.reaches[i_reach].x))
                 continue
 
             if self.verbose:
