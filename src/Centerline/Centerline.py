@@ -150,7 +150,7 @@ class Centerline:
             self.y = scipy.interpolate.splev(self.s, self.ytck)
             if obs is not None:
                 for name in self.obs_names:
-                    setattr(self, name, splev(self.s, self.obs_tck[name]))
+                    setattr(self, name, scipy.interpolate.splev(self.s, self.obs_tck[name]))
 
         # Initialize the cKDtree
         self.xy = np.zeros((len(self.x), 2), dtype=np.float64)
