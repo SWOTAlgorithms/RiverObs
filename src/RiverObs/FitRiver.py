@@ -40,7 +40,8 @@ class FitRiver:
             formal errors for weighting the node; e.g., 'stderr', 'std', etc.
         """
 
-        s = np.asarray(self.river_obs.get_node_stat(mean_stat, 's'))
+        s = np.asarray(self.river_obs.get_node_stat(
+            mean_stat, 's', good_flag='h_flg'))
 
         good = (s >= smin) & (s <= smax)
 
@@ -53,13 +54,14 @@ class FitRiver:
 
         # Observations
 
-        y = np.asarray(self.river_obs.get_node_stat(mean_stat, fit_var))[good]
+        y = np.asarray(self.river_obs.get_node_stat(
+            mean_stat, fit_var, good_flag='h_flg'))[good]
 
         # Weights
-        tmp = np.asarray(self.river_obs.get_node_stat(err_stat, fit_var))[good]
+        tmp = np.asarray(self.river_obs.get_node_stat(
+            err_stat, fit_var, good_flag='h_flg'))[good]
         w = 1.0 / tmp
         w[tmp <= 0] = 1.0
-        #w = 1./np.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
 
         # Fitting matrix for linear fit
 
