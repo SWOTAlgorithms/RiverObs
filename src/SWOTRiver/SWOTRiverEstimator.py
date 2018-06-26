@@ -827,7 +827,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Get the reach statistics for this subreach
         reach_stats = self.get_reach_stats(
-            reach_id, reach_idx, smin, smax, lon_median, lat_median,
+            reach_id, reach_idx, s_median, lon_median, lat_median,
             xtrack_median, width_ptp, width_std, width_area, area, nresults)
 
         # type-cast reach outputs explicity
@@ -841,6 +841,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.float32(reach_stats['length'])
         reach_stats['smin'] = np.float32(reach_stats['smin'])
         reach_stats['smax'] = np.float32(reach_stats['smax'])
+        reach_stats['save'] = np.float32(reach_stats['save'])
         reach_stats['w_ptp_ave'] = np.float32(reach_stats['w_ptp_ave'])
         reach_stats['w_ptp_min'] = np.float32(reach_stats['w_ptp_min'])
         reach_stats['w_ptp_max'] = np.float32(reach_stats['w_ptp_max'])
@@ -928,7 +929,7 @@ class SWOTRiverEstimator(SWOTL2):
             load_inputs = False
         return nresults
 
-    def get_reach_stats(self, reach_id, reach_idx, smin, smax, lon_median,
+    def get_reach_stats(self, reach_id, reach_idx, s_median, lon_median,
                         lat_median, xtrack_median, width_ptp, width_std,
                         width_area, area, nresults):
         """Get statistics for a given reach."""
@@ -941,9 +942,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['lat_min'] = np.min(lat_median)
         reach_stats['lat_max'] = np.max(lat_median)
         reach_stats['area'] = np.sum(area)
-        reach_stats['length'] = smax - smin
-        reach_stats['smin'] = smin
-        reach_stats['smax'] = smax
+        reach_stats['length'] = np.max(s_median) - np.min(s_median)
+        reach_stats['smin'] = np.min(s_median)
+        reach_stats['smax'] = np.max(s_median)
+        reach_stats['save'] = np.median(s_median)
         reach_stats['w_ptp_ave'] = np.median(width_ptp)
         reach_stats['w_ptp_min'] = np.min(width_ptp)
         reach_stats['w_ptp_max'] = np.max(width_ptp)
