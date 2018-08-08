@@ -223,8 +223,15 @@ class SWOTL2:
 
         Subsamples input data based on self.subsample_factor (use for GDEMS!)
         """
-        # Much faster to read contigous data then sice then slice while reading
-        data = self.nc.variables[var][:]
+        # check for groups in variable string name
+        if '/' in var:
+            splits = var.split('/')
+            if len(splits) != 2:
+                raise Exception('Only supports /group/varname datagroups')
+            data = self.nc.groups[splits[0]][splits[1]][:]
+        else:
+            data = self.nc.variables[var][:]
+
         if self.subsample_factor > 1:
             if len(data.shape) == 1:
                 data = data[::self.subsample_factor]
