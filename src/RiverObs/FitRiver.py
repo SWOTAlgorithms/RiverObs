@@ -102,13 +102,11 @@ class FitRiver:
         """
 
         # Get the fit inputs, if desired
-
         if load_inputs or (not self.inputs_computed):
             self.s, self.y, self.X, self.w = self.get_linear_fit_inputs(
                 smin, smax, fit_var, mean_stat=mean_stat, err_stat=err_stat)
 
         # Initialize the model depending on the fit
-
         if fit == 'OLS':
             self.model = statsmodels.api.OLS(self.y, self.X)
         elif fit == 'WLS':
@@ -117,7 +115,6 @@ class FitRiver:
             self.model = statsmodels.api.RLM(self.y, self.X)
 
         # Perform the fit and return
-
         self.results = self.model.fit()
 
         return self.results

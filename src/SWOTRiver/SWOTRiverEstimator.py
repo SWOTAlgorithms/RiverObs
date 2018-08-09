@@ -918,13 +918,14 @@ class SWOTRiverEstimator(SWOTL2):
         nresults = collections.OrderedDict()
         load_inputs = True
         for fit_type in fit_types:
-            nresults[fit_type] = self.fitter.fit_linear(
-                smin,
-                smax,
-                'h_noise',
-                fit=fit_type,
-                mean_stat=mean_stat,
-                load_inputs=load_inputs)
+
+            try:
+                nresults[fit_type] = self.fitter.fit_linear(
+                    smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
+                    load_inputs=load_inputs)
+
+            except ZeroDivisionError:
+                pass
 
             load_inputs = False
         return nresults
