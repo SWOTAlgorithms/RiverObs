@@ -1,3 +1,8 @@
+"""
+Module for running RiverObs on a SWOT L2 PixelCloud data product
+
+Author (s): Alex Fore
+"""
 import sys
 import os
 import copy
@@ -12,7 +17,7 @@ import RiverObs.NetCDFReachWriter
 
 class L2PixcToRiverTile(object):
     """
-    Does some stuff
+    Class for running RiverObs on a SWOT L2 PixelCloud data product
     """
     def __init__(self, l2pixc_file, index_file, sensor_file=None):
         self.pixc_file = l2pixc_file
@@ -32,11 +37,17 @@ class L2PixcToRiverTile(object):
                     in ('first', 'last')]
                 lon_keys = [a+'_'+b+'_lon' for a in ('inner', 'outer') for b
                     in ('first', 'last')]
-                lat = np.array([getattr(ifp, item) for item in lat_keys])
-                lon = np.array([getattr(ifp, item) for item in lon_keys])
+
+                attid = (ifp if self.sensor_file is not None else
+                         ifp.groups['pixel_cloud'])
+
+                lat = np.array([getattr(attid, item) for item in lat_keys])
+                lon = np.array([getattr(attid, item) for item in lon_keys])
             else:
-                lat = np.asarray(ifp.variables['latitude'][:])
-                lon = np.asarray(ifp.variables['longitude'][:])
+                data_dict = (ifp.variables if self.sensor_file is not None else
+                             ifp.groups['pixel_cloud'])
+                lat = np.asarray(data_dict['latitude'][:])
+                lon = np.asarray(data_dict['longitude'][:])
 
         mask = ~np.isnan(lat)
         return (lon[mask].min(), lat[mask].min(), lon[mask].max(),
@@ -45,21 +56,34 @@ class L2PixcToRiverTile(object):
     def do_river_processing(self):
         """Does the river processing"""
         print(self.config['trim_ends'])
+
+        # key/value arguments for constructing SWOTRiverEstimator
+        kwargs = {
+            'bounding_box': self.compute_bounding_box(),
+            'lat_kwd': 'latitude', 'lon_kwd': 'longitude',
+            'class_kwd': 'classification', 'height_kwd': 'height',
+            'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
+            'class_list': self.config['class_list'],
+            'xtrack_kwd': 'cross_track',
+            'fractional_inundation_kwd': 'continuous_classification',
+            'use_fractional_inundation': self.config['use_fractional_inundation'],
+            'use_segmentation': self.config['use_segmentation'],
+            'use_heights': self.config['use_heights'],
+            'min_points': self.config['min_points'],
+            'trim_ends': self.config['trim_ends'],
+            'verbose': True, 'store_obs': False,
+            'store_reaches': False, 'store_fits': False,
+            'output_file': self.index_file,
+            'proj': 'laea', 'x_0': 0, 'y_0': 0, 'lat_0': None, 'lon_0': None,
+            'subsample_factor': 1}
+
+        if self.sensor_file is None:
+            for key, value in kwargs.items():
+                if 'kwd' in key:
+                    kwargs[key] = "pixel_cloud/"+value
+
         river_estimator = SWOTRiver.SWOTRiverEstimator(
-            self.pixc_file, bounding_box=self.compute_bounding_box(),
-            lat_kwd='latitude', lon_kwd='longitude', class_kwd='classification',
-            height_kwd='height', class_list=self.config['class_list'],
-            xtrack_kwd='cross_track',
-            fractional_inundation_kwd='continuous_classification',
-            use_fractional_inundation=self.config['use_fractional_inundation'],
-            use_segmentation=self.config['use_segmentation'],
-            use_heights=self.config['use_heights'],
-            min_points=self.config['min_points'],
-            trim_ends=self.config['trim_ends'],
-            verbose=True, store_obs=False,
-            store_reaches=False, store_fits=False, output_file=self.index_file,
-            proj='laea', x_0=0, y_0=0, lat_0=None, lon_0=None,
-            subsample_factor=1)
+            self.pixc_file, **kwargs)
 
         river_estimator.get_reaches(
             self.config['shape_file_root'],
@@ -98,11 +122,16 @@ class L2PixcToRiverTile(object):
             print("Cant load CNES improved geolocation, skipping!")
             return
 
+        if self.sensor_file is None:
+            cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
+        else:
+            cnes_sensor = geoloc_river.Sensor.from_file(self.sensor_file)
+
         # compute improved geolocation
         lat_corr, lon_corr, height_corr = geoloc_river.geoloc_river(
             geoloc_river.PixelCloud.from_file(self.pixc_file),
             geoloc_river.PixcvecRiver(self.index_file),
-            geoloc_river.Sensor.from_file(self.sensor_file),
+            cnes_sensor,
             geoloc_river.RiverTile.from_node_outputs(self.node_outputs),
             fit_heights_per_reach=True, interpolate_pixc_between_nodes=True,
             method=self.config['geolocation_method'])
@@ -116,10 +145,17 @@ class L2PixcToRiverTile(object):
     def match_pixc_idx(self):
         """Matches the pixels from pixcvector to input pixc"""
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
-            nr_pixels = ifp.nr_pixels
-            pixc_idx = np.array(
-                ifp.variables['azimuth_index'][:] * int(nr_pixels) +
-                ifp.variables['range_index'][:])
+
+            if self.sensor_file is None:
+                nr_pixels = ifp.groups['pixel_cloud'].nr_pixels
+                azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
+                rng_index = ifp.groups['pixel_cloud']['range_index'][:]
+            else:
+                nr_pixels = ifp.nr_pixels
+                azi_index = ifp.variables['azimuth_index'][:]
+                rng_index = ifp.variables['range_index'][:]
+
+            pixc_idx = np.array(azi_index * int(nr_pixels) + rng_index)
 
         with netCDF4.Dataset(self.index_file, 'a') as ofp:
             pixcvec_idx = np.array(
