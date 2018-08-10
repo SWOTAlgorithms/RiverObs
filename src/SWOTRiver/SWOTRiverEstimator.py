@@ -924,7 +924,7 @@ class SWOTRiverEstimator(SWOTL2):
                     smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
                     load_inputs=load_inputs)
 
-            except ZeroDivisionError:
+            except (ZeroDivisionError, ValueError):
                 pass
 
             load_inputs = False
