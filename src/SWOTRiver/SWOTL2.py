@@ -111,7 +111,12 @@ class SWOTL2:
                  self.nc.groups else self.nc)
 
         for att_name, att_value in self.L2_META_KEY_DEFAULTS.items():
-            setattr(self, att_name, getattr(attid, att_name, att_value))
+            try:
+                att_value = self.getatt(att_name)
+            except AttributeError:
+                # use default
+                pass
+            setattr(self, att_name, att_value)
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
@@ -228,14 +233,15 @@ class SWOTL2:
 
         Subsamples input data based on self.subsample_factor (use for GDEMS!)
         """
-        # check for groups in variable string name
-        if '/' in var:
-            splits = var.split('/')
-            if len(splits) != 2:
-                raise Exception('Only supports group/varname datagroups')
-            data = self.nc.groups[splits[0]][splits[1]][:]
-        else:
+        try:
+            # try old style pixc first
             data = self.nc.variables[var][:]
+        except KeyError:
+            # then try new one with groups
+            try:
+                data = self.nc.groups['pixel_cloud'][var][:]
+            except (IndexError, KeyError):
+                raise KeyError
 
         if self.subsample_factor > 1:
             if len(data.shape) == 1:
@@ -253,6 +259,15 @@ class SWOTL2:
             data = data[self.index]
 
         return data
+
+    def getatt(self, attname):
+        try:
+            return getattr(self.nc, attname)
+        except AttributeError:
+            try:
+                return getattr(self.nc.groups['pixel_cloud'], attname)
+            except (KeyError, AttributeError):
+                raise AttributeError
 
     def project(self,
                 proj='laea',

@@ -77,11 +77,6 @@ class L2PixcToRiverTile(object):
             'proj': 'laea', 'x_0': 0, 'y_0': 0, 'lat_0': None, 'lon_0': None,
             'subsample_factor': 1}
 
-        if self.sensor_file is None:
-            for key, value in kwargs.items():
-                if 'kwd' in key:
-                    kwargs[key] = "pixel_cloud/"+value
-
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
 

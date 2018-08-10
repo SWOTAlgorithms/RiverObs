@@ -53,5 +53,18 @@ def main():
 
     RiverObs.NetCDFReachWriter.fixup_metadata(args.out_riverobs_file)
 
+    # optional shapefile outputs
+    if args.shpbasedir is not None:
+        try:
+            RiverObs.ShapeWriter.write(
+                river_tile_processor.reach_collection,
+                os.path.join(args.shpbasedir, 'nodes'),
+                os.path.join(args.shpbasedir, 'reaches'))
+
+        # No reaches found, skip writing of shapefiles
+        except IndexError:
+            pass
+
+
 if __name__ == "__main__":
     main()

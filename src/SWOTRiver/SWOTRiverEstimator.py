@@ -149,6 +149,8 @@ class SWOTRiverEstimator(SWOTL2):
                  lon_kwd='no_layover_longitude',
                  class_list=[2, 3, 4, 5],
                  class_kwd='classification',
+                 rngidx_kwd='range_index',
+                 aziidx_kwd='azimuth_index',
                  fractional_inundation_kwd='continuous_classification',
                  use_fractional_inundation=[True, True, False, False],
                  use_segmentation=[False, True, True, True],
@@ -198,6 +200,8 @@ class SWOTRiverEstimator(SWOTL2):
             lat_kwd=lat_kwd,
             lon_kwd=lon_kwd,
             class_kwd=class_kwd,
+            rngidx_kwd=rngidx_kwd,
+            aziidx_kwd=aziidx_kwd,
             min_points=min_points,
             verbose=verbose,
             proj=proj,
@@ -220,8 +224,10 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
-        self.xtrack = (self.get(xtrack_kwd)
-                       if xtrack_kwd in self.nc.variables.keys() else None)
+        try:
+            self.xtrack = self.get(xtrack_kwd)
+        except KeyError:
+            self.xtrack = None
 
         good = ~mask
         self.lat = self.lat[good]
@@ -244,26 +250,33 @@ class SWOTRiverEstimator(SWOTL2):
         # Try to read the pixel area from the L2 file, or compute it
         # from look angle and azimuth spacing, or from azimuth spacing
         # and ground spacing
-        if 'pixel_area' in self.nc.variables:
+
+        try:
+            # hopefully already there
             self.pixel_area = self.get('pixel_area')
 
-        else:
-            if 'no_layover_look_angle' in self.nc.variables:
+        except KeyError:
+            try:
+                # try compute with look angle
                 look_angle = self.get('no_layover_look_angle')[good]
                 incidence_angle = (look_angle) * (
                     1. + self.platform_height / self.earth_radius)
-                self.xtrack_res = (float(self.nc.range_resolution) / np.sin(
-                    np.radians(incidence_angle)))
-                self.pixel_area = float(
-                    self.nc.azimuth_spacing) * self.xtrack_res
+                range_resolution = float(self.getatt('range_resolution'))
+                azimuth_spacing = float(self.getatt('azimuth_spacing'))
+                self.xtrack_res = range_resolution / np.sin(
+                    np.radians(incidence_angle))
+                self.pixel_area = azimuth_spacing * self.xtrack_res
 
-            else:
-                if 'ground_spacing' in vars(self.nc):
-                    self.pixel_area = (float(self.nc.azimuth_spacing) * float(
-                        self.nc.ground_spacing) * np.ones(
-                            np.shape(self.h_noise)))
+            except KeyError:
+                try:
+                    # try compute azi / ground spacing (assume GDEM)
+                    azimuth_spacing = float(self.getatt('azimuth_spacing'))
+                    ground_spacing = float(self.getatt('ground_spacing'))
+                    self.pixel_area = (
+                        azimuth_spacing * ground_spacing *
+                        np.ones(np.shape(self.h_noise)))
 
-                else:
+                except AttributeError:
                     self.pixel_area = 10.0 * np.zeros(len(self.h_noise))
                     print("could not find correct pixel area parameters")
 
