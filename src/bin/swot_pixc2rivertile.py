@@ -40,7 +40,7 @@ def main():
     is_new_pixc = True if args.sensor_file is None else False
 
     l2pixc_to_rivertile = SWOTRiver.Estimate.L2PixcToRiverTile(
-            args.pixc_file, args.out_pixc_vector_file)
+            args.pixc_file, args.out_pixc_vector_file, args.sensor_file)
 
     l2pixc_to_rivertile.load_config(config)
     l2pixc_to_rivertile.do_river_processing()
