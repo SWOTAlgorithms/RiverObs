@@ -1,5 +1,6 @@
 import sys
 import os
+import copy
 import argparse
 import netCDF4
 import numpy as np
@@ -20,7 +21,8 @@ class L2PixcToRiverTile(object):
 
     def load_config(self, config):
         """Copies config object into self's storage from main"""
-        self.config = config
+        self.config = copy.deepcopy(config)
+        self.config['subsample_factor'] = 1
 
     def compute_bounding_box(self, from_attrs=True):
         """Get bounding box of self.pixc_file"""
@@ -100,7 +102,7 @@ class L2PixcToRiverTile(object):
         lat_corr, lon_corr, height_corr = geoloc_river.geoloc_river(
             geoloc_river.PixelCloud.from_file(self.pixc_file),
             geoloc_river.PixcvecRiver(self.index_file),
-            geoloc_river.Sensor.from_dict(self.sensor),
+            geoloc_river.Sensor.from_file(self.sensor_file),
             geoloc_river.RiverTile.from_node_outputs(self.node_outputs),
             fit_heights_per_reach=True, interpolate_pixc_between_nodes=True,
             method=self.config['geolocation_method'])
