@@ -86,6 +86,8 @@ class SWOTL2:
                  lat_kwd='no_layover_latitude',
                  lon_kwd='no_layover_longitude',
                  class_kwd='no_layover_classification',
+                 rngidx_kwd='range_index',
+                 aziidx_kwd='azimuth_index',
                  min_points=100,
                  project_data=True,
                  verbose=False,
@@ -105,8 +107,11 @@ class SWOTL2:
         self.nc = netCDF4.Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
 
+        attid = (self.nc.groups['pixel_cloud'] if 'pixel_cloud' in
+                 self.nc.groups else self.nc)
+
         for att_name, att_value in self.L2_META_KEY_DEFAULTS.items():
-            setattr(self, att_name, getattr(self.nc, att_name, att_value))
+            setattr(self, att_name, getattr(attid, att_name, att_value))
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
@@ -120,8 +125,8 @@ class SWOTL2:
 
         # Put in the radar/image coordinates too
         try:
-            self.img_x = self.get('range_index')
-            self.img_y = self.get('azimuth_index')
+            self.img_x = self.get(rngidx_kwd)
+            self.img_y = self.get(aziidx_kwd)
 
         except KeyError:
             try:
@@ -227,7 +232,7 @@ class SWOTL2:
         if '/' in var:
             splits = var.split('/')
             if len(splits) != 2:
-                raise Exception('Only supports /group/varname datagroups')
+                raise Exception('Only supports group/varname datagroups')
             data = self.nc.groups[splits[0]][splits[1]][:]
         else:
             data = self.nc.variables[var][:]
