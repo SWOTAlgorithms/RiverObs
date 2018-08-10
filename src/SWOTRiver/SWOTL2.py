@@ -230,18 +230,8 @@ class SWOTL2:
 
         Subsamples input data based on self.subsample_factor (use for GDEMS!)
         """
-<<<<<<< HEAD
-        # check for groups in variable string name
-        if '/' in var:
-            splits = var.split('/')
-            if len(splits) != 2:
-                raise Exception('Only supports group/varname datagroups')
-            data = self.nc.groups[splits[0]][splits[1]][:]
-        else:
-=======
         try:
             # try old style pixc first
->>>>>>> refactor-sds-into-riverobs
             data = self.nc.variables[var][:]
         except KeyError:
             # then try new one with groups
