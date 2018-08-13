@@ -57,7 +57,7 @@ def main():
     if args.shpbasedir is not None:
         try:
             RiverObs.ShapeWriter.write(
-                river_tile_processor.reach_collection,
+                l2pixc_to_rivertile.reach_collection,
                 os.path.join(args.shpbasedir, 'nodes'),
                 os.path.join(args.shpbasedir, 'reaches'))
 
