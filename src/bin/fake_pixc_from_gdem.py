@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 """
-fake_pixc_from_gdem.py
-
-Makes a fake pixc from a gdem
+fake_pixc_from_gdem.py: Makes a fake pixc from a gdem
 
 Useage: fake_pixc_from_gdem.py pixc.nc gdem.nc fake_pixc.nc
+
+Author (s): Alex Fore
 """
 import argparse
 import os
 import netCDF4
 import numpy as np
-
 
 def main():
     parser = argparse.ArgumentParser()
