@@ -149,6 +149,8 @@ class SWOTRiverEstimator(SWOTL2):
                  lon_kwd='no_layover_longitude',
                  class_list=[2, 3, 4, 5],
                  class_kwd='classification',
+                 rngidx_kwd='range_index',
+                 aziidx_kwd='azimuth_index',
                  fractional_inundation_kwd='continuous_classification',
                  use_fractional_inundation=[True, True, False, False],
                  use_segmentation=[False, True, True, True],
@@ -198,6 +200,8 @@ class SWOTRiverEstimator(SWOTL2):
             lat_kwd=lat_kwd,
             lon_kwd=lon_kwd,
             class_kwd=class_kwd,
+            rngidx_kwd=rngidx_kwd,
+            aziidx_kwd=aziidx_kwd,
             min_points=min_points,
             verbose=verbose,
             proj=proj,
@@ -220,8 +224,10 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
-        self.xtrack = (self.get(xtrack_kwd)
-                       if xtrack_kwd in self.nc.variables.keys() else None)
+        try:
+            self.xtrack = self.get(xtrack_kwd)
+        except KeyError:
+            self.xtrack = None
 
         good = ~mask
         self.lat = self.lat[good]
@@ -244,26 +250,33 @@ class SWOTRiverEstimator(SWOTL2):
         # Try to read the pixel area from the L2 file, or compute it
         # from look angle and azimuth spacing, or from azimuth spacing
         # and ground spacing
-        if 'pixel_area' in self.nc.variables:
+
+        try:
+            # hopefully already there
             self.pixel_area = self.get('pixel_area')
 
-        else:
-            if 'no_layover_look_angle' in self.nc.variables:
+        except KeyError:
+            try:
+                # try compute with look angle
                 look_angle = self.get('no_layover_look_angle')[good]
                 incidence_angle = (look_angle) * (
                     1. + self.platform_height / self.earth_radius)
-                self.xtrack_res = (float(self.nc.range_resolution) / np.sin(
-                    np.radians(incidence_angle)))
-                self.pixel_area = float(
-                    self.nc.azimuth_spacing) * self.xtrack_res
+                range_resolution = float(self.getatt('range_resolution'))
+                azimuth_spacing = float(self.getatt('azimuth_spacing'))
+                self.xtrack_res = range_resolution / np.sin(
+                    np.radians(incidence_angle))
+                self.pixel_area = azimuth_spacing * self.xtrack_res
 
-            else:
-                if 'ground_spacing' in vars(self.nc):
-                    self.pixel_area = (float(self.nc.azimuth_spacing) * float(
-                        self.nc.ground_spacing) * np.ones(
-                            np.shape(self.h_noise)))
+            except KeyError:
+                try:
+                    # try compute azi / ground spacing (assume GDEM)
+                    azimuth_spacing = float(self.getatt('azimuth_spacing'))
+                    ground_spacing = float(self.getatt('ground_spacing'))
+                    self.pixel_area = (
+                        azimuth_spacing * ground_spacing *
+                        np.ones(np.shape(self.h_noise)))
 
-                else:
+                except AttributeError:
                     self.pixel_area = 10.0 * np.zeros(len(self.h_noise))
                     print("could not find correct pixel area parameters")
 
@@ -944,7 +957,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Get the reach statistics for this subreach
         reach_stats = self.get_reach_stats(
-            reach_id, reach_idx, smin, smax, lon_median, lat_median,
+            reach_id, reach_idx, s_median, lon_median, lat_median,
             xtrack_median, width_ptp, width_std, width_area, area, nresults)
 
         # type-cast reach outputs explicity
@@ -958,6 +971,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.float32(reach_stats['length'])
         reach_stats['smin'] = np.float32(reach_stats['smin'])
         reach_stats['smax'] = np.float32(reach_stats['smax'])
+        reach_stats['save'] = np.float32(reach_stats['save'])
         reach_stats['w_ptp_ave'] = np.float32(reach_stats['w_ptp_ave'])
         reach_stats['w_ptp_min'] = np.float32(reach_stats['w_ptp_min'])
         reach_stats['w_ptp_max'] = np.float32(reach_stats['w_ptp_max'])
@@ -1000,18 +1014,19 @@ class SWOTRiverEstimator(SWOTL2):
         nresults = collections.OrderedDict()
         load_inputs = True
         for fit_type in fit_types:
-            nresults[fit_type] = self.fitter.fit_linear(
-                smin,
-                smax,
-                'h_noise',
-                fit=fit_type,
-                mean_stat=mean_stat,
-                load_inputs=load_inputs)
+
+            try:
+                nresults[fit_type] = self.fitter.fit_linear(
+                    smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
+                    load_inputs=load_inputs)
+
+            except (ZeroDivisionError, ValueError):
+                pass
 
             load_inputs = False
         return nresults
 
-    def get_reach_stats(self, reach_id, reach_idx, smin, smax, lon_median,
+    def get_reach_stats(self, reach_id, reach_idx, s_median, lon_median,
                         lat_median, xtrack_median, width_ptp, width_std,
                         width_area, area, nresults):
         """Get statistics for a given reach."""
@@ -1024,9 +1039,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['lat_min'] = np.min(lat_median)
         reach_stats['lat_max'] = np.max(lat_median)
         reach_stats['area'] = np.sum(area)
-        reach_stats['length'] = smax - smin
-        reach_stats['smin'] = smin
-        reach_stats['smax'] = smax
+        reach_stats['length'] = np.max(s_median) - np.min(s_median)
+        reach_stats['smin'] = np.min(s_median)
+        reach_stats['smax'] = np.max(s_median)
+        reach_stats['save'] = np.median(s_median)
         reach_stats['w_ptp_ave'] = np.median(width_ptp)
         reach_stats['w_ptp_min'] = np.min(width_ptp)
         reach_stats['w_ptp_max'] = np.max(width_ptp)

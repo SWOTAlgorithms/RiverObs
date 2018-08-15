@@ -86,6 +86,8 @@ class SWOTL2:
                  lat_kwd='no_layover_latitude',
                  lon_kwd='no_layover_longitude',
                  class_kwd='no_layover_classification',
+                 rngidx_kwd='range_index',
+                 aziidx_kwd='azimuth_index',
                  min_points=100,
                  project_data=True,
                  verbose=False,
@@ -106,7 +108,12 @@ class SWOTL2:
         if self.verbose: print('Dataset opened')
 
         for att_name, att_value in self.L2_META_KEY_DEFAULTS.items():
-            setattr(self, att_name, getattr(self.nc, att_name, att_value))
+            try:
+                att_value = self.getatt(att_name)
+            except AttributeError:
+                # use default
+                pass
+            setattr(self, att_name, att_value)
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
@@ -120,8 +127,8 @@ class SWOTL2:
 
         # Put in the radar/image coordinates too
         try:
-            self.img_x = self.get('range_index')
-            self.img_y = self.get('azimuth_index')
+            self.img_x = self.get(rngidx_kwd)
+            self.img_y = self.get(aziidx_kwd)
 
         except KeyError:
             try:
@@ -223,8 +230,16 @@ class SWOTL2:
 
         Subsamples input data based on self.subsample_factor (use for GDEMS!)
         """
-        # Much faster to read contigous data then sice then slice while reading
-        data = self.nc.variables[var][:]
+        try:
+            # try old style pixc first
+            data = self.nc.variables[var][:]
+        except KeyError:
+            # then try new one with groups
+            try:
+                data = self.nc.groups['pixel_cloud'][var][:]
+            except (IndexError, KeyError):
+                raise KeyError
+
         if self.subsample_factor > 1:
             if len(data.shape) == 1:
                 data = data[::self.subsample_factor]
@@ -241,6 +256,15 @@ class SWOTL2:
             data = data[self.index]
 
         return data
+
+    def getatt(self, attname):
+        try:
+            return getattr(self.nc, attname)
+        except AttributeError:
+            try:
+                return getattr(self.nc.groups['pixel_cloud'], attname)
+            except (KeyError, AttributeError):
+                raise AttributeError
 
     def project(self,
                 proj='laea',

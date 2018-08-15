@@ -40,7 +40,8 @@ class FitRiver:
             formal errors for weighting the node; e.g., 'stderr', 'std', etc.
         """
 
-        s = np.asarray(self.river_obs.get_node_stat(mean_stat, 's'))
+        s = np.asarray(self.river_obs.get_node_stat(
+            mean_stat, 's', good_flag='h_flg'))
 
         good = (s >= smin) & (s <= smax)
 
@@ -53,13 +54,14 @@ class FitRiver:
 
         # Observations
 
-        y = np.asarray(self.river_obs.get_node_stat(mean_stat, fit_var))[good]
+        y = np.asarray(self.river_obs.get_node_stat(
+            mean_stat, fit_var, good_flag='h_flg'))[good]
 
         # Weights
-        tmp = np.asarray(self.river_obs.get_node_stat(err_stat, fit_var))[good]
+        tmp = np.asarray(self.river_obs.get_node_stat(
+            err_stat, fit_var, good_flag='h_flg'))[good]
         w = 1.0 / tmp
         w[tmp <= 0] = 1.0
-        #w = 1./np.asarray( self.river_obs.get_node_stat(err_stat,fit_var) )[good]
 
         # Fitting matrix for linear fit
 
@@ -100,13 +102,11 @@ class FitRiver:
         """
 
         # Get the fit inputs, if desired
-
         if load_inputs or (not self.inputs_computed):
             self.s, self.y, self.X, self.w = self.get_linear_fit_inputs(
                 smin, smax, fit_var, mean_stat=mean_stat, err_stat=err_stat)
 
         # Initialize the model depending on the fit
-
         if fit == 'OLS':
             self.model = statsmodels.api.OLS(self.y, self.X)
         elif fit == 'WLS':
@@ -115,7 +115,6 @@ class FitRiver:
             self.model = statsmodels.api.RLM(self.y, self.X)
 
         # Perform the fit and return
-
         self.results = self.model.fit()
 
         return self.results
