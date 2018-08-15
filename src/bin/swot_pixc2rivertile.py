@@ -2,6 +2,14 @@
 """
 Stand-in for RiverObs SDS-like processing
 
+Useage:
+swot-pixc2rivertile.py l2pixc rivertile.nc pixcvector.nc config.rdf
+
+Optional args:
+--shpbasedir dirname    -- writes shapefiles in dirname/reaches dirname/nodes
+--sensor-file sensor.nc -- gets sensor info from sensor.nc
+
+
 template config file:
 
 width_db_file             (-) = None
