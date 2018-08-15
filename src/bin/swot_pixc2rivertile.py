@@ -2,6 +2,40 @@
 """
 Stand-in for RiverObs SDS-like processing
 
+template config file:
+
+width_db_file             (-) = None
+use_width_db              (-) = False
+shape_file_root           (-) = /u/onde-r0/fore/data/River_Prior_Database/ADT_priordatabase_reaches_polylines/NA_reaches_data_discharge_depth_chn_grdc_revised_GCS
+class_list                (-) = [2, 3, 4, 5, 6]
+use_fractional_inundation (-) = [True, True, False, False, False]
+use_segmentation          (-) = [False, True, True, True, True]
+use_heights               (-) = [False, False, True, False, False]
+min_points                (-) = 100
+clip_buffer               (-) = 20.0
+ds                        (-) = 300.0
+refine_centerline         (-) = False
+smooth                    (-) = 0.01
+alpha                     (-) = 1
+max_iter                  (-) = 1
+scalar_max_width          (-) = 600.0
+minobs                    (-) = 10
+trim_ends                 (-) = False
+fit_types                 (-) = ['OLS', 'WLS', 'RLM']
+min_fit_points            (-) = 3
+do_improved_geolocation   (-) = True
+geolocation_method        (-) = taylor
+
+Config file just has processing parameters, no filenames (shape_file_root
+will be overwritten in SDS env with "prior_rivers" in current
+working directory by SDS pre-processor).
+
+For using with GDEMs change to these key/value pairs:
+class_list                (-) = [1,]
+use_fractional_inundation (-) = [False,]
+use_segmentation          (-) = [True,]
+use_heights               (-) = [True,]
+
 Author (s): Alex Fore
 """
 import sys
@@ -36,8 +70,6 @@ def main():
             'geolocation_method', 'shape_file_root']]):
             continue
         config[key] = ast.literal_eval(config[key])
-
-    is_new_pixc = True if args.sensor_file is None else False
 
     l2pixc_to_rivertile = SWOTRiver.Estimate.L2PixcToRiverTile(
             args.pixc_file, args.out_pixc_vector_file, args.sensor_file)

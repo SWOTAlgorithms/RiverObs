@@ -24,6 +24,10 @@ class L2PixcToRiverTile(object):
         self.index_file = index_file
         self.sensor_file = sensor_file
 
+        self.is_new_pixc = False
+        with netCDF4.Dataset(self.pixc_file) as ifp:
+            self.is_new_pixc = 'pixel_cloud' in ifp.groups
+
     def load_config(self, config):
         """Copies config object into self's storage from main"""
         self.config = copy.deepcopy(config)
@@ -38,14 +42,15 @@ class L2PixcToRiverTile(object):
                 lon_keys = [a+'_'+b+'_lon' for a in ('inner', 'outer') for b
                     in ('first', 'last')]
 
-                attid = (ifp if self.sensor_file is not None else
+                attid = (ifp if not self.is_new_pixc else
                          ifp.groups['pixel_cloud'])
 
                 lat = np.array([getattr(attid, item) for item in lat_keys])
                 lon = np.array([getattr(attid, item) for item in lon_keys])
             else:
-                data_dict = (ifp.variables if self.sensor_file is not None else
+                data_dict = (ifp.variables if not self.is_new_pixc else
                              ifp.groups['pixel_cloud'])
+
                 lat = np.asarray(data_dict['latitude'][:])
                 lon = np.asarray(data_dict['longitude'][:])
 
@@ -111,6 +116,10 @@ class L2PixcToRiverTile(object):
             self.config['do_improved_geolocation']):
             return
 
+        if self.sensor_file is None and not self.is_new_pixc:
+            print("Sensor information not provided, skipping improved ",
+                  "geolocation")
+
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
         except ModuleNotFoundError:
@@ -141,7 +150,7 @@ class L2PixcToRiverTile(object):
         """Matches the pixels from pixcvector to input pixc"""
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
 
-            if self.sensor_file is None:
+            if self.is_new_pixc:
                 nr_pixels = ifp.groups['pixel_cloud'].nr_pixels
                 azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
                 rng_index = ifp.groups['pixel_cloud']['range_index'][:]
