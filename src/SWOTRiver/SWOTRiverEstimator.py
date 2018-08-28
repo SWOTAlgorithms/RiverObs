@@ -1052,7 +1052,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_std_ave'] = np.median(width_std)
         reach_stats['w_std_min'] = np.min(width_std)
         reach_stats['w_std_max'] = np.max(width_std)
-        reach_stats['w_area_ave'] = np.sum(width_area) / reach_stats['length']
+        reach_stats['w_area_ave'] = np.sum(area) / reach_stats['length']
         reach_stats['w_area_min'] = np.min(width_area)
         reach_stats['w_area_max'] = np.max(width_area)
         if xtrack_median is not None:

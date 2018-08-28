@@ -138,14 +138,14 @@ class Centerline:
 
         # If resampling is desired, find the new s, x, and y
         if ds is not None:
-            ns = int(self.s[-1] / ds + 1)
+            ns = int(self.s[-1] / ds)
             if ns < 2:
                 raise CenterLineException(
                     'This ds is too large for the data set:', ds, ns,
                     self.s[-1])
 
-            self.ds = self.s[-1] / (ns - 1)
-            self.s = np.arange(ns) * self.ds
+            self.ds = self.s[-1] / ns
+            self.s = (np.arange(ns)+0.5) * self.ds
             self.x = scipy.interpolate.splev(self.s, self.xtck)
             self.y = scipy.interpolate.splev(self.s, self.ytck)
             if obs is not None:
