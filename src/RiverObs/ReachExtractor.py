@@ -108,6 +108,8 @@ class ReachExtractor:
                     reach_index = record[j]
                 if field == 'reachID':  #new database
                     reach_index = record[j]
+                if field == 'Reach_ID':  #osu centerline
+                    reach_index = record[j]                    
                 #if field == 'Wmean':#new database mean width
                 #    max_width = record[j]
                 #    print "max width:", max_width
