@@ -19,12 +19,15 @@ class L2PixcToRiverTile(object):
     """
     Class for running RiverObs on a SWOT L2 PixelCloud data product
     """
-    def __init__(self, l2pixc_file, index_file, sensor_file=None, is_new_pixc=None):
+    def __init__(self, l2pixc_file, index_file, sensor_file=None,
+                 is_new_pixc=None):
+
         self.pixc_file = l2pixc_file
         self.index_file = index_file
         self.sensor_file = sensor_file
         self.is_new_pixc = is_new_pixc
 
+        # if is_new_pixc is not supplied, test pixc file to see if it is true
         if self.is_new_pixc is None:
             self.is_new_pixc = False
             with netCDF4.Dataset(self.pixc_file) as ifp:
