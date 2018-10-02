@@ -192,11 +192,5 @@ class L2PixcToRiverTile(object):
 
             for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
                                         self.reach_outputs['lake_flag']):
-                # trap out of range / missing data
-                if lake_flag < 0 or lake_flag > 255:
-                    uint8_flg = 255
-                else:
-                    uint8_flg = lake_flag
-
-                var_lake_flag[pixc_reach == reach] = uint8_flg
+                var_lake_flag[pixc_reach == reach] = lake_flag
 

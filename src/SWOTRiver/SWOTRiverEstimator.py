@@ -998,7 +998,14 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['slp_nr'] = np.float32(reach_stats['slp_nr'])
         reach_stats['nr_rsqrd'] = np.float32(reach_stats['nr_rsqrd'])
         reach_stats['nr_mse'] = np.float32(reach_stats['nr_mse'])
-        reach_stats['lake_flag'] = np.uint8(reach.metadata['lakeFlag'])
+
+        # trap out of range / missing data
+        if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
+            uint8_flg = 255
+        else:
+            uint8_flg = reach.metadata['lakeFlag']
+
+        reach_stats['lake_flag'] = uint8_flg
 
         river_reach.metadata = reach_stats
         return river_reach
