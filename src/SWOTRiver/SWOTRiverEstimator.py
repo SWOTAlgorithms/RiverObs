@@ -998,6 +998,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['slp_nr'] = np.float32(reach_stats['slp_nr'])
         reach_stats['nr_rsqrd'] = np.float32(reach_stats['nr_rsqrd'])
         reach_stats['nr_mse'] = np.float32(reach_stats['nr_mse'])
+        reach_stats['lake_flag'] = np.uint8(reach.metadata['lakeFlag'])
 
         river_reach.metadata = reach_stats
         return river_reach

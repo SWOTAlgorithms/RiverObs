@@ -177,3 +177,26 @@ class L2PixcToRiverTile(object):
             var = ofp.createVariable(
                 'pixc_index', pixc_index.dtype.str, ('record', ))
             var[:] = pixc_index[:]
+
+    def flag_lakes_pixc(self):
+        """
+        Adds a lake/river flag from prior database to pixcvector
+        """
+        with netCDF4.Dataset(self.index_file, 'a') as ofp:
+            pixc_reach = ofp.variables['reach_index'][:]
+
+            # make lake_flag dataset and fill with 255
+            var_lake_flag = ofp.createVariable(
+                'lake_flag', np.dtype('uint8'), ('record', ))
+            var_lake_flag[:] = 255*np.ones(pixc_reach.shape)
+
+            for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
+                                        self.reach_outputs['lake_flag']):
+                # trap out of range / missing data
+                if lake_flag < 0 or lake_flag > 255:
+                    uint8_flg = 255
+                else:
+                    uint8_flg = lake_flag
+
+                var_lake_flag[pixc_reach == reach] = uint8_flg
+

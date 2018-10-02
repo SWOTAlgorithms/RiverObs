@@ -86,6 +86,7 @@ def main():
     l2pixc_to_rivertile.do_river_processing()
     l2pixc_to_rivertile.match_pixc_idx()
     l2pixc_to_rivertile.do_improved_geolocation()
+    l2pixc_to_rivertile.flag_lakes_pixc()
 
     RiverObs.NetCDFReachWriter.write(
         args.out_riverobs_file, l2pixc_to_rivertile.node_outputs,
