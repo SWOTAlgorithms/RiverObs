@@ -24,9 +24,7 @@ from Centerline.Centerline import CenterLineException
 class SWOTRiverEstimator(SWOTL2):
     """
     Given a SWOTL2 file, fit all of the reaches observed and output results.
-
     This class is derived from the SWOTL2 class.
-
     This class contains four basic components:
     1. It is a subclass of the SWOTL2, and therefor is a LatLonRegion and
     also contains SWOT data.
@@ -35,14 +33,11 @@ class SWOTRiverEstimator(SWOTL2):
     3. It keeps a dictionary of RiverReach instances, containing the results
     of height/slope fitting and width estimation.
     4. A dictionary of FitRiver instances, containing the full fit diagnostics.
-
     Keeping copies for each observation, although useful for visualization,
     can be a tax on memory for a large number of reaches and observation,
     so that storing can be turned off, if so desired.
-
     Parameters
     ----------
-
     height_kwd : str
         name of netcdf variable to use as a measurement.
     true_height_kwd: str
@@ -121,16 +116,12 @@ class SWOTRiverEstimator(SWOTL2):
         Defines which classes should the assumed as water for segmatation
         algorithm to label disjoint features
     The final set of keywords are projection options for pyproj. See Notes.
-
     Notes
     -----
-
     A full list of projection options to set plus explanations of their
     meaning can be found here: https://trac.osgeo.org/proj/wiki/GenParms
-
     The default projection is Lambert equiarea, which has a proj4 string with
     the following parameters:
-
     +proj=laea
     +lat_0=Latitude at projection center, set to bounding box center lat
     +lon_0=Longitude at projection center, set to bounding box center lon
@@ -414,10 +405,8 @@ class SWOTRiverEstimator(SWOTL2):
                         enhanced=False):
         """
         Process all of the reaches in the data bounding box.
-
         Parameters
         ----------
-
         scalar_max_width : float, default 600
             How far away to look for points
         minobs : int, default 10
@@ -442,10 +431,8 @@ class SWOTRiverEstimator(SWOTL2):
         max_window_size : max window for gaussian averaging, default is 10km
         min_sigma : min sigma for gaussian averaging, default is 1km
         window_size_sigma_ratio : default is 5
-
         Returns
         -------
-
         Returns a list containg a RiverReach instance for each reach in the
         bounding box.
         """
@@ -893,7 +880,6 @@ class SWOTRiverEstimator(SWOTL2):
                       fit_types=['OLS', 'WLS', 'RLM']):
         """
         Estimate the width, height, and slope for one reach.
-
         Parameters
         ----------
         river_reach : partially populated RiverReach instance with node
@@ -912,11 +898,9 @@ class SWOTRiverEstimator(SWOTL2):
             Minimum number of populated nodes required for height/slope fit
         fit_types : list
             A list of fit types to perform. Can contain 'OLS','WLS','RLM'.
-
         Returns
         -------
         Nothing
-
         Modifies river_reach with the reach quantities (river_reach.metadata)
         """
         # Initialize the fitter
@@ -998,14 +982,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['slp_nr'] = np.float32(reach_stats['slp_nr'])
         reach_stats['nr_rsqrd'] = np.float32(reach_stats['nr_rsqrd'])
         reach_stats['nr_mse'] = np.float32(reach_stats['nr_mse'])
-
-        # trap out of range / missing data
-        if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
-            uint8_flg = 255
-        else:
-            uint8_flg = reach.metadata['lakeFlag']
-
-        reach_stats['lake_flag'] = uint8_flg
+        reach_stats['lake_flag'] = np.uint8(reach.metadata['lakeFlag'])
 
         river_reach.metadata = reach_stats
         return river_reach
@@ -1173,78 +1150,84 @@ class SWOTRiverEstimator(SWOTL2):
         node height using Gaussian moving average.
         For more information, pleasec see Dr. Renato Frasson's paper:
         https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017WR020887
-
         inputs:
         river_reach_collection: collection of river_reach instance
         max_window_size: the max of Gaussian window, default is 10km
         min_sigma : min sigma for gaussian averaging, default is 1km
         window_size_sigma_ratio : default is 5
-
         output:
         enhanced_slopes: enhanced reach slopes
         """
         # get list of reach index
         n_reach = len(river_reach_collection)
-        ind = [reach.reach_indx[0] for reach in river_reach_collection]
-
-        enhanced_slopes = []
-        for river_reach in river_reach_collection:
-
-            this_reach_len = river_reach.s.max() - river_reach.s.min()
-            this_reach_id = river_reach.reach_indx[0]
-
-            if enhanced:
-                # Build up array of data to be smoothed from downstream to
-                # upstream.  Adjust along-reach to be cumulative across
-                # reach boundaries.
-                first_node = 0
-                distances = np.array([])
-                heights = np.array([])
-
-                if this_reach_id < n_reach:
-                    reach_downstream = river_reach_collection[
-                        ind.index(this_reach_id+1)]
-                    distances = np.concatenate([
-                        reach_downstream.s, distances])
-                    heights = np.concatenate([
-                        reach_downstream.h_n_ave, heights])
-
-                distances = np.concatenate([
-                    river_reach.s, distances+river_reach.s[-1]])
-                heights = np.concatenate([river_reach.h_n_ave, heights])
-
-                if this_reach_id > 1:
-                    reach_upstream = river_reach_collection[
-                        ind.index(this_reach_id-1)]
-                    first_node = first_node + len(reach_upstream.h_n_ave)
-
-                    distances = np.concatenate([
-                        reach_upstream.s, distances+reach_upstream.s[-1]])
-                    heights = np.concatenate([
-                        reach_upstream.h_n_ave, heights])
-
-                last_node = first_node + len(river_reach.h_n_ave) - 1
-
-                # window size and sigma for Gaussian averaging
-                window_size = np.min([max_window_size, this_reach_len])
-                sigma = np.max([
-                    min_sigma, window_size/window_size_sigma_ratio])
-
-                # smooth h_n_ave, and get slope
-                slope = np.polyfit(distances, heights, 1)[0]
-                heights_detrend = heights - slope*distances
-                heights_smooth = self.gaussian_averaging(
-                    distances, heights_detrend, window_size, sigma)
-                heights_smooth = heights_smooth + slope*(
-                    distances - distances[0])
-                enhanced_slopes.append(
-                    (heights_smooth[last_node] - heights_smooth[first_node]
-                    )/this_reach_len)
-
+        
+        ind=[]
+        for reach in river_reach_collection:
+            if len(reach.reach_indx) == 0:
+                ind.append(None)
             else:
-                enhanced_slopes.append(
-                    (river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])
-                    /this_reach_len)
+                ind.append(reach.reach_indx[0])
+        enhanced_slopes = []
+        
+        for river_reach in river_reach_collection:
+            if len(river_reach.reach_indx) == 0:
+                enhanced_slopes.append(None)
+            else:
+                this_reach_len = river_reach.s.max() - river_reach.s.min()
+                this_reach_id = river_reach.reach_indx[0]
+
+                if enhanced:
+                    # Build up array of data to be smoothed from downstream to
+                    # upstream.  Adjust along-reach to be cumulative across
+                    # reach boundaries.
+                    first_node = 0
+                    distances = np.array([])
+                    heights = np.array([])
+
+                    if this_reach_id < n_reach:
+                        reach_downstream = river_reach_collection[
+                            ind.index(this_reach_id+1)]
+                        distances = np.concatenate([
+                            reach_downstream.s, distances])
+                        heights = np.concatenate([
+                            reach_downstream.h_n_ave, heights])
+
+                    distances = np.concatenate([
+                        river_reach.s, distances+river_reach.s[-1]])
+                    heights = np.concatenate([river_reach.h_n_ave, heights])
+
+                    if this_reach_id > 1:
+                        reach_upstream = river_reach_collection[
+                            ind.index(this_reach_id-1)]
+                        first_node = first_node + len(reach_upstream.h_n_ave)
+
+                        distances = np.concatenate([
+                            reach_upstream.s, distances+reach_upstream.s[-1]])
+                        heights = np.concatenate([
+                            reach_upstream.h_n_ave, heights])
+
+                    last_node = first_node + len(river_reach.h_n_ave) - 1
+
+                    # window size and sigma for Gaussian averaging
+                    window_size = np.min([max_window_size, this_reach_len])
+                    sigma = np.max([
+                        min_sigma, window_size/window_size_sigma_ratio])
+
+                    # smooth h_n_ave, and get slope
+                    slope = np.polyfit(distances, heights, 1)[0]
+                    heights_detrend = heights - slope*distances
+                    heights_smooth = self.gaussian_averaging(
+                        distances, heights_detrend, window_size, sigma)
+                    heights_smooth = heights_smooth + slope*(
+                        distances - distances[0])
+                    enhanced_slopes.append(
+                        (heights_smooth[last_node] - heights_smooth[first_node]
+                        )/this_reach_len)
+
+                else:
+                    enhanced_slopes.append(
+                        (river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])
+                        /this_reach_len)
         return enhanced_slopes
 
     @staticmethod
@@ -1255,7 +1238,6 @@ class SWOTRiverEstimator(SWOTL2):
         heights:     water heights
         window_size: size of data window to use for averaging
         sigma:       STD of Gaussian used for averaging
-
         outputs:
         smooth_heights : smoothed elevations
         """
