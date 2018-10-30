@@ -75,7 +75,7 @@ class L2PixcToRiverTile(object):
             'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
             'class_list': self.config['class_list'],
             'xtrack_kwd': 'cross_track',
-            'fractional_inundation_kwd': 'continuous_classification',
+            'fractional_inundation_kwd': self.config['fractional_inundation_kwd'],
             'use_fractional_inundation': self.config['use_fractional_inundation'],
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],
