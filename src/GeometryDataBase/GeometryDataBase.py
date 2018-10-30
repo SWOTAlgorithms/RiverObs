@@ -12,6 +12,7 @@ import os
 import pysal
 import rtree
 import shapely.geometry
+import warnings
 
 
 def bbox_generator_3D(shape, dbf, dt, tindex=1, store_obj=False):
@@ -145,6 +146,13 @@ class GeometryDataBase2D:
                 os.path.exists(shape_file_root + '.dat')):
             print("Rtree data base does not exist. Create it now.")
             write_shape_rtree_2D(shape_file_root, store_obj=store_obj)
+
+        rtree_time = os.path.getctime(shape_file_root + '.dat')
+        shape_time = os.path.getctime(shape_file_root + '.shp')
+        if shape_time > rtree_time:
+            warnings.warn(
+                'Shape file newer than rtree database,'
+                + ' you may want to update/delete the old database')
 
         self.shape = pysal.open(shape_file_root + '.shp')
         p = rtree.index.Property()
