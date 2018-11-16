@@ -3,7 +3,7 @@
 Stand-in for RiverObs SDS-like processing
 
 Useage:
-swot-pixc2rivertile.py l2pixc rivertile.nc pixcvector.nc config.rdf
+swot_pixc2rivertile.py l2pixc rivertile.nc pixcvector.nc config.rdf
 
 Optional args:
 --shpbasedir dirname    -- writes shapefiles in dirname/reaches dirname/nodes
