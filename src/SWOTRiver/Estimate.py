@@ -67,6 +67,9 @@ class L2PixcToRiverTile(object):
         """Does the river processing"""
         print(self.config['trim_ends'])
 
+        if 'fractional_inundation_kwd' not in self.config:
+            self.config['fractional_inundation_kwd'] = 'water_frac'
+
         # key/value arguments for constructing SWOTRiverEstimator
         kwargs = {
             'bounding_box': self.compute_bounding_box(),
