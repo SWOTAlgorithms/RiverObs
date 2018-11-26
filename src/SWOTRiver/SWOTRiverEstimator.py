@@ -1130,10 +1130,8 @@ class SWOTRiverEstimator(SWOTL2):
                 'height_vectorproc', 'f8', 'record', fill_value=-9990000000)
 
             # copy attributes from pixel cloud product
-            for key in self.L2_META_KEY_DEFAULTS:
-                setattr(ofp, key, getattr(self, key))
-
-        return
+            for att_name in self.nc.__dict__:
+                setattr(ofp, att_name, getattr(self.nc, att_name))
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
                          cross_reach, reach_index, seg_lbl, h_flg, lat, lon,

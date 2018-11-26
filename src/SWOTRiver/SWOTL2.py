@@ -53,39 +53,13 @@ class SWOTL2:
     +x_0=False Easting, set to 0
     +y_0=False Northing, set to 0
     """
-    # keys: attributes to read from swotL2_file, values: defaults if not there
-    L2_META_KEY_DEFAULTS = {
-        'nr_lines': '',
-        'nr_pixels': '',
-        'azimuth_spacing': 3.125,
-        'range_spacing': '',
-        'pass_number': '',
-        'cycle_number': '',
-        'tile_ref': '',
-        'near_range': '',
-        'looks_to_efflooks': '',
-        'start_time': '',
-        'stop_time': '',
-        'noise_power_left': '',
-        'noise_power_right': '',
-        'wavelength': '',
-        'inner_first_lat': '',
-        'outer_first_lat': '',
-        'inner_first_lon': '',
-        'outer_first_lon': '',
-        'inner_last_lat': '',
-        'outer_last_lat': '',
-        'inner_last_lon': '',
-        'outer_last_lon': ''
-    }
-
     def __init__(self,
                  swotL2_file,
                  bounding_box=None,
                  class_list=[1],
-                 lat_kwd='no_layover_latitude',
-                 lon_kwd='no_layover_longitude',
-                 class_kwd='no_layover_classification',
+                 lat_kwd='latitude',
+                 lon_kwd='longitude',
+                 class_kwd='classification',
                  rngidx_kwd='range_index',
                  aziidx_kwd='azimuth_index',
                  min_points=100,
@@ -106,14 +80,6 @@ class SWOTL2:
         self.subsample_factor = subsample_factor
         self.nc = netCDF4.Dataset(swotL2_file)
         if self.verbose: print('Dataset opened')
-
-        for att_name, att_value in self.L2_META_KEY_DEFAULTS.items():
-            try:
-                att_value = self.getatt(att_name)
-            except AttributeError:
-                # use default
-                pass
-            setattr(self, att_name, att_value)
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
