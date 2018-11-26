@@ -19,12 +19,10 @@ class L2PixcToRiverTile(object):
     """
     Class for running RiverObs on a SWOT L2 PixelCloud data product
     """
-    def __init__(self, l2pixc_file, index_file, sensor_file=None,
-                 is_new_pixc=None):
+    def __init__(self, l2pixc_file, index_file, is_new_pixc=None):
 
         self.pixc_file = l2pixc_file
         self.index_file = index_file
-        self.sensor_file = sensor_file
         self.is_new_pixc = is_new_pixc
 
         # if is_new_pixc is not supplied, test pixc file to see if it is true
@@ -42,16 +40,23 @@ class L2PixcToRiverTile(object):
         """Get bounding box of self.pixc_file"""
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
             if from_attrs:
-                lat_keys = [a+'_'+b+'_lat' for a in ('inner', 'outer') for b
-                    in ('first', 'last')]
-                lon_keys = [a+'_'+b+'_lon' for a in ('inner', 'outer') for b
-                    in ('first', 'last')]
+                lat_keys = [a+'_'+b+'_latitude' for a in ('inner', 'outer')
+                    for b in ('first', 'last')]
+                lon_keys = [a+'_'+b+'_longitude' for a in ('inner', 'outer')
+                    for b in ('first', 'last')]
+                try:
+                    lat = np.array([getattr(ifp, item) for item in lat_keys])
+                    lon = np.array([getattr(ifp, item) for item in lon_keys])
 
-                attid = (ifp if not self.is_new_pixc else
-                         ifp.groups['pixel_cloud'])
+                # if older pixc format
+                except AttributeError:
+                    lat_keys = [a+'_'+b+'_lat' for a in ('inner', 'outer')
+                        for b in ('first', 'last')]
+                    lon_keys = [a+'_'+b+'_lon' for a in ('inner', 'outer')
+                        for b in ('first', 'last')]
+                    lat = np.array([getattr(ifp, item) for item in lat_keys])
+                    lon = np.array([getattr(ifp, item) for item in lon_keys])
 
-                lat = np.array([getattr(attid, item) for item in lat_keys])
-                lon = np.array([getattr(attid, item) for item in lon_keys])
             else:
                 data_dict = (ifp.variables if not self.is_new_pixc else
                              ifp.groups['pixel_cloud'])
@@ -124,9 +129,10 @@ class L2PixcToRiverTile(object):
             self.config['do_improved_geolocation']):
             return
 
-        if self.sensor_file is None and not self.is_new_pixc:
+        if not self.is_new_pixc:
             print("Sensor information not provided, skipping improved ",
                   "geolocation")
+            return
 
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
@@ -134,10 +140,7 @@ class L2PixcToRiverTile(object):
             print("Cant load CNES improved geolocation, skipping!")
             return
 
-        if self.sensor_file is None:
-            cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
-        else:
-            cnes_sensor = geoloc_river.Sensor.from_file(self.sensor_file)
+        cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
 
         # compute improved geolocation
         lat_corr, lon_corr, height_corr = geoloc_river.geoloc_river(
@@ -159,7 +162,7 @@ class L2PixcToRiverTile(object):
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
 
             if self.is_new_pixc:
-                nr_pixels = ifp.groups['pixel_cloud'].nr_pixels
+                nr_pixels = ifp.groups['pixel_cloud'].dimensions['points'].size
                 azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
                 rng_index = ifp.groups['pixel_cloud']['range_index'][:]
             else:
