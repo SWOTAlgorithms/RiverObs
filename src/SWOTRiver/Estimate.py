@@ -14,6 +14,7 @@ import RDF
 import SWOTRiver.EstimateSWOTRiver
 import RiverObs.ShapeWriter
 import RiverObs.NetCDFReachWriter
+from SWOTRiver.products.rivertile import L2HRRiverTile
 
 class L2PixcToRiverTile(object):
     """
@@ -199,4 +200,9 @@ class L2PixcToRiverTile(object):
             for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
                                         self.reach_outputs['lake_flag']):
                 var_lake_flag[pixc_reach == reach] = lake_flag
+
+    def build_products(self):
+        """Constructs the L2HRRiverTile data product"""
+        self.rivertile_product = L2HRRiverTile.from_riverobs(
+            self.node_outputs, self.reach_outputs, self.reach_collection)
 

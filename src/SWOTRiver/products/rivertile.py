@@ -8,6 +8,10 @@ Author (s): Alex Fore
 import os
 import textwrap
 import numpy as np
+import fiona
+from shapely.geometry import Point, mapping
+
+
 from collections import OrderedDict as odict
 
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
@@ -28,13 +32,57 @@ class L2HRRiverTile(Product):
             RiverTileReaches.print_xml(ofp=ofp)
 
     @classmethod
-    def from_riverobs(cls, node_outputs, reach_outputs):
+    def from_riverobs(cls, node_outputs, reach_outputs, reach_collection):
         klass = cls()
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
-        klass.reaches = RiverTileReaches.from_riverobs(reach_outputs)
+        klass.reaches = RiverTileReaches.from_riverobs(
+            reach_outputs, reach_collection)
         return klass
 
-class RiverTileNodes(Product):
+class ShapeWriterMixIn(object):
+    """MixIn to support shapefile output"""
+    def write_shapes(self, shp_fname):
+        REMAP_DICT = {
+            'i1': 'int', 'i2': 'int', 'i4': 'int',
+            'u1': 'int', 'u2': 'int', 'u4': 'int',
+            'f4': 'float', 'f8': 'float'}
+
+        properties = odict([
+            [key, REMAP_DICT[self.VARIABLES[key]['dtype']]] for key in
+            self.VARIABLES])
+
+        try:
+            # these are for the geometry part of schema
+            properties.pop('latitude')
+            properties.pop('longitude')
+            is_reach = False
+
+        except KeyError:
+            is_reach = True
+
+        # mash up the schema
+        schema = {
+            'geometry': 'Point',
+            'properties': properties}
+
+        with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
+            num_elements = self.reach_id.shape[0]
+            for ii in range(num_elements):
+                this_property = odict([[
+                    key, np.asscalar(self[key][ii])] for key in
+                    schema['properties']])
+
+                if is_reach:
+                    point = Point(float(self.p_longitud[ii]),
+                                  float(self.p_latitud[ii]))
+                else:
+                    point = Point(float(self.longitude[ii]),
+                                  float(self.latitude[ii]))
+
+                ofp.write({'geometry': mapping(point), 'id': ii,
+                           'properties': this_property, 'type': 'Feature'})
+
+class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = []
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
@@ -562,7 +610,7 @@ class RiverTileNodes(Product):
         klass['n_good_pix'] = node_outputs['nobs']
         return klass
 
-class RiverTileReaches(Product):
+class RiverTileReaches(Product, ShapeWriterMixIn):
     ATTRIBUTES = []
     DIMENSIONS = odict([['reaches', 0]])
     VARIABLES = odict([
@@ -1040,7 +1088,7 @@ class RiverTileReaches(Product):
         reference['dimensions'] = DIMENSIONS
 
     @classmethod
-    def from_riverobs(cls, reach_outputs):
+    def from_riverobs(cls, reach_outputs, reach_collection):
         """
         Constructs self from RiverObs node_outputs
         """
@@ -1057,4 +1105,20 @@ class RiverTileReaches(Product):
         klass['area_detct'] = reach_outputs['area']
         klass['area_total'] = reach_outputs['area']
         klass['xtrk_dist'] = reach_outputs['xtrck_ave']
+
+        assert(len(reach_collection) == len(klass['reach_id']))
+
+        plon = np.zeros(klass['reach_id'].shape)
+        plat = np.zeros(klass['reach_id'].shape)
+
+        # Add some prior db information from reach_collection
+        for ii, reach in enumerate(reach_collection):
+            plat[ii] = np.mean(reach.lat)
+            plon[ii] = np.rad2deg(np.arctan2(
+                np.mean(np.sin(reach.lon)), np.mean(np.cos(reach.lon))))
+            # wrap to [0, 360)
+            if(plon[ii] < 0): plon[ii] += 360
+
+        klass['p_latitud'] = plat
+        klass['p_longitud'] = plon
         return klass
