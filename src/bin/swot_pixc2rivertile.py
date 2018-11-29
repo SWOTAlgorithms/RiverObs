@@ -87,24 +87,36 @@ def main():
     l2pixc_to_rivertile.match_pixc_idx()
     l2pixc_to_rivertile.do_improved_geolocation()
     l2pixc_to_rivertile.flag_lakes_pixc()
+    l2pixc_to_rivertile.build_products()
 
-    RiverObs.NetCDFReachWriter.write(
-        args.out_riverobs_file, l2pixc_to_rivertile.node_outputs,
-        l2pixc_to_rivertile.reach_outputs)
-
-    RiverObs.NetCDFReachWriter.fixup_metadata(args.out_riverobs_file)
-
-    # optional shapefile outputs
+    l2pixc_to_rivertile.rivertile_product.to_ncfile(args.out_riverobs_file)
     if args.shpbasedir is not None:
-        try:
-            RiverObs.ShapeWriter.write(
-                l2pixc_to_rivertile.reach_collection,
-                os.path.join(args.shpbasedir, 'nodes'),
-                os.path.join(args.shpbasedir, 'reaches'))
+        if not os.path.isdir(args.shpbasedir):
+            os.path.mkdir(args.shpbasedir)
+        l2pixc_to_rivertile.rivertile_product.nodes.write_shapes(
+            os.path.join(args.shpbasedir, 'nodes.shp'))
+        l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
+            os.path.join(args.shpbasedir, 'reaches.shp'))
 
-        # No reaches found, skip writing of shapefiles
-        except IndexError:
-            pass
+    # write old rivertile outputs (deleting this soon)
+    if False:
+        RiverObs.NetCDFReachWriter.write(
+            args.out_riverobs_file, l2pixc_to_rivertile.node_outputs,
+            l2pixc_to_rivertile.reach_outputs)
+
+        RiverObs.NetCDFReachWriter.fixup_metadata(args.out_riverobs_file)
+
+        # optional shapefile outputs
+        if args.shpbasedir is not None:
+            try:
+                RiverObs.ShapeWriter.write(
+                    l2pixc_to_rivertile.reach_collection,
+                    os.path.join(args.shpbasedir, 'nodes'),
+                    os.path.join(args.shpbasedir, 'reaches'))
+
+            # No reaches found, skip writing of shapefiles
+            except IndexError:
+                pass
 
 
 if __name__ == "__main__":
