@@ -10,16 +10,7 @@ import textwrap
 import numpy as np
 from collections import OrderedDict as odict
 
-from SWOTRiver.products.product import Product, FILL_VALUES
-
-
-def textjoin(text):
-    """Dedent join and strip text"""
-    text = textwrap.dedent(text)
-    text = text.replace('\n', ' ')
-    text = text.strip()
-    return text
-
+from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 class L2HRRiverTile(Product):
     UID = "l2_hr_rivertile"
@@ -28,6 +19,13 @@ class L2HRRiverTile(Product):
         ['nodes', 'RiverTileNodes'],
         ['reaches', 'RiverTileReaches'],
     ])
+
+    @staticmethod
+    def dump_xmls(node_xml_file, reach_xml_file):
+        with open(node_xml_file, 'w') as ofp:
+            RiverTileNodes.print_xml(ofp=ofp)
+        with open(reach_xml_file, 'w') as ofp:
+            RiverTileReaches.print_xml(ofp=ofp)
 
     @classmethod
     def from_riverobs(cls, node_outputs, reach_outputs):

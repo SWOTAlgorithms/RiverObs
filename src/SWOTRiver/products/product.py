@@ -39,6 +39,12 @@ FILL_VALUES['u4'] = FILL_VALUES['uint32']
 FILL_VALUES['u2'] = FILL_VALUES['uint16']
 FILL_VALUES['u1'] = FILL_VALUES['uint8']
 
+def textjoin(text):
+    """Dedent join and strip text"""
+    text = textwrap.dedent(text)
+    text = text.replace('\n', ' ')
+    text = text.strip()
+    return text
 
 def get_subclasses(cls):
     """Recursively get dictionary of names/subclasses of class"""
