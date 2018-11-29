@@ -61,13 +61,9 @@ class ShapeWriterMixIn(object):
             is_reach = True
 
         # mash up the schema
-        schema = {
-            'geometry': 'Point',
-            'properties': properties}
-
+        schema = {'geometry': 'Point', 'properties': properties}
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
-            num_elements = self.reach_id.shape[0]
-            for ii in range(num_elements):
+            for ii in range(self.reach_id.shape[0]):
                 this_property = odict([[
                     key, np.asscalar(self[key][ii])] for key in
                     schema['properties']])
