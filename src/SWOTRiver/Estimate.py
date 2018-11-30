@@ -206,3 +206,6 @@ class L2PixcToRiverTile(object):
         self.rivertile_product = L2HRRiverTile.from_riverobs(
             self.node_outputs, self.reach_outputs, self.reach_collection)
 
+        # add in a bunch more stuff from PIXC
+        self.rivertile_product.update_from_pixc(
+            self.pixc_file, self.index_file)

@@ -9,11 +9,11 @@ import os
 import textwrap
 import numpy as np
 import fiona
+import netCDF4
 from shapely.geometry import Point, mapping
-
-
 from collections import OrderedDict as odict
 
+from SWOTRiver.products.pixcvec import L2PIXCVector
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 class L2HRRiverTile(Product):
@@ -38,6 +38,11 @@ class L2HRRiverTile(Product):
         klass.reaches = RiverTileReaches.from_riverobs(
             reach_outputs, reach_collection)
         return klass
+
+    def update_from_pixc(self, pixc_file, index_file):
+        """Adds more datasets from pixc_file file using index_file"""
+        self.nodes.update_from_pixc(pixc_file, index_file)
+        self.reaches.update_from_pixc(pixc_file, index_file)
 
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
@@ -610,8 +615,48 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         klass['node_dist'] = np.sqrt(
             (node_outputs['x']-node_outputs['x_prior'])**2 +
             (node_outputs['y']-node_outputs['y_prior'])**2)
-
         return klass
+
+    def update_from_pixc(self, pixc_file, index_file):
+        """Adds more datasets from pixc_file file using index_file"""
+        pixc_vec = L2PIXCVector.from_ncfile(index_file)
+
+        pixc2rivertile_map = {
+            '/pixel_cloud/pole_tide': 'pole_tide',
+            '/pixel_cloud/solid_earth_tide': 'earth_tide',
+            '/tvp/time': 'time',
+            '/tvp/time_tai': 'time_tai'}
+
+        pixc_data = {}
+        with netCDF4.Dataset(pixc_file, 'r') as ifp:
+            for key in pixc2rivertile_map:
+                group, dset = key.split('/')[1::]
+                pixc_data[key] = ifp.groups[group][dset][:].data
+
+        for inkey, outkey in pixc2rivertile_map.items():
+            # subset pixel cloud data to look like pixcvec data
+            if inkey.split('/')[1] == 'tvp':
+                # silly hack
+                subdata = pixc_data[inkey][pixc_vec.azimuth_index]
+            else:
+                subdata = pixc_data[inkey][pixc_vec.pixc_index]
+
+            # index into pixcvec shaped data
+            outdata = np.ones(self[outkey].shape)
+            for reach_id in np.unique(self.reach_id):
+                for node_id in self.node_id[self.reach_id == reach_id]:
+                    pixc_mask = np.logical_and(
+                        pixc_vec.reach_index == reach_id,
+                        pixc_vec.node_index == node_id)
+
+                    out_mask = np.logical_and(
+                        self.reach_id == reach_id, self.node_id == node_id)
+
+                    # TBD some other operation than mean (median?)
+                    outdata[out_mask] = np.mean(subdata[pixc_mask])
+
+            # stuff in product
+            self[outkey] = outdata
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
     ATTRIBUTES = []
@@ -1135,3 +1180,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         klass['p_latitud'] = plat
         klass['p_longitud'] = plon
         return klass
+
+    def update_from_pixc(self, pixc_file, index_file):
+        """Adds more datasets from pixc_file file using index_file"""
+        pass
