@@ -1116,7 +1116,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         klass['width'] = reach_outputs['w_area_ave']
         klass['slope2'] = reach_outputs['slp_enhncd']
         klass['area_detct'] = reach_outputs['area']
-        klass['area_of_ht'] = reach_outputs['area_of_ht_ave']
+        klass['area_of_ht'] = reach_outputs['area_of_ht']
         klass['xtrk_dist'] = reach_outputs['xtrck_ave']
 
         assert(len(reach_collection) == len(klass['reach_id']))
