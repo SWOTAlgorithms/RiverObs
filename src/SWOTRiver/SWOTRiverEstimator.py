@@ -827,6 +827,12 @@ class SWOTRiverEstimator(SWOTL2):
         # These are area based estimates, the nominal SWOT approach
         area = np.asarray(
             self.river_obs.get_node_stat('sum', 'inundated_area'))
+
+        # area of pixels used to compute heights
+        area_of_ht = np.asarray(
+            self.river_obs.get_node_stat('sum', 'inundated_area',
+                                         good_flag='h_flg'))
+
         width_area = np.asarray(
             self.river_obs.get_node_stat('width_area', 'inundated_area'))
 
@@ -860,6 +866,7 @@ class SWOTRiverEstimator(SWOTL2):
             'w_area': width_area.astype('float32'),
             'w_db': width_db.astype('float32'),
             'area': area.astype('float32'),
+            'area_of_ht': area_of_ht.astype('float32'),
             'h_n_ave': h_noise_ave.astype('float32'),
             'h_n_std': h_noise_std.astype('float32'),
             'h_a_ave': h_noise_ave0.astype('float32'),
