@@ -790,6 +790,16 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Uncertainty in total water area.""")],
                 ])],
+        ['area_of_ht',
+         odict([['dtype', 'f4'],
+                ['long_name', textjoin("""
+                    Area of pixels used to compute height""")],
+                ['units', 'm^2'],
+                ['valid_min', 100],
+                ['valid_max', 10000*200],
+                ['comment', textjoin("""
+                    No uncertainty for this area.""")],
+                ])],
         ['layovr_val',
          odict([['dtype', 'f4'],
                 ['long_name', 'layover metric'],
@@ -1106,7 +1116,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         klass['width'] = reach_outputs['w_area_ave']
         klass['slope2'] = reach_outputs['slp_enhncd']
         klass['area_detct'] = reach_outputs['area']
-        klass['area_total'] = reach_outputs['area']
+        klass['area_of_ht'] = reach_outputs['area_of_ht_ave']
         klass['xtrk_dist'] = reach_outputs['xtrck_ave']
 
         assert(len(reach_collection) == len(klass['reach_id']))

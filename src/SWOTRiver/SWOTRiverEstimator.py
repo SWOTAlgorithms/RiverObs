@@ -954,6 +954,7 @@ class SWOTRiverEstimator(SWOTL2):
         width_std = river_reach.w_std
         width_area = river_reach.w_area
         area = river_reach.area
+        area_of_ht = river_reach.area_of_ht
 
         # Check to see if there are sufficient number of points for fit
         ngood = len(s_median)
@@ -983,7 +984,8 @@ class SWOTRiverEstimator(SWOTL2):
         # Get the reach statistics for this subreach
         reach_stats = self.get_reach_stats(
             reach_id, reach_idx, s_median, lon_median, lat_median,
-            xtrack_median, width_ptp, width_std, width_area, area, nresults)
+            xtrack_median, width_ptp, width_std, width_area, area,
+            area_of_ht, nresults)
 
         # type-cast reach outputs explicity
         reach_stats['reach_id'] = np.int32(reach_stats['reach_id'])
@@ -1010,6 +1012,15 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['xtrck_ave'] = np.float32(reach_stats['xtrck_ave'])
             reach_stats['xtrck_min'] = np.float32(reach_stats['xtrck_min'])
             reach_stats['xtrck_max'] = np.float32(reach_stats['xtrck_max'])
+
+        if area_of_ht is not None:
+            reach_stats['area_of_ht_ave'] = np.float32(
+                reach_stats['area_of_ht_ave'])
+            reach_stats['area_of_ht_min'] = np.float32(
+                reach_stats['area_of_ht_min'])
+            reach_stats['area_of_ht_max'] = np.float32(
+                reach_stats['area_of_ht_max'])
+
         reach_stats['h_no'] = np.float32(reach_stats['h_no'])
         reach_stats['slp_no'] = np.float32(reach_stats['slp_no'])
         reach_stats['no_rsqrd'] = np.float32(reach_stats['no_rsqrd'])
@@ -1061,7 +1072,7 @@ class SWOTRiverEstimator(SWOTL2):
 
     def get_reach_stats(self, reach_id, reach_idx, s_median, lon_median,
                         lat_median, xtrack_median, width_ptp, width_std,
-                        width_area, area, nresults):
+                        width_area, area, area_of_ht, nresults):
         """Get statistics for a given reach."""
 
         ds = np.divide(area, width_area)
@@ -1091,6 +1102,11 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['xtrck_ave'] = np.median(xtrack_median)
             reach_stats['xtrck_min'] = np.min(xtrack_median)
             reach_stats['xtrck_max'] = np.max(xtrack_median)
+
+        if area_of_ht is not None:
+            reach_stats['area_of_ht_ave'] = np.median(area_of_ht)
+            reach_stats['area_of_ht_min'] = np.min(area_of_ht)
+            reach_stats['area_of_ht_max'] = np.max(area_of_ht)
 
         # fitting results for h_true
         if nresults is not None:
