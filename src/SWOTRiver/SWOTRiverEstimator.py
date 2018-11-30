@@ -163,6 +163,7 @@ class SWOTRiverEstimator(SWOTL2):
                  store_fits=True,
                  verbose=True,
                  xtrack_kwd='no_layover_cross_track',
+                 sig0_kwd='sig0',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -229,6 +230,11 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.xtrack = None
 
+        try:
+            self.sig0 = self.get(sig0_kwd)
+        except KeyError:
+            self.sig0 = None
+
         good = ~mask
         self.lat = self.lat[good]
         self.lon = self.lon[good]
@@ -238,6 +244,8 @@ class SWOTRiverEstimator(SWOTL2):
         self.h_noise = self.h_noise[good]
         if self.xtrack is not None:
             self.xtrack = self.xtrack[good]
+        if self.sig0 is not None:
+            self.sig0 = self.sig0[good]
         self.img_x = self.img_x[good]  # range or x index
         self.img_y = self.img_y[good]  # azimuth or y index
 
@@ -776,6 +784,8 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('yobs', self.y)
         if self.xtrack is not None:
             self.river_obs.add_obs('xtrack', self.xtrack)
+        if self.sig0 is not None:
+            self.river_obs.add_obs('sig0', self.sig0)
         self.river_obs.add_obs('inundated_area', self.inundated_area)
 
         dsets_to_load = [
@@ -784,6 +794,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         if self.xtrack is not None:
             dsets_to_load.append('xtrack')
+
+        if self.sig0 is not None:
+            dsets_to_load.append('sig0')
 
         self.river_obs.load_nodes(dsets_to_load)
 
@@ -827,6 +840,9 @@ class SWOTRiverEstimator(SWOTL2):
         # These are area based estimates, the nominal SWOT approach
         area = np.asarray(
             self.river_obs.get_node_stat('sum', 'inundated_area'))
+
+        rdr_sig0 = np.asarray(
+            self.river_obs.get_node_stat('median', 'sig0', good_flag='h_flg'))
 
         # area of pixels used to compute heights
         area_of_ht = np.asarray(
@@ -876,6 +892,7 @@ class SWOTRiverEstimator(SWOTL2):
             'y_prior': y_prior.astype('float64'),
             'node_indx': node_index.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
+            'rdr_sig0': rdr_sig0.astype('float32'),
         }
 
         if xtrack_median is not None:

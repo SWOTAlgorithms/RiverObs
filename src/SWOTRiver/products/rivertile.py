@@ -605,6 +605,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         klass['area_of_ht'] = node_outputs['area_of_ht']
         klass['xtrk_dist'] = node_outputs['xtrack']
         klass['n_good_pix'] = node_outputs['nobs']
+        klass['rdr_sig0'] = node_outputs['rdr_sig0']
+        # compute node distance from prior
+        klass['node_dist'] = np.sqrt(
+            (node_outputs['x']-node_outputs['x_prior'])**2 +
+            (node_outputs['y']-node_outputs['y_prior'])**2)
+
         return klass
 
 class RiverTileReaches(Product, ShapeWriterMixIn):

@@ -64,10 +64,8 @@ class RiverNode:
         self.s = np.asarray(s)
         self.n = np.asarray(n)
 
-        for k in kwds:
-            v = kwds[k]
-            #exec('self.%s = v'%k)
-            setattr(self, k, v)
+        for key, value in kwds.items():
+            setattr(self, key, value)
 
         self.ndata = len(self.x)
         self.good = np.ones(self.ndata, dtype=np.bool)
