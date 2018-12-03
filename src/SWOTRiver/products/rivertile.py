@@ -599,22 +599,23 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         Constructs self from RiverObs node_outputs
         """
         klass = cls()
-        klass['reach_id'] = node_outputs['reach_indx']
-        klass['node_id'] = node_outputs['node_indx']
-        klass['latitude'] = node_outputs['lat']
-        klass['longitude'] = node_outputs['lon']
-        klass['height'] = node_outputs['h_n_ave']
-        klass['height_u'] = node_outputs['h_n_std']
-        klass['width'] = node_outputs['w_area']
-        klass['area_detct'] = node_outputs['area']
-        klass['area_of_ht'] = node_outputs['area_of_ht']
-        klass['xtrk_dist'] = node_outputs['xtrack']
-        klass['n_good_pix'] = node_outputs['nobs']
-        klass['rdr_sig0'] = node_outputs['rdr_sig0']
-        # compute node distance from prior
-        klass['node_dist'] = np.sqrt(
-            (node_outputs['x']-node_outputs['x_prior'])**2 +
-            (node_outputs['y']-node_outputs['y_prior'])**2)
+        if node_outputs is not None:
+            klass['reach_id'] = node_outputs['reach_indx']
+            klass['node_id'] = node_outputs['node_indx']
+            klass['latitude'] = node_outputs['lat']
+            klass['longitude'] = node_outputs['lon']
+            klass['height'] = node_outputs['h_n_ave']
+            klass['height_u'] = node_outputs['h_n_std']
+            klass['width'] = node_outputs['w_area']
+            klass['area_detct'] = node_outputs['area']
+            klass['area_of_ht'] = node_outputs['area_of_ht']
+            klass['xtrk_dist'] = node_outputs['xtrack']
+            klass['n_good_pix'] = node_outputs['nobs']
+            klass['rdr_sig0'] = node_outputs['rdr_sig0']
+            # compute node distance from prior
+            klass['node_dist'] = np.sqrt(
+                (node_outputs['x']-node_outputs['x_prior'])**2 +
+                (node_outputs['y']-node_outputs['y_prior'])**2)
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
@@ -1151,34 +1152,35 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         Constructs self from RiverObs node_outputs
         """
         klass = cls()
-        klass['reach_id'] = reach_outputs['reach_idx']
-        klass['height'] = 1/3*(
-            reach_outputs['h_nw'] + reach_outputs['h_no'] +
-            reach_outputs['h_nr'])
-        klass['slope'] = 1/3*(
-            reach_outputs['slp_nw'] + reach_outputs['slp_no'] +
-            reach_outputs['slp_nr'])
-        klass['width'] = reach_outputs['w_area_ave']
-        klass['slope2'] = reach_outputs['slp_enhncd']
-        klass['area_detct'] = reach_outputs['area']
-        klass['area_of_ht'] = reach_outputs['area_of_ht']
-        klass['xtrk_dist'] = reach_outputs['xtrck_ave']
+        if reach_outputs is not None:
+            klass['reach_id'] = reach_outputs['reach_idx']
+            klass['height'] = 1/3*(
+                reach_outputs['h_nw'] + reach_outputs['h_no'] +
+                reach_outputs['h_nr'])
+            klass['slope'] = 1/3*(
+                reach_outputs['slp_nw'] + reach_outputs['slp_no'] +
+                reach_outputs['slp_nr'])
+            klass['width'] = reach_outputs['w_area_ave']
+            klass['slope2'] = reach_outputs['slp_enhncd']
+            klass['area_detct'] = reach_outputs['area']
+            klass['area_of_ht'] = reach_outputs['area_of_ht']
+            klass['xtrk_dist'] = reach_outputs['xtrck_ave']
 
-        assert(len(reach_collection) == len(klass['reach_id']))
+            assert(len(reach_collection) == len(klass['reach_id']))
 
-        plon = np.zeros(klass['reach_id'].shape)
-        plat = np.zeros(klass['reach_id'].shape)
+            plon = np.zeros(klass['reach_id'].shape)
+            plat = np.zeros(klass['reach_id'].shape)
 
-        # Add some prior db information from reach_collection
-        for ii, reach in enumerate(reach_collection):
-            plat[ii] = np.mean(reach.lat)
-            plon[ii] = np.rad2deg(np.arctan2(
-                np.mean(np.sin(reach.lon)), np.mean(np.cos(reach.lon))))
-            # wrap to [0, 360)
-            if(plon[ii] < 0): plon[ii] += 360
+            # Add some prior db information from reach_collection
+            for ii, reach in enumerate(reach_collection):
+                plat[ii] = np.mean(reach.lat)
+                plon[ii] = np.rad2deg(np.arctan2(
+                    np.mean(np.sin(reach.lon)), np.mean(np.cos(reach.lon))))
+                # wrap to [0, 360)
+                if(plon[ii] < 0): plon[ii] += 360
 
-        klass['p_latitud'] = plat
-        klass['p_longitud'] = plon
+            klass['p_latitud'] = plat
+            klass['p_longitud'] = plon
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):

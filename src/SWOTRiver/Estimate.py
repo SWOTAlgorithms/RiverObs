@@ -197,9 +197,10 @@ class L2PixcToRiverTile(object):
                 'lake_flag', np.dtype('uint8'), ('record', ))
             var_lake_flag[:] = 255*np.ones(pixc_reach.shape)
 
-            for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
-                                        self.reach_outputs['lake_flag']):
-                var_lake_flag[pixc_reach == reach] = lake_flag
+            if self.reach_outputs is not None:
+                for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
+                                            self.reach_outputs['lake_flag']):
+                    var_lake_flag[pixc_reach == reach] = lake_flag
 
     def build_products(self):
         """Constructs the L2HRRiverTile data product"""
