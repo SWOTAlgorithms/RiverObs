@@ -91,6 +91,9 @@ class SWOTL2:
         self.lat = self.get(lat_kwd)
         self.lon = self.get(lon_kwd)
 
+        # wrap to [-180, 180) interval
+        self.lon[self.lon >= 180] -= 360
+
         # Put in the radar/image coordinates too
         try:
             self.img_x = self.get(rngidx_kwd)
@@ -160,6 +163,9 @@ class SWOTL2:
 
         lat = self.get(lat_kwd, use_index=False)
         lon = self.get(lon_kwd, use_index=False)
+
+        # wrap to [-180, 180) interval
+        lon[lon >= 180] -= 360
 
         if bounding_box is not None:
             self.lonmin, self.latmin, self.lonmax, self.latmax = bounding_box

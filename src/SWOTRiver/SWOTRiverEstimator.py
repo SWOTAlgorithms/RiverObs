@@ -815,7 +815,8 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             xtrack_median = None
 
-        lon_median = np.asarray(self.river_obs.get_node_stat('median', 'lon'))
+        lon_median = np.asarray(
+            self.river_obs.get_node_stat('sincos_median', 'lon'))
         lat_median = np.asarray(self.river_obs.get_node_stat('median', 'lat'))
         ds = np.asarray(self.river_obs.get_node_stat('value', 'ds'))
 

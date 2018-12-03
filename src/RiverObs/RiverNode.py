@@ -121,6 +121,13 @@ class RiverNode:
         """Return mean of a variable"""
         return np.median(getattr(self, var)[getattr(self, goodvar)])
 
+    def sincos_median(self, var, goodvar='good'):
+        """Return atan2(median(sin(variable)), median(cos(variable)))*180/pi"""
+        var = getattr(self, var)[getattr(self, goodvar)]
+        return np.rad2deg(np.arctan2(
+            np.median(np.sin(np.deg2rad(var))),
+            np.median(np.cos(np.deg2rad(var)))))
+
     def std(self, var, goodvar='good'):
         """Return std of a variable"""
         return np.std(getattr(self, var)[getattr(self, goodvar)])

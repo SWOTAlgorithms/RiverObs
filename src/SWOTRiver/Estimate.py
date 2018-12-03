@@ -65,6 +65,9 @@ class L2PixcToRiverTile(object):
                 lat = np.asarray(data_dict['latitude'][:])
                 lon = np.asarray(data_dict['longitude'][:])
 
+        # wrap to [-180, 180) interval
+        lon[lon >= 180] -= 360
+
         mask = ~np.isnan(lat)
         return (lon[mask].min(), lat[mask].min(), lon[mask].max(),
                 lat[mask].max())
