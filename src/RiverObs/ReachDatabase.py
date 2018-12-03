@@ -6,7 +6,7 @@ import netCDF4
 import numpy as np
 from collections import OrderedDict as odict
 
-from .RiverReach import RiverReach
+from RiverReach import RiverReach
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 class ReachExtractor(object):
@@ -32,7 +32,7 @@ class ReachExtractor(object):
 
                 # check for wraps
                 if lonmax < lonmin: lonmax += 360
-                clip_lon[clip_lon < this_reach['reaches']['x_min'] += 360
+                clip_lon[clip_lon < this_reach['reaches']['x_min']] += 360
 
                 inbbox = (
                     clip_lon >= lonmin - clip_buffer &
@@ -77,7 +77,6 @@ class ReachExtractor(object):
         """Get reaches or slices of reaches."""
         return self.reach[index]
 
-
 class ReachDatabase(Product):
     """Prior Reach database"""
     ATTRIBUTES = ['x_min', 'x_max', 'y_min', 'y_max',]
@@ -96,7 +95,7 @@ class ReachDatabaseNodes(Product):
     """Prior Reach database nodes"""
     ATTRIBUTES = []
     DIMENSIONS = odict([['nodes', 0], ['depth', 2]])
-    DIMENSIONS_NODES = 
+    DIMENSIONS_NODES = odict([['nodes', 0]])
     VARIABLES = odict([
         ['x',
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
@@ -129,7 +128,7 @@ class ReachDatabaseReaches(Product):
     """Prior Reach database reaches"""
     ATTRIBUTES = []
     DIMENSIONS = odict([['reaches', 0], ['depth', 2]])
-    DIMENSIONS_REACHES = 
+    DIMENSIONS_REACHES = odict([['reaches', 0]])
     VARIABLES = odict([
         ['x',
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
@@ -195,7 +194,6 @@ class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""
     ATTRIBUTES = []
     DIMENSIONS = odict([['points', 0]])
-    DIMENSIONS_REACHES = 
     VARIABLES = odict([
         ['x',
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS]])],
