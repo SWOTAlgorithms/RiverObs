@@ -23,14 +23,23 @@ class ReachExtractor(object):
         for ii, reach_idx in enumerate(self.reach_idx):
 
             this_reach = reach_db(reach_id)
-            lon, lat = this_reach['nodes']['x'], this_reach['nodes']['y']
+            lon = this_reach['nodes']['x']
+            lat = this_reach['nodes']['y']
 
-            # TODO: check wrapping here
             if clip:
-                inbbox = ((lon >= bbox[0] - clip_buffer) &
-                          (lat >= bbox[1] - clip_buffer) &
-                          (lon <= bbox[2] + clip_buffer) &
-                          (lat <= bbox[3] + clip_buffer))
+                lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
+                clip_lon = lon.copy()
+
+                # check for wraps
+                if lonmax < lonmin: lonmax += 360
+                clip_lon[clip_lon < this_reach['reaches']['x_min'] += 360
+
+                inbbox = (
+                    clip_lon >= lonmin - clip_buffer &
+                    clip_lon <= lonmax + clip_buffer &
+                    lat >= latmin - clip_buffer &
+                    lat <= latmax + clip_buffer)
+
                 lon = lon[inbbox]
                 lat = lat[inbbox]
 
