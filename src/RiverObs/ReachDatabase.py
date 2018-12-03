@@ -16,13 +16,6 @@ class ReachDatabase(Product):
         ['centerlines', 'ReachDatabaseCenterlines']
     ])
 
-    def extract(self, bounding_box):
-        """
-        Returns reaches that intersect bbox
-        bounding_box = [lonmin, latmin, lonmax, latmax]
-        """
-        pass
-
 class ReachDatabaseNodes(Product):
     """Prior Reach database nodes"""
     ATTRIBUTES = []
@@ -78,6 +71,35 @@ class ReachDatabaseReaches(Product):
         ['pass',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
+
+    def extract(self, bounding_box):
+        """
+        Returns reach_ids for reaches that intersect an input bounding box
+
+        bounding_box = [lonmin, latmin, lonmax, latmax]
+        """
+        lonmin, latmin, lonmax, latmax = bounding_box
+        if lonmax < lonmin:
+            lonmax += 360
+
+        # iterate over reaches in self.reaches
+        reach_zips = zip(
+            self.x_min, self.y_min, self.x_max, self.y_max, self.reach_id)
+
+        overlapping_reach_ids = []
+        for ireach, reach_bbox in enumerate(reach_zips):
+
+            reach_lonmin, reach_latmin, reach_lonmax, reach_latmax, reach_id =\
+                reach_zips
+
+            if reach_lonmax < reach_lonmin:
+                reach_lonmax += 360
+
+            # test for overlap (assumption is 2D decomp into two 1D intervals)
+            if(latmin < reach_latmax and latmax > reach_latmin and
+               lonmin < reach_lonmax and lonmax > reach_lonmin):
+                overlapping_reach_ids.append(reach_id)
+        return overlapping_reach_ids
 
 class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""
