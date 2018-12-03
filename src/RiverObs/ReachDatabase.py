@@ -87,10 +87,10 @@ class ReachDatabaseReaches(Product):
             self.x_min, self.y_min, self.x_max, self.y_max, self.reach_id)
 
         overlapping_reach_ids = []
-        for ireach, reach_bbox in enumerate(reach_zips):
+        for reach_zip in reach_zips:
 
             reach_lonmin, reach_latmin, reach_lonmax, reach_latmax, reach_id =\
-                reach_zips
+                reach_zip
 
             if reach_lonmax < reach_lonmin:
                 reach_lonmax += 360
