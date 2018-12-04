@@ -976,82 +976,31 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats = self.get_reach_stats(
             reach_id, reach_idx, river_reach, nresults)
 
-        # type-cast reach outputs explicity
-        reach_stats['reach_id'] = np.int32(reach_stats['reach_id'])
-        reach_stats['reach_idx'] = np.int32(reach_stats['reach_idx'])
-        reach_stats['lon_min'] = np.float32(reach_stats['lon_min'])
-        reach_stats['lon_max'] = np.float32(reach_stats['lon_max'])
-        reach_stats['lat_min'] = np.float32(reach_stats['lat_min'])
-        reach_stats['lat_max'] = np.float32(reach_stats['lat_max'])
-        reach_stats['area'] = np.float32(reach_stats['area'])
-        reach_stats['length'] = np.float32(reach_stats['length'])
-        reach_stats['smin'] = np.float32(reach_stats['smin'])
-        reach_stats['smax'] = np.float32(reach_stats['smax'])
-        reach_stats['save'] = np.float32(reach_stats['save'])
-        reach_stats['w_ptp_ave'] = np.float32(reach_stats['w_ptp_ave'])
-        reach_stats['w_ptp_min'] = np.float32(reach_stats['w_ptp_min'])
-        reach_stats['w_ptp_max'] = np.float32(reach_stats['w_ptp_max'])
-        reach_stats['w_std_ave'] = np.float32(reach_stats['w_std_ave'])
-        reach_stats['w_std_min'] = np.float32(reach_stats['w_std_min'])
-        reach_stats['w_std_max'] = np.float32(reach_stats['w_std_max'])
-        reach_stats['w_area_ave'] = np.float32(reach_stats['w_area_ave'])
-        reach_stats['w_area_min'] = np.float32(reach_stats['w_area_min'])
-        reach_stats['w_area_max'] = np.float32(reach_stats['w_area_max'])
-        if river_reach.xtrack is not None:
-            reach_stats['xtrck_ave'] = np.float32(reach_stats['xtrck_ave'])
-            reach_stats['xtrck_min'] = np.float32(reach_stats['xtrck_min'])
-            reach_stats['xtrck_max'] = np.float32(reach_stats['xtrck_max'])
-
-        if river_reach.area_of_ht is not None:
-            reach_stats['area_of_ht'] = np.float32(reach_stats['area_of_ht'])
-
-        reach_stats['h_no'] = np.float32(reach_stats['h_no'])
-        reach_stats['slp_no'] = np.float32(reach_stats['slp_no'])
-        reach_stats['no_rsqrd'] = np.float32(reach_stats['no_rsqrd'])
-        reach_stats['no_mse'] = np.float32(reach_stats['no_mse'])
-        reach_stats['h_nw'] = np.float32(reach_stats['h_nw'])
-        reach_stats['slp_nw'] = np.float32(reach_stats['slp_nw'])
-        reach_stats['nw_rsqrd'] = np.float32(reach_stats['nw_rsqrd'])
-        reach_stats['nw_mse'] = np.float32(reach_stats['nw_mse'])
-        reach_stats['h_nr'] = np.float32(reach_stats['h_nr'])
-        reach_stats['slp_nr'] = np.float32(reach_stats['slp_nr'])
-        reach_stats['nr_rsqrd'] = np.float32(reach_stats['nr_rsqrd'])
-        reach_stats['nr_mse'] = np.float32(reach_stats['nr_mse'])
-
         # trap out of range / missing data
         if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
             uint8_flg = 255
         else:
             uint8_flg = reach.metadata['lakeFlag']
-
         reach_stats['lake_flag'] = uint8_flg
 
         river_reach.metadata = reach_stats
         return river_reach
 
-    def estimate_height_slope(self,
-                              smin,
-                              smax,
-                              fit_types=['OLS', 'WLS', 'RLM'],
-                              mean_stat='median'):
+    def estimate_height_slope(
+        self, smin, smax, fit_types=['OLS', 'WLS', 'RLM'], mean_stat='median'):
         """Get fit results for this subreach."""
-
         if type(fit_types) == str:
             fit_types = [fit_types]
-
         nresults = collections.OrderedDict()
         load_inputs = True
         for fit_type in fit_types:
-
             try:
                 nresults[fit_type] = self.fitter.fit_linear(
                     smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
                     load_inputs=load_inputs)
-
+                load_inputs = False
             except (ZeroDivisionError, ValueError):
                 pass
-
-            load_inputs = False
         return nresults
 
     def get_reach_stats(self, reach_id, reach_idx, river_reach, nresults):
@@ -1086,6 +1035,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_area_max'] = np.max(river_reach.w_area)
         reach_stats['frac_obs'] = (
             len(river_reach.s) / len(self.river_obs.centerline.s))
+
         if river_reach.xtrack is not None:
             reach_stats['xtrck_ave'] = np.median(river_reach.xtrack)
             reach_stats['xtrck_min'] = np.min(river_reach.xtrack)
