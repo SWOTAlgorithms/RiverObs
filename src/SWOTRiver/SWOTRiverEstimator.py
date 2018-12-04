@@ -782,10 +782,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('lat', self.lat)
         self.river_obs.add_obs('xobs', self.x)
         self.river_obs.add_obs('yobs', self.y)
-        if self.xtrack is not None:
-            self.river_obs.add_obs('xtrack', self.xtrack)
-        if self.sig0 is not None:
-            self.river_obs.add_obs('sig0', self.sig0)
         self.river_obs.add_obs('inundated_area', self.inundated_area)
 
         dsets_to_load = [
@@ -793,9 +789,11 @@ class SWOTRiverEstimator(SWOTL2):
         ]
 
         if self.xtrack is not None:
+            self.river_obs.add_obs('xtrack', self.xtrack)
             dsets_to_load.append('xtrack')
 
         if self.sig0 is not None:
+            self.river_obs.add_obs('sig0', self.sig0)
             dsets_to_load.append('sig0')
 
         self.river_obs.load_nodes(dsets_to_load)

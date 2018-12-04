@@ -54,8 +54,6 @@ import netCDF4
 
 import RDF
 import SWOTRiver.Estimate
-import RiverObs.ShapeWriter
-import RiverObs.NetCDFReachWriter
 
 def main():
     parser = argparse.ArgumentParser()
