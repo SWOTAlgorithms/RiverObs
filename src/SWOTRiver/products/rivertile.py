@@ -1172,6 +1172,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['area_of_ht'] = reach_outputs['area_of_ht']
             klass['xtrk_dist'] = reach_outputs['xtrck_ave']
 
+            # set quality flag on less than 1/2 reach observed
+            klass['f_partial'] = np.zeros(reach_outputs['frac_obs'].shape)
+            klass['f_partial'][reach_outputs['frac_obs'] < 0.5] = 1
+
             assert(len(reach_collection) == len(klass['reach_id']))
 
             plon = np.zeros(klass['reach_id'].shape)
