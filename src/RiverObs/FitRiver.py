@@ -48,12 +48,10 @@ class FitRiver:
         s = s[good]
         nsample = len(s)
 
-        # To get the values around the center value, subtract the mean
-
-        x = s - np.mean(s)
+        # get height/slope values centered on the prior middle of reach
+        x = s - np.mean(self.river_obs.centerline.s)
 
         # Observations
-
         y = np.asarray(self.river_obs.get_node_stat(
             mean_stat, fit_var, good_flag='h_flg'))[good]
 
