@@ -98,26 +98,5 @@ def main():
         l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
             os.path.join(args.shpbasedir, 'reaches.shp'))
 
-    # write old rivertile outputs (deleting this soon)
-    if False:
-        RiverObs.NetCDFReachWriter.write(
-            args.out_riverobs_file, l2pixc_to_rivertile.node_outputs,
-            l2pixc_to_rivertile.reach_outputs)
-
-        RiverObs.NetCDFReachWriter.fixup_metadata(args.out_riverobs_file)
-
-        # optional shapefile outputs
-        if args.shpbasedir is not None:
-            try:
-                RiverObs.ShapeWriter.write(
-                    l2pixc_to_rivertile.reach_collection,
-                    os.path.join(args.shpbasedir, 'nodes'),
-                    os.path.join(args.shpbasedir, 'reaches'))
-
-            # No reaches found, skip writing of shapefiles
-            except IndexError:
-                pass
-
-
 if __name__ == "__main__":
     main()
