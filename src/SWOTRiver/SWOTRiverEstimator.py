@@ -1080,6 +1080,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_std_max'] = np.max(river_reach.w_std)
         reach_stats['w_area_ave'] = np.sum(
             river_reach.area) / reach_stats['length']
+
+        reach_stats['n_good_nod'] = len(river_reach.s)
         reach_stats['w_area_min'] = np.min(river_reach.w_area)
         reach_stats['w_area_max'] = np.max(river_reach.w_area)
         reach_stats['frac_obs'] = (
