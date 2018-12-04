@@ -1177,6 +1177,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['f_partial'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['f_partial'][reach_outputs['frac_obs'] < 0.5] = 1
 
+            # set quality bad if partial flag is set
+            klass['f_quality'] = klass['f_partial']
+
             assert(len(reach_collection) == len(klass['reach_id']))
 
             plon = np.zeros(klass['reach_id'].shape)
