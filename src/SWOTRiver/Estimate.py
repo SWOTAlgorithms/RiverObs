@@ -12,8 +12,6 @@ import numpy as np
 
 import RDF
 import SWOTRiver.EstimateSWOTRiver
-import RiverObs.ShapeWriter
-import RiverObs.NetCDFReachWriter
 from SWOTRiver.products.rivertile import L2HRRiverTile
 
 class L2PixcToRiverTile(object):
@@ -121,8 +119,36 @@ class L2PixcToRiverTile(object):
             alpha=self.config['alpha'],
             max_iter=self.config['max_iter'])
 
-        self.node_outputs, self.reach_outputs = \
-            RiverObs.NetCDFReachWriter.gather_outputs(self.reach_collection)
+        self.node_outputs, self.reach_outputs = None, None
+        if len(self.reach_collection) > 0:
+            reach_variables = list(self.reach_collection[0].metadata.keys())
+            node_variables = list(self.reach_collection[0].__dict__.keys())
+            node_variables.remove('ds')
+            node_variables.remove('metadata')
+
+            num_nodes_per_reach = [
+                len(item.lat) for item in self.reach_collection]
+            num_nodes = sum(num_nodes_per_reach)
+
+            self.node_outputs = {}
+            self.reach_outputs = {}
+            for node_variable in node_variables:
+                self.node_outputs[node_variable] = np.concatenate(
+                    [getattr(reach, node_variable) for reach in
+                     self.reach_collection])
+
+            for reach_variable in reach_variables:
+                self.reach_outputs[reach_variable] = np.array(
+                    [reach.metadata[reach_variable] for reach in
+                     self.reach_collection])
+
+            self.node_outputs['reach_idx'] = np.zeros(
+                self.node_outputs['lat'].shape).astype('int32')
+            i_start = 0
+            for ireach, num_nodes in enumerate(num_nodes_per_reach):
+                self.node_outputs['reach_idx'][
+                    i_start:i_start + num_nodes] = ireach
+                i_start = i_start + num_nodes
 
     def do_improved_geolocation(self):
         """
