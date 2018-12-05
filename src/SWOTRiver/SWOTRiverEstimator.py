@@ -1033,6 +1033,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['w_area_max'] = np.max(river_reach.w_area)
         reach_stats['frac_obs'] = (
             len(river_reach.s) / len(self.river_obs.centerline.s))
+        reach_stats['ds_prior'] = (
+            river_reach.s.mean() - self.river_obs.centerline.s.mean())
 
         if river_reach.xtrack is not None:
             reach_stats['xtrck_ave'] = np.median(river_reach.xtrack)

@@ -1034,9 +1034,18 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['frac_obs',
          odict([['dtype', 'f4'],
                 ['long_name', 'fraction of nodes in reach observed'],
-                ['units', 'm^3/s'],
+                ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 1],
+                ['comment', textjoin("""
+                    TBD""")],
+                ])],
+        ['ds_prior',
+         odict([['dtype', 'f4'],
+                ['long_name', 'node mean - prior mean along-reach coordinate'],
+                ['units', 'm'],
+                ['valid_min', -99999],
+                ['valid_max', 99999],
                 ['comment', textjoin("""
                     TBD""")],
                 ])],
@@ -1182,6 +1191,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['xtrk_dist'] = reach_outputs['xtrck_ave']
             klass['n_good_nod'] = reach_outputs['n_good_nod']
             klass['frac_obs'] = reach_outputs['frac_obs']
+            klass['ds_prior'] = reach_outputs['ds_prior']
 
             # set quality flag on less than 1/2 reach observed
             klass['f_partial'] = np.zeros(reach_outputs['frac_obs'].shape)
