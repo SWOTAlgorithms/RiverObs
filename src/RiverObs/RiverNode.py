@@ -6,6 +6,7 @@ It returns various data characteristics when queried.
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import Aggregate.aggregate as aggregate
 
 class RiverNode:
     """
@@ -285,3 +286,24 @@ class RiverNode:
         area = self.sum(area_var)
         width_area = area / self.ds
         return width_area
+
+    def aggregate_height_with_uncert(self, goodvar='good', method='weight'):
+        """
+        Return the aggregate height with corresponding uncertainty 
+        """
+        good = getattr(self, goodvar)
+        # call the general function
+        height, height_std, height_uncert = aggregate.height_with_uncerts(
+            self.height,  good, self.num_rare_looks, self.num_med_looks,
+            self.ifgram, self.power1, self.power2, self.looks_to_efflooks,
+            self.dh_dphi, self.height_std, method=method)
+        return height, height_std, height_uncert
+        
+    def aggregate_area_with_uncert(self, area_var='pixel_area', method='composite'):
+        """
+        Return the aggregate area with corresponding uncertainty 
+        """
+        # compute the pixel assignment error?
+        # call the general function, TODO
+        return None, None 
+

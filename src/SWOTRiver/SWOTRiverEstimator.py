@@ -164,6 +164,13 @@ class SWOTRiverEstimator(SWOTL2):
                  verbose=True,
                  xtrack_kwd='no_layover_cross_track',
                  sig0_kwd='sig0',
+                 ifgram_kwd='interferogram',
+                 power1_kwd='power_plus_y',
+                 power2_kwd='power_minus_y',
+                 phase_noise_std_kwd='phase_noise_std',
+                 dh_dphi_kwd='dheight_dphase',
+                 num_rare_looks_kwd='num_rare_looks',
+                 num_med_looks_kwd='num_med_looks',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -235,6 +242,41 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.sig0 = None
 
+        try:
+            self.ifgram = self.get(ifgram_kwd)
+        except KeyError:
+            self.ifgram = None
+
+        try:
+            self.power1 = self.get(power1_kwd)
+        except KeyError:
+            self.power1 = None
+
+        try:
+            self.power2 = self.get(power2_kwd)
+        except KeyError:
+            self.power2 = None
+
+        try:
+            self.phase_noise_std = self.get(phase_noise_std_kwd)
+        except KeyError:
+            self.phase_noise_std = None
+
+        try:
+            self.dh_dphi = self.get(dh_dphi_kwd)
+        except KeyError:
+            self.dh_dphi = None
+
+        try:
+            self.num_rare_looks = self.get(num_rare_looks_kwd)
+        except KeyError:
+            self.num_rare_looks = None
+
+        try:
+            self.num_med_looks = self.get(num_med_looks_kwd)
+        except KeyError:
+            self.num_med_looks = None
+
         good = ~mask
         self.lat = self.lat[good]
         self.lon = self.lon[good]
@@ -244,8 +286,20 @@ class SWOTRiverEstimator(SWOTL2):
         self.h_noise = self.h_noise[good]
         if self.xtrack is not None:
             self.xtrack = self.xtrack[good]
-        if self.sig0 is not None:
-            self.sig0 = self.sig0[good]
+        if self.ifgram is not None:
+            self.ifgram = self.ifgram[good]
+        if self.power1 is not None:
+            self.power1 = self.power1[good]
+        if self.power2 is not None:
+            self.power2 = self.power2[good]
+        if self.phase_noise_std is not None:
+            self.phase_noise_std = self.phase_noise_std[good]
+        if self.dh_dphi is not None:
+            self.dh_dphi = self.dh_dphi[good]
+        if self.num_rare_looks is not None:
+            self.num_rare_looks = self.num_rare_looks[good]
+        if self.num_med_looks is not None:
+            self.num_med_looks = self.num_med_looks[good]
         self.img_x = self.img_x[good]  # range or x index
         self.img_y = self.img_y[good]  # azimuth or y index
 
@@ -796,6 +850,34 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.add_obs('sig0', self.sig0)
             dsets_to_load.append('sig0')
 
+        if self.ifgram is not None:
+            self.river_obs.add_obs('ifgram', self.ifgram)
+            dsets_to_load.append('ifgram')
+
+        if self.power1 is not None:
+            self.river_obs.add_obs('power1', self.power1)
+            dsets_to_load.append('power1')
+
+        if self.power2 is not None:
+            self.river_obs.add_obs('power2', self.power2)
+            dsets_to_load.append('power2')
+
+        if self.phase_noise_std is not None:
+            self.river_obs.add_obs('phase_noise_std', self.phase_noise_std)
+            dsets_to_load.append('phaser_noise_std')
+
+        if self.dh_dphi is not None:
+            self.river_obs.add_obs('dh_dphi', self.dh_dphi)
+            dsets_to_load.append('dh_dphi')
+
+        if self.num_rare_looks is not None:
+            self.river_obs.add_obs('num_rare_looks', self.num_rare_looks)
+            dsets_to_load.append('num_rare_looks')
+
+        if self.num_med_looks is not None:
+            self.river_obs.add_obs('num_med_looks', self.num_med_looks)
+            dsets_to_load.append('num_med_looks')
+
         self.river_obs.load_nodes(dsets_to_load)
 
         if self.verbose:
@@ -850,6 +932,10 @@ class SWOTRiverEstimator(SWOTL2):
 
         width_area = np.asarray(
             self.river_obs.get_node_stat('width_area', 'inundated_area'))
+
+        # get the aggregated heights and widths with their corrosponding 
+        # uncertainty estimates all in one shot
+        h, h_std, h_uncert, a, a_uncert = self.river_obs.get_node_agg()
 
         # These are the values from the width database
         width_db = np.ones(

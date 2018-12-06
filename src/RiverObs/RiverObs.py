@@ -354,6 +354,47 @@ class RiverObs:
                 result.append(self.missing_value)
 
         return result
+    def get_node_agg(self, method='weight', all_nodes=False, good_flag='good'):
+        """
+        Get lists of height, areas, and uncertainties
+
+        If all_nodes is True, populated and unpopulated nodes are returned.
+        Otherwise, only populated nodes are returned.
+
+        The result gives arrays over desired nodes, with the populated nodes
+        holding the result and the unpopulated nodes (when requested) holding
+        the missing_value.
+        """
+        h_list = []
+        h_std_list = []
+        h_uncert_list = []
+        a_list = []
+        a_uncert_list = []
+        for node in self.all_nodes:
+            if node in self.populated_nodes:
+                river_node = self.river_nodes[node]
+                h, h_std, h_unc = \
+                    river_node.aggregate_height_with_uncert(method=method,goodvar=good_flag)
+    
+                h_list.append(h if h is not None else self.missing_value)
+                h_std_list.append(h_std if h_std is not None else self.missing_value)
+                h_uncert_list.append(h_unc if h_unc is not None else self.missing_value)
+                a, a_unc = \
+                    river_node.aggregate_area_with_uncert(method=method,goodvar=good_flag)
+
+                a_list.append(a if a is not None else self.missing_value)
+                a_uncert_list.append(a_unc if a_unc is not None else self.missing_value)
+            elif all_nodes:
+                h_list.append(self.missing_value)
+                h_std_list.append(self.missing_value)
+                h_uncert_list.append(self.missing_value)
+
+        h = np.asarray(h_list)
+        h_std = np.asarray(h_std_list)
+        h_uncert = np.asarray(h_uncert_list)
+        a = np.asarray(a_list)
+        a_uncert = np.asarray(a_uncert_list)
+        return h, h_std, h_uncert, a, a_uncert
 
     def trim_nodes(self, fraction, mode='both', sort_variable='n'):
         """
