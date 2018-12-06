@@ -19,7 +19,7 @@ from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 class L2HRRiverTile(Product):
     UID = "l2_hr_rivertile"
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     GROUPS = odict([
         ['nodes', 'RiverTileNodes'],
         ['reaches', 'RiverTileReaches'],
@@ -95,7 +95,7 @@ class ShapeWriterMixIn(object):
                            'properties': this_property, 'type': 'Feature'})
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
         ['reach_id',
@@ -677,7 +677,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             self[outkey] = outdata
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     DIMENSIONS = odict([['reaches', 0]])
     VARIABLES = odict([
         ['reach_id',
