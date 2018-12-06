@@ -10,6 +10,7 @@ import textwrap
 import numpy as np
 import fiona
 import netCDF4
+import datetime
 from shapely.geometry import Point, mapping
 from collections import OrderedDict as odict
 
@@ -65,13 +66,17 @@ class ShapeWriterMixIn(object):
         except KeyError:
             is_reach = True
 
+        # add time-string
+        properties_ = properties.copy()
+        properties['time_strin'] = 'str'
+
         # mash up the schema
         schema = {'geometry': 'Point', 'properties': properties}
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
             for ii in range(self.reach_id.shape[0]):
                 this_property = odict([[
                     key, np.asscalar(self[key][ii])] for key in
-                    schema['properties']])
+                    properties_])
 
                 if is_reach:
                     point = Point(float(self.p_longitud[ii]),
@@ -79,6 +84,12 @@ class ShapeWriterMixIn(object):
                 else:
                     point = Point(float(self.longitude[ii]),
                                   float(self.latitude[ii]))
+
+                # add time-string
+                this_property['time_strin'] = (
+                    datetime.datetime(2000, 1, 1) + datetime.timedelta(
+                        seconds=this_property['time'])
+                    ).strftime('%Y-%m-%dT%H:%M%S.%fZ')
 
                 ofp.write({'geometry': mapping(point), 'id': ii,
                            'properties': this_property, 'type': 'Feature'})
