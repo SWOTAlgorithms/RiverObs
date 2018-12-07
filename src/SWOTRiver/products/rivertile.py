@@ -10,6 +10,7 @@ import textwrap
 import numpy as np
 import fiona
 import netCDF4
+import datetime
 from shapely.geometry import Point, mapping
 from collections import OrderedDict as odict
 
@@ -18,7 +19,7 @@ from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 class L2HRRiverTile(Product):
     UID = "l2_hr_rivertile"
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     GROUPS = odict([
         ['nodes', 'RiverTileNodes'],
         ['reaches', 'RiverTileReaches'],
@@ -65,13 +66,17 @@ class ShapeWriterMixIn(object):
         except KeyError:
             is_reach = True
 
+        # add time-string
+        properties_ = properties.copy()
+        properties['time_str'] = 'str'
+
         # mash up the schema
         schema = {'geometry': 'Point', 'properties': properties}
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
             for ii in range(self.reach_id.shape[0]):
                 this_property = odict([[
                     key, np.asscalar(self[key][ii])] for key in
-                    schema['properties']])
+                    properties_])
 
                 if is_reach:
                     point = Point(float(self.p_longitud[ii]),
@@ -80,11 +85,17 @@ class ShapeWriterMixIn(object):
                     point = Point(float(self.longitude[ii]),
                                   float(self.latitude[ii]))
 
+                # add time-string
+                this_property['time_str'] = (
+                    datetime.datetime(2000, 1, 1) + datetime.timedelta(
+                        seconds=this_property['time'])
+                    ).strftime('%Y-%m-%dT%H:%M%S.%fZ')
+
                 ofp.write({'geometry': mapping(point), 'id': ii,
                            'properties': this_property, 'type': 'Feature'})
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
         ['reach_id',
@@ -300,7 +311,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10.0],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_dark',
+        ['dark_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates low signal to noise ration possible due to rain,
@@ -312,7 +323,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_frozen',
+        ['frozen_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates if the surface is frozen""")],
@@ -323,7 +334,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_layover',
+        ['layover_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates if significant layover effect in node""")],
@@ -345,7 +356,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_quality',
+        ['quality_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Quality indicator on measurement, other quantities""")],
@@ -356,7 +367,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_partial',
+        ['partial_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates that Reach is near edge and part may be lost due
@@ -368,7 +379,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_xovr_cal',
+        ['xovr_cal_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Quality of the cross-over calibrations""")],
@@ -397,7 +408,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_sig0_atm',
+        ['sig0_atm_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     sigma0 atmospheric correction within the swath from
@@ -444,7 +455,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_dry_trop',
+        ['dry_trop_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Numerical weather model dry tropospheric correction to
@@ -455,7 +466,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Negative as additive range correction.""")],
                 ])],
-        ['c_wet_trop',
+        ['wet_trop_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Numerical weather model wet tropospheric correction to
@@ -466,7 +477,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Negative as additive range correction.""")],
                 ])],
-        ['c_iono',
+        ['iono_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Ionospheric model correction to surface height""")],
@@ -476,7 +487,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Negative as additive range correction.""")],
                 ])],
-        ['c_xovr_cal',
+        ['xovr_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     KaRIn correction from crossover cal processing evaluated
@@ -486,7 +497,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_kar_att',
+        ['kar_att_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Height correction from KaRIn orientation (attitude)
@@ -496,7 +507,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_h_bias',
+        ['h_bias_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Overall instrument system height bias""")],
@@ -505,7 +516,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_sys_cg',
+        ['sys_cg_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     KaRIn to s/c CG correction to height (m)""")],
@@ -514,7 +525,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_intr_cal',
+        ['intr_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Corrections on height deduced from instrument internal
@@ -627,10 +638,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             '/pixel_cloud/solid_earth_tide': 'earth_tide',
             '/pixel_cloud/pole_tide': 'pole_tide',
             '/pixel_cloud/loading_tide_sol1': 'load_tide',
-            '/pixel_cloud/model_dry_tropo_cor': 'c_dry_trop',
-            '/pixel_cloud/model_wet_tropo_cor': 'c_wet_trop',
-            '/pixel_cloud/model_iono_ka_cor': 'c_iono',
-            '/pixel_cloud/xover_height_cor': 'c_xovr_cal',
+            '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
+            '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
+            '/pixel_cloud/model_iono_ka_cor': 'iono_c',
+            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
             '/tvp/time': 'time',
             '/tvp/time_tai': 'time_tai'}
 
@@ -666,7 +677,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             self[outkey] = outdata
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     DIMENSIONS = odict([['reaches', 0]])
     VARIABLES = odict([
         ['reach_id',
@@ -953,7 +964,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Uncertainty in model 3 reach average river discharge.""")],
                 ])],
-        ['f_dark',
+        ['dark_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates low signal to noise ration possible due to rain,
@@ -965,7 +976,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_frozen',
+        ['frozen_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates if the surface is frozen""")],
@@ -976,7 +987,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_layover',
+        ['layover_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates if significant layover effect in node""")],
@@ -997,7 +1008,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Number of good nodes in reach used for slope fit""")],
                 ])],
-        ['f_quality',
+        ['quality_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Quality indicator on measurement, other quantities""")],
@@ -1008,7 +1019,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_partial',
+        ['partial_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Indicates that Reach is near edge and part may be lost due
@@ -1020,7 +1031,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['f_xovr_cal',
+        ['xovr_cal_f',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Quality of the cross-over calibrations""")],
@@ -1040,14 +1051,15 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     TBD""")],
                 ])],
-        ['ds_prior',
+        ['loc_offset',
          odict([['dtype', 'f4'],
                 ['long_name', 'node mean - prior mean along-reach coordinate'],
                 ['units', 'm'],
                 ['valid_min', -99999],
                 ['valid_max', 99999],
                 ['comment', textjoin("""
-                    TBD""")],
+                    Along reach offset distance of observed points from nominal
+                    center.""")],
                 ])],
         ['geoid_hght',
          odict([['dtype', 'f4'],
@@ -1086,7 +1098,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_dry_trop',
+        ['dry_trop_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Numerical weather model dry tropospheric correction to
@@ -1097,7 +1109,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Negative as additive range correction.""")],
                 ])],
-        ['c_wet_trop',
+        ['wet_trop_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Numerical weather model wet tropospheric correction to
@@ -1108,7 +1120,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Negative as additive range correction.""")],
                 ])],
-        ['c_iono',
+        ['iono_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Ionospheric model correction to surface height""")],
@@ -1118,7 +1130,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Negative as additive range correction.""")],
                 ])],
-        ['c_xovr_cal',
+        ['xovr_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     KaRIn correction from crossover cal processing evaluated
@@ -1128,7 +1140,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_kar_att',
+        ['kar_att_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Height correction from KaRIn orientation (attitude)
@@ -1138,7 +1150,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_h_bias',
+        ['h_bias_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Overall instrument system height bias""")],
@@ -1147,7 +1159,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_sys_cg',
+        ['sys_cg_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     KaRIn to s/c CG correction to height (m)""")],
@@ -1156,7 +1168,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['c_intr_cal',
+        ['intr_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Corrections on height deduced from instrument internal
@@ -1191,14 +1203,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['xtrk_dist'] = reach_outputs['xtrck_ave']
             klass['n_good_nod'] = reach_outputs['n_good_nod']
             klass['frac_obs'] = reach_outputs['frac_obs']
-            klass['ds_prior'] = reach_outputs['ds_prior']
+            klass['loc_offset'] = reach_outputs['loc_offset']
 
             # set quality flag on less than 1/2 reach observed
-            klass['f_partial'] = np.zeros(reach_outputs['frac_obs'].shape)
-            klass['f_partial'][reach_outputs['frac_obs'] < 0.5] = 1
+            klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
+            klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
             # set quality bad if partial flag is set
-            klass['f_quality'] = klass['f_partial']
+            klass['quality_f'] = klass['partial_f']
 
             assert(len(reach_collection) == len(klass['reach_id']))
 

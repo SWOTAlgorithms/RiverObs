@@ -91,7 +91,7 @@ class Product(object):
 
     These are basically NetCDF files."""
     # These hold forms of what is allowed to exist in this product
-    ATTRIBUTES = []
+    ATTRIBUTES = odict()
     DIMENSIONS = odict()
     VARIABLES = odict()
     GROUPS = odict()
@@ -108,7 +108,7 @@ class Product(object):
         for key,attr_odict in self.VARIABLES.items():
             self.VARIABLES[key] = copy.deepcopy(sort_variable_attribute_odict(attr_odict))
         # For bug finding
-        assert isinstance(self.ATTRIBUTES, list)
+        assert isinstance(self.ATTRIBUTES, odict)
         assert isinstance(self.DIMENSIONS, odict)
         assert isinstance(self.VARIABLES, odict)
         assert isinstance(self.GROUPS, odict)
@@ -121,7 +121,7 @@ class Product(object):
 
     @property
     def attributes(self):
-        dictionary = self._attributes.copy()
+        dictionary = copy.deepcopy(self._attributes)
         return dictionary
 
     @property
@@ -138,7 +138,7 @@ class Product(object):
         # Update with any initialied values
         for key, variable in self.VARIABLES.items():
             for i, vdim in enumerate(variable['dimensions']):
-                assert vdim in dimensions
+                assert vdim in dimensions, vdim+", "+str(list(dimensions.keys()))
                 if key in self.variables:
                     dimensions[vdim] = self[key].shape[i]
         return dimensions
@@ -253,16 +253,21 @@ class Product(object):
         raise AttributeError('{} not in product'.format(key))
 
     @classmethod
-    def _getfill(cls, variable_name, dtype=None):
+    def _getfill(cls, name, dtype=None, is_attribute=False):
         """Returns fill value from cls.VARIABLES or FILL_VALUES"""
+        data_dict = cls.VARIABLES
+        default_dtype = 'f4'
+        if is_attribute:
+            data_dict = cls.ATTRIBUTES
+            default_dtype = 'str'
         try:
-            fill = cls.VARIABLES[variable_name]['fill']
+            fill = data_dict[name]['fill']
         except KeyError:
             if dtype is None:
-                if 'dtype' in cls.VARIABLES[variable_name]:
-                    dtype = cls.VARIABLES[variable_name]['dtype']
+                if 'dtype' in data_dict[name]:
+                    dtype = data_dict[name]['dtype']
                 else:
-                    dtype = 'f4'
+                    dtype = default_dtype
             dtype_str = np.dtype(dtype).str[1:]
             fill = FILL_VALUES[dtype_str]
         return fill
@@ -485,15 +490,39 @@ class Product(object):
 
         # add attributes
         for atr in cls.ATTRIBUTES:
+            attrs = copy.deepcopy(cls.ATTRIBUTES[atr])
             if prefix is None:
                 this_prefix = ''
             else:
                 this_prefix = '/'+prefix
-
-            string = (4*INDENT+\
-                '<string length="0" name="%s/@%s" shape="Scalar"/>\n' %(
-                this_prefix, atr))
-
+            # get the dtype and doc string
+            try:
+                type_str = np.dtype(attrs.pop('dtype')).str
+                # XML wdith value
+                width = int(type_str[2]) * 8
+                if type_str[1]=='U':
+                    str_type = 'string'
+                    str_width = 'length'
+                else:
+                    str_type = 'real'
+                    str_width = 'width'
+            except KeyError:
+                str_type = 'string'
+                str_width = 'length'
+                width = 0
+            try:
+                desc = attrs.pop('docstr')
+                # decode
+                string = (4*INDENT+\
+                    '<%s %s="%d" name="%s/@%s" shape="Scalar">\n' %(
+                    str_type, str_width, width, this_prefix, atr))
+                string = (string + 5*INDENT +\
+                    '<annotation description="%s"/>\n' %desc)
+                string = string + 4*INDENT + '</%s>\n'%(str_type)
+            except KeyError:
+                string = (4*INDENT+\
+                    '<%s %s="%d" name="%s/@%s" shape="Scalar"/>\n' %(
+                    str_type, str_width, width, this_prefix, atr))
             ofp.write(string)
 
         if prefix is None:
@@ -534,6 +563,11 @@ class Product(object):
             mask=np.logical_not(valid))
         self[my_var] = out_value
 
+    def cast(self):
+        for group in self.GROUPS:
+            self[group].cast()
+        for key in self.variables:
+            self[key] = self._casted_variable(key)
 
 class MutableProduct(Product):
     """A product with forms as instance attributes, not class attributes
