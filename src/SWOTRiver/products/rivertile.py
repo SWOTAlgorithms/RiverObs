@@ -649,7 +649,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         with netCDF4.Dataset(pixc_file, 'r') as ifp:
             for key in pixc2rivertile_map:
                 group, dset = key.split('/')[1::]
-                pixc_data[key] = ifp.groups[group][dset][:].data
+                pixc_data[key] = ifp.groups[group][dset][:]
 
         for inkey, outkey in pixc2rivertile_map.items():
             # subset pixel cloud data to look like pixcvec data
