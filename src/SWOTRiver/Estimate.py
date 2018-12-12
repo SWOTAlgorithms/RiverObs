@@ -13,6 +13,7 @@ import numpy as np
 import RDF
 import SWOTRiver.EstimateSWOTRiver
 from SWOTRiver.products.rivertile import L2HRRiverTile
+from SWOTRiver.products.pixcvec import L2PIXCVector
 
 class L2PixcToRiverTile(object):
     """
@@ -192,7 +193,9 @@ class L2PixcToRiverTile(object):
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
 
             if self.is_new_pixc:
-                nr_pixels = ifp.groups['pixel_cloud'].dimensions['points'].size
+                ifgram_shape = ifp.groups['pixel_cloud'].interferogram_shape
+                splits = ifgram_shape.replace(',', '').split()
+                nr_pixels = int(splits[1])
                 azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
                 rng_index = ifp.groups['pixel_cloud']['range_index'][:]
             else:
@@ -232,10 +235,20 @@ class L2PixcToRiverTile(object):
                     var_lake_flag[pixc_reach == reach] = lake_flag
 
     def build_products(self):
-        """Constructs the L2HRRiverTile data product"""
+        """Constructs the L2HRRiverTile data product / updates the index file"""
         self.rivertile_product = L2HRRiverTile.from_riverobs(
             self.node_outputs, self.reach_outputs, self.reach_collection)
 
         # add in a bunch more stuff from PIXC
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
+
+        # copy attributes from pixel cloud to pixel cloud vector
+        with netCDF4.Dataset(self.index_file, 'a') as ofp,\
+             netCDF4.Dataset(self.pixc_file, 'r') as ifp:
+            for attr in L2PIXCVector.ATTRIBUTES.keys():
+                try:
+                    value = getattr(ifp, attr)
+                except AttributeError:
+                    value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
+                setattr(ofp, attr, value)
