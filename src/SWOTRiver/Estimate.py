@@ -171,11 +171,12 @@ class L2PixcToRiverTile(object):
             return
 
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
-
+        pixel_cloud = geoloc_river.PixelCloud.from_file(self.pixc_file)
+        pixvec = geoloc_river.PixcvecRiver(self.index_file, pixel_cloud)
         # compute improved geolocation
         lat_corr, lon_corr, height_corr = geoloc_river.geoloc_river(
-            geoloc_river.PixelCloud.from_file(self.pixc_file),
-            geoloc_river.PixcvecRiver(self.index_file),
+            pixel_cloud,
+            pixvec,
             cnes_sensor,
             geoloc_river.RiverTile.from_node_outputs(self.node_outputs),
             fit_heights_per_reach=True, interpolate_pixc_between_nodes=True,

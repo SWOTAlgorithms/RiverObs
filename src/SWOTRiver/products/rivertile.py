@@ -634,6 +634,17 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         """Adds more datasets from pixc_file file using index_file"""
         pixc_vec = L2PIXCVector.from_ncfile(index_file)
 
+        #~ pixc2rivertile_map = {
+            #~ '/pixel_cloud/solid_earth_tide': 'earth_tide',
+            #~ '/pixel_cloud/pole_tide': 'pole_tide',
+            #~ '/pixel_cloud/loading_tide_sol1': 'load_tide',
+            #~ '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
+            #~ '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
+            #~ '/pixel_cloud/model_iono_ka_cor': 'iono_c',
+            #~ '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
+            #~ '/tvp/time': 'time',
+            #~ '/tvp/time_tai': 'time_tai'}
+            
         pixc2rivertile_map = {
             '/pixel_cloud/solid_earth_tide': 'earth_tide',
             '/pixel_cloud/pole_tide': 'pole_tide',
@@ -641,10 +652,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/model_iono_ka_cor': 'iono_c',
-            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
-            '/tvp/time': 'time',
-            '/tvp/time_tai': 'time_tai'}
-
+            '/pixel_cloud/xover_height_cor': 'xovr_cal_c'}
+            
         pixc_data = {}
         with netCDF4.Dataset(pixc_file, 'r') as ifp:
             for key in pixc2rivertile_map:
