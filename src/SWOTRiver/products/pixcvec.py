@@ -37,7 +37,7 @@ class L2PIXCVector(Product):
         ['stop_time', {}],
         ['ephemeris', {}],
         ['yaw_flip', {}],
-        ['hpa_mode', {}],
+        ['hpa_cold', {}],
         ['processing_beamwidth', {}],
         ['inner_first_latitude', {}],
         ['inner_first_longitude', {}],
@@ -48,7 +48,7 @@ class L2PIXCVector(Product):
         ['outer_last_latitude', {}],
         ['outer_last_longitude', {}],
         ['slc_first_line_index_in_tvp', {}],
-        ['slc_end_line_index_in_tvp', {}],
+        ['slc_last_line_index_in_tvp', {}],
         ['xref_input_l1b_hr_slc', {}],
         ['xref_static_karin_cal_file', {}],
         ['xref_ref_dem_file', {}],
@@ -58,7 +58,9 @@ class L2PIXCVector(Product):
         ['xref_int_lr_xover_cal_file', {}],
         ['xref_l2_hr_pixc_config_parameters_file', {}],
         ['ellipsoid_semi_major_axis', {}],
-        ['ellipsoid_flattening', {}]])
+        ['ellipsoid_flattening', {}],
+        ['interferogram_shape', {}],
+        ['looks_to_efflooks', {}]])
 
     DIMENSIONS = odict([['points', 0]])
     VARIABLES = odict([
