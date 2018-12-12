@@ -456,7 +456,7 @@ class Product(object):
             attrs.move_to_end("_FillValue", last=False)# put fill value in front
 
             # XML node name
-            dset_name = dset if prefix is None else '/%s/%s' % (prefix, dset)
+            dset_name = '/'+dset if prefix is None else '/%s/%s' % (prefix, dset)
 
             for name, value in attrs.items():
                 if np.iscomplexobj(value):
