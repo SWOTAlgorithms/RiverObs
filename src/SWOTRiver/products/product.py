@@ -366,6 +366,7 @@ class Product(object):
         dataset = nc.Dataset(filename, 'r')
         product = cls()
         product.from_dataset(dataset, variables)
+        dataset.close()
         return product
 
 
