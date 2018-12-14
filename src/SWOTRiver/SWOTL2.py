@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import netCDF4
 import pyproj
+import logging
 
 
 class SWOTL2:
@@ -34,8 +35,6 @@ class SWOTL2:
         the netcdf name of the classification layer to use.
     min_points : int
         If the number of good points is less than this, raise an exception.
-    verbose : bool, default False
-        If True, print to sdtout while processing.
 
     Notes
     ------
@@ -64,7 +63,6 @@ class SWOTL2:
                  aziidx_kwd='azimuth_index',
                  min_points=100,
                  project_data=True,
-                 verbose=False,
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -73,19 +71,16 @@ class SWOTL2:
                  ellps='WGS84',
                  subsample_factor=1,
                  **proj_kwds):
-
-        self.verbose = verbose
-
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
         self.subsample_factor = subsample_factor
         self.nc = netCDF4.Dataset(swotL2_file)
-        if self.verbose: print('Dataset opened')
+        self.logger.info('Dataset opened')
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
 
-        if self.verbose:
-            print('Good data selected & bounding box calculated.')
+        self.logger.debug('Good data selected & bounding box calculated.')
 
         # Get reference locations for these data
         self.lat = self.get(lat_kwd)
@@ -116,7 +111,7 @@ class SWOTL2:
                 self.img_x = None
                 self.img_y = None
 
-        if self.verbose: print('lat/lon read')
+        self.logger.debug('lat/lon read')
 
         # If not enough good points are found, raise Exception
         if len(self.lat) < min_points:
@@ -134,7 +129,7 @@ class SWOTL2:
                 lon_0=lon_0,
                 ellps=ellps,
                 **proj_kwds)
-            if self.verbose: print('projection set and x,y calculated')
+            self.logger.debug('projection set and x,y calculated')
 
     def set_index_and_bounding_box(self,
                                    bounding_box,
@@ -157,9 +152,8 @@ class SWOTL2:
         for i in range(1, len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
-        if self.verbose:
-            print('Number of points in these classes: %d' %
-                  (np.sum(self.class_index)))
+        self.logger.debug('Number of points in these classes: %d' %(
+                          np.sum(self.class_index)))
 
         lat = self.get(lat_kwd, use_index=False)
         lon = self.get(lon_kwd, use_index=False)
@@ -179,12 +173,11 @@ class SWOTL2:
         self.index = ((lat >= self.latmin) & (lon >= self.lonmin) &
                       (lat <= self.latmax) & (lon <= self.lonmax))
 
-        if self.verbose:
-            print('Number of points in bounding box: %d' %
-                  (np.sum(self.index)))
+        self.logger.debug('Number of points in bounding box: %d' %
+                         (np.sum(self.index)))
 
         self.index = self.index & self.class_index
-        if self.verbose: print('Number of good: %d' % (np.sum(self.index)))
+        self.logger.debug('Number of good: %d' % (np.sum(self.index)))
 
         lat = lat[self.index]
         lon = lon[self.index]
