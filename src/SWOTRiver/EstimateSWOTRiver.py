@@ -215,7 +215,6 @@ def estimate(params):
         use_segmentation=use_segmentation,
         use_heights=use_heights,
         min_points=params.min_points,
-        verbose=True,
         store_obs=False,
         store_reaches=False,
         store_fits=False,

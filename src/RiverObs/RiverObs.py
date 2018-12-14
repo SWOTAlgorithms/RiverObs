@@ -4,6 +4,7 @@ import copy
 import collections
 import scipy.stats
 import numpy as np
+import logging
 
 from Centerline import Centerline
 from .RiverNode import RiverNode
@@ -44,7 +45,6 @@ class RiverObs:
         either RiverNode, or a class derived from it.
     missing_value : float, default -9999
         This value is reported when a node_stat is requested of an empty node.
-    verbose : bool, default False
         Output progress to stdout
     """
 
@@ -58,9 +58,9 @@ class RiverObs:
                  max_width=None,
                  minobs=1,
                  node_class=RiverNode,
-                 missing_value=-9999,
-                 verbose=False):
-        self.verbose = verbose
+                 missing_value=-9999):
+
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.missing_value = missing_value
 
         # Register the node class
@@ -87,7 +87,7 @@ class RiverObs:
                 obs=[max_width],
                 obs_names=['max_width'])
         self.max_width = self.centerline.max_width
-        if self.verbose: print('Centerline initialized')
+        self.logger.debug('Centerline initialized')
 
         # Associate an along-track dimension to each node
         if ds is not None:  # Evenly spaced nodes
@@ -117,7 +117,7 @@ class RiverObs:
         self.s = np.squeeze(self.s)
         self.n = np.squeeze(self.n)
 
-        if self.verbose: print('Local coordiantes calculated')
+        self.logger.debug('Local coordiantes calculated')
 
         # Assign to each point the along-track distance, not just delta s
         self.s += self.centerline.s[self.index]
@@ -174,8 +174,7 @@ class RiverObs:
                                        dst0 <= extreme_dist,
                                        abs(self.n) <= extreme_dist)))
 
-                if self.verbose:
-                    print("Dominant label in reach: %d" % dominant_label)
+                self.logger.debug("Dominant label in reach: %d" % dominant_label)
 
             else:
                 self.in_channel = class_mask
