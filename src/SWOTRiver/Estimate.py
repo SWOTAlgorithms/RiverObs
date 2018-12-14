@@ -9,6 +9,7 @@ import copy
 import argparse
 import netCDF4
 import numpy as np
+import logging
 
 import RDF
 import SWOTRiver.EstimateSWOTRiver
@@ -20,7 +21,7 @@ class L2PixcToRiverTile(object):
     Class for running RiverObs on a SWOT L2 PixelCloud data product
     """
     def __init__(self, l2pixc_file, index_file, is_new_pixc=None):
-
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.pixc_file = l2pixc_file
         self.index_file = index_file
         self.is_new_pixc = is_new_pixc
@@ -33,11 +34,13 @@ class L2PixcToRiverTile(object):
 
     def load_config(self, config):
         """Copies config object into self's storage from main"""
+        self.logger.info('load_config')
         self.config = copy.deepcopy(config)
         self.config['subsample_factor'] = 1
 
     def compute_bounding_box(self, from_attrs=True):
         """Get bounding box of self.pixc_file"""
+        self.logger.info('compute_bounding_box')
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
             if from_attrs:
                 lat_keys = [a+'_'+b+'_latitude' for a in ('inner', 'outer')
@@ -73,6 +76,7 @@ class L2PixcToRiverTile(object):
 
     def do_river_processing(self):
         """Does the river processing"""
+        self.logger.info('do_river_processing')
         print(self.config['trim_ends'])
 
         if 'fractional_inundation_kwd' not in self.config:
@@ -156,6 +160,7 @@ class L2PixcToRiverTile(object):
         Uses output of river processing (nodes) and rare sensor data to
         improve geolocation on lat, lon datasets in index.nc file.
         """
+        self.logger.info('do_improved_geolocation')
         if (self.node_outputs is None or not
             self.config['do_improved_geolocation']):
             return
@@ -190,6 +195,7 @@ class L2PixcToRiverTile(object):
 
     def match_pixc_idx(self):
         """Matches the pixels from pixcvector to input pixc"""
+        self.logger.info('match_pixc_idx')
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
 
             if self.is_new_pixc:
@@ -221,6 +227,7 @@ class L2PixcToRiverTile(object):
         """
         Adds a lake/river flag from prior database to pixcvector
         """
+        self.logger.info('flag_lakes_pixc')
         with netCDF4.Dataset(self.index_file, 'a') as ofp:
             pixc_reach = ofp.variables['reach_index'][:]
 
@@ -236,6 +243,7 @@ class L2PixcToRiverTile(object):
 
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
+        self.logger.info('build_products')
         self.rivertile_product = L2HRRiverTile.from_riverobs(
             self.node_outputs, self.reach_outputs, self.reach_collection)
 
