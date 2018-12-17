@@ -175,8 +175,8 @@ def height_with_uncerts(
 
     
 
-def area_only(pixel_area, klass, good, method='composite', 
-              interior_water_klass=4, water_edge_klass=3, land_edge_klass=2):
+def area_only(pixel_area, klass, good,
+              interior_water_klass=4, water_edge_klass=3, land_edge_klass=2, method='composite',):
     """
     Return the aggregate height
     implements methods: weight (default), median, uniform 
@@ -225,13 +225,175 @@ def area_only(pixel_area, klass, good, method='composite',
         num_pixels = simple(Idw_in[good]+Ide[good], metric = 'sum')
     return area_agg, num_pixels
 #
-
-def area_with_uncert(pixel_area, klass, good, method='composite', 
-              interior_water_klass=4, water_edge_klass=3, land_edge_klass=2):
+def area_uncert(
+    pixel_area, water_fraction, water_fraction_uncert,
+    darea_dheight, klass, Pfd, Pmd, good,
+    Pca=0.9, Pw=0.5,Ptf=0.5,
+    ref_dem_std=10,
+    interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
+    method='composite'):
+    '''
     
-    area_agg, num_pixels = area_only(pixel_area, klass, good, method=method, 
-                                     interior_water_klass=interior_water_klass, 
-                                     water_edge_klass=interior_water_klass, 
-                                     land_edge_klass=interior_water_klass)
-    # TODO call the uncertainty stuff
-    return area_agg, None
+    Ie  = mask for edge pixels
+    Pfd = Probability of false detection of water [0,1]
+    Pmd = Probability of missed detection of water [0,1]
+    Pca = Probability of correct assignment [0,1]
+    Pw  = Probability of water (prior) [0,1]
+    Ptf = Truth probability of pixel assignment 0.5 for non-informative
+    ref_dem_std = 10
+    method = composite (default), simple, water_fraction
+
+    Reference: implements Eq.s (18), (26), and (30) in 
+    "SWOT Hydrology Height and Area Uncertainty Estimation," 
+    Brent Williams, 2018, JPL Memo
+    '''
+    # get indicator functions
+    Ide = np.zeros(np.shape(pixel_area))
+    Ide[klass==water_edge_klass] = 1.0
+    Ide[klass==land_edge_klass] = 1.0
+    Pe = Ide # use detected edge asprobablity of true edge pixels...
+    
+    I = np.zeros(np.shape(pixel_area))
+    I[Ide>0] = 1.0
+    I[klass==interior_water_klass] = 1.0 #all pixels near water
+
+    # get false and missed assignment rates from correct assignment rate 
+    Pfa = 1 - Pca
+    Pma = 1 - Pca
+    
+    # get the assignment rates, bias and variance 
+    #Ptf = 0.5 # 0.5 equally likley to be in or out of the bin
+    Pf = Pca * Ptf + Pfa *(1-Ptf)
+    Bf = Pfa * (1-Ptf) - Pma * Pf
+    Vf = Pfa*(1-Ptf) + Pma * Pf
+
+    # handle pixel size uncertainty
+    #ref_dem_std = 10 # m
+    sigma_a = darea_dheight*ref_dem_std*pixel_area #0.05* pixel_area
+    
+    # handle the sampling error
+    sigma_s2 = 1.0/12.0
+    
+    # get detection rates
+    if method =='simple' or method =='composite':
+        Pcd = 1 - Pmd
+        Pdw = Pcd*Pw + Pfd*(1-Pw)
+                
+        # also get
+        Vdw = (Pfd*(1-Pw)+Pmd*Pw)
+        V_dwf = (Pf*Vdw+Pw*Vf - 2*Pmd*Pw*Pfa*(1-Ptf))
+        
+        # get the aggregate sampling error
+        # first term in Eq. 18  using Pe = Ie 
+        var_samp_bar = simple(pixel_area[good]**2.0 * sigma_s2 * Pe[good] * Ptf, metric = 'sum')
+        # handle the case where there are no edge pixels...
+        num_pixels_edge = simple(Pe[good], metric = 'sum')
+        if num_pixels_edge==0: 
+            var_samp_bar = 0
+        
+        # the area uncertainty to be aggregated (2nd term in Eq. 12)
+        var_pix_area_dw = sigma_a**2 * Pdw * Pf
+        var_pix_area_dw_bar = simple(var_pix_area_dw[good] * I[good], metric = 'sum')
+        
+        # the detection and assignement rate uncertainty to be aggregated
+        # 3rd term in Eq. 12
+        var_area_dw = pixel_area**2 * V_dwf
+        var_area_dw_bar = simple(var_area_dw[good] * I[good], metric = 'sum')
+        
+        # aggregate bias term (last term in Eq. 12)
+        Bdw = Pfd * (1-Pw) - Pmd * Pw
+        # use detected water prob for bias??
+        Bdwf = Bdw * Ptf + Pw * Bf
+        
+        Bdwf_bar = simple(pixel_area[good] * Bdwf * I[good], metric = 'sum')
+        Bdwf2_bar = simple(pixel_area[good]**2 * Bdwf[good]**2 * I[good], metric = 'sum')
+        B_term_dw = Bdwf_bar**2 - Bdwf2_bar #
+        # sqrt of Eq. 12, std_dw = sigma_{A_f}
+        std_dw = np.sqrt(var_samp_bar+ var_pix_area_dw_bar + var_area_dw_bar + B_term_dw)
+
+        
+    if method == 'water_fraction' or method == 'composite':
+        # use water_fraction (only for edge pixels if composite)
+        # implements Eq. 26
+        alpha2 = water_fraction_uncert
+        alpha = water_fraction
+        
+        # get truth alpha and its var from noisy meausred alpha...
+        sig_alpha2 = alpha2**2
+        alpha_t = alpha
+        
+        Valpha=(sig_alpha2*Pf + alpha_t**2*Vf)
+        var_area_alpha = pixel_area**2 * Valpha
+        # 2nd term in Eq. 26
+        var_area_alpha_bar = simple(var_area_alpha[good] * I[good], metric = 'sum')
+        
+            
+        var_pix_area_alpha = sigma_a**2 * (sig_alpha2 + alpha**2) * Pf
+        # 1st term in Eq. 26
+        var_pix_area_alpha_bar = simple(var_pix_area_alpha[good] * I[good], metric = 'sum')
+    
+        B_tmp = pixel_area*alpha_t*Bf
+        Balphaf_bar = simple(B_tmp[good] * I[good], metric = 'sum')
+        Balphaf2_bar = simple(B_tmp[good]**2 * I[good], metric = 'sum')
+        # 3rd term in Eq 26
+        B_term_alpha = Balphaf_bar**2 - Balphaf2_bar
+        # sqrt of Eq. 26, std_alpha = sigma_{A_f,alpha}
+        std_alpha = np.sqrt(var_area_alpha_bar + var_pix_area_alpha_bar + B_term_alpha)#/abs(area_bar)
+        
+    if method == 'composite':
+        # assume that Pde is constant over each feature
+        N_edges = simple(Ide, metric='sum')
+        if N_edges==0:
+            Pde = 0
+        else:
+            N_tot = simple(I, metric='sum')
+            Pde = N_edges/N_tot
+            if Pde>1:
+                Pde =1
+        Pde_x = np.zeros(np.shape(pixel_area))+Pde
+        
+        # fakely account for Pme < Pe by scaling by 10%
+        var_samp_composite_bar = 0.1 * var_samp_bar
+        var_area_composite_bar = var_area_alpha_bar * Pde + (1-Pde) * var_area_dw_bar
+        var_pix_area_composite_bar = var_pix_area_alpha_bar * Pde + (1-Pde) * var_pix_area_dw_bar
+        B_tmp = pixel_area*((1-Pde_x) * Bdwf + Pde_x* alpha_t*Bf)
+        
+        Bcomposite_bar = simple(B_tmp, metric = 'sum')
+        Bcomposite2_bar = simple(B_tmp**2, metric = 'sum')
+        B_term_composite = Bcomposite_bar**2 - Bcomposite2_bar
+        # sqrt of Eq. 30, std_compsite = sigma_{A'_f}
+        std_composite = np.sqrt(var_samp_composite_bar
+                                + var_area_composite_bar
+                                + var_pix_area_composite_bar
+                                + B_term_composite)
+    std_out = std_composite
+    if method == simple:
+        std_out = std_wd
+    if method == water_fraction:
+        std_out = std_alpha
+    return std_out
+#
+def area_with_uncert(pixel_area, water_fraction, water_fraction_uncert,
+                     darea_dheight, klass, Pfd, Pmd, good,
+                     interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
+                     method='composite'):
+    
+    area_agg, num_pixels = area_only(
+        pixel_area, klass, good, method=method, 
+        interior_water_klass=interior_water_klass, 
+        water_edge_klass=water_edge_klass, 
+        land_edge_klass=land_edge_klass)
+    
+    area_unc = area_uncert(
+        pixel_area, water_fraction, water_fraction_uncert,
+        darea_dheight, klass, Pfd, Pmd, good,
+        Pca=0.9, Pw=0.5, Ptf=0.5,
+        ref_dem_std=10,
+        interior_water_klass=interior_water_klass, 
+        water_edge_klass=water_edge_klass, 
+        land_edge_klass=land_edge_klass,
+        method='composite')
+
+    # normalize to get area percent error
+    area_pcnt_uncert = area_unc/abs(area_agg)*100.0
+    return area_agg, area_unc, area_pcnt_uncert

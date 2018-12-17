@@ -152,7 +152,8 @@ class SWOTRiverEstimator(SWOTL2):
                  class_kwd='classification',
                  rngidx_kwd='range_index',
                  aziidx_kwd='azimuth_index',
-                 fractional_inundation_kwd='continuous_classification',
+                 fractional_inundation_kwd='water_frac',
+                 fractional_inundation_uncert_kwd='water_frac_uncert',
                  use_fractional_inundation=[True, True, False, False],
                  use_segmentation=[False, True, True, True],
                  use_heights=[False, False, True, False],
@@ -172,6 +173,9 @@ class SWOTRiverEstimator(SWOTL2):
                  num_rare_looks_kwd='num_rare_looks',
                  num_med_looks_kwd='num_med_looks',
                  looks_to_efflooks_kwd='looks_to_efflooks',
+                 false_detection_rate_kwd='false_detection_rate',
+                 missed_detection_rate_kwd='missed_detection_rate',
+                 darea_dheight_kwd = 'darea_dheight',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -246,6 +250,16 @@ class SWOTRiverEstimator(SWOTL2):
             self.sig0 = None
 
         try:
+            self.water_frac = self.get(fractional_inundation_kwd)
+        except KeyError:
+            self.water_frac = None
+        
+        try:
+            self.water_frac_uncert = self.get(fractional_inundation_uncert_kwd)
+        except KeyError:
+            self.water_frac_uncert = None
+
+        try:
             ifgram = self.get(ifgram_kwd)
             self.ifgram = ifgram[:,0] + 1j* ifgram[:,1]
         except KeyError:
@@ -288,6 +302,21 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.looks_to_efflooks = None
         
+        try:
+            self.false_detection_rate = self.get(false_detection_rate_kwd)
+        except KeyError:
+            self.false_detection_rate = None
+
+        try:
+            self.missed_detection_rate = self.get(false_detection_rate_kwd)
+        except KeyError:
+            self.missed_detection_rate = None
+
+        try:
+            self.darea_dheight = self.get(darea_dheight_kwd)
+        except KeyError:
+            self.darea_dheight = None
+
         good = ~mask
         self.lat = self.lat[good]
         self.lon = self.lon[good]
@@ -311,6 +340,16 @@ class SWOTRiverEstimator(SWOTL2):
             self.num_rare_looks = self.num_rare_looks[good]
         if self.num_med_looks is not None:
             self.num_med_looks = self.num_med_looks[good]
+        if self.false_detection_rate is not None:
+            self.false_detection_rate = self.false_detection_rate[good]
+        if self.missed_detection_rate is not None:
+            self.missed_detection_rate = self.missed_detection_rate[good]
+        if self.darea_dheight is not None:
+            self.darea_dheight = self.darea_dheight[good]
+        if self.water_frac is not None:
+            self.water_frac = self.water_frac[good]
+        if self.water_frac_uncert is not None:
+            self.water_frac_uncert = self.water_frac_uncert[good]
         self.img_x = self.img_x[good]  # range or x index
         self.img_y = self.img_y[good]  # azimuth or y index
 
@@ -856,6 +895,14 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.add_obs('sig0', self.sig0)
             dsets_to_load.append('sig0')
 
+        if self.water_frac is not None:
+            self.river_obs.add_obs('water_frac', self.water_frac)
+            dsets_to_load.append('water_frac')
+
+        if self.water_frac_uncert is not None:
+            self.river_obs.add_obs('water_frac_uncert', self.water_frac_uncert)
+            dsets_to_load.append('water_frac_uncert')
+
         if self.ifgram is not None:
             self.river_obs.add_obs('ifgram', self.ifgram)
             dsets_to_load.append('ifgram')
@@ -889,6 +936,19 @@ class SWOTRiverEstimator(SWOTL2):
                 float(self.looks_to_efflooks) + np.zeros(np.shape(self.phase_noise_std)))
             dsets_to_load.append('looks_to_efflooks')
         
+
+        if self.false_detection_rate is not None:
+            self.river_obs.add_obs('Pfd', self.false_detection_rate)
+            dsets_to_load.append('Pfd')
+
+        if self.missed_detection_rate is not None:
+            self.river_obs.add_obs('Pmd', self.missed_detection_rate)
+            dsets_to_load.append('Pmd')
+
+        if self.darea_dheight is not None:
+            self.river_obs.add_obs('darea_dheight', self.darea_dheight)
+            dsets_to_load.append('darea_dheight')
+
         # need to get array of land/water edge classes
         # to decode/encode the classification routine 
         # for external call to area agg in RiverNode
@@ -964,18 +1024,23 @@ class SWOTRiverEstimator(SWOTL2):
 
         # get the aggregated heights and widths with their corrosponding 
         # uncertainty estimates all in one shot
-        h, h_std, h_uncert, a, w_a, a_uncert = self.river_obs.get_node_agg(
-            height_method=self.height_agg_method,
-            area_method=self.area_agg_method)
+        if ((self.height_agg_method is not 'orig') or 
+            (self.area_agg_method is not 'orig')):
+            h, h_std, h_uncert, a, w_a, a_uncert = self.river_obs.get_node_agg(
+                height_method=self.height_agg_method,
+                area_method=self.area_agg_method)
+        if (self.height_agg_method is not 'orig'):
             # just replace the height and height_std for now
-        h_noise_ave = h
-        h_noise_std = h_std
-        h_noise_ave0 = h # put same height here for now
-        h_noise_std0 = h_uncert
-        print("node area, area-orig, w_area, area",a, area, w_a)
-        width_area = w_a
-        area = a
-        
+            h_noise_ave = h
+            h_noise_std = h_std
+            h_noise_ave0 = h # put same height here for now
+            h_noise_std0 = h_uncert
+            #print("node area, area-orig, w_area, area",a, area, w_a)
+        if (self.area_agg_method is not 'orig'):
+            # just replace the width_area and area and area_std for now
+            width_area = w_a
+            area = a
+            area_unc = a_uncert      
         # These are the values from the width database
         width_db = np.ones(
             self.river_obs.n_nodes,
@@ -1006,6 +1071,7 @@ class SWOTRiverEstimator(SWOTL2):
             'w_area': width_area.astype('float32'),
             'w_db': width_db.astype('float32'),
             'area': area.astype('float32'),
+            'area_unc': area_unc.astype('float32'),
             'area_of_ht': area_of_ht.astype('float32'),
             'h_n_ave': h_noise_ave.astype('float32'),
             'h_n_std': h_noise_std.astype('float32'),
