@@ -171,6 +171,7 @@ class SWOTRiverEstimator(SWOTL2):
                  dh_dphi_kwd='dheight_dphase',
                  num_rare_looks_kwd='num_rare_looks',
                  num_med_looks_kwd='num_med_looks',
+                 looks_to_efflooks_kwd='looks_to_efflooks',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -179,6 +180,8 @@ class SWOTRiverEstimator(SWOTL2):
                  ellps='WGS84',
                  output_file=None,
                  subsample_factor=1,
+                 height_agg_method='weight',#[weight, median, uniform, orig]
+                 area_agg_method='composite',
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -198,6 +201,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         self.use_segmentation = use_segmentation
         self.use_heights = use_heights
+        self.height_agg_method = height_agg_method
+        self.area_agg_method = area_agg_method
 
         # Initialize the base class
         SWOTL2.__init__(
@@ -243,7 +248,8 @@ class SWOTRiverEstimator(SWOTL2):
             self.sig0 = None
 
         try:
-            self.ifgram = self.get(ifgram_kwd)
+            ifgram = self.get(ifgram_kwd)
+            self.ifgram = ifgram[:,0] + 1j* ifgram[:,1]
         except KeyError:
             self.ifgram = None
 
@@ -277,6 +283,13 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.num_med_looks = None
 
+        try:
+            self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
+            if self.looks_to_efflooks == 'None':
+                self.looks_to_efflooks = 1.75 # set to default value
+        except KeyError:
+            self.looks_to_efflooks = None
+        
         good = ~mask
         self.lat = self.lat[good]
         self.lon = self.lon[good]
@@ -864,7 +877,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         if self.phase_noise_std is not None:
             self.river_obs.add_obs('phase_noise_std', self.phase_noise_std)
-            dsets_to_load.append('phaser_noise_std')
+            dsets_to_load.append('phase_noise_std')
 
         if self.dh_dphi is not None:
             self.river_obs.add_obs('dh_dphi', self.dh_dphi)
@@ -877,6 +890,30 @@ class SWOTRiverEstimator(SWOTL2):
         if self.num_med_looks is not None:
             self.river_obs.add_obs('num_med_looks', self.num_med_looks)
             dsets_to_load.append('num_med_looks')
+
+        if self.looks_to_efflooks is not None:
+            self.river_obs.add_obs('looks_to_efflooks',
+                float(self.looks_to_efflooks) + np.zeros(np.shape(self.phase_noise_std)))
+            dsets_to_load.append('looks_to_efflooks')
+        
+        # need to get array of land/water edge classes
+        # to decode/encode the classification routine 
+        # for external call to area agg in RiverNode
+        edge_water = np.zeros(np.shape(self.klass))
+        for i, k in enumerate(self.class_list):
+            if self.use_fractional_inundation[i]:
+                # this is actually both land and water edges, 
+                # but setting to water edge
+                edge_water[self.klass==k] = 1                
+        self.river_obs.add_obs('edge_water', edge_water)
+        dsets_to_load.append('edge_water')
+        #
+        self.river_obs.add_obs('klass', self.klass)
+        dsets_to_load.append('klass')
+        #
+        self.river_obs.add_obs('pixel_area', self.pixel_area)
+        dsets_to_load.append('pixel_area')
+        
 
         self.river_obs.load_nodes(dsets_to_load)
 
@@ -935,8 +972,18 @@ class SWOTRiverEstimator(SWOTL2):
 
         # get the aggregated heights and widths with their corrosponding 
         # uncertainty estimates all in one shot
-        h, h_std, h_uncert, a, a_uncert = self.river_obs.get_node_agg()
-
+        h, h_std, h_uncert, a, w_a, a_uncert = self.river_obs.get_node_agg(
+            height_method=self.height_agg_method,
+            area_method=self.area_agg_method)
+            # just replace the height and height_std for now
+        h_noise_ave = h
+        h_noise_std = h_std
+        h_noise_ave0 = h # put same height here for now
+        h_noise_std0 = h_uncert
+        print("node area, area-orig, w_area, area",a, area, w_a)
+        width_area = w_a
+        area = a
+        
         # These are the values from the width database
         width_db = np.ones(
             self.river_obs.n_nodes,
