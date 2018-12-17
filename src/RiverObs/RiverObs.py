@@ -4,10 +4,12 @@ import copy
 import collections
 import scipy.stats
 import numpy as np
+import logging
 
 from Centerline import Centerline
 from .RiverNode import RiverNode
 
+LOGGER = logging.getLogger(__name__)
 
 class RiverObs:
     """
@@ -44,7 +46,6 @@ class RiverObs:
         either RiverNode, or a class derived from it.
     missing_value : float, default -9999
         This value is reported when a node_stat is requested of an empty node.
-    verbose : bool, default False
         Output progress to stdout
     """
 
@@ -58,9 +59,8 @@ class RiverObs:
                  max_width=None,
                  minobs=1,
                  node_class=RiverNode,
-                 missing_value=-9999,
-                 verbose=False):
-        self.verbose = verbose
+                 missing_value=-9999):
+
         self.missing_value = missing_value
 
         # Register the node class
@@ -87,7 +87,7 @@ class RiverObs:
                 obs=[max_width],
                 obs_names=['max_width'])
         self.max_width = self.centerline.max_width
-        if self.verbose: print('Centerline initialized')
+        LOGGER.debug('Centerline initialized')
 
         # Associate an along-track dimension to each node
         if ds is not None:  # Evenly spaced nodes
@@ -117,7 +117,7 @@ class RiverObs:
         self.s = np.squeeze(self.s)
         self.n = np.squeeze(self.n)
 
-        if self.verbose: print('Local coordiantes calculated')
+        LOGGER.debug('Local coordiantes calculated')
 
         # Assign to each point the along-track distance, not just delta s
         self.s += self.centerline.s[self.index]
@@ -128,7 +128,7 @@ class RiverObs:
                 self.max_width, seg_label)
 
         self.nedited_data = len(self.x)
-        print("num nodes in reach %d" % len(np.unique(self.index)))
+        LOGGER.debug("num nodes in reach %d" % len(np.unique(self.index)))
         # Get the mapping from observation to node position (1 -> many);
         # i.e., the inverse of index (many -> 1), which maps node position
         # to observations
@@ -174,8 +174,7 @@ class RiverObs:
                                        dst0 <= extreme_dist,
                                        abs(self.n) <= extreme_dist)))
 
-                if self.verbose:
-                    print("Dominant label in reach: %d" % dominant_label)
+                LOGGER.debug("Dominant label in reach: %d" % dominant_label)
 
             else:
                 self.in_channel = class_mask

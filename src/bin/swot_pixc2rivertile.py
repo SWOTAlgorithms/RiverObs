@@ -51,6 +51,7 @@ import os
 import ast
 import argparse
 import netCDF4
+import logging
 
 import RDF
 import SWOTRiver.Estimate
@@ -63,7 +64,15 @@ def main():
     parser.add_argument('rdf_file', help='Static config params')
     parser.add_argument('--shpbasedir', type=str, default=None)
     parser.add_argument('--sensor-file', type=str, default=None)
+    parser.add_argument(
+        '-l', '--log-level', type=str, default="warning",
+        help="logging level, one of: debug info warning error")
     args = parser.parse_args()
+
+    level = {'debug': logging.DEBUG, 'info': logging.INFO,
+             'warning': logging.WARNING, 'error': logging.ERROR}[args.log_level]
+    format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    logging.basicConfig(level=level, format=format)
 
     config = RDF.RDF()
     config.rdfParse(args.rdf_file)
