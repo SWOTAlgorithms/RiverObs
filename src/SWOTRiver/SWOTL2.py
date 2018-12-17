@@ -9,6 +9,7 @@ import netCDF4
 import pyproj
 import logging
 
+LOGGER = logging.getLogger(__name__)
 
 class SWOTL2:
     """
@@ -71,16 +72,15 @@ class SWOTL2:
                  ellps='WGS84',
                  subsample_factor=1,
                  **proj_kwds):
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.lat_kwd, self.lon_kwd = lat_kwd, lon_kwd
         self.subsample_factor = subsample_factor
         self.nc = netCDF4.Dataset(swotL2_file)
-        self.logger.info('Dataset opened')
+        LOGGER.info('Dataset opened')
 
         self.set_index_and_bounding_box(
             bounding_box, lat_kwd, lon_kwd, class_list, class_kwd=class_kwd)
 
-        self.logger.debug('Good data selected & bounding box calculated.')
+        LOGGER.debug('Good data selected & bounding box calculated.')
 
         # Get reference locations for these data
         self.lat = self.get(lat_kwd)
@@ -111,7 +111,7 @@ class SWOTL2:
                 self.img_x = None
                 self.img_y = None
 
-        self.logger.debug('lat/lon read')
+        LOGGER.debug('lat/lon read')
 
         # If not enough good points are found, raise Exception
         if len(self.lat) < min_points:
@@ -129,7 +129,7 @@ class SWOTL2:
                 lon_0=lon_0,
                 ellps=ellps,
                 **proj_kwds)
-            self.logger.debug('projection set and x,y calculated')
+            LOGGER.debug('projection set and x,y calculated')
 
     def set_index_and_bounding_box(self,
                                    bounding_box,
@@ -152,7 +152,7 @@ class SWOTL2:
         for i in range(1, len(class_list)):
             self.class_index = self.class_index | (self.klass == class_list[i])
 
-        self.logger.debug('Number of points in these classes: %d' %(
+        LOGGER.debug('Number of points in these classes: %d' %(
                           np.sum(self.class_index)))
 
         lat = self.get(lat_kwd, use_index=False)
@@ -173,11 +173,11 @@ class SWOTL2:
         self.index = ((lat >= self.latmin) & (lon >= self.lonmin) &
                       (lat <= self.latmax) & (lon <= self.lonmax))
 
-        self.logger.debug('Number of points in bounding box: %d' %
+        LOGGER.debug('Number of points in bounding box: %d' %
                          (np.sum(self.index)))
 
         self.index = self.index & self.class_index
-        self.logger.debug('Number of good: %d' % (np.sum(self.index)))
+        LOGGER.debug('Number of good: %d' % (np.sum(self.index)))
 
         lat = lat[self.index]
         lon = lon[self.index]

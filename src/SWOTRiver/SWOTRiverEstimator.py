@@ -22,6 +22,8 @@ from RiverObs import RiverNode
 from RiverObs import RiverReach
 from Centerline.Centerline import CenterLineException
 
+LOGGER = logging.getLogger(__name__)
+
 class SWOTRiverEstimator(SWOTL2):
     """
     Given a SWOTL2 file, fit all of the reaches observed and output results.
@@ -172,7 +174,6 @@ class SWOTRiverEstimator(SWOTL2):
                  subsample_factor=1,
                  **proj_kwds):
 
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.trim_ends = trim_ends
         self.store_obs = store_obs
         self.store_reaches = store_reaches
@@ -324,7 +325,7 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             self.h_flg = None
 
-        self.logger.debug('Data loaded')
+        LOGGER.debug('Data loaded')
 
         # Initialize the list of observations and reaches
         self.river_obs_collection = collections.OrderedDict()
@@ -463,7 +464,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             if use_width_db:
                 max_width = self.get_max_width_from_db(reach_idx)
-                self.logger.debug('max_width read')
+                LOGGER.debug('max_width read')
 
             else:
                 max_width = None
@@ -500,7 +501,7 @@ class SWOTRiverEstimator(SWOTL2):
             if self.store_reaches:
                 self.river_reach_collection[ireach] = river_reach
 
-            self.logger.debug('reach pocessed')
+            LOGGER.debug('reach pocessed')
 
         # calculate reach enhanced slope, and add to river_reach_collection
         enhanced_slopes = self.compute_enhanced_slopes(
@@ -551,12 +552,12 @@ class SWOTRiverEstimator(SWOTL2):
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
             if len(self.reaches[i_reach].x) <= 3:
-                self.logger.warn(
+                LOGGER.warn(
                     "reach does not have enough points",
                     len(self.reaches[i_reach].x))
                 continue
 
-            self.logger.debug('Reach %d/%d Reach index: %d' %(
+            LOGGER.debug('Reach %d/%d Reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
 
             try:
@@ -574,7 +575,7 @@ class SWOTRiverEstimator(SWOTL2):
                 continue
 
             if len(river_obs.x) == 0:
-                self.logger.debug(
+                LOGGER.debug(
                     'No observations mapped to nodes in this reach')
                 continue
 
@@ -699,7 +700,7 @@ class SWOTRiverEstimator(SWOTL2):
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes - 1 > self.river_obs.k else False
-        self.logger.debug("numNodes: %d, k: %d"%(numNodes, self.river_obs.k))
+        LOGGER.debug("numNodes: %d, k: %d"%(numNodes, self.river_obs.k))
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -714,7 +715,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             # Reinitialize to the new centerline and max_width
             self.river_obs.reinitialize()
-            self.logger.debug('centerline refined')
+            LOGGER.debug('centerline refined')
 
         else:
             # Associate the width to the new centerline
@@ -790,7 +791,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         self.river_obs.load_nodes(dsets_to_load)
 
-        self.logger.debug('Observations added to nodes')
+        LOGGER.debug('Observations added to nodes')
 
         # Get various node statistics
         nobs = np.asarray(self.river_obs.get_node_stat('count', ''))
@@ -938,10 +939,10 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Check to see if there are sufficient number of points for fit
         ngood = len(river_reach.s)
-        self.logger.debug(('number of fit points: %d' % ngood))
+        LOGGER.debug(('number of fit points: %d' % ngood))
 
         if ngood < min_fit_points:
-            self.logger.debug('not enough good points for fit')
+            LOGGER.debug('not enough good points for fit')
             nresults = None
             return None
         else:
@@ -951,7 +952,7 @@ class SWOTRiverEstimator(SWOTL2):
             # Do the fitting for this reach
             nresults = self.estimate_height_slope(
                 smin, smax, fit_types=fit_types, mean_stat='median')
-            self.logger.debug('Estimation finished')
+            LOGGER.debug('Estimation finished')
 
         if self.store_fits:
             self.fit_collection[reach_id, 'noise'] = nresults
