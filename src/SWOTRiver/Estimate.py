@@ -7,6 +7,7 @@ import sys
 import os
 import copy
 import argparse
+import warnings
 import netCDF4
 import numpy as np
 import logging
@@ -154,6 +155,8 @@ class L2PixcToRiverTile(object):
                 self.node_outputs['reach_idx'][
                     i_start:i_start + num_nodes] = ireach
                 i_start = i_start + num_nodes
+        else:
+            warnings.warn('Reach collection has zero entries')
 
     def do_improved_geolocation(self):
         """
