@@ -233,16 +233,33 @@ def area_uncert(
     interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
     method='composite'):
     '''
-    
-    Ie  = mask for edge pixels
+    Computes the area uncertainty after aggregating pixel cloud pixels
+    Handles the 3 methods described in the Reference Document 
+    (composite, simple, and water_fraction).  This function assumes that
+    probability of pixel assignment (Pca) is computed elsewhere and passed in 
+    as an argument (Pca is omputed differently for each application:
+    River nodes, Raster bins, and Lake features).
+
+    INPUTS:
+    pixel_area = pixel area in meters
+    water_fraction = water fraction estimate
+    water_fraction_uncert = uncertainty (std) of water frac estimate
+    darea_dheight = sensitivity of area to height
+    klass = land/water classifiation
     Pfd = Probability of false detection of water [0,1]
     Pmd = Probability of missed detection of water [0,1]
     Pca = Probability of correct assignment [0,1]
     Pw  = Probability of water (prior) [0,1]
     Ptf = Truth probability of pixel assignment 0.5 for non-informative
-    ref_dem_std = 10
+    ref_dem_std = reference dem height error uncertainty (~10m for srtm)
+    interior_water_klass = for decoding interrior water classification of klass
+    water_edge_klass = for decoding water edge classification of klass
+    land_edge_klass = for decoding land edge classification iof klass
     method = composite (default), simple, water_fraction
-
+    
+    OUTPUTS:
+    uncertainty (std) of aggregsted area
+    
     Reference: implements Eq.s (18), (26), and (30) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
@@ -375,9 +392,14 @@ def area_uncert(
 #
 def area_with_uncert(pixel_area, water_fraction, water_fraction_uncert,
                      darea_dheight, klass, Pfd, Pmd, good,
+                     Pca=0.9, Pw=0.5, Ptf=0.5,
                      interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
                      method='composite'):
-    
+    '''
+    Call to get the area with its uncertainty.
+    See comments to the functions 'area_only()' and 'area_uncert()'
+    for more details.
+    '''
     area_agg, num_pixels = area_only(
         pixel_area, klass, good, method=method, 
         interior_water_klass=interior_water_klass, 
@@ -387,12 +409,12 @@ def area_with_uncert(pixel_area, water_fraction, water_fraction_uncert,
     area_unc = area_uncert(
         pixel_area, water_fraction, water_fraction_uncert,
         darea_dheight, klass, Pfd, Pmd, good,
-        Pca=0.9, Pw=0.5, Ptf=0.5,
+        Pca=Pca, Pw=Pw, Ptf=Ptf,
         ref_dem_std=10,
         interior_water_klass=interior_water_klass, 
         water_edge_klass=water_edge_klass, 
         land_edge_klass=land_edge_klass,
-        method='composite')
+        method=method)
 
     # normalize to get area percent error
     area_pcnt_uncert = area_unc/abs(area_agg)*100.0

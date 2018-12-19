@@ -328,6 +328,9 @@ class RiverNode:
         # pixels if method=water_fraction or method=composite
         klass = np.zeros(np.shape(self.klass)) + interior_water_klass
         klass[self.edge_water==1] = water_edge_klass
+        # TODO: compute the pixel assignment rates for nodes (Pca) 
+        #       to pass into the uncertainty estimator, just use 0.9
+        
         # call the external function to aggregate areas and uncertainties
         area, area_unc, area_pcnt_uncert = aggregate.area_with_uncert(
             self.pixel_area, self.water_frac, self.water_frac_uncert,
@@ -335,6 +338,7 @@ class RiverNode:
             interior_water_klass=interior_water_klass,
             water_edge_klass=water_edge_klass,
             land_edge_klass=land_edge_klass,
+            Pca=0.9, Pw=0.5, Ptf=0.5,
             method=method)
         return area, area/self.ds, area_pcnt_uncert
 
