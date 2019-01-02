@@ -590,8 +590,8 @@ class SWOTRiverEstimator(SWOTL2):
 
             if len(self.reaches[i_reach].x) <= 3:
                 LOGGER.warn(
-                    "reach does not have enough points",
-                    len(self.reaches[i_reach].x))
+                    "reach does not have enough points {}".format(
+                    len(self.reaches[i_reach].x)))
                 continue
 
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
