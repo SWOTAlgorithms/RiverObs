@@ -33,6 +33,8 @@ fit_types                 (-) = ['OLS', 'WLS', 'RLM']
 min_fit_points            (-) = 3
 do_improved_geolocation   (-) = True
 geolocation_method        (-) = taylor
+height_agg_method         (-) = weight
+area_agg_method           (-) = composite
 
 Config file just has processing parameters, no filenames (shape_file_root
 will be overwritten in SDS env with "prior_rivers" in current

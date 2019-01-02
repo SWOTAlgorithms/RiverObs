@@ -6,6 +6,7 @@ It returns various data characteristics when queried.
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import SWOTWater.aggregate as aggregate
 
 class RiverNode:
     """
@@ -285,3 +286,55 @@ class RiverNode:
         area = self.sum(area_var)
         width_area = area / self.ds
         return width_area
+
+    def height_with_uncert(self, goodvar='good', method='weight'):
+        """
+        Return the aggregate height with corresponding uncertainty 
+        """
+        good = getattr(self, goodvar)
+        height_std_pix = np.abs(self.phase_noise_std * self.dh_dphi)
+        # set bad pix height std to high number to deweight 
+        # instead of giving infs/nans
+        bad_num = 1.0e5
+        height_std_pix[height_std_pix<=0] = bad_num
+        height_std_pix[np.isinf(height_std_pix)] = bad_num
+        height_std_pix[np.isnan(height_std_pix)] = bad_num
+        # call the general function
+        height, height_std, height_uncert = aggregate.height_with_uncerts(
+            self.h_noise,  good, self.num_rare_looks, self.num_med_looks,
+            self.ifgram, self.power1, self.power2, self.looks_to_efflooks,
+            self.dh_dphi, height_std_pix, method=method)
+        return height, height_std, height_uncert
+
+    def area_with_uncert(self, goodvar='good', method='composite'):
+        """
+        Return the aggregate width_area with corresponding uncertainty 
+        """
+        # compute the pixel assignment error?
+        # call the general function, TODO
+
+        # should normally just use all the data 
+        # (not just the use_heights pixels), but could use goodvar 
+        # to filter out outliers
+        good = getattr(self, goodvar)
+        interior_water_klass = 4
+        water_edge_klass = 3
+        land_edge_klass = 2
+        # decode/encode the water classes to send to external function
+        # first set everything to interior water
+        # then set use_fractional_inundation pixels to water edge 
+        # assumes we dont give land pixels in the class_list if method=simple
+        # and that we set the use_fractional_inundation to true for land edge
+        # pixels if method=water_fraction or method=composite
+        klass = np.zeros(np.shape(self.klass)) + interior_water_klass
+        klass[self.edge_water==1] = water_edge_klass
+        # call the external function to aggregate areas and uncertainties
+        area, area_unc, area_pcnt_uncert = aggregate.area_with_uncert(
+            self.pixel_area, self.water_frac, self.water_frac_uncert,
+            self.darea_dheight, klass, self.false_detection_rate,
+            self.missed_detection_rate, good,
+            interior_water_klass=interior_water_klass,
+            water_edge_klass=water_edge_klass,
+            land_edge_klass=land_edge_klass,
+            method=method)
+        return area, area/self.ds, area_pcnt_uncert
