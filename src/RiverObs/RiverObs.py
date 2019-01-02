@@ -354,9 +354,9 @@ class RiverObs:
 
         return result
 
-    def get_node_agg(self, 
-                     height_method='weight', area_method='composite',
-                     all_nodes=False, good_flag='good'):
+    def get_node_agg(
+        self, height_method='weight', area_method='composite',
+        all_nodes=False, good_flag='good'):
         """
         Get lists of height, areas, and uncertainties
 

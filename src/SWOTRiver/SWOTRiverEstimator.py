@@ -239,61 +239,30 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
-        try:
-            self.xtrack = self.get(xtrack_kwd)
-        except KeyError:
-            self.xtrack = None
+        datasets2load = [
+            ['xtrack', xtrack_kwd], ['sig0', sig0_kwd],
+            ['water_frac', fractional_inundation_kwd],
+            ['water_frac_uncert', fractional_inundation_uncert_kwd],
+            ['ifgram', ifgram_kwd],
+            ['power1', power1_kwd],
+            ['power2', power2_kwd],
+            ['phase_noise_std', phase_noise_std_kwd],
+            ['dh_dphi', dh_dphi_kwd],
+            ['num_rare_looks', num_rare_looks_kwd],
+            ['num_med_looks', num_med_looks_kwd],
+            ['false_detection_rate', false_detection_rate_kwd],
+            ['missed_detection_rate', missed_detection_rate_kwd],
+            ['darea_dheight', darea_dheight_kwd],]
 
-        try:
-            self.sig0 = self.get(sig0_kwd)
-        except KeyError:
-            self.sig0 = None
-
-        try:
-            self.water_frac = self.get(fractional_inundation_kwd)
-        except KeyError:
-            self.water_frac = None
-        
-        try:
-            self.water_frac_uncert = self.get(fractional_inundation_uncert_kwd)
-        except KeyError:
-            self.water_frac_uncert = None
-
-        try:
-            ifgram = self.get(ifgram_kwd)
-            self.ifgram = ifgram[:,0] + 1j* ifgram[:,1]
-        except KeyError:
-            self.ifgram = None
-
-        try:
-            self.power1 = self.get(power1_kwd)
-        except KeyError:
-            self.power1 = None
-
-        try:
-            self.power2 = self.get(power2_kwd)
-        except KeyError:
-            self.power2 = None
-
-        try:
-            self.phase_noise_std = self.get(phase_noise_std_kwd)
-        except KeyError:
-            self.phase_noise_std = None
-
-        try:
-            self.dh_dphi = self.get(dh_dphi_kwd)
-        except KeyError:
-            self.dh_dphi = None
-
-        try:
-            self.num_rare_looks = self.get(num_rare_looks_kwd)
-        except KeyError:
-            self.num_rare_looks = None
-
-        try:
-            self.num_med_looks = self.get(num_med_looks_kwd)
-        except KeyError:
-            self.num_med_looks = None
+        for dset_name, keyword in datasets2load:
+            try:
+                value = self.get(keyword)
+                # hack ifgram re/im parts into complex dtype
+                if dset_name is 'ifgram':
+                    value = value[:,0] + 1j* value[:,1]
+            except KeyError:
+                value = None
+            setattr(self, dset_name, value)
 
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
@@ -301,21 +270,6 @@ class SWOTRiverEstimator(SWOTL2):
                 self.looks_to_efflooks = 1.75 # set to default value
         except KeyError:
             self.looks_to_efflooks = None
-        
-        try:
-            self.false_detection_rate = self.get(false_detection_rate_kwd)
-        except KeyError:
-            self.false_detection_rate = None
-
-        try:
-            self.missed_detection_rate = self.get(false_detection_rate_kwd)
-        except KeyError:
-            self.missed_detection_rate = None
-
-        try:
-            self.darea_dheight = self.get(darea_dheight_kwd)
-        except KeyError:
-            self.darea_dheight = None
 
         good = ~mask
         self.lat = self.lat[good]
@@ -1040,7 +994,7 @@ class SWOTRiverEstimator(SWOTL2):
             # just replace the width_area and area and area_std for now
             width_area = w_a
             area = a
-            area_unc = a_uncert      
+            area_unc = a_uncert
         # These are the values from the width database
         width_db = np.ones(
             self.river_obs.n_nodes,
