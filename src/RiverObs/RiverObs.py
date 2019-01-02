@@ -353,6 +353,7 @@ class RiverObs:
                 result.append(self.missing_value)
 
         return result
+
     def get_node_agg(self, 
                      height_method='weight', area_method='composite',
                      all_nodes=False, good_flag='good'):
