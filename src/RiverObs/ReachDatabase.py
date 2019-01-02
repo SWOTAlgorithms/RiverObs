@@ -3,6 +3,7 @@ Classes and methods to interact with the "new" reach database
 """
 
 import netCDF4
+import glob
 import numpy as np
 from collections import OrderedDict as odict
 
@@ -14,9 +15,29 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db_file, lat_lon_region, clip=True, clip_buffer=0.1):
+        self, reach_db, lat_lon_region, clip=True, clip_buffer=0.1):
 
-        reach_db = ReachDatabase.from_ncfile(reach_db_file)
+        if os.path.isdir(reach_db):
+            # figure out which db tiles to use
+            reach_db = None
+            for db_file in glob.glob(os.path.join(reach_db, '*.nc')):
+                with netCDF4.Dataset(db_file, 'r') as ifp:
+                    bbox = [ifp.x_min, ifp.y_min, ifp.x_max, ifp.y_max]
+                    if (bbox[0] < lat_lon_region[2] and
+                        bbox[2] > lat_lon_region[0] and
+                        bbox[1] < lat_lon_region[3] and
+                        bbox[3] > lat_lon_region[1]):
+
+                        this_db = ReachDatabase.from_ncfile(db_file)
+                        if reach_db is None:
+                            reach_db = this_db
+                        else:
+                            reach_db = reach_db + this_db
+
+        else:
+            # assume already done
+            reach_db = ReachDatabase.from_ncfile(reach_db)
+
         self.reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
         self.reach = []
 
