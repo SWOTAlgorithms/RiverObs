@@ -818,67 +818,19 @@ class SWOTRiverEstimator(SWOTL2):
             'h_noise', 'h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area'
         ]
 
-        if self.xtrack is not None:
-            self.river_obs.add_obs('xtrack', self.xtrack)
-            dsets_to_load.append('xtrack')
+        other_obs_keys = [
+            'xtrack', 'sig0', 'water_frac', 'water_frac_uncert', 'ifgram',
+            'power1', 'power2', 'phase_noise_std', 'dh_dphi',
+            'num_rare_looks', 'num_med_looks', 'false_detection_rate',
+            'missed_detection_rate', 'darea_dheight', 'looks_to_efflooks']
 
-        if self.sig0 is not None:
-            self.river_obs.add_obs('sig0', self.sig0)
-            dsets_to_load.append('sig0')
-
-        if self.water_frac is not None:
-            self.river_obs.add_obs('water_frac', self.water_frac)
-            dsets_to_load.append('water_frac')
-
-        if self.water_frac_uncert is not None:
-            self.river_obs.add_obs('water_frac_uncert', self.water_frac_uncert)
-            dsets_to_load.append('water_frac_uncert')
-
-        if self.ifgram is not None:
-            self.river_obs.add_obs('ifgram', self.ifgram)
-            dsets_to_load.append('ifgram')
-
-        if self.power1 is not None:
-            self.river_obs.add_obs('power1', self.power1)
-            dsets_to_load.append('power1')
-
-        if self.power2 is not None:
-            self.river_obs.add_obs('power2', self.power2)
-            dsets_to_load.append('power2')
-
-        if self.phase_noise_std is not None:
-            self.river_obs.add_obs('phase_noise_std', self.phase_noise_std)
-            dsets_to_load.append('phase_noise_std')
-
-        if self.dh_dphi is not None:
-            self.river_obs.add_obs('dh_dphi', self.dh_dphi)
-            dsets_to_load.append('dh_dphi')
-
-        if self.num_rare_looks is not None:
-            self.river_obs.add_obs('num_rare_looks', self.num_rare_looks)
-            dsets_to_load.append('num_rare_looks')
-
-        if self.num_med_looks is not None:
-            self.river_obs.add_obs('num_med_looks', self.num_med_looks)
-            dsets_to_load.append('num_med_looks')
-
-        if self.looks_to_efflooks is not None:
-            self.river_obs.add_obs('looks_to_efflooks',
-                float(self.looks_to_efflooks) + np.zeros(np.shape(self.phase_noise_std)))
-            dsets_to_load.append('looks_to_efflooks')
-        
-
-        if self.false_detection_rate is not None:
-            self.river_obs.add_obs('Pfd', self.false_detection_rate)
-            dsets_to_load.append('Pfd')
-
-        if self.missed_detection_rate is not None:
-            self.river_obs.add_obs('Pmd', self.missed_detection_rate)
-            dsets_to_load.append('Pmd')
-
-        if self.darea_dheight is not None:
-            self.river_obs.add_obs('darea_dheight', self.darea_dheight)
-            dsets_to_load.append('darea_dheight')
+        for name in other_obs_keys:
+            value = getattr(self, name)
+            if value is not None:
+                if name is 'looks_to_efflooks':
+                    value = value + np.zeros(np.shape(self.lat))
+                self.river_obs.add_obs(name, value)
+                dsets_to_load.append(name)
 
         # need to get array of land/water edge classes
         # to decode/encode the classification routine 

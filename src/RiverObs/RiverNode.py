@@ -331,7 +331,8 @@ class RiverNode:
         # call the external function to aggregate areas and uncertainties
         area, area_unc, area_pcnt_uncert = aggregate.area_with_uncert(
             self.pixel_area, self.water_frac, self.water_frac_uncert,
-            self.darea_dheight, klass, self.Pfd, self.Pmd, good,
+            self.darea_dheight, klass, self.false_detection_rate,
+            self.missed_detection_rate, good,
             interior_water_klass=interior_water_klass,
             water_edge_klass=water_edge_klass,
             land_edge_klass=land_edge_klass,
