@@ -96,6 +96,18 @@ class ReachDatabase(Product):
         return {"nodes": self.nodes(reach_id),
                 "reaches": self.reaches(reach_id)}
 
+    def __add__(self, other):
+        # hack it up
+        klass = ReachDatabase()
+        klass.nodes = self.nodes + other.nodes
+        klass.reaches = self.reaches + other.reaches
+        klass.centerlines = self.centerlines + other.centerlines
+        klass.x_min = np.min([self.x_min, other.x_min])
+        klass.x_max = np.max([self.x_max, other.x_max])
+        klass.y_min = np.min([self.y_min, other.y_min])
+        klass.y_max = np.max([self.y_max, other.y_max])
+        return klass
+
 class ReachDatabaseNodes(Product):
     """Prior Reach database nodes"""
     ATTRIBUTES = odict()
@@ -127,6 +139,15 @@ class ReachDatabaseNodes(Product):
             key: self[key][mask] for key in self.VARIABLES.keys()}
         return outputs
 
+    def __add__(self, other):
+        klass = ReachDatabaseNodes()
+        for dset in ['x', 'y', 'node_id', 'reach_id', 'width', 'segment_id',
+                     'node_length']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        klass.cl_ids = np.concatenate([self.cl_ids, other.cl_ids], 1)
+        return klass
+
 class ReachDatabaseReaches(Product):
     """Prior Reach database reaches"""
     ATTRIBUTES = odict([])
@@ -153,6 +174,8 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['lakeflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['segment_id',
+         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['cl_ids',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_CLIDS]])],
         ['rch_id_up',
@@ -167,6 +190,18 @@ class ReachDatabaseReaches(Product):
         outputs = {
             key: self[key][mask] for key in self.VARIABLES.keys()}
         return outputs
+
+    def __add__(self, other):
+        klass = ReachDatabaseReaches()
+        for dset in ['x', 'x_min', 'x_max', 'y', 'y_min', 'y_max',
+                     'reach_id', 'reach_length', 'lakeflag', 'segment_id']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+
+        for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)], 1))
+        return klass
 
     def extract(self, bounding_box):
         """
@@ -214,3 +249,14 @@ class ReachDatabaseCenterlines(Product):
         ['cl_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_POINTS]])],
         ])
+
+    def __add__(self, other):
+        klass = ReachDatabaseCenterlines()
+        for dset in ['x', 'y', 'cl_id']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+
+        for dset in ['reach_id', 'node_id']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)], 1))
+        return klass
