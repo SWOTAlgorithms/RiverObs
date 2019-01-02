@@ -272,40 +272,17 @@ class SWOTRiverEstimator(SWOTL2):
             self.looks_to_efflooks = None
 
         good = ~mask
-        self.lat = self.lat[good]
-        self.lon = self.lon[good]
-        self.x = self.x[good]
-        self.y = self.y[good]
-        self.klass = self.klass[good]
-        self.h_noise = self.h_noise[good]
-        if self.xtrack is not None:
-            self.xtrack = self.xtrack[good]
-        if self.ifgram is not None:
-            self.ifgram = self.ifgram[good]
-        if self.power1 is not None:
-            self.power1 = self.power1[good]
-        if self.power2 is not None:
-            self.power2 = self.power2[good]
-        if self.phase_noise_std is not None:
-            self.phase_noise_std = self.phase_noise_std[good]
-        if self.dh_dphi is not None:
-            self.dh_dphi = self.dh_dphi[good]
-        if self.num_rare_looks is not None:
-            self.num_rare_looks = self.num_rare_looks[good]
-        if self.num_med_looks is not None:
-            self.num_med_looks = self.num_med_looks[good]
-        if self.false_detection_rate is not None:
-            self.false_detection_rate = self.false_detection_rate[good]
-        if self.missed_detection_rate is not None:
-            self.missed_detection_rate = self.missed_detection_rate[good]
-        if self.darea_dheight is not None:
-            self.darea_dheight = self.darea_dheight[good]
-        if self.water_frac is not None:
-            self.water_frac = self.water_frac[good]
-        if self.water_frac_uncert is not None:
-            self.water_frac_uncert = self.water_frac_uncert[good]
-        self.img_x = self.img_x[good]  # range or x index
-        self.img_y = self.img_y[good]  # azimuth or y index
+        for key in [
+            'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
+            'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'num_rare_looks',
+            'num_med_looks', 'false_detection_rate', 'missed_detection_rate',
+            'darea_dheight', 'water_frac', 'water_frac_uncert', 'img_x',
+            'img_y']:
+
+            try:
+                setattr(self, key, getattr(self, key)[good])
+            except TypeError:
+                pass
 
         # set the pixcvec geolocations to the pixel cloud values
         # TODO: update these with height constrained geolocation
