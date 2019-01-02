@@ -23,15 +23,15 @@ def simple(in_var, metric='mean'):
              (river node, raster bin, lake)
     """
     if metric == 'mean':
-        out_var = np.nanmean(in_var)
+        out_var = np.mean(in_var)
     elif metric == 'median':
-        out_var = np.nanmedian(in_var)
+        out_var = np.median(in_var)
     elif metric == 'sum':
-        out_var = np.nansum(in_var)
+        out_var = np.sum(in_var)
     elif metric == 'std':
-        out_var = np.nanstd(in_var)
+        out_var = np.std(in_var)
     elif metric == 'count':
-        out_var = np.nansum(np.ones(np.shape(in_var)))
+        out_var = np.sum(np.ones(np.shape(in_var)))
     return out_var
 #
 def height_only(height, good, height_std=1.0, method='weight'):
