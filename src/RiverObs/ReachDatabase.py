@@ -6,7 +6,7 @@ import netCDF4
 import numpy as np
 from collections import OrderedDict as odict
 
-from RiverReach import RiverReach
+from RiverObs.RiverReach import RiverReach
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 class ReachExtractor(object):
@@ -79,7 +79,12 @@ class ReachExtractor(object):
 
 class ReachDatabase(Product):
     """Prior Reach database"""
-    ATTRIBUTES = ['x_min', 'x_max', 'y_min', 'y_max',]
+    ATTRIBUTES = odict([
+        ['x_min', {'dtype': 'f8' , 'value': None}],
+        ['x_max', {'dtype': 'f8' , 'value': None}],
+        ['y_min', {'dtype': 'f8' , 'value': None}],
+        ['y_max', {'dtype': 'f8' , 'value': None}],
+        ])
     GROUPS = odict([
         ['nodes', 'ReachDatabaseNodes'],
         ['reaches', 'ReachDatabaseReaches'],
@@ -93,8 +98,8 @@ class ReachDatabase(Product):
 
 class ReachDatabaseNodes(Product):
     """Prior Reach database nodes"""
-    ATTRIBUTES = []
-    DIMENSIONS = odict([['nodes', 0], ['depth', 2]])
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['depth', 2], ['nodes', 0]])
     DIMENSIONS_NODES = odict([['nodes', 0]])
     VARIABLES = odict([
         ['x',
@@ -109,12 +114,10 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
         ['segment_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
-        ['cls_id',
+        ['cl_ids',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
         ['node_length',
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
-        ['pass',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def __call__(self, reach_id):
@@ -126,8 +129,10 @@ class ReachDatabaseNodes(Product):
 
 class ReachDatabaseReaches(Product):
     """Prior Reach database reaches"""
-    ATTRIBUTES = []
-    DIMENSIONS = odict([['reaches', 0], ['depth', 2]])
+    ATTRIBUTES = odict([])
+    DIMENSIONS = odict([['depth', 2], ['reach_neighbors', 4], ['reaches', 0]])
+    DIMENSIONS_CLIDS = odict([['depth', 2], ['reaches', 0]])
+    DIMENSIONS_REACH_UPDOWN = odict([['reach_neighbors', 4], ['reaches', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
     VARIABLES = odict([
         ['x',
@@ -148,10 +153,12 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['lakeflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
-        ['cls_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
-        ['pass',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['cl_ids',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_CLIDS]])],
+        ['rch_id_up',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
+        ['rch_id_dn',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
         ])
 
     def __call__(self, reach_id):
@@ -192,17 +199,18 @@ class ReachDatabaseReaches(Product):
 
 class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""
-    ATTRIBUTES = []
-    DIMENSIONS = odict([['points', 0]])
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['depth', 4], ['points', 0]])
+    DIMENSIONS_POINTS = odict([['points', 0]])
     VARIABLES = odict([
         ['x',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS]])],
+         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_POINTS]])],
         ['y',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS]])],
+         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_POINTS]])],
         ['reach_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
         ['node_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
         ['cl_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_POINTS]])],
         ])
