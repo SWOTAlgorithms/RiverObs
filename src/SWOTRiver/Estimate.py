@@ -83,6 +83,12 @@ class L2PixcToRiverTile(object):
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
 
+        if 'height_agg_method' not in self.config:
+            self.config['height_agg_method'] = 'weight'
+
+        if 'area_agg_method' not in self.config:
+            self.config['area_agg_method'] = 'composite'
+
         # key/value arguments for constructing SWOTRiverEstimator
         kwargs = {
             'bounding_box': self.compute_bounding_box(),
