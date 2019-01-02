@@ -375,19 +375,22 @@ class RiverObs:
         for node in self.all_nodes:
             if node in self.populated_nodes:
                 river_node = self.river_nodes[node]
-                h, h_std, h_unc = \
-                    river_node.aggregate_height_with_uncert(
+                h, h_std, h_unc = river_node.height_with_uncert(
                         method=height_method, goodvar=good_flag)
     
-                h_list.append(h if h is not None else self.missing_value)
-                h_std_list.append(h_std if h_std is not None else self.missing_value)
-                h_uncert_list.append(h_unc if h_unc is not None else self.missing_value)
-                a, w_a, a_unc = \
-                    river_node.aggregate_area_with_uncert(method=area_method)
+                h_list.append(
+                    h if h is not None else self.missing_value)
+                h_std_list.append(
+                    h_std if h_std is not None else self.missing_value)
+                h_uncert_list.append(
+                    h_unc if h_unc is not None else self.missing_value)
+                a, w_a, a_unc = river_node.area_with_uncert(method=area_method)
 
                 a_list.append(a if a is not None else self.missing_value)
                 w_a_list.append(w_a if w_a is not None else self.missing_value)
-                a_uncert_list.append(a_unc if a_unc is not None else self.missing_value)
+                a_uncert_list.append(
+                    a_unc if a_unc is not None else self.missing_value)
+
             elif all_nodes:
                 h_list.append(self.missing_value)
                 h_std_list.append(self.missing_value)
@@ -395,6 +398,7 @@ class RiverObs:
                 a_list.append(self.missing_value)
                 w_a_list.append(self.missing_value)
                 a_uncert_list.append(self.missing_value)
+
         # cast to arrays to make life easier later
         h = np.asarray(h_list)
         h_std = np.asarray(h_std_list)

@@ -287,7 +287,7 @@ class RiverNode:
         width_area = area / self.ds
         return width_area
 
-    def aggregate_height_with_uncert(self, goodvar='good', method='weight'):
+    def height_with_uncert(self, goodvar='good', method='weight'):
         """
         Return the aggregate height with corresponding uncertainty 
         """
@@ -305,8 +305,8 @@ class RiverNode:
             self.ifgram, self.power1, self.power2, self.looks_to_efflooks,
             self.dh_dphi, height_std_pix, method=method)
         return height, height_std, height_uncert
-        
-    def aggregate_area_with_uncert(self, goodvar='good', method='composite'):
+
+    def area_with_uncert(self, goodvar='good', method='composite'):
         """
         Return the aggregate width_area with corresponding uncertainty 
         """
@@ -337,4 +337,3 @@ class RiverNode:
             land_edge_klass=land_edge_klass,
             method=method)
         return area, area/self.ds, area_pcnt_uncert
-
