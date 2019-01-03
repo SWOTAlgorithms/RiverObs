@@ -5,11 +5,14 @@ Classes and methods to interact with the "new" reach database
 import os
 import glob
 import netCDF4
+import logging
 import numpy as np
 from collections import OrderedDict as odict
 
 from RiverObs.RiverReach import RiverReach
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
+
+LOGGER = logging.getLogger(__name__)
 
 class ReachExtractor(object):
     """
@@ -19,6 +22,7 @@ class ReachExtractor(object):
         self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
 
         if os.path.isdir(reach_db_path):
+            LOGGER.info('Extracting reaches')
             # figure out which db tiles to use
             reach_db = None
             for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
@@ -29,6 +33,7 @@ class ReachExtractor(object):
                         bbox[1] < lat_lon_region.bounding_box[3] and
                         bbox[3] > lat_lon_region.bounding_box[1]):
 
+                        LOGGER.info('Using reach db tile {}'.format(db_file))
                         this_db = ReachDatabase.from_ncfile(db_file)
                         if reach_db is None:
                             reach_db = this_db
