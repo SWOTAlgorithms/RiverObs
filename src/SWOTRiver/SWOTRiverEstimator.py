@@ -14,7 +14,7 @@ import scipy.stats
 import logging
 
 from .SWOTL2 import SWOTL2
-from RiverObs import ReachExtractor
+from RiverObs.ReachDatabase import ReachExtractor
 from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import FitRiver

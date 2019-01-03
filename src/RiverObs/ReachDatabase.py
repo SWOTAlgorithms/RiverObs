@@ -2,8 +2,9 @@
 Classes and methods to interact with the "new" reach database
 """
 
-import netCDF4
+import os
 import glob
+import netCDF4
 import numpy as np
 from collections import OrderedDict as odict
 
@@ -15,18 +16,18 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db, lat_lon_region, clip=True, clip_buffer=0.1):
+        self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
 
-        if os.path.isdir(reach_db):
+        if os.path.isdir(reach_db_path):
             # figure out which db tiles to use
             reach_db = None
-            for db_file in glob.glob(os.path.join(reach_db, '*.nc')):
+            for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
                 with netCDF4.Dataset(db_file, 'r') as ifp:
                     bbox = [ifp.x_min, ifp.y_min, ifp.x_max, ifp.y_max]
-                    if (bbox[0] < lat_lon_region[2] and
-                        bbox[2] > lat_lon_region[0] and
-                        bbox[1] < lat_lon_region[3] and
-                        bbox[3] > lat_lon_region[1]):
+                    if (bbox[0] < lat_lon_region.bounding_box[2] and
+                        bbox[2] > lat_lon_region.bounding_box[0] and
+                        bbox[1] < lat_lon_region.bounding_box[3] and
+                        bbox[3] > lat_lon_region.bounding_box[1]):
 
                         this_db = ReachDatabase.from_ncfile(db_file)
                         if reach_db is None:
@@ -36,14 +37,14 @@ class ReachExtractor(object):
 
         else:
             # assume already done
-            reach_db = ReachDatabase.from_ncfile(reach_db)
+            reach_db = ReachDatabase.from_ncfile(reach_db_path)
 
-        self.reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
+        try_reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
         self.reach = []
+        self.reach_idx = []
+        for ii, reach_idx in enumerate(try_reach_idx):
 
-        for ii, reach_idx in enumerate(self.reach_idx):
-
-            this_reach = reach_db(reach_id)
+            this_reach = reach_db(reach_idx)
             lon = this_reach['nodes']['x']
             lat = this_reach['nodes']['y']
 
@@ -55,19 +56,23 @@ class ReachExtractor(object):
                 if lonmax < lonmin: lonmax += 360
                 clip_lon[clip_lon < this_reach['reaches']['x_min']] += 360
 
-                inbbox = (
-                    clip_lon >= lonmin - clip_buffer &
-                    clip_lon <= lonmax + clip_buffer &
-                    lat >= latmin - clip_buffer &
-                    lat <= latmax + clip_buffer)
+                inbbox = np.logical_and(
+                    np.logical_and(clip_lon >= lonmin - clip_buffer,
+                                   clip_lon <= lonmax + clip_buffer),
+                    np.logical_and(lat >= latmin - clip_buffer,
+                                   lat <= latmax + clip_buffer))
 
                 lon = lon[inbbox]
                 lat = lat[inbbox]
 
+            if len(lon) == 0:
+                continue
+
             x, y = lat_lon_region.proj(lon, lat)
 
             # TODO add stuff from DB herre
-            metadata = {}
+            metadata = {'lakeFlag': this_reach['reaches']['lakeflag'][0]}
+            self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,
                 reach_index=ii))
@@ -157,7 +162,7 @@ class ReachDatabaseNodes(Product):
         """Returns dict-o-stuff for reach_id"""
         mask = self.reach_id == reach_id
         outputs = {
-            key: self[key][mask] for key in self.VARIABLES.keys()}
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
         return outputs
 
     def __add__(self, other):
@@ -209,7 +214,7 @@ class ReachDatabaseReaches(Product):
         """Returns dict of reach attributes for reach_id"""
         mask = self.reach_id == reach_id
         outputs = {
-            key: self[key][mask] for key in self.VARIABLES.keys()}
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
         return outputs
 
     def __add__(self, other):
