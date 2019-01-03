@@ -13,8 +13,8 @@ import collections
 import scipy.stats
 import logging
 
+import RiverObs.ReachDatabase
 from .SWOTL2 import SWOTL2
-from RiverObs.ReachDatabase import ReachExtractor
 from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import FitRiver
@@ -414,7 +414,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.clip = clip
         self.clip_buffer = clip_buffer
 
-        self.reaches = ReachExtractor(
+        self.reaches = RiverObs.ReachDatabase.ReachExtractor(
             reach_db_path, self, clip=clip, clip_buffer=clip_buffer)
 
         return self.reaches
