@@ -115,7 +115,7 @@ class L2PixcToRiverTile(object):
             self.pixc_file, **kwargs)
 
         river_estimator.get_reaches(
-            self.config['shape_file_root'],
+            self.config['reach_db_path'],
             clip_buffer=self.config['clip_buffer'])
 
         if self.config['use_width_db']:

@@ -14,7 +14,7 @@ template config file:
 
 width_db_file             (-) = None
 use_width_db              (-) = False
-shape_file_root           (-) = /u/onde-r0/fore/data/River_Prior_Database/ADT_priordatabase_reaches_polylines/NA_reaches_data_discharge_depth_chn_grdc_revised_GCS
+reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20181221/netcdf-fixup
 class_list                (-) = [2, 3, 4, 5, 6]
 use_fractional_inundation (-) = [True, True, False, False, False]
 use_segmentation          (-) = [False, True, True, True, True]
@@ -84,7 +84,7 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if any([key == item for item in [
-            'geolocation_method', 'shape_file_root']]):
+            'geolocation_method', 'reach_db_path']]):
             continue
         config[key] = ast.literal_eval(config[key])
 
