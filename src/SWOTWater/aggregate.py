@@ -379,9 +379,9 @@ def area_uncert(
                                 + var_pix_area_composite_bar
                                 + B_term_composite)
     std_out = std_composite
-    if method == simple:
+    if method == 'simple':
         std_out = std_wd
-    if method == water_fraction:
+    if method == 'water_fraction':
         std_out = std_alpha
     return std_out
 
