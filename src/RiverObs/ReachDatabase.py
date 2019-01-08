@@ -52,6 +52,7 @@ class ReachExtractor(object):
             this_reach = reach_db(reach_idx)
             lon = this_reach['nodes']['x']
             lat = this_reach['nodes']['y']
+            node_indx = this_reach['nodes']['node_id']
 
             if clip:
                 lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
@@ -80,7 +81,7 @@ class ReachExtractor(object):
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,
-                reach_index=ii))
+                reach_index=ii, node_indx=node_indx))
 
         self.idx = 0
         self.nreaches = len(self.reach)
