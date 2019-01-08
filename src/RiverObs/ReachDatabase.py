@@ -21,17 +21,25 @@ class ReachExtractor(object):
     def __init__(
         self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
 
+        lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
+        # check for wraps
+        if lonmax < lonmin: lonmax += 360
+
         if os.path.isdir(reach_db_path):
             LOGGER.info('Extracting reaches')
             # figure out which db tiles to use
             reach_db = None
             for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
                 with netCDF4.Dataset(db_file, 'r') as ifp:
-                    bbox = [ifp.x_min, ifp.y_min, ifp.x_max, ifp.y_max]
-                    if (bbox[0] < lat_lon_region.bounding_box[2] and
-                        bbox[2] > lat_lon_region.bounding_box[0] and
-                        bbox[1] < lat_lon_region.bounding_box[3] and
-                        bbox[3] > lat_lon_region.bounding_box[1]):
+
+                    reach_lonmin, reach_lonmax = ifp.x_min, ifp.x_max
+                    reach_latmin, reach_latmax = ifp.y_min, ifp.y_max
+
+                    # check for wraps
+                    if reach_lonmax < reach_lonmin: reach_lonmax += 360
+
+                    if (reach_lonmin < lonmax and reach_lonmax > lonmin and
+                        reach_latmin < latmax and reach_latmax > latmin):
 
                         LOGGER.info('Using reach db tile {}'.format(db_file))
                         this_db = ReachDatabase.from_ncfile(db_file)
@@ -55,11 +63,9 @@ class ReachExtractor(object):
             node_indx = this_reach['nodes']['node_id']
 
             if clip:
-                lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
                 clip_lon = lon.copy()
 
                 # check for wraps
-                if lonmax < lonmin: lonmax += 360
                 clip_lon[clip_lon < this_reach['reaches']['x_min']] += 360
 
                 inbbox = np.logical_and(
