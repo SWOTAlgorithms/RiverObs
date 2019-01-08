@@ -142,7 +142,7 @@ class ReachDatabase(Product):
 class ReachDatabaseNodes(Product):
     """Prior Reach database nodes"""
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['depth', 2], ['nodes', 0]])
+    DIMENSIONS = odict([['centerlines', 2], ['nodes', 0]])
     DIMENSIONS_NODES = odict([['nodes', 0]])
     VARIABLES = odict([
         ['x',
@@ -182,8 +182,8 @@ class ReachDatabaseNodes(Product):
 class ReachDatabaseReaches(Product):
     """Prior Reach database reaches"""
     ATTRIBUTES = odict([])
-    DIMENSIONS = odict([['depth', 2], ['reach_neighbors', 4], ['reaches', 0]])
-    DIMENSIONS_CLIDS = odict([['depth', 2], ['reaches', 0]])
+    DIMENSIONS = odict([['centerlines', 2], ['reach_neighbors', 4], ['reaches', 0]])
+    DIMENSIONS_CLIDS = odict([['centerlines', 2], ['reaches', 0]])
     DIMENSIONS_REACH_UPDOWN = odict([['reach_neighbors', 4], ['reaches', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
     VARIABLES = odict([
@@ -266,7 +266,7 @@ class ReachDatabaseReaches(Product):
 class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['depth', 4], ['points', 0]])
+    DIMENSIONS = odict([['centerlines', 4], ['points', 0]])
     DIMENSIONS_POINTS = odict([['points', 0]])
     VARIABLES = odict([
         ['x',
