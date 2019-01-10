@@ -263,6 +263,12 @@ class L2PixcToRiverTile(object):
         # copy attributes from pixel cloud to pixel cloud vector
         with netCDF4.Dataset(self.index_file, 'a') as ofp,\
              netCDF4.Dataset(self.pixc_file, 'r') as ifp:
+
+            # put lon in [0, 360)
+            lon = ofp.variables['longitude_vectorproc'][:]
+            lon[lon < 0] += 360
+            ofp.variables['longitude_vectorproc'][:] = lon
+
             for attr in L2PIXCVector.ATTRIBUTES.keys():
                 try:
                     value = getattr(ifp, attr)

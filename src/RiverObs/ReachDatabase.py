@@ -21,17 +21,25 @@ class ReachExtractor(object):
     def __init__(
         self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
 
+        lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
+        # check for wraps
+        if lonmax < lonmin: lonmax += 360
+
         if os.path.isdir(reach_db_path):
             LOGGER.info('Extracting reaches')
             # figure out which db tiles to use
             reach_db = None
             for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
                 with netCDF4.Dataset(db_file, 'r') as ifp:
-                    bbox = [ifp.x_min, ifp.y_min, ifp.x_max, ifp.y_max]
-                    if (bbox[0] < lat_lon_region.bounding_box[2] and
-                        bbox[2] > lat_lon_region.bounding_box[0] and
-                        bbox[1] < lat_lon_region.bounding_box[3] and
-                        bbox[3] > lat_lon_region.bounding_box[1]):
+
+                    reach_lonmin, reach_lonmax = ifp.x_min, ifp.x_max
+                    reach_latmin, reach_latmax = ifp.y_min, ifp.y_max
+
+                    # check for wraps
+                    if reach_lonmax < reach_lonmin: reach_lonmax += 360
+
+                    if (reach_lonmin < lonmax and reach_lonmax > lonmin and
+                        reach_latmin < latmax and reach_latmax > latmin):
 
                         LOGGER.info('Using reach db tile {}'.format(db_file))
                         this_db = ReachDatabase.from_ncfile(db_file)
@@ -52,13 +60,12 @@ class ReachExtractor(object):
             this_reach = reach_db(reach_idx)
             lon = this_reach['nodes']['x']
             lat = this_reach['nodes']['y']
+            node_indx = this_reach['nodes']['node_id']
 
             if clip:
-                lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
                 clip_lon = lon.copy()
 
                 # check for wraps
-                if lonmax < lonmin: lonmax += 360
                 clip_lon[clip_lon < this_reach['reaches']['x_min']] += 360
 
                 inbbox = np.logical_and(
@@ -80,7 +87,7 @@ class ReachExtractor(object):
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,
-                reach_index=ii))
+                reach_index=ii, node_indx=node_indx))
 
         self.idx = 0
         self.nreaches = len(self.reach)
@@ -142,7 +149,7 @@ class ReachDatabase(Product):
 class ReachDatabaseNodes(Product):
     """Prior Reach database nodes"""
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['depth', 2], ['nodes', 0]])
+    DIMENSIONS = odict([['centerlines', 2], ['nodes', 0]])
     DIMENSIONS_NODES = odict([['nodes', 0]])
     VARIABLES = odict([
         ['x',
@@ -182,8 +189,8 @@ class ReachDatabaseNodes(Product):
 class ReachDatabaseReaches(Product):
     """Prior Reach database reaches"""
     ATTRIBUTES = odict([])
-    DIMENSIONS = odict([['depth', 2], ['reach_neighbors', 4], ['reaches', 0]])
-    DIMENSIONS_CLIDS = odict([['depth', 2], ['reaches', 0]])
+    DIMENSIONS = odict([['centerlines', 2], ['reach_neighbors', 4], ['reaches', 0]])
+    DIMENSIONS_CLIDS = odict([['centerlines', 2], ['reaches', 0]])
     DIMENSIONS_REACH_UPDOWN = odict([['reach_neighbors', 4], ['reaches', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
     VARIABLES = odict([
@@ -266,7 +273,7 @@ class ReachDatabaseReaches(Product):
 class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['depth', 4], ['points', 0]])
+    DIMENSIONS = odict([['centerlines', 4], ['points', 0]])
     DIMENSIONS_POINTS = odict([['points', 0]])
     VARIABLES = odict([
         ['x',

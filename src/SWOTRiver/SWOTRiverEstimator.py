@@ -800,10 +800,14 @@ class SWOTRiverEstimator(SWOTL2):
         y_prior = yw
         y_prior[windex] = self.river_obs.centerline_obs['y_prior'].v
 
-        node_index = np.arange(len(y_prior))
-        node_index = node_index[self.river_obs.populated_nodes]
+        if reach.node_indx is None:
+            node_indx = np.arange(len(y_prior))
+        else:
+            node_indx = reach.node_indx
+
+        node_indx = node_indx[self.river_obs.populated_nodes]
         y_prior = y_prior[self.river_obs.populated_nodes]
-        reach_index = np.ones(len(node_index)) * (reach_idx)
+        reach_index = np.ones(len(node_indx)) * (reach_idx)
 
         # Add the observations
         self.river_obs.add_obs('h_noise', self.h_noise)
@@ -841,18 +845,17 @@ class SWOTRiverEstimator(SWOTL2):
                 # this is actually both land and water edges, 
                 # but setting to water edge
                 edge_water[self.klass==k] = 1                
+
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
-        #
+
         self.river_obs.add_obs('klass', self.klass)
         dsets_to_load.append('klass')
-        #
+
         self.river_obs.add_obs('pixel_area', self.pixel_area)
         dsets_to_load.append('pixel_area')
-        
 
         self.river_obs.load_nodes(dsets_to_load)
-
         LOGGER.debug('Observations added to nodes')
 
         # Get various node statistics
@@ -964,7 +967,7 @@ class SWOTRiverEstimator(SWOTL2):
             'nobs_h': nobs_h.astype('int32'),
             'x_prior': x_prior.astype('float64'),
             'y_prior': y_prior.astype('float64'),
-            'node_indx': node_index.astype('int32'),
+            'node_indx': node_indx.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
         }
