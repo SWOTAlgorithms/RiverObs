@@ -1205,7 +1205,7 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['cross_reach'][curr_len:new_len] = cross_reach
             # for improved geolocation
             ofp.variables['latitude_vectorproc'][curr_len:new_len] = lat
-            ofp.variables['longitude_vectorproc'][curr_len:new_len] = np.mod(lon,360.0)
+            ofp.variables['longitude_vectorproc'][curr_len:new_len] = lon
             ofp.variables['height_vectorproc'][curr_len:new_len] = height
         return
 
