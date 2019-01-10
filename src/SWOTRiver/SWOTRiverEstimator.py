@@ -297,7 +297,7 @@ class SWOTRiverEstimator(SWOTL2):
         try:
             # hopefully already there
             self.pixel_area = self.get('pixel_area')
-            
+
         except KeyError:
             try:
                 # try compute with look angle
