@@ -86,6 +86,7 @@ def main():
         if any([key == item for item in [
             'geolocation_method', 'reach_db_path']]):
             continue
+        print("converting: "+key)
         config[key] = ast.literal_eval(config[key])
 
     l2pixc_to_rivertile = SWOTRiver.Estimate.L2PixcToRiverTile(
