@@ -326,8 +326,7 @@ class SWOTRiverEstimator(SWOTL2):
         # need to scale pixel area by the subsampling factor if subsampling
         if (self.subsample_factor > 1):
             self.pixel_area = self.pixel_area * self.subsample_factor
-        
-        #
+
         if fractional_inundation_kwd is None:  # all water pixels are inundated
             self.fractional_inundation = None
             self.inundated_area = self.pixel_area
@@ -942,7 +941,6 @@ class SWOTRiverEstimator(SWOTL2):
                 dtype=np.float64) * self.river_obs.missing_value
             width_db = width_db[self.river_obs.populated_nodes]
 
-        
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
