@@ -387,7 +387,8 @@ def area_uncert(
 
 def area_with_uncert(
     pixel_area, water_fraction, water_fraction_uncert, darea_dheight, klass,
-    Pfd, Pmd, good, interior_water_klass=4, water_edge_klass=3,
+    Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
+    interior_water_klass=4, water_edge_klass=3,
     land_edge_klass=2, method='composite'):
 
     area_agg, num_pixels = area_only(
@@ -398,7 +399,7 @@ def area_with_uncert(
 
     area_unc = area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
-        klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
+        klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
         method='composite')

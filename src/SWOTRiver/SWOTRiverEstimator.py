@@ -326,7 +326,7 @@ class SWOTRiverEstimator(SWOTL2):
         # need to scale pixel area by the subsampling factor if subsampling
         if (self.subsample_factor > 1):
             self.pixel_area = self.pixel_area * self.subsample_factor
-        #
+
         if fractional_inundation_kwd is None:  # all water pixels are inundated
             self.fractional_inundation = None
             self.inundated_area = self.pixel_area
@@ -927,6 +927,7 @@ class SWOTRiverEstimator(SWOTL2):
             width_area = w_a
             area = a
             area_unc = a_uncert
+
         # These are the values from the width database
         width_db = np.ones(
             self.river_obs.n_nodes,

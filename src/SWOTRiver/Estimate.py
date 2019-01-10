@@ -210,9 +210,7 @@ class L2PixcToRiverTile(object):
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
 
             if self.is_new_pixc:
-                ifgram_shape = ifp.groups['pixel_cloud'].interferogram_shape
-                splits = ifgram_shape.replace(',', '').split()
-                nr_pixels = int(splits[1])
+                nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
                 azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
                 rng_index = ifp.groups['pixel_cloud']['range_index'][:]
             else:
