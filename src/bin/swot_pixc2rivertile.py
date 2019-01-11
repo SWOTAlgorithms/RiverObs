@@ -28,7 +28,6 @@ alpha                     (-) = 1
 max_iter                  (-) = 1
 scalar_max_width          (-) = 600.0
 minobs                    (-) = 10
-trim_ends                 (-) = False
 fit_types                 (-) = ['OLS', 'WLS', 'RLM']
 min_fit_points            (-) = 3
 do_improved_geolocation   (-) = True
