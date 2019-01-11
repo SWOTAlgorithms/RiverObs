@@ -525,7 +525,6 @@ class SWOTRiverEstimator(SWOTL2):
                 ireach,
                 reach_idx,
                 scalar_max_width=scalar_max_width,
-                minobs=minobs,
                 use_width_db=use_width_db,
                 max_width=max_width,
                 ds=ds,
@@ -673,7 +672,7 @@ class SWOTRiverEstimator(SWOTL2):
         ireach_list_out = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
-            if len(river_obs.s) > 0:
+            if len(river_obs.populated_nodes) > 0:
                 river_obs_list_out.append(river_obs)
                 reach_idx_list_out.append(reach_idx)
                 ireach_list_out.append(ireach)
@@ -685,7 +684,6 @@ class SWOTRiverEstimator(SWOTL2):
                      reach_id,
                      reach_idx=None,
                      scalar_max_width=600.,
-                     minobs=10,
                      use_width_db=False,
                      max_width=None,
                      ds=None,
@@ -709,8 +707,6 @@ class SWOTRiverEstimator(SWOTL2):
             to the reach_id.
         scalar_max_width : float, default 600
             How far away to look for points
-        minobs : int, default 10
-            Minimum number of observations for valid node.
         use_width_db : bool, default False
             Use the width data base for setting widths?
         max_width: float or array_like, optional
