@@ -103,11 +103,10 @@ class L2PixcToRiverTile(object):
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],
             'min_points': self.config['min_points'],
-            'trim_ends': False,
-            'store_obs': False, 'store_reaches': False, 'store_fits': False,
-            'output_file': self.index_file,
+            'trim_ends': False, 'store_obs': False, 'store_reaches': False,
+            'store_fits': False, 'output_file': self.index_file,
             'proj': 'laea', 'x_0': 0, 'y_0': 0, 'lat_0': None, 'lon_0': None,
-            'subsample_factor': 1, 
+            'subsample_factor': 1,
             'height_agg_method': self.config['height_agg_method'],
             'area_agg_method': self.config['area_agg_method'],}
 
