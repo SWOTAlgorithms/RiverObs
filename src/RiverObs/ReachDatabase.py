@@ -6,6 +6,7 @@ import os
 import glob
 import netCDF4
 import logging
+import warnings
 import numpy as np
 from collections import OrderedDict as odict
 
@@ -42,7 +43,10 @@ class ReachExtractor(object):
                         reach_latmin < latmax and reach_latmax > latmin):
 
                         LOGGER.info('Using reach db tile {}'.format(db_file))
-                        this_db = ReachDatabase.from_ncfile(db_file)
+                        with warnings.catch_warnings():
+                            warnings.simplefilter("ignore")
+                            this_db = ReachDatabase.from_ncfile(db_file)
+
                         if reach_db is None:
                             reach_db = this_db
                         else:
@@ -50,7 +54,9 @@ class ReachExtractor(object):
 
         else:
             # assume already done
-            reach_db = ReachDatabase.from_ncfile(reach_db_path)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                reach_db = ReachDatabase.from_ncfile(reach_db_path)
 
         try_reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
         self.reach = []
