@@ -775,15 +775,6 @@ class SWOTRiverEstimator(SWOTL2):
         except:
             segOut = None
 
-        self.write_index_file(self.img_x[self.river_obs.in_channel],
-                              self.img_y[self.river_obs.in_channel],
-                              self.river_obs.index, self.river_obs.d,
-                              self.river_obs.s, self.river_obs.n, reach_idx,
-                              segOut, self.h_flg[self.river_obs.in_channel],
-                              self.lat_vec[self.river_obs.in_channel],
-                              self.lon_vec[self.river_obs.in_channel],
-                              self.height_vec[self.river_obs.in_channel])
-
         # get the prior locations and indices of the nodes
         xw = reach.x
         yw = reach.y
@@ -808,6 +799,16 @@ class SWOTRiverEstimator(SWOTL2):
         node_indx = node_indx[self.river_obs.populated_nodes]
         y_prior = y_prior[self.river_obs.populated_nodes]
         reach_index = np.ones(len(node_indx)) * (reach_idx)
+
+        self.write_index_file(self.img_x[self.river_obs.in_channel],
+                              self.img_y[self.river_obs.in_channel],
+                              reach.node_indx[self.river_obs.index],
+                              self.river_obs.d, self.river_obs.s,
+                              self.river_obs.n, reach_idx,
+                              segOut, self.h_flg[self.river_obs.in_channel],
+                              self.lat_vec[self.river_obs.in_channel],
+                              self.lon_vec[self.river_obs.in_channel],
+                              self.height_vec[self.river_obs.in_channel])
 
         # Add the observations
         self.river_obs.add_obs('h_noise', self.h_noise)
