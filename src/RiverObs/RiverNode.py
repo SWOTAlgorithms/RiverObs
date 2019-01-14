@@ -328,11 +328,13 @@ class RiverNode:
         # pixels if method=water_fraction or method=composite
         klass = np.zeros(np.shape(self.klass)) + interior_water_klass
         klass[self.edge_water==1] = water_edge_klass
+
         # call the external function to aggregate areas and uncertainties
         area, area_unc, area_pcnt_uncert = aggregate.area_with_uncert(
             self.pixel_area, self.water_frac, self.water_frac_uncert,
             self.darea_dheight, klass, self.false_detection_rate,
             self.missed_detection_rate, good,
+            Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
             interior_water_klass=interior_water_klass,
             water_edge_klass=water_edge_klass,
             land_edge_klass=land_edge_klass,

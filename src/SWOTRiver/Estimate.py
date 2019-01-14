@@ -103,11 +103,10 @@ class L2PixcToRiverTile(object):
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],
             'min_points': self.config['min_points'],
-            'trim_ends': self.config['trim_ends'],
-            'store_obs': False, 'store_reaches': False, 'store_fits': False,
-            'output_file': self.index_file,
+            'trim_ends': False, 'store_obs': False, 'store_reaches': False,
+            'store_fits': False, 'output_file': self.index_file,
             'proj': 'laea', 'x_0': 0, 'y_0': 0, 'lat_0': None, 'lon_0': None,
-            'subsample_factor': 1, 
+            'subsample_factor': 1,
             'height_agg_method': self.config['height_agg_method'],
             'area_agg_method': self.config['area_agg_method'],}
 
@@ -115,7 +114,7 @@ class L2PixcToRiverTile(object):
             self.pixc_file, **kwargs)
 
         river_estimator.get_reaches(
-            self.config['shape_file_root'],
+            self.config['reach_db_path'],
             clip_buffer=self.config['clip_buffer'])
 
         if self.config['use_width_db']:
@@ -210,9 +209,7 @@ class L2PixcToRiverTile(object):
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
 
             if self.is_new_pixc:
-                ifgram_shape = ifp.groups['pixel_cloud'].interferogram_shape
-                splits = ifgram_shape.replace(',', '').split()
-                nr_pixels = int(splits[1])
+                nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
                 azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
                 rng_index = ifp.groups['pixel_cloud']['range_index'][:]
             else:

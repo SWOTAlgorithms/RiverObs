@@ -645,10 +645,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         pixc2rivertile_map = {
             '/pixel_cloud/solid_earth_tide': 'earth_tide',
             '/pixel_cloud/pole_tide': 'pole_tide',
-            '/pixel_cloud/loading_tide_sol1': 'load_tide',
+            '/pixel_cloud/load_tide_sol1': 'load_tide',
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
-            '/pixel_cloud/model_iono_ka_cor': 'iono_c',
+            '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
             '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
             '/tvp/time': 'time',
             '/tvp/time_tai': 'time_tai'}

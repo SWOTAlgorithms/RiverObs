@@ -13,8 +13,8 @@ import collections
 import scipy.stats
 import logging
 
+import RiverObs.ReachDatabase
 from .SWOTL2 import SWOTL2
-from RiverObs import ReachExtractor
 from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import FitRiver
@@ -331,7 +331,7 @@ class SWOTRiverEstimator(SWOTL2):
         # need to scale pixel area by the subsampling factor if subsampling
         if (self.subsample_factor > 1):
             self.pixel_area = self.pixel_area * self.subsample_factor
-        #
+
         if fractional_inundation_kwd is None:  # all water pixels are inundated
             self.fractional_inundation = None
             self.inundated_area = self.pixel_area
@@ -414,13 +414,13 @@ class SWOTRiverEstimator(SWOTL2):
         # create the segmentation label variable
         self.seg_label = lbl_out[self.img_y, self.img_x]
 
-    def get_reaches(self, shape_file_root, clip=True, clip_buffer=0.1):
+    def get_reaches(self, reach_db_path, clip=True, clip_buffer=0.1):
         """Get all of the reaches using a ReachExtractor."""
         self.clip = clip
         self.clip_buffer = clip_buffer
 
-        self.reaches = ReachExtractor(
-            shape_file_root, self, clip=clip, clip_buffer=clip_buffer)
+        self.reaches = RiverObs.ReachDatabase.ReachExtractor(
+            reach_db_path, self, clip=clip, clip_buffer=clip_buffer)
 
         return self.reaches
 
@@ -530,7 +530,6 @@ class SWOTRiverEstimator(SWOTL2):
                 ireach,
                 reach_idx,
                 scalar_max_width=scalar_max_width,
-                minobs=minobs,
                 use_width_db=use_width_db,
                 max_width=max_width,
                 ds=ds,
@@ -678,7 +677,7 @@ class SWOTRiverEstimator(SWOTL2):
         ireach_list_out = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
-            if len(river_obs.s) > 0:
+            if len(river_obs.populated_nodes) > 0:
                 river_obs_list_out.append(river_obs)
                 reach_idx_list_out.append(reach_idx)
                 ireach_list_out.append(ireach)
@@ -690,7 +689,6 @@ class SWOTRiverEstimator(SWOTL2):
                      reach_id,
                      reach_idx=None,
                      scalar_max_width=600.,
-                     minobs=10,
                      use_width_db=False,
                      max_width=None,
                      ds=None,
@@ -714,8 +712,6 @@ class SWOTRiverEstimator(SWOTL2):
             to the reach_id.
         scalar_max_width : float, default 600
             How far away to look for points
-        minobs : int, default 10
-            Minimum number of observations for valid node.
         use_width_db : bool, default False
             Use the width data base for setting widths?
         max_width: float or array_like, optional
@@ -780,15 +776,6 @@ class SWOTRiverEstimator(SWOTL2):
         except:
             segOut = None
 
-        self.write_index_file(self.img_x[self.river_obs.in_channel],
-                              self.img_y[self.river_obs.in_channel],
-                              self.river_obs.index, self.river_obs.d,
-                              self.river_obs.s, self.river_obs.n, reach_idx,
-                              segOut, self.h_flg[self.river_obs.in_channel],
-                              self.lat_vec[self.river_obs.in_channel],
-                              self.lon_vec[self.river_obs.in_channel],
-                              self.height_vec[self.river_obs.in_channel])
-
         # get the prior locations and indices of the nodes
         xw = reach.x
         yw = reach.y
@@ -805,10 +792,24 @@ class SWOTRiverEstimator(SWOTL2):
         y_prior = yw
         y_prior[windex] = self.river_obs.centerline_obs['y_prior'].v
 
-        node_index = np.arange(len(y_prior))
-        node_index = node_index[self.river_obs.populated_nodes]
+        if reach.node_indx is None:
+            node_indx = np.arange(len(y_prior))
+        else:
+            node_indx = reach.node_indx
+
+        node_indx = node_indx[self.river_obs.populated_nodes]
         y_prior = y_prior[self.river_obs.populated_nodes]
-        reach_index = np.ones(len(node_index)) * (reach_idx)
+        reach_index = np.ones(len(node_indx)) * (reach_idx)
+
+        self.write_index_file(self.img_x[self.river_obs.in_channel],
+                              self.img_y[self.river_obs.in_channel],
+                              reach.node_indx[self.river_obs.index],
+                              self.river_obs.d, self.river_obs.s,
+                              self.river_obs.n, reach_idx,
+                              segOut, self.h_flg[self.river_obs.in_channel],
+                              self.lat_vec[self.river_obs.in_channel],
+                              self.lon_vec[self.river_obs.in_channel],
+                              self.height_vec[self.river_obs.in_channel])
 
         # Add the observations
         self.river_obs.add_obs('h_noise', self.h_noise)
@@ -847,18 +848,17 @@ class SWOTRiverEstimator(SWOTL2):
                 # this is actually both land and water edges, 
                 # but setting to water edge
                 edge_water[self.klass==k] = 1                
+
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
-        #
+
         self.river_obs.add_obs('klass', self.klass)
         dsets_to_load.append('klass')
-        #
+
         self.river_obs.add_obs('pixel_area', self.pixel_area)
         dsets_to_load.append('pixel_area')
-        
 
         self.river_obs.load_nodes(dsets_to_load)
-
         LOGGER.debug('Observations added to nodes')
 
         # Get various node statistics
@@ -935,6 +935,7 @@ class SWOTRiverEstimator(SWOTL2):
             width_u = w_a_uncert
             area = a
             area_u = a_uncert
+
         # These are the values from the width database
         width_db = np.ones(
             self.river_obs.n_nodes,
@@ -974,7 +975,7 @@ class SWOTRiverEstimator(SWOTL2):
             'nobs_h': nobs_h.astype('int32'),
             'x_prior': x_prior.astype('float64'),
             'y_prior': y_prior.astype('float64'),
-            'node_indx': node_index.astype('int32'),
+            'node_indx': node_indx.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
             'latitude_u': latitude_u.astype('float32'),
