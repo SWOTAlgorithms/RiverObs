@@ -1210,7 +1210,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['area_det_u'] = reach_outputs['area_u']
             klass['area_tot_u'] = reach_outputs['area_u']
             klass['area_of_ht'] = reach_outputs['area_of_ht']
-            klass['xtrk_dist'] = reach_outputs['xtrck_ave']
+            klass['xtrk_dist'] = reach_outputs['xtrk_dist']
             klass['n_good_nod'] = reach_outputs['n_good_nod']
             klass['frac_obs'] = reach_outputs['frac_obs']
             klass['loc_offset'] = reach_outputs['loc_offset']

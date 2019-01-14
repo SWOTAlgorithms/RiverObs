@@ -1082,43 +1082,25 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.sum(ds)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
-        reach_stats['lon_min'] = np.min(river_reach.lon)
-        reach_stats['lon_max'] = np.max(river_reach.lon)
-        reach_stats['lat_min'] = np.min(river_reach.lat)
-        reach_stats['lat_max'] = np.max(river_reach.lat)
 
         reach_stats['area'] = np.sum(river_reach.area)
         reach_stats['area_u'] = np.sqrt(np.sum(
             river_reach.area_u**2))
 
+        reach_stats['area_of_ht'] = np.sum(river_reach.area_of_ht)
+
         reach_stats['width'] = np.sum(river_reach.area)/reach_stats['length']
         reach_stats['width_u'] = np.sqrt(np.sum(
             river_reach.area_u**2)) / reach_stats['length']
 
-        reach_stats['area_of_ht'] = np.sum(river_reach.area_of_ht)
-        reach_stats['smin'] = np.min(river_reach.s)
-        reach_stats['smax'] = np.max(river_reach.s)
-        reach_stats['save'] = np.median(river_reach.s)
-        reach_stats['w_ptp_ave'] = np.median(river_reach.w_ptp)
-        reach_stats['w_ptp_min'] = np.min(river_reach.w_ptp)
-        reach_stats['w_ptp_max'] = np.max(river_reach.w_ptp)
-        reach_stats['w_std_ave'] = np.median(river_reach.w_std)
-        reach_stats['w_std_min'] = np.min(river_reach.w_std)
-        reach_stats['w_std_max'] = np.max(river_reach.w_std)
-        reach_stats['w_area_ave'] = np.sum(
-            river_reach.area) / reach_stats['length']
         reach_stats['n_good_nod'] = len(river_reach.s)
-        reach_stats['w_area_min'] = np.min(river_reach.w_area)
-        reach_stats['w_area_max'] = np.max(river_reach.w_area)
         reach_stats['frac_obs'] = (
             len(river_reach.s) / len(self.river_obs.centerline.s))
         reach_stats['loc_offset'] = (
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
 
         if river_reach.xtrack is not None:
-            reach_stats['xtrck_ave'] = np.median(river_reach.xtrack)
-            reach_stats['xtrck_min'] = np.min(river_reach.xtrack)
-            reach_stats['xtrck_max'] = np.max(river_reach.xtrack)
+            reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
         # fitting results for h_true
         if nresults is not None:
