@@ -1042,51 +1042,10 @@ class SWOTRiverEstimator(SWOTL2):
             LOGGER.debug('not enough good points for fit')
             nresults = None
             return None
-        else:
-            # Get the start and end
-            smin = river_reach.s.min()
-            smax = river_reach.s.max()
-            # Do the fitting for this reach
-            nresults = self.estimate_height_slope(
-                smin, smax, fit_types=fit_types, mean_stat='median')
-            LOGGER.debug('Estimation finished')
 
-        if self.store_fits:
-            self.fit_collection[reach_id, 'noise'] = nresults
-
-        # Get the reach statistics for this subreach
-        reach_stats = self.get_reach_stats(
-            reach_id, reach_idx, river_reach, nresults)
-
-        # trap out of range / missing data
-        if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
-            uint8_flg = 255
-        else:
-            uint8_flg = reach.metadata['lakeFlag']
-        reach_stats['lake_flag'] = uint8_flg
-
-        river_reach.metadata = reach_stats
-        return river_reach
-
-    def estimate_height_slope(
-        self, smin, smax, fit_types=['OLS', 'WLS', 'RLM'], mean_stat='median'):
-        """Get fit results for this subreach."""
-        if type(fit_types) == str:
-            fit_types = [fit_types]
-        nresults = collections.OrderedDict()
-        load_inputs = True
-        for fit_type in fit_types:
-            try:
-                nresults[fit_type] = self.fitter.fit_linear(
-                    smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
-                    load_inputs=load_inputs)
-                load_inputs = False
-            except (ZeroDivisionError, ValueError):
-                pass
-        return nresults
-
-    def get_reach_stats(self, reach_id, reach_idx, river_reach, nresults):
-        """Get statistics for a given reach."""
+        # Get the start and end
+        smin = river_reach.s.min()
+        smax = river_reach.s.max()
 
         ds = np.divide(river_reach.area, river_reach.w_area)
 
@@ -1115,6 +1074,13 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
         # fitting results for h_true
+        # Do the fitting for this reach
+        nresults = self.estimate_height_slope(
+            smin, smax, fit_types=fit_types, mean_stat='median')
+        LOGGER.debug('Estimation finished')
+
+        if self.store_fits:
+            self.fit_collection[reach_id, 'noise'] = nresults
         if nresults is not None:
             for fit_type in ['OLS', 'WLS', 'RLM']:
 
@@ -1143,7 +1109,34 @@ class SWOTRiverEstimator(SWOTL2):
                     reach_stats['n%s_mse' % tag] = self.river_obs.missing_value
                     pass
 
-        return reach_stats
+        # trap out of range / missing data
+        if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
+            uint8_flg = 255
+        else:
+            uint8_flg = reach.metadata['lakeFlag']
+        reach_stats['lake_flag'] = uint8_flg
+
+        river_reach.metadata = reach_stats
+        return river_reach
+
+    def estimate_height_slope(
+        self, smin, smax, fit_types=['OLS', 'WLS', 'RLM'], mean_stat='median'):
+        """Get fit results for this subreach."""
+        if type(fit_types) == str:
+            fit_types = [fit_types]
+        nresults = collections.OrderedDict()
+        load_inputs = True
+        for fit_type in fit_types:
+            try:
+                nresults[fit_type] = self.fitter.fit_linear(
+                    smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
+                    load_inputs=load_inputs)
+                load_inputs = False
+            except (ZeroDivisionError, ValueError):
+                pass
+
+        return nresults
+
 
     def create_index_file(self):
         """
