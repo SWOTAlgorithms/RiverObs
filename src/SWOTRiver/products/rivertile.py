@@ -1215,7 +1215,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 reach_outputs['slp_nr'])
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
-            klass['slope2'] = reach_outputs['slp_enhncd']
             klass['area_detct'] = reach_outputs['area']
             klass['area_total'] = reach_outputs['area']
             klass['area_det_u'] = reach_outputs['area_u']
@@ -1225,6 +1224,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['n_good_nod'] = reach_outputs['n_good_nod']
             klass['frac_obs'] = reach_outputs['frac_obs']
             klass['loc_offset'] = reach_outputs['loc_offset']
+
+            # may not be populated depending on run config
+            for inkey, outkey in {'slp_enhncd': 'slope2'}.items():
+                try:
+                    klass[outkey] = reach_outputs[inkey]
+                except KeyError:
+                    pass
 
             # set quality flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
