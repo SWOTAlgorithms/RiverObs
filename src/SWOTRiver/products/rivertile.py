@@ -623,7 +623,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
             klass['area_detct'] = node_outputs['area']
-            klass['area_det_u'] = node_outputs['area_unc']
+            klass['area_det_u'] = node_outputs['area_u']
+            klass['area_total'] = node_outputs['area']
+            klass['area_tot_u'] = node_outputs['area_u']
             klass['area_of_ht'] = node_outputs['area_of_ht']
             klass['xtrk_dist'] = node_outputs['xtrack']
             klass['n_good_pix'] = node_outputs['nobs']
@@ -1200,9 +1202,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['slope'] = 1/3*(
                 reach_outputs['slp_nw'] + reach_outputs['slp_no'] +
                 reach_outputs['slp_nr'])
-            klass['width'] = reach_outputs['w_area_ave']
+            klass['width'] = reach_outputs['width']
+            klass['width_u'] = reach_outputs['width_u']
             klass['slope2'] = reach_outputs['slp_enhncd']
             klass['area_detct'] = reach_outputs['area']
+            klass['area_total'] = reach_outputs['area']
+            klass['area_det_u'] = reach_outputs['area_u']
+            klass['area_tot_u'] = reach_outputs['area_u']
             klass['area_of_ht'] = reach_outputs['area_of_ht']
             klass['xtrk_dist'] = reach_outputs['xtrck_ave']
             klass['n_good_nod'] = reach_outputs['n_good_nod']
