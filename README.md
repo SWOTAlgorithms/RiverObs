@@ -9,6 +9,20 @@ code to reflect the evolving SWOT project.
 
 Detailed installation instructions are in the Install.md file.
 
+# Usage
+
+For generating data products are most similar to the SWOT project's data products, the following script is recommended
+```
+swot_pixc2rivertile.py [-h] [--shpbasedir SHPBASEDIR]
+                       [-l LOG_LEVEL]
+                       pixc_file out_riverobs_file out_pixc_vector_file
+                       rdf_file
+```
+where ```pixc_file``` is the SWOT high-resolution pixel cloud data product, ```out_riverobs_file``` is the filename of the output rivertile data product, ```out_pixc_vector_file``` is the filename of the output pixel cloud vector data product, ```rdf_file``` is the configuration file (see [this link](https://github.com/SWOTAlgorithms/RiverObs/blob/develop/src/bin/swot_pixc2rivertile.py#L13)) for the recomended configuration). Additionally there are some optional arguments: ```--shpbasedir SHPBASEDIR``` will write out the nodes and reaches as shapefile format (written as netCDF to ```out_riverobs_file```), and ```-l LOG_LEVEL``` controls the verbosity of the logging.
+
+# Ancillary data
+RiverObs requires a prior reach and node database. At the moment this is not posted publically, however, you may contact alexander.fore@jpl.nasa.gov to obtain a copy.
+
 ## Summary of packages provided
 
 **RiverObs**: This is the main package for associating data with river
