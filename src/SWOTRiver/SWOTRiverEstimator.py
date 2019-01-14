@@ -170,6 +170,8 @@ class SWOTRiverEstimator(SWOTL2):
                  power2_kwd='power_minus_y',
                  phase_noise_std_kwd='phase_noise_std',
                  dh_dphi_kwd='dheight_dphase',
+                 dlat_dphi_kwd='dlatitude_dphase',
+                 dlon_dphi_kwd='dlongitude_dphase',
                  num_rare_looks_kwd='num_rare_looks',
                  num_med_looks_kwd='num_med_looks',
                  looks_to_efflooks_kwd='looks_to_efflooks',
@@ -248,6 +250,8 @@ class SWOTRiverEstimator(SWOTL2):
             ['power2', power2_kwd],
             ['phase_noise_std', phase_noise_std_kwd],
             ['dh_dphi', dh_dphi_kwd],
+            ['dlat_dphi', dlat_dphi_kwd],
+            ['dlon_dphi', dlon_dphi_kwd],
             ['num_rare_looks', num_rare_looks_kwd],
             ['num_med_looks', num_med_looks_kwd],
             ['false_detection_rate', false_detection_rate_kwd],
@@ -274,9 +278,10 @@ class SWOTRiverEstimator(SWOTL2):
         good = ~mask
         for key in [
             'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
-            'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'num_rare_looks',
-            'num_med_looks', 'false_detection_rate', 'missed_detection_rate',
-            'darea_dheight', 'water_frac', 'water_frac_uncert', 'img_x',
+            'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'dlat_dphi',
+            'dlon_dphi', 'num_rare_looks', 'num_med_looks',
+            'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
+            'water_frac', 'water_frac_uncert', 'img_x',
             'img_y']:
 
             try:
@@ -822,8 +827,9 @@ class SWOTRiverEstimator(SWOTL2):
         other_obs_keys = [
             'xtrack', 'sig0', 'water_frac', 'water_frac_uncert', 'ifgram',
             'power1', 'power2', 'phase_noise_std', 'dh_dphi',
-            'num_rare_looks', 'num_med_looks', 'false_detection_rate',
-            'missed_detection_rate', 'darea_dheight', 'looks_to_efflooks']
+            'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
+            'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
+            'looks_to_efflooks']
 
         for name in other_obs_keys:
             value = getattr(self, name)
@@ -909,9 +915,13 @@ class SWOTRiverEstimator(SWOTL2):
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
             (self.area_agg_method is not 'orig')):
-            h, h_std, h_uncert, a, w_a, a_uncert = self.river_obs.get_node_agg(
+            (h, h_std, h_uncert, a, w_a, a_uncert, w_a_uncert, lat_uncert,
+             lon_uncert) = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
                 area_method=self.area_agg_method)
+
+            latitude_u = lat_uncert
+            longitud_u = lon_uncert
         if (self.height_agg_method is not 'orig'):
             # just replace the height and height_std for now
             h_noise_ave = h
@@ -922,8 +932,9 @@ class SWOTRiverEstimator(SWOTL2):
         if (self.area_agg_method is not 'orig'):
             # just replace the width_area and area and area_std for now
             width_area = w_a
+            width_u = w_a_uncert
             area = a
-            area_unc = a_uncert
+            area_u = a_uncert
 
         # These are the values from the width database
         width_db = np.ones(
@@ -955,7 +966,7 @@ class SWOTRiverEstimator(SWOTL2):
             'w_area': width_area.astype('float32'),
             'w_db': width_db.astype('float32'),
             'area': area.astype('float32'),
-            'area_unc': area_unc.astype('float32'),
+            'area_u': area_u.astype('float32'),
             'area_of_ht': area_of_ht.astype('float32'),
             'h_n_ave': h_noise_ave.astype('float32'),
             'h_n_std': h_noise_std.astype('float32'),
@@ -967,6 +978,9 @@ class SWOTRiverEstimator(SWOTL2):
             'node_indx': node_indx.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
+            'latitude_u': latitude_u.astype('float32'),
+            'longitud_u': longitud_u.astype('float32'),
+            'width_u': width_u.astype('float32'),
         }
 
         if xtrack_median is not None:
@@ -1077,39 +1091,28 @@ class SWOTRiverEstimator(SWOTL2):
         ds = np.divide(river_reach.area, river_reach.w_area)
 
         reach_stats = collections.OrderedDict()
+        reach_stats['length'] = np.sum(ds)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
-        reach_stats['lon_min'] = np.min(river_reach.lon)
-        reach_stats['lon_max'] = np.max(river_reach.lon)
-        reach_stats['lat_min'] = np.min(river_reach.lat)
-        reach_stats['lat_max'] = np.max(river_reach.lat)
+
         reach_stats['area'] = np.sum(river_reach.area)
+        reach_stats['area_u'] = np.sqrt(np.sum(
+            river_reach.area_u**2))
+
         reach_stats['area_of_ht'] = np.sum(river_reach.area_of_ht)
-        reach_stats['length'] = np.sum(ds)
-        reach_stats['smin'] = np.min(river_reach.s)
-        reach_stats['smax'] = np.max(river_reach.s)
-        reach_stats['save'] = np.median(river_reach.s)
-        reach_stats['w_ptp_ave'] = np.median(river_reach.w_ptp)
-        reach_stats['w_ptp_min'] = np.min(river_reach.w_ptp)
-        reach_stats['w_ptp_max'] = np.max(river_reach.w_ptp)
-        reach_stats['w_std_ave'] = np.median(river_reach.w_std)
-        reach_stats['w_std_min'] = np.min(river_reach.w_std)
-        reach_stats['w_std_max'] = np.max(river_reach.w_std)
-        reach_stats['w_area_ave'] = np.sum(
-            river_reach.area) / reach_stats['length']
+
+        reach_stats['width'] = np.sum(river_reach.area)/reach_stats['length']
+        reach_stats['width_u'] = np.sqrt(np.sum(
+            river_reach.area_u**2)) / reach_stats['length']
 
         reach_stats['n_good_nod'] = len(river_reach.s)
-        reach_stats['w_area_min'] = np.min(river_reach.w_area)
-        reach_stats['w_area_max'] = np.max(river_reach.w_area)
         reach_stats['frac_obs'] = (
             len(river_reach.s) / len(self.river_obs.centerline.s))
         reach_stats['loc_offset'] = (
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
 
         if river_reach.xtrack is not None:
-            reach_stats['xtrck_ave'] = np.median(river_reach.xtrack)
-            reach_stats['xtrck_min'] = np.min(river_reach.xtrack)
-            reach_stats['xtrck_max'] = np.max(river_reach.xtrack)
+            reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
         # fitting results for h_true
         if nresults is not None:

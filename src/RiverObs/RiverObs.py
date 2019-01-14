@@ -370,13 +370,17 @@ class RiverObs:
         h_list = []
         h_std_list = []
         h_uncert_list = []
+        lat_uncert_list = []
+        lon_uncert_list = []
         a_list = []
         w_a_list = []
         a_uncert_list = []
+        w_a_uncert_list = []
         for node in self.all_nodes:
             if node in self.populated_nodes:
                 river_node = self.river_nodes[node]
-                h, h_std, h_unc = river_node.height_with_uncert(
+                h, h_std, h_unc, lat_unc, lon_unc = \
+                    river_node.height_with_uncert(
                         method=height_method, goodvar=good_flag)
     
                 h_list.append(
@@ -385,12 +389,19 @@ class RiverObs:
                     h_std if h_std is not None else self.missing_value)
                 h_uncert_list.append(
                     h_unc if h_unc is not None else self.missing_value)
-                a, w_a, a_unc = river_node.area_with_uncert(method=area_method)
+                lat_uncert_list.append(
+                    lat_unc if lat_unc is not None else self.missing_value)
+                lon_uncert_list.append(
+                    lon_unc if lon_unc is not None else self.missing_value)
+                a, w_a, a_unc, w_a_unc =\
+                    river_node.area_with_uncert(method=area_method)
 
                 a_list.append(a if a is not None else self.missing_value)
                 w_a_list.append(w_a if w_a is not None else self.missing_value)
                 a_uncert_list.append(
                     a_unc if a_unc is not None else self.missing_value)
+                w_a_uncert_list.append(
+                    w_a_unc if w_a_unc is not None else self.missing_value)
 
             elif all_nodes:
                 h_list.append(self.missing_value)
@@ -399,6 +410,9 @@ class RiverObs:
                 a_list.append(self.missing_value)
                 w_a_list.append(self.missing_value)
                 a_uncert_list.append(self.missing_value)
+                w_a_uncert_list.append(self.missing_value)
+                lat_uncert_list.append(self.missing_value)
+                lon_uncert_list.append(self.missing_value)
 
         # cast to arrays to make life easier later
         h = np.asarray(h_list)
@@ -407,7 +421,12 @@ class RiverObs:
         a = np.asarray(a_list)
         w_a = np.asarray(w_a_list)
         a_uncert = np.asarray(a_uncert_list)
-        return h, h_std, h_uncert, a, w_a, a_uncert
+        w_a_uncert = np.asarray(w_a_uncert_list)
+        lat_uncert = np.asarray(lat_uncert_list)
+        lon_uncert = np.asarray(lon_uncert_list)
+
+        return (h, h_std, h_uncert, a, w_a, a_uncert, w_a_uncert, lat_uncert,
+                lon_uncert)
 
     def trim_nodes(self, fraction, mode='both', sort_variable='n'):
         """

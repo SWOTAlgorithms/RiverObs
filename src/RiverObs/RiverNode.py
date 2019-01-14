@@ -300,11 +300,11 @@ class RiverNode:
         height_std_pix[np.isinf(height_std_pix)] = bad_num
         height_std_pix[np.isnan(height_std_pix)] = bad_num
         # call the general function
-        height, height_std, height_uncert = aggregate.height_with_uncerts(
+        return aggregate.height_with_uncerts(
             self.h_noise,  good, self.num_rare_looks, self.num_med_looks,
             self.ifgram, self.power1, self.power2, self.looks_to_efflooks,
-            self.dh_dphi, height_std_pix, method=method)
-        return height, height_std, height_uncert
+            self.dh_dphi, self.dlat_dphi, self.dlon_dphi, height_std_pix,
+            method=method)
 
     def area_with_uncert(self, goodvar='good', method='composite'):
         """
@@ -339,4 +339,7 @@ class RiverNode:
             water_edge_klass=water_edge_klass,
             land_edge_klass=land_edge_klass,
             method=method)
-        return area, area/self.ds, area_pcnt_uncert
+
+        width_area = area/self.ds
+        width_area_unc = area_unc/self.ds
+        return area, width_area, area_unc, width_area_unc

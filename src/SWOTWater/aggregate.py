@@ -84,7 +84,7 @@ def height_uncert_std(height, good, num_rare_looks, num_med_looks):
     """
     Compute the sample standard devieation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
-     correlated
+    correlated
 
     INPUTS:
     height         = 1d array of heights over the water feature
@@ -103,8 +103,8 @@ def height_uncert_std(height, good, num_rare_looks, num_med_looks):
     return height_std_out
 
 def height_uncert_multilook(
-        ifgram, power1, power2, weight_norm, good,
-        num_rare_looks, looks_to_efflooks, dh_dphi):
+        ifgram, power1, power2, weight_norm, good, num_rare_looks,
+        looks_to_efflooks, dh_dphi, dlat_dphi, dlon_dphi):
     """
     compute height uncertainty bound by multilooking 
     everything over feature to compute average coh
@@ -150,14 +150,27 @@ def height_uncert_multilook(
     agg_dh_dphi = simple(dh_dphi[good]*weight_norm[good])
     agg_dh_dphi2 = simple(dh_dphi[good]**2*weight_norm[good])
 
+    agg_dlat_dphi = simple(dlat_dphi[good]*weight_norm[good])
+    agg_dlat_dphi2 = simple(dlat_dphi[good]**2*weight_norm[good])
+
+    agg_dlon_dphi = simple(dlon_dphi[good]*weight_norm[good])
+    agg_dlon_dphi2 = simple(dlon_dphi[good]**2*weight_norm[good])
+
     height_uncert_out = np.sqrt(
         phase_std) * np.abs(np.array(agg_dh_dphi2)/np.array(agg_dh_dphi))
-    return height_uncert_out
+
+    lat_uncert_out = np.sqrt(
+        phase_std) * np.abs(np.array(agg_dlat_dphi2)/np.array(agg_dlat_dphi))
+
+    lon_uncert_out = np.sqrt(
+        phase_std) * np.abs(np.array(agg_dlon_dphi2)/np.array(agg_dlon_dphi))
+
+    return height_uncert_out, lat_uncert_out, lon_uncert_out
 
 def height_with_uncerts(
         height,  good, num_rare_looks, num_med_looks,
         ifgram, power1, power2, look_to_efflooks, dh_dphi,
-        height_std=1.0, method='weight'):
+        dlat_dphi, dlon_dphi, height_std=1.0, method='weight'):
     """
     Return the aggregate height with corresponding uncertainty
     implements methods: weight(default), median, uniform
@@ -172,11 +185,12 @@ def height_with_uncerts(
     height_std_out = height_uncert_std(
         height, good, num_rare_looks, num_med_looks)
 
-    height_uncert_out = height_uncert_multilook(
+    height_uncert_out, lat_uncert_out, lon_uncert_out = height_uncert_multilook(
         ifgram, power1, power2, weight_norm, good,
-        num_rare_looks, look_to_efflooks, dh_dphi)
+        num_rare_looks, look_to_efflooks, dh_dphi, dlat_dphi, dlon_dphi)
     
-    return height_out, height_std_out, height_uncert_out
+    return (height_out, height_std_out, height_uncert_out, lat_uncert_out,
+            lon_uncert_out)
 
 def area_only(pixel_area, klass, good,
               interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
