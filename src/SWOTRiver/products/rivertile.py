@@ -688,12 +688,16 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i4'],
-                ['long_name', 'ID of the reach to which the node is associated'],
+                ['long_name', 'Reach Id from prior database'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
                 ['comment', textjoin("""
-                    Mandatory. In/from Prior""")],
+                    "Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
+                    C=continent, B=basin,R=reach,N=node, T=type. See PDD for
+                    continent, type code details. Nodes number sequentially in
+                    reach. Implementation note: Could be 4B integer with
+                    current definition with all items as numbers.""")],
                 ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
@@ -719,19 +723,21 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['height',
          odict([['dtype', 'f4'],
-                ['long_name', 'height above geoid'],
+                ['long_name',
+                    'Fitted reach surface height with respect to geoid'],
                 ['units', 'm'],
-                ['valid_min', -1000],
+                ['valid_min', -500],
                 ['valid_max', 5000],
                 ['comment', textjoin("""
-                    Reach average water surface height with respect to the
-                    geoid with all corrections and geophysical fields applied.
-                    Computed via analytical average of polynomial fit to node
-                    heights.""")],
+                    Reach water surface height with respect to the geoid with
+                    all corrections and geophysical fields applied. Computed
+                    via analytical evaluation at nominal center of polynomial
+                    fit to Node heights. Geoid value used reported in
+                    Geoid_modl.""")],
                 ])],
         ['height_u',
          odict([['dtype', 'f4'],
-                ['long_name', ''],
+                ['long_name', 'Uncertainy in reach height'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 20],
@@ -742,78 +748,91 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['slope',
          odict([['dtype', 'f4'],
-                ['long_name', 'slope'],
+                ['long_name', 'Reach surface slope with respect to the geoid'],
                 ['units', '1e-6'],
                 ['valid_min', -1000],
-                ['valid_max', 5000],
+                ['valid_max', 100],
                 ['comment', textjoin("""
-                    Reach average water surface slope with respect to the
-                    geoid with all corrections and geophysical fields applied.
-                    Computed via polynomial fit to Node heights.""")],
+                    Reach water surface slope with respect to the geoid with
+                    all corrections and geophysical fields applied. Computed
+                    via polynomial  fit to Node heights. Negative slope means
+                    downstream: downstream height is lower.""")],
                 ])],
         ['slope_u',
          odict([['dtype', 'f4'],
-                ['long_name', 'slope uncertainy'],
+                ['long_name', 'Uncertainy in reach slope'],
                 ['units', '1e-6'],
                 ['valid_min', 0],
                 ['valid_max', 50],
                 ['comment', textjoin("""
-                    Uncertainy in Reach fitted slope, including
-                    uncertainties of corrections and references, and variation
-                    about the fit.""")],
+                    Uncertainy in Reach fitted slope, including uncertainties
+                    of corrections and references, and variation about the
+                    fit.""")],
+                ])],
+        ['loc_offset',
+         odict([['dtype', 'f4'],
+                ['long_name',
+                    'Location offset between prior and observed reach location'],
+                ['units', 'm'],
+                ['valid_min', -10000],
+                ['valid_max', 10000],
+                ['comment', textjoin("""
+                    Along reach offset distance of observed points from nominal
+                    center. Sign convention TBD.""")],
                 ])],
         ['width',
          odict([['dtype', 'f4'],
-                ['long_name', 'slope'],
+                ['long_name', 'Reach average river width'],
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 10000],
                 ['comment', textjoin("""
-                    Reach average river width based on area_total.""")],
+                    Reach average river width based on area_total.
+                    Prior value in Prior section.""")],
                 ])],
         ['width_u',
          odict([['dtype', 'f4'],
-                ['long_name', 'width uncertainy'],
+                ['long_name', 'Uncertainty in reach average river width'],
                 ['units', 'm'],
-                ['valid_min', 0],
+                ['valid_min', 50],
                 ['valid_max', 100],
                 ['comment', textjoin("""
-                    Uncertainty in reach average river width.""")],
+                    TBD additional comment.""")],
                 ])],
         ['slope2',
          odict([['dtype', 'f4'],
-                ['long_name', 'slope'],
+                ['long_name',
+                    'Reach enhanced surface slope with respect to the geoid'],
                 ['units', '1e-6'],
                 ['valid_min', -1000],
-                ['valid_max', 5000],
+                ['valid_max', 100],
                 ['comment', textjoin("""
                     Enhanced Reach average slope relative to geoid produced
                     using smoothing of node heights.""")],
                 ])],
         ['slope2_u',
          odict([['dtype', 'f4'],
-                ['long_name', 'slope uncertainy'],
+                ['long_name', 'Uncertainty in reach enhanced surface slope'],
                 ['units', '1e-6'],
                 ['valid_min', 0],
                 ['valid_max', 50],
                 ['comment', textjoin("""
-                    Uncertainty in enhanced Reach average slope.""")],
+                    Uncertainty in enhanced reach slope.""")],
                 ])],
         ['d_x_area',
          odict([['dtype', 'f4'],
-                ['long_name', 'cross-sectional area change wrt first pass'],
+                ['long_name', 'Change in cross-sectional area'],
                 ['units', 'm^2'],
-                ['valid_min', -9999999],
-                ['valid_max', 9999999],
+                ['valid_min', 0],
+                ['valid_max', 100],
                 ['comment', textjoin("""
-                    Reach average cross-sectional area change with respect to
-                    the first overpass.""")],
+                    Change in channel cross sectional area from baseline.
+                    Determination of baseline is TBD.""")],
                 ])],
         ['d_x_area_u',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
-                    Uncertainty in cross-sectional area change wrt first
-                    pass""")],
+                    Uncertainty in change in cross-section""")],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 99999],
@@ -823,12 +842,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['area_detct',
          odict([['dtype', 'f4'],
-                ['long_name', 'area of detected water'],
+                ['long_name', 'Area of detected water pixels'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
                 ['comment', textjoin("""
-                    Area of detected water pixels.""")],
+                    TBC: Aggregation of node areas of pixcels used.""")],
                 ])],
         ['area_det_u',
          odict([['dtype', 'f4'],
@@ -1056,16 +1075,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['comment', textjoin("""
                     TBD""")],
-                ])],
-        ['loc_offset',
-         odict([['dtype', 'f4'],
-                ['long_name', 'node mean - prior mean along-reach coordinate'],
-                ['units', 'm'],
-                ['valid_min', -99999],
-                ['valid_max', 99999],
-                ['comment', textjoin("""
-                    Along reach offset distance of observed points from nominal
-                    center.""")],
                 ])],
         ['geoid_hght',
          odict([['dtype', 'f4'],
