@@ -170,6 +170,8 @@ class SWOTRiverEstimator(SWOTL2):
                  power2_kwd='power_minus_y',
                  phase_noise_std_kwd='phase_noise_std',
                  dh_dphi_kwd='dheight_dphase',
+                 dlat_dphi_kwd='dlatitude_dphase',
+                 dlon_dphi_kwd='dlongitude_dphase',
                  num_rare_looks_kwd='num_rare_looks',
                  num_med_looks_kwd='num_med_looks',
                  looks_to_efflooks_kwd='looks_to_efflooks',
@@ -248,6 +250,8 @@ class SWOTRiverEstimator(SWOTL2):
             ['power2', power2_kwd],
             ['phase_noise_std', phase_noise_std_kwd],
             ['dh_dphi', dh_dphi_kwd],
+            ['dlat_dphi', dlat_dphi_kwd],
+            ['dlon_dphi', dlon_dphi_kwd],
             ['num_rare_looks', num_rare_looks_kwd],
             ['num_med_looks', num_med_looks_kwd],
             ['false_detection_rate', false_detection_rate_kwd],
@@ -274,9 +278,10 @@ class SWOTRiverEstimator(SWOTL2):
         good = ~mask
         for key in [
             'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
-            'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'num_rare_looks',
-            'num_med_looks', 'false_detection_rate', 'missed_detection_rate',
-            'darea_dheight', 'water_frac', 'water_frac_uncert', 'img_x',
+            'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'dlat_dphi',
+            'dlon_dphi', 'num_rare_looks', 'num_med_looks',
+            'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
+            'water_frac', 'water_frac_uncert', 'img_x',
             'img_y']:
 
             try:
@@ -821,8 +826,9 @@ class SWOTRiverEstimator(SWOTL2):
         other_obs_keys = [
             'xtrack', 'sig0', 'water_frac', 'water_frac_uncert', 'ifgram',
             'power1', 'power2', 'phase_noise_std', 'dh_dphi',
-            'num_rare_looks', 'num_med_looks', 'false_detection_rate',
-            'missed_detection_rate', 'darea_dheight', 'looks_to_efflooks']
+            'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
+            'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
+            'looks_to_efflooks']
 
         for name in other_obs_keys:
             value = getattr(self, name)
@@ -909,10 +915,13 @@ class SWOTRiverEstimator(SWOTL2):
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
             (self.area_agg_method is not 'orig')):
-            h, h_std, h_uncert, a, w_a, a_uncert, w_a_uncert = \
-                self.river_obs.get_node_agg(
-                    height_method=self.height_agg_method,
-                    area_method=self.area_agg_method)
+            (h, h_std, h_uncert, a, w_a, a_uncert, w_a_uncert, lat_uncert,
+             lon_uncert) = self.river_obs.get_node_agg(
+                height_method=self.height_agg_method,
+                area_method=self.area_agg_method)
+
+            latitude_u = lat_uncert
+            longitud_u = lon_uncert
         if (self.height_agg_method is not 'orig'):
             # just replace the height and height_std for now
             h_noise_ave = h
@@ -968,6 +977,8 @@ class SWOTRiverEstimator(SWOTL2):
             'node_indx': node_index.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
+            'latitude_u': latitude_u.astype('float32'),
+            'longitud_u': longitud_u.astype('float32'),
             'width_u': width_u.astype('float32'),
         }
 

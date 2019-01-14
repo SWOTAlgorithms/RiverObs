@@ -615,6 +615,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_id'] = node_outputs['node_indx']
             klass['latitude'] = node_outputs['lat']
             klass['longitude'] = node_outputs['lon']
+            klass['latitude_u'] = node_outputs['latitude_u']
+            klass['longitud_u'] = node_outputs['longitud_u']
             klass['longitude'][klass['longitude'] < 0] += 360
             klass['height'] = node_outputs['h_n_ave']
             klass['height_u'] = node_outputs['h_n_std']
