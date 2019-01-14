@@ -84,7 +84,7 @@ def height_uncert_std(height, good, num_rare_looks, num_med_looks):
     """
     Compute the sample standard devieation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
-     correlated
+    correlated
 
     INPUTS:
     height         = 1d array of heights over the water feature

@@ -337,4 +337,7 @@ class RiverNode:
             water_edge_klass=water_edge_klass,
             land_edge_klass=land_edge_klass,
             method=method)
-        return area, area/self.ds, area_pcnt_uncert
+
+        width_area = area/self.ds
+        width_area_unc = area_unc/self.ds
+        return area, width_area, area_unc, width_area_unc

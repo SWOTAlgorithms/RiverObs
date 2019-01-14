@@ -909,9 +909,10 @@ class SWOTRiverEstimator(SWOTL2):
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
             (self.area_agg_method is not 'orig')):
-            h, h_std, h_uncert, a, w_a, a_uncert = self.river_obs.get_node_agg(
-                height_method=self.height_agg_method,
-                area_method=self.area_agg_method)
+            h, h_std, h_uncert, a, w_a, a_uncert, w_a_uncert = \
+                self.river_obs.get_node_agg(
+                    height_method=self.height_agg_method,
+                    area_method=self.area_agg_method)
         if (self.height_agg_method is not 'orig'):
             # just replace the height and height_std for now
             h_noise_ave = h
@@ -922,6 +923,7 @@ class SWOTRiverEstimator(SWOTL2):
         if (self.area_agg_method is not 'orig'):
             # just replace the width_area and area and area_std for now
             width_area = w_a
+            width_u = w_a_uncert
             area = a
             area_unc = a_uncert
         # These are the values from the width database
@@ -966,6 +968,7 @@ class SWOTRiverEstimator(SWOTL2):
             'node_indx': node_index.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
+            'width_u': width_u.astype('float32'),
         }
 
         if xtrack_median is not None:
