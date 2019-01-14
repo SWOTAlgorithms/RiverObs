@@ -1039,13 +1039,9 @@ class SWOTRiverEstimator(SWOTL2):
         LOGGER.debug(('number of fit points: %d' % ngood))
 
         if ngood < min_fit_points:
-            LOGGER.debug('not enough good points for fit')
+            LOGGER.warning('not enough good points for fit')
             nresults = None
             return None
-
-        # Get the start and end
-        smin = river_reach.s.min()
-        smax = river_reach.s.max()
 
         ds = np.divide(river_reach.area, river_reach.w_area)
 
@@ -1073,11 +1069,11 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # fitting results for h_true
         # Do the fitting for this reach
+        smin, smax = river_reach.s.min(), river_reach.s.max()
         nresults = self.estimate_height_slope(
             smin, smax, fit_types=fit_types, mean_stat='median')
-        LOGGER.debug('Estimation finished')
+        LOGGER.debug('Reach height/slope processing finished')
 
         if self.store_fits:
             self.fit_collection[reach_id, 'noise'] = nresults
@@ -1280,8 +1276,8 @@ class SWOTRiverEstimator(SWOTL2):
 
             else:
                 enhanced_slopes.append(
-                    (river_reach.h_n_ave[0] - river_reach.h_n_ave[-1])
-                    /this_reach_len)
+                    (river_reach.h_n_ave[-1] - river_reach.h_n_ave[0])
+                    / this_reach_len)
         return enhanced_slopes
 
     @staticmethod
