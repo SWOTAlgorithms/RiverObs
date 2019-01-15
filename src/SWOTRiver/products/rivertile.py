@@ -11,6 +11,7 @@ import numpy as np
 import fiona
 import netCDF4
 import datetime
+import warnings
 from shapely.geometry import Point, mapping
 from collections import OrderedDict as odict
 
@@ -34,6 +35,7 @@ class L2HRRiverTile(Product):
 
     @classmethod
     def from_riverobs(cls, node_outputs, reach_outputs, reach_collection):
+        """Constructs self from riverobs outputs"""
         klass = cls()
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
@@ -42,8 +44,10 @@ class L2HRRiverTile(Product):
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
-        self.nodes.update_from_pixc(pixc_file, index_file)
-        self.reaches.update_from_pixc(pixc_file, index_file)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            self.nodes.update_from_pixc(pixc_file, index_file)
+            self.reaches.update_from_pixc(pixc_file, index_file)
 
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
