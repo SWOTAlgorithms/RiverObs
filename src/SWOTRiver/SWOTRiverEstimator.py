@@ -897,6 +897,10 @@ class SWOTRiverEstimator(SWOTL2):
         rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
             'median', 'sig0', good_flag='h_flg'))
 
+        # TODO revisit the right thing to do here
+        rdr_sig0_u = np.asarray(self.river_obs.get_node_stat(
+            'std', 'sig0', good_flag='h_flg'))
+
         # area of pixels used to compute heights
         area_of_ht = np.asarray(
             self.river_obs.get_node_stat('sum', 'inundated_area',
@@ -970,6 +974,7 @@ class SWOTRiverEstimator(SWOTL2):
             'node_indx': node_indx.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
+            'rdr_sig0_u': rdr_sig0_u.astype('float32'),
             'latitude_u': latitude_u.astype('float32'),
             'longitud_u': longitud_u.astype('float32'),
             'width_u': width_u.astype('float32'),
@@ -1071,7 +1076,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['height'] = fit.params[1]
 
         # use White’s (1980) heteroskedasticity robust standard errors.
-        # https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.RegressionResults.html
+        # https://www.statsmodels.org/dev/generated/
+        #        statsmodels.regression.linear_model.RegressionResults.html
         reach_stats['slope_u'] = fit.HC0_se[0]
         reach_stats['height_u'] = fit.HC0_se[1]
 
