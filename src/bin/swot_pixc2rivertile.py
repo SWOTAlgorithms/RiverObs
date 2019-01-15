@@ -15,10 +15,10 @@ template config file:
 width_db_file             (-) = None
 use_width_db              (-) = False
 reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20181221/netcdf-fixup
-class_list                (-) = [2, 3, 4, 5, 6]
-use_fractional_inundation (-) = [True, True, False, False, False]
-use_segmentation          (-) = [False, True, True, True, True]
-use_heights               (-) = [False, False, True, False, False]
+class_list                (-) = [2, 3, 4, 22, 23, 24]
+use_fractional_inundation (-) = [True, True, False, False, False, False]
+use_segmentation          (-) = [False, True, True, False, True, True]
+use_heights               (-) = [False, False, True, False, False, False]
 min_points                (-) = 100
 clip_buffer               (-) = 20.0
 ds                        (-) = None
