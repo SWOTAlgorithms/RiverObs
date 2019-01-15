@@ -1063,7 +1063,7 @@ class SWOTRiverEstimator(SWOTL2):
         # Do weighted LS using height errors
         ss = river_reach.s - np.mean(self.river_obs.centerline.s)
         hh = river_reach.h_n_ave
-        ww = 1/(river_reach.h_n_std**2)
+        ww = 1/(river_reach.h_a_std**2)
 
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
         fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
