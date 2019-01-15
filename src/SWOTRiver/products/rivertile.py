@@ -1211,12 +1211,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         klass = cls()
         if reach_outputs is not None:
             klass['reach_id'] = reach_outputs['reach_idx']
-            klass['height'] = 1/3*(
-                reach_outputs['h_nw'] + reach_outputs['h_no'] +
-                reach_outputs['h_nr'])
-            klass['slope'] = 1/3*(
-                reach_outputs['slp_nw'] + reach_outputs['slp_no'] +
-                reach_outputs['slp_nr'])
+            klass['height'] = reach_outputs['height']
+            klass['height_u'] = reach_outputs['height_u']
+            klass['slope'] = reach_outputs['slope']
+            klass['slope_u'] = reach_outputs['slope_u']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
             klass['area_detct'] = reach_outputs['area']

@@ -128,13 +128,6 @@ minobs = 10
 ! This can happen sometimes in the near range.
 trim_ends = True
 
-! These are the fitting algorithms desired for mean height and slope estimation.
-! More than one type of fit can be requested.
-! 'OLS': ordinary least square
-! 'WLS': weighted least squares
-! 'RLM': Robust Linear Model
-fit_types=['OLS','WLS','RLM']
-
 ! These are the minimum number of points required for a slope fit
 min_fit_points = 3
 """
@@ -175,7 +168,6 @@ input_vars = {
     'max_iter': ('max_iter', 'd'),
     'minobs': ('minobs', 'd'),
     'trim_ends': ('trim_ends', 's'),
-    'fit_types': ('fit_types', 's'),
     'min_fit_points': ('min_fit_points', 'd'),
     'subsample_factor': ('subsample_factor', 'd')
 }
@@ -198,7 +190,6 @@ def estimate(params):
     use_heights = ast.literal_eval(params.use_heights)
     use_width_db = ast.literal_eval(params.use_width_db)
     refine_centerline = ast.literal_eval(params.refine_centerline)
-    fit_types = ast.literal_eval(params.fit_types)
 
     # Read the data and estimate the flooded area.
     river_estimator = SWOTRiver.SWOTRiverEstimator(
@@ -217,7 +208,6 @@ def estimate(params):
         min_points=params.min_points,
         store_obs=False,
         store_reaches=False,
-        store_fits=False,
         output_file=params.fout_index,
         proj='laea',
         x_0=0,
@@ -239,7 +229,6 @@ def estimate(params):
         scalar_max_width=params.scalar_max_width,
         minobs=params.minobs,
         min_fit_points=params.min_fit_points,
-        fit_types=fit_types,
         use_width_db=use_width_db,
         ds=params.ds,
         refine_centerline=refine_centerline,

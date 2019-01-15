@@ -11,13 +11,13 @@ import pandas as pd
 import netCDF4 as nc
 import collections
 import scipy.stats
+import statsmodels.api
 import logging
 
 import RiverObs.ReachDatabase
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
-from RiverObs import FitRiver
 from RiverObs import RiverNode
 from RiverObs import RiverReach
 from Centerline.Centerline import CenterLineException
@@ -37,7 +37,6 @@ class SWOTRiverEstimator(SWOTL2):
     for each reach.
     3. It keeps a dictionary of RiverReach instances, containing the results
     of height/slope fitting and width estimation.
-    4. A dictionary of FitRiver instances, containing the full fit diagnostics.
 
     Keeping copies for each observation, although useful for visualization,
     can be a tax on memory for a large number of reaches and observation,
@@ -116,8 +115,6 @@ class SWOTRiverEstimator(SWOTL2):
         If True, store each RiverObs instance in a dictionary.
     store_reaches : bool, default True
         If True, store each RiverRiver instance in a dictionary.
-    store_fits : bool, default True
-        If True, store each fit result in a dictionary.
     use_segmentation : bool list, default [False, True, True, True]
         Defines which classes should the assumed as water for segmatation
         algorithm to label disjoint features
@@ -162,7 +159,6 @@ class SWOTRiverEstimator(SWOTL2):
                  trim_ends=False,
                  store_obs=True,
                  store_reaches=True,
-                 store_fits=True,
                  xtrack_kwd='no_layover_cross_track',
                  sig0_kwd='sig0',
                  ifgram_kwd='interferogram',
@@ -193,7 +189,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.trim_ends = trim_ends
         self.store_obs = store_obs
         self.store_reaches = store_reaches
-        self.store_fits = store_fits
         self.input_file = os.path.split(swotL2_file)[-1]
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
@@ -448,7 +443,6 @@ class SWOTRiverEstimator(SWOTL2):
                         scalar_max_width=600.,
                         minobs=10,
                         min_fit_points=3,
-                        fit_types=['OLS', 'WLS', 'RLM'],
                         use_width_db=False,
                         ds=None,
                         refine_centerline=False,
@@ -471,8 +465,6 @@ class SWOTRiverEstimator(SWOTL2):
             Minimum number of observations for valid node.
         min_fit_points : int, default 3
             Minimum number of populated nodes required for height/slope fit
-        fit_types : list
-            A list of fit types to perform. Can contain 'OLS','WLS','RLM'.
         use_width_db : bool, default False
             Use the width data base for setting widths?
         ds : float, optional
@@ -569,8 +561,7 @@ class SWOTRiverEstimator(SWOTL2):
                                                  self.reaches[ireach],
                                                  ireach,
                                                  reach_idx,
-                                                 min_fit_points=min_fit_points,
-                                                 fit_types=fit_types)
+                                                 min_fit_points=min_fit_points)
 
             if out_river_reach is not None:
                 # add enhanced slope to river reach outputs
@@ -1005,8 +996,7 @@ class SWOTRiverEstimator(SWOTL2):
                       reach,
                       reach_id,
                       reach_idx=None,
-                      min_fit_points=3,
-                      fit_types=['OLS', 'WLS', 'RLM']):
+                      min_fit_points=3):
         """
         Estimate the width, height, and slope for one reach.
 
@@ -1026,8 +1016,6 @@ class SWOTRiverEstimator(SWOTL2):
             to the reach_id.
         min_fit_points : int, default 3
             Minimum number of populated nodes required for height/slope fit
-        fit_types : list
-            A list of fit types to perform. Can contain 'OLS','WLS','RLM'.
 
         Returns
         -------
@@ -1035,9 +1023,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         Modifies river_reach with the reach quantities (river_reach.metadata)
         """
-        # Initialize the fitter
-        self.fitter = FitRiver(self.river_obs)
-
         # Check to see if there are sufficient number of points for fit
         ngood = len(river_reach.s)
         LOGGER.debug(('number of fit points: %d' % ngood))
@@ -1053,6 +1038,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.sum(ds)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
+
+        reach_stats['node_dist'] = np.mean(np.sqrt(
+                (river_reach.x-river_reach.x_prior)**2 +
+                (river_reach.y-river_reach.y_prior)**2))
 
         reach_stats['area'] = np.sum(river_reach.area)
         reach_stats['area_u'] = np.sqrt(np.sum(
@@ -1073,41 +1062,23 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # Do the fitting for this reach
-        smin, smax = river_reach.s.min(), river_reach.s.max()
-        nresults = self.estimate_height_slope(
-            smin, smax, fit_types=fit_types, mean_stat='median')
+        # Do weighted LS using height errors
+        ss = river_reach.s - np.mean(self.river_obs.centerline.s)
+        hh = river_reach.h_n_ave
+        ww = 1/(river_reach.h_n_std**2)
+
+        SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
+        fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
+
+        if np.isnan(fit.params[0]):
+            from IPython import embed; embed()
+
+        reach_stats['slope'] = fit.params[0]
+        reach_stats['height'] = fit.params[1]
+        reach_stats['slope_u'] = fit.HC0_se[0]
+        reach_stats['height_u'] = fit.HC0_se[1]
+
         LOGGER.debug('Reach height/slope processing finished')
-
-        if self.store_fits:
-            self.fit_collection[reach_id, 'noise'] = nresults
-        if nresults is not None:
-            for fit_type in ['OLS', 'WLS', 'RLM']:
-
-                tag = {'OLS': 'o', 'WLS': 'w', 'RLM': 'r'}[fit_type]
-                try:
-                    this_result = nresults[fit_type]
-
-                except KeyError:
-                    reach_stats['h_n%s' % tag] = self.river_obs.missing_value
-                    reach_stats['slp_n%s' % tag] = self.river_obs.missing_value
-                    reach_stats['n%s_rsqrd' %
-                                tag] = self.river_obs.missing_value
-                    reach_stats['n%s_mse' % tag] = self.river_obs.missing_value
-                    continue
-
-                reach_stats['h_n%s' % tag] = this_result.params[1]
-                reach_stats['slp_n%s' % tag] = this_result.params[0]
-
-                try:
-                    reach_stats['n%s_rsqrd' % tag] = this_result.rsquared
-                    reach_stats['n%s_mse' % tag] = this_result.mse_resid
-
-                except AttributeError:
-                    reach_stats['n%s_rsqrd' %
-                                tag] = self.river_obs.missing_value
-                    reach_stats['n%s_mse' % tag] = self.river_obs.missing_value
-                    pass
 
         # trap out of range / missing data
         if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
@@ -1118,25 +1089,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         river_reach.metadata = reach_stats
         return river_reach
-
-    def estimate_height_slope(
-        self, smin, smax, fit_types=['OLS', 'WLS', 'RLM'], mean_stat='median'):
-        """Get fit results for this subreach."""
-        if type(fit_types) == str:
-            fit_types = [fit_types]
-        nresults = collections.OrderedDict()
-        load_inputs = True
-        for fit_type in fit_types:
-            try:
-                nresults[fit_type] = self.fitter.fit_linear(
-                    smin, smax, 'h_noise', fit=fit_type, mean_stat=mean_stat,
-                    load_inputs=load_inputs)
-                load_inputs = False
-            except (ZeroDivisionError, ValueError):
-                pass
-
-        return nresults
-
 
     def create_index_file(self):
         """
