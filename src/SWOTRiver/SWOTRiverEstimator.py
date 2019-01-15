@@ -15,6 +15,7 @@ import statsmodels.api
 import logging
 
 import RiverObs.ReachDatabase
+import SWOTWater.aggregate
 from .products.product import FILL_VALUES
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
@@ -897,10 +898,6 @@ class SWOTRiverEstimator(SWOTL2):
         rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
             'median', 'sig0', good_flag='h_flg'))
 
-        # TODO revisit the right thing to do here
-        rdr_sig0_u = np.asarray(self.river_obs.get_node_stat(
-            'std', 'sig0', good_flag='h_flg'))
-
         # area of pixels used to compute heights
         area_of_ht = np.asarray(
             self.river_obs.get_node_stat('sum', 'inundated_area',
@@ -913,24 +910,29 @@ class SWOTRiverEstimator(SWOTL2):
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
             (self.area_agg_method is not 'orig')):
-            (h, h_std, h_uncert, a, w_a, a_uncert, w_a_uncert, lat_uncert,
-             lon_uncert) = self.river_obs.get_node_agg(
+
+            node_aggs = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
                 area_method=self.area_agg_method)
 
-            latitude_u = lat_uncert
-            longitud_u = lon_uncert
+            latitude_u = node_aggs['lat_u']
+            longitud_u = node_aggs['lon_u']
+            rdr_sig0 = node_aggs['sig0']
+
+            # TODO should replace with uncert? or use error on mean?
+            rdr_sig0_u = node_aggs['sig0_std']
+
             if (self.area_agg_method is not 'orig'):
-                width_area = w_a
-                width_u = w_a_uncert
-                area = a
-                area_u = a_uncert
+                width_area = node_aggs['width_area']
+                width_u = node_aggs['width_area_u']
+                area = node_aggs['area']
+                area_u = node_aggs['area_u']
 
             if (self.height_agg_method is not 'orig'):
-                h_noise_ave = h
-                h_noise_std = h_std
-                h_noise_ave0 = h
-                h_noise_std0 = h_uncert
+                h_noise_ave = node_aggs['h']
+                h_noise_std = node_aggs['h_std']
+                h_noise_ave0 = node_aggs['h']
+                h_noise_std0 = node_aggs['h_u']
                 area_of_ht = area
 
         # These are the values from the width database
@@ -993,12 +995,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         return river_reach
 
-    def process_reach(self,
-                      river_reach,
-                      reach,
-                      reach_id,
-                      reach_idx=None,
-                      min_fit_points=3):
+    def process_reach(
+        self, river_reach, reach, reach_id, reach_idx=None, min_fit_points=3):
         """
         Estimate the width, height, and slope for one reach.
 
