@@ -895,8 +895,8 @@ class SWOTRiverEstimator(SWOTL2):
         area = np.asarray(
             self.river_obs.get_node_stat('sum', 'inundated_area'))
 
-        rdr_sig0 = np.asarray(
-            self.river_obs.get_node_stat('median', 'sig0', good_flag='h_flg'))
+        rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
+            'median', 'sig0', good_flag='h_flg')))
 
         # area of pixels used to compute heights
         area_of_ht = np.asarray(
@@ -917,31 +917,29 @@ class SWOTRiverEstimator(SWOTL2):
 
             latitude_u = lat_uncert
             longitud_u = lon_uncert
-        if (self.height_agg_method is not 'orig'):
-            # just replace the height and height_std for now
-            h_noise_ave = h
-            h_noise_std = h_std
-            h_noise_ave0 = h # put same height here for now
-            h_noise_std0 = h_uncert
-            #print("node area, area-orig, w_area, area",a, area, w_a)
-        if (self.area_agg_method is not 'orig'):
-            # just replace the width_area and area and area_std for now
-            width_area = w_a
-            width_u = w_a_uncert
-            area = a
-            area_u = a_uncert
+            if (self.area_agg_method is not 'orig'):
+                width_area = w_a
+                width_u = w_a_uncert
+                area = a
+                area_u = a_uncert
+
+            if (self.height_agg_method is not 'orig'):
+                h_noise_ave = h
+                h_noise_std = h_std
+                h_noise_ave0 = h
+                h_noise_std0 = h_uncert
+                area_of_ht = area
 
         # These are the values from the width database
-        width_db = np.ones(
-            self.river_obs.n_nodes,
-            dtype=np.float64) * self.river_obs.missing_value
+        width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
+            self.river_obs.missing_value
 
         try:
             windex = self.river_obs.centerline_obs['max_width'].populated_nodes
             width_db[windex] = self.river_obs.centerline_obs['max_width'].v
             width_db = width_db[self.river_obs.populated_nodes]
 
-        except:
+        except KeyError:
             width_db = np.ones(
                 self.river_obs.n_nodes,
                 dtype=np.float64) * self.river_obs.missing_value
