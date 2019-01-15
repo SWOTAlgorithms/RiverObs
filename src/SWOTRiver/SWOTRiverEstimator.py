@@ -15,6 +15,7 @@ import statsmodels.api
 import logging
 
 import RiverObs.ReachDatabase
+from .products.product import FILL_VALUES
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
@@ -557,11 +558,9 @@ class SWOTRiverEstimator(SWOTL2):
             # Ugly way process_reach/process_node uses the data
             self.river_obs = river_obs
 
-            out_river_reach = self.process_reach(river_reach,
-                                                 self.reaches[ireach],
-                                                 ireach,
-                                                 reach_idx,
-                                                 min_fit_points=min_fit_points)
+            out_river_reach = self.process_reach(
+                river_reach, self.reaches[ireach], ireach, reach_idx,
+                min_fit_points=min_fit_points)
 
             if out_river_reach is not None:
                 # add enhanced slope to river reach outputs
@@ -896,7 +895,7 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.get_node_stat('sum', 'inundated_area'))
 
         rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
-            'median', 'sig0', good_flag='h_flg')))
+            'median', 'sig0', good_flag='h_flg'))
 
         # area of pixels used to compute heights
         area_of_ht = np.asarray(
@@ -1068,11 +1067,11 @@ class SWOTRiverEstimator(SWOTL2):
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
         fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
 
-        if np.isnan(fit.params[0]):
-            from IPython import embed; embed()
-
         reach_stats['slope'] = fit.params[0]
         reach_stats['height'] = fit.params[1]
+
+        # use White’s (1980) heteroskedasticity robust standard errors.
+        # https://www.statsmodels.org/dev/generated/statsmodels.regression.linear_model.RegressionResults.html
         reach_stats['slope_u'] = fit.HC0_se[0]
         reach_stats['height_u'] = fit.HC0_se[1]
 
@@ -1089,34 +1088,41 @@ class SWOTRiverEstimator(SWOTL2):
         return river_reach
 
     def create_index_file(self):
-        """
-        Create an empty file with appropriate variable to append to
-        """
-        # if the filename does not exist create it
+        """Initializes the pixel cloud vector file"""
         with nc.Dataset(self.output_file, 'w') as ofp:
             ofp.createDimension('record', None)
-            ofp.createVariable('range_index', 'i4', 'record', fill_value=-128)
             ofp.createVariable(
-                'azimuth_index', 'i4', 'record', fill_value=-128)
-            ofp.createVariable('node_index', 'i4', 'record', fill_value=-128)
-            ofp.createVariable('reach_index', 'i4', 'record', fill_value=-128)
-            ofp.createVariable('river_tag', 'i4', 'record', fill_value=-128)
+                'range_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'segmentation_label', 'i4', 'record', fill_value=-128)
+                'azimuth_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'good_height_flag', 'i1', 'record', fill_value=-1)
+                'node_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'distance_to_node', 'f4', 'record', fill_value=-128)
+                'reach_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'along_reach', 'f4', 'record', fill_value=-9990000000)
+                'river_tag', 'i4', 'record', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'cross_reach', 'f4', 'record', fill_value=-9990000000)
+                'segmentation_label', 'i4', 'record',
+                fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'latitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
+                'good_height_flag', 'i1', 'record',
+                fill_value=FILL_VALUES['i1'])
             ofp.createVariable(
-                'longitude_vectorproc', 'f8', 'record', fill_value=-9990000000)
+                'distance_to_node', 'f4', 'record',
+                fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'height_vectorproc', 'f8', 'record', fill_value=-9990000000)
+                'along_reach', 'f4', 'record', fill_value=FILL_VALUES['f4'])
+            ofp.createVariable(
+                'cross_reach', 'f4', 'record', fill_value=FILL_VALUES['f4'])
+            ofp.createVariable(
+                'latitude_vectorproc', 'f8', 'record',
+                fill_value=FILL_VALUES['f8'])
+            ofp.createVariable(
+                'longitude_vectorproc', 'f8', 'record',
+                fill_value=FILL_VALUES['f8'])
+            ofp.createVariable(
+                'height_vectorproc', 'f8', 'record',
+                fill_value=FILL_VALUES['f8'])
 
             # copy attributes from pixel cloud product
             for att_name in self.nc.__dict__:
