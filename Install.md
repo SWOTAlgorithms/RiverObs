@@ -1,9 +1,17 @@
 # RiverObs Installation Instructions
 
+Starting with an anaconda 3.7 env on linux: https://www.anaconda.com/download/#linux
+
+* install anaconda
+* conda install netCDF4 pyproj pysal rtree shapely gdal fiona
+
+Add this to your .profile, .bash_profile, .zshenv,..etc:
+```
     declare -x PYTHONPATH=/path/to/RiverObs/src/:$PYTHONPATH
+```
 
-or do the following
-
+# Unsupported installation method below
+* This would be a great project for a contributor!
 
 ## Preliminaries
 
