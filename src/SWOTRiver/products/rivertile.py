@@ -680,6 +680,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['n_good_pix'] = node_outputs['nobs']
             klass['rdr_sigma0'] = node_outputs['rdr_sig0']
             klass['rdr_sig0_u'] = node_outputs['rdr_sig0_u']
+            klass['geoid_hght'] = node_outputs['geoid_hght']
             # compute node distance from prior
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
