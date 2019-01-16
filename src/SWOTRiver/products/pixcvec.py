@@ -59,7 +59,8 @@ class L2PIXCVector(Product):
         ['xref_l2_hr_pixc_config_parameters_file', {}],
         ['ellipsoid_semi_major_axis', {}],
         ['ellipsoid_flattening', {}],
-        ['interferogram_shape', {}],
+        ['interferogram_size_azimuth', {}],
+        ['interferogram_size_range', {}],
         ['looks_to_efflooks', {}]])
 
     DIMENSIONS = odict([['points', 0]])
