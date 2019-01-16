@@ -510,10 +510,10 @@ class SWOTRiverEstimator(SWOTL2):
                     # probably should scale this to look some fraction
                     # farther than the database width
                     max_width = (
-                        self.reaches[i_reach].metadata['Wmean'] * np.ones(
+                        self.reaches[ireach].metadata['Wmean'] * np.ones(
                             np.shape(self.reaches[i_reach].x)))  # *2.0
 
-                except:
+                except KeyError:
                     max_width = scalar_max_width
 
             # Ugly way process_reach/process_node uses the data
@@ -768,7 +768,7 @@ class SWOTRiverEstimator(SWOTL2):
         try:
             segOut = self.seg_label[self.river_obs.in_channel]
 
-        except:
+        except TypeError:
             segOut = None
 
         # get the prior locations and indices of the nodes

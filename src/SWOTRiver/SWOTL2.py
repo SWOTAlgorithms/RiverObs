@@ -96,8 +96,8 @@ class SWOTL2:
 
         except KeyError:
             try:
-                print(
-                    'Cant Find range_index, or azimuth_index variables,'
+                LOGGER.warn(
+                    'Cant Find range_index, or azimuth_index variables,'+
                     ' assuming 2D-image image coordinates (like from a gdem)')
                 Ny, Nx = np.shape(self.get(lat_kwd, use_index=False))
                 ix, iy = np.meshgrid(np.arange(Nx), np.arange(Ny))
@@ -105,9 +105,9 @@ class SWOTL2:
                 self.img_y = iy[self.index]
 
             except:
-                print(
-                    'WARNING: Input file does not contain range/azimuth index. '
-                    'Functions relying on radar coordinates WILL break!')
+                LOGGER.warn(
+                    'WARNING: Input file does not contain range/azimuth index.'+
+                    ' Functions relying on radar coordinates WILL break!')
                 self.img_x = None
                 self.img_y = None
 
