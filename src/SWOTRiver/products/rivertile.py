@@ -40,7 +40,6 @@ class L2HRRiverTile(Product):
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
             reach_outputs, reach_collection)
-        klass.reaches.update_from_nodes(klass.nodes)
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
@@ -49,6 +48,7 @@ class L2HRRiverTile(Product):
             warnings.simplefilter("ignore")
             self.nodes.update_from_pixc(pixc_file, index_file)
             self.reaches.update_from_pixc(pixc_file, index_file)
+            self.reaches.update_from_nodes(self.nodes)
 
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
@@ -1513,6 +1513,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['obs_frac_n'] = reach_outputs['frac_obs']
             klass['node_dist'] = reach_outputs['node_dist']
             klass['loc_offset'] = reach_outputs['loc_offset']
+            klass['geoid_hght'] = reach_outputs['geoid_hght']
+            klass['geoid_slop'] = reach_outputs['geoid_slop']
+            klass['p_n_nodes'] = reach_outputs['prior_n_nodes']
+            klass['p_latitud'] = reach_outputs['prior_lat']
+            klass['p_longitud'] = reach_outputs['prior_lon']
 
             # may not be populated depending on run config
             for inkey, outkey in {'slp_enhncd': 'slope2'}.items():
@@ -1526,23 +1531,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
             # set quality bad if partial flag is set
-            klass['quality_f'] = klass['partial_f']
+            klass['reach_q'] = klass['partial_f']
 
             assert(len(reach_collection) == len(klass['reach_id']))
 
-            plon = np.zeros(klass['reach_id'].shape)
-            plat = np.zeros(klass['reach_id'].shape)
-
-            # Add some prior db information from reach_collection
-            for ii, reach in enumerate(reach_collection):
-                plat[ii] = np.mean(reach.lat)
-                plon[ii] = np.rad2deg(np.arctan2(
-                    np.mean(np.sin(reach.lon)), np.mean(np.cos(reach.lon))))
-                # wrap to [0, 360)
-                if(plon[ii] < 0): plon[ii] += 360
-
-            klass['p_latitud'] = plat
-            klass['p_longitud'] = plon
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):

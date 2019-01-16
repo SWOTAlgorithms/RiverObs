@@ -88,8 +88,12 @@ class ReachExtractor(object):
 
             x, y = lat_lon_region.proj(lon, lat)
 
-            # TODO add stuff from DB herre
-            metadata = {'lakeFlag': this_reach['reaches']['lakeflag'][0]}
+            # TODO add stuff from DB here
+            metadata = {
+                'lakeFlag': this_reach['reaches']['lakeflag'][0],
+                'lon': this_reach['reaches']['x'][0],
+                'lat': this_reach['reaches']['y'][0]}
+
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,

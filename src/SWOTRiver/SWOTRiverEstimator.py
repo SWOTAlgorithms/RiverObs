@@ -176,6 +176,7 @@ class SWOTRiverEstimator(SWOTL2):
                  false_detection_rate_kwd='false_detection_rate',
                  missed_detection_rate_kwd='missed_detection_rate',
                  darea_dheight_kwd = 'darea_dheight',
+                 geoid_kwd = 'geoid',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -253,7 +254,8 @@ class SWOTRiverEstimator(SWOTL2):
             ['num_med_looks', num_med_looks_kwd],
             ['false_detection_rate', false_detection_rate_kwd],
             ['missed_detection_rate', missed_detection_rate_kwd],
-            ['darea_dheight', darea_dheight_kwd],]
+            ['darea_dheight', darea_dheight_kwd],
+            ['geoid', geoid_kwd],]
 
         for dset_name, keyword in datasets2load:
             try:
@@ -279,7 +281,7 @@ class SWOTRiverEstimator(SWOTL2):
             'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
             'water_frac', 'water_frac_uncert', 'img_x',
-            'img_y']:
+            'img_y', 'geoid']:
 
             try:
                 setattr(self, key, getattr(self, key)[good])
@@ -821,7 +823,7 @@ class SWOTRiverEstimator(SWOTL2):
             'power1', 'power2', 'phase_noise_std', 'dh_dphi',
             'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
-            'looks_to_efflooks']
+            'looks_to_efflooks', 'geoid']
 
         for name in other_obs_keys:
             value = getattr(self, name)
@@ -903,6 +905,8 @@ class SWOTRiverEstimator(SWOTL2):
         width_area = np.asarray(
             self.river_obs.get_node_stat('width_area', 'inundated_area'))
 
+        geoid_hght = np.asarray(self.river_obs.get_node_stat('median', 'geoid'))
+
         # get the aggregated heights and widths with their corrosponding 
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
@@ -977,6 +981,7 @@ class SWOTRiverEstimator(SWOTL2):
             'latitude_u': latitude_u.astype('float32'),
             'longitud_u': longitud_u.astype('float32'),
             'width_u': width_u.astype('float32'),
+            'geoid_hght': geoid_hght.astype('float32'),
         }
 
         if xtrack_median is not None:
@@ -1035,6 +1040,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.sum(ds)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
+        reach_stats['prior_lon'] = reach.metadata['lon']
+        if reach_stats['prior_lon'] < 0: reach_stats['prior_lon'] += 360
+        reach_stats['prior_lat'] = reach.metadata['lat']
+        reach_stats['prior_n_nodes'] = len(reach.x)
 
         reach_stats['node_dist'] = np.mean(np.sqrt(
                 (river_reach.x-river_reach.x_prior)**2 +
@@ -1075,6 +1084,12 @@ class SWOTRiverEstimator(SWOTL2):
         #        statsmodels.regression.linear_model.RegressionResults.html
         reach_stats['slope_u'] = fit.HC0_se[0]
         reach_stats['height_u'] = fit.HC0_se[1]
+
+        # do fit on geoid heights
+        gg = river_reach.geoid_hght
+        geoid_fit = statsmodels.api.OLS(gg, SS).fit()
+        reach_stats['geoid_slop'] = geoid_fit.params[0]
+        reach_stats['geoid_hght'] = geoid_fit.params[1]
 
         LOGGER.debug('Reach height/slope processing finished')
 
