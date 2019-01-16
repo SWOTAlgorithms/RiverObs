@@ -104,127 +104,147 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i4'],
-                ['long_name', 'ID of the reach to which the node is associated'],
+                ['long_name', 'Reach with which node is associated'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
                 ['comment', textjoin("""
-                    Mandatory. In/from Prior""")],
+                    "Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
+                    C=continent, B=basin,R=reach,N=node, T=type. See PDD for
+                    continent,type code details. Nodes number sequentially in
+                    reach. Implementation note: Could be 4B integer with
+                    current definition with all items as numbers.""")],
                 ])],
         ['node_id',
          odict([['dtype', 'i4'],
-                ['long_name', textjoin("""
-                    Nodes numbered sequentially within a Reach. Increasing in
-                    the downstream direction""")],
+                ['long_name', "Node Id"],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
                 ['comment', textjoin("""
-                    Mandatory. In/from Prior""")],
+                    Nodes numbered sequentially within a reach. Increasing in
+                    the downstream direction. Same format as reach_id.""")],
                 ])],
         ['time',
          odict([['dtype', 'f8'],
-                ['long_name', textjoin("""
-                    UTC seconds since 2000/1/1 00:00 UTC""")],
+                ['long_name', "Time in UTC sec"],
                 ['units', 's'],
                 ['valid_min', 0],
                 ['valid_max', 1e10],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Time of measurement in seconds in the UTC time scale since
+                    1 Jan 2000 00:00:00 UTC. [tai_utc_difference] is the
+                    difference between TAI and UTC reference time (seconds) for
+                    the first measurement of the data set. If a leap second
+                    occurs within the data set, the attribute leap_second is
+                    set to the UTC time at which the leap second occurs.
+                    Precision 1 microsecond. """)],
                 ])],
         ['time_tai',
          odict([['dtype', 'f8'],
-                ['long_name', textjoin("""
-                    TAI seconds since 2000/1/1 00:00 UTC""")],
+                ['long_name', "Time in TAI sec"],
                 ['units', 's'],
                 ['valid_min', 0],
                 ['valid_max', 1e10],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Time of measurement in seconds in the TAI time scale since
+                    1 Jan 2000 00:00:00 TAI. This time scale contains no leap
+                    seconds. The difference (in seconds) with time in UTC is
+                    given by the attribute [time:tai_utc_difference].
+                    time_tai = time + total_leap_sec. Precision 1 microsecond.
+                    """)],
                 ])],
         ['latitude',
          odict([['dtype', 'f8'],
-                ['long_name', 'latitude'],
+                ['long_name', 'Latitude of centroid of detected pixels'],
                 ['standard_name', 'latitude'],
                 ['units', 'degrees_north'],
-                ['valid_min', -90],
-                ['valid_max', 90],
-                ['comment', 'geodetic latitude (degrees north of equator)'],
+                ['valid_min', -78],
+                ['valid_max', 78],
+                ['comment', textjoin("""
+                    TBD[Average latitude, not necessarily along stream]. 13
+                    digits adequate for microdeg gives sub-meter location.""")],
                 ])],
         ['longitude',
          odict([['dtype', 'f8'],
-                ['long_name', 'longitude'],
+                ['long_name', 'Longitude of centroid of detected pixels'],
                 ['standard_name', 'longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 360],
-                ['comment', 'longitude (east of the prime meridian)'],
+                ['comment', textjoin("""
+                    East longitude is convention for all products.
+                    TBD[Average longitude, not necessarily along stream]. 13
+                    digits adequate for microdeg gives sub-meter location.""")],
                 ])],
         ['latitude_u',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Uncertainty in average Longitude of pixels in node""")],
+                ['long_name', "Uncertainty in latitude of node"],
                 ['units', 'degrees'],
                 ['valid_min', 0],
                 ['valid_max', 10],
-                ['comment', 'TBD'],
+                ['comment', textjoin("""
+                    TBD additional comment.""")],
                 ])],
         ['longitud_u',
          odict([['dtype', 'f4'],
-                ['long_name', 'Uncertainty in longitude'],
+                ['long_name', 'Uncertainty in longitude of node'],
                 ['units', 'degrees'],
                 ['valid_min', 0],
                 ['valid_max', 10],
-                ['comment', 'TBD'],
+                ['comment', textjoin("""
+                    TBD additional comment.""")],
                 ])],
         ['height',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Node averaged water surface height with respect to the
-                    geoid (m) with all corrections and geophysical fields
-                    applied from pixels""")],
+                ['long_name',
+                    'Node average water height with respect to geoid'],
                 ['standard_name', 'height'],
                 ['units', 'm'],
-                ['valid_min', -1000],
+                ['valid_min', -500],
                 ['valid_max', 5000],
                 ['comment', textjoin("""
-                    Current baseline is EGM2008. Geoid value used reported in
-                    Geoid_model""")],
+                    Node averaged water surface height with respect to the
+                    geoid (m) with all corrections and geophysical fields
+                    applied from pixels. Current Geoid baseline is EGM2008.
+                    Value given in geoid_hght.""")],
                 ])],
         ['height_u',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Uncertainy in Node height wrt geoid, including
-                    uncertainties of corrections, references""")],
+                ['long_name', 'Uncertainty in node height'],
                 ['standard_name', 'height'],
                 ['units', 'm'],
-                ['valid_min', 0.01],
+                ['valid_min', 0.1],
                 ['valid_max', 50.0],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Uncertainy in Node height wrt geoid, including
+                    uncertainties of corrections, references.""")],
                 ])],
         ['width',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""Node average river width""")],
+                ['long_name', "Node average river width"],
                 ['units', 'm'],
                 ['valid_min', 50.0],
                 ['valid_max', 10000],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Node average river width based on area_total.""")],
                 ])],
         ['width_u',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Uncertainty in node average river width""")],
+                ['long_name', 'Uncertainty in node width'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['area_detct',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Area of detected water pixels""")],
+                ['long_name', 'Area of detected water pixels'],
                 ['units', 'm^2'],
                 ['valid_min', 100],
                 ['valid_max', 10000*200],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    TBC: Aggregation of node areas of pixels used.""")],
                 ])],
         ['area_det_u',
          odict([['dtype', 'f4'],
@@ -233,12 +253,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    TBD comment on method relative to area_total""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Total water area, including estimate of dark water""")],
+                ['long_name', 'Total water area with estimate of dark water'],
                 ['units', 'm^2'],
                 ['valid_min', 100],
                 ['valid_max', 10000*200],
@@ -248,17 +268,15 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['area_tot_u',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Uncertainty in total water area""")],
+                ['long_name', 'Uncertainty in total water area'],
                 ['units', 'm^2'],
                 ['valid_min', 100],
                 ['valid_max', 10000*200],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""TBD additional comment on method.""")],
                 ])],
         ['area_of_ht',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Area of pixels used to compute height""")],
+                ['long_name', 'Area of pixels used to compute height'],
                 ['units', 'm^2'],
                 ['valid_min', 100],
                 ['valid_max', 10000*200],
@@ -267,342 +285,366 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['layovr_val',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Metric of layover effect (TBD)""")],
+                ['long_name', 'Metric of layover effect'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 5000],
                 ['comment', textjoin("""
-                    Numerical variable to supplement layover flag""")],
+                    Numerical variable to supplement layover flag.  Will be
+                    defined later depending on layover algorithm(s). Could be
+                    layover area.""")],
                 ])],
         ['node_dist',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Distance of observed node from a priori node location""")],
+                ['long_name',
+                    'Distance of observed node from a priori node location'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
                 ['comment', textjoin("""
-                    Method, nodes included to be defined""")],
+                    TBD additional comment [not necessarily along stream].""")],
                 ])],
         ['xtrk_dist',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average distance of pixels in nodes to the satellite
-                    ground track""")],
+                ['long_name',
+                    'Average distance of pixels in node to ground track'],
                 ['units', 'm'],
                 ['valid_min', 10000],
                 ['valid_max', 65000],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    TBD:Different sign for Left/Right? Precision 1 m OK? If
+                    unsigned, could be 2B.""")],
                 ])],
         ['height2',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Centroid height of pixels in node with respect to the
-                    reference ellipsoid.  Fully corrected for instrument and
-                    geophysical delays, but not geophysical fields.""")],
+                ['long_name', 
+                textjoin("""
+                    Centoid height of pixels in node with respect to the
+                    reference ellipsoid""")],
                 ['units', 'm'],
                 ['valid_min', -1000],
                 ['valid_max', 5000],
-                ['comment', textjoin("""Nominal centroid is average""")],
+                ['comment', textjoin("""
+                    Centoid of height of pixels in node with respect to the
+                    reference ellipsoid. Fully corrected for instrument and
+                    media delays, but NOT[?] geophysical fields. Nominal
+                    "centorid" is average. Nominal in Prior?""")],
                 ])],
         ['height2_u',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Uncertainty in height2 estimate""")],
+                ['long_name', 'Uncertainty in height2 estimate'],
                 ['units', 'm'],
                 ['valid_min', 0.1],
                 ['valid_max', 10.0],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""TBD additional comment.""")],
+                ])],
+        ['n_chan_max',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Maximum number of channels detected in node'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 100],
+                ['comment', textjoin("""Value determined for each node.""")],
+                ])],
+        ['n_chan_mod',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Mode of number of channels detected in node'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 100],
+                ['comment', textjoin("""Value determined for each node.""")],
                 ])],
         ['dark_f',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates low signal to noise ration possible due to rain,
-                    dark water, and others""")],
+                ['long_name', 'Dark water flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Indicates low signal to noise ratio possibly due to rain,
+                    dark water, and other effects thqt  significantly affect
+                    mesurements for this node.""")],
                 ])],
         ['frozen_f',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates if the surface is frozen""")],
+                ['long_name', 'Frozen flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Indicates if the surface is frozen based on TBD.""")],
                 ])],
         ['layover_f',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates if significant layover effect in node""")],
+                ['long_name', 'Layover flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Indicates if significant layover effect in node. Area of
+                    layover pixels in Expert.""")],
                 ])],
         ['n_good_pix',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Number of good pixels in node""")],
+                ['long_name', 'Number of good pixels in node'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""TBD additional comment.""")],
                 ])],
-        ['quality_f',
+        ['node_q',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
-                    Quality indicator on measurement, other quantities""")],
+                    Summary quality indicator on Node measurement""")],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    May Include instrument, model flags, obs_frac""")],
                 ])],
         ['partial_f',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates that Reach is near edge and part may be lost due
-                    to orbit variation""")],
+                ['long_name', 'Indicator that node is partially observed'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Indicates that node is near edge and part may be lost due
+                    to orbit variation. TBD[Count lost to frozen, dark,
+                    layover].""")],
                 ])],
-        ['xovr_cal_f',
+        ['xovr_cal_q',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Quality of the cross-over calibrations""")],
+                ['long_name', 'Quality indicator of cross-over calibration'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""TBD additional comment.""")],
                 ])],
-        ['rdr_sig0',
+        ['rdr_sigma0',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    KaRIn measured backscatter averaged for node""")],
+                ['long_name', 'Averaged measured sgma0'],
                 ['units', '1'],
-                ['valid_min', -1],
+                ['valid_min', -10],
                 ['valid_max', 100],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    KaRIn measured backscatter (sigma0) averaged for Node. In
+                    linear units, not dB, to allow for negative values.""")],
                 ])],
         ['rdr_sig0_u',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    KaRIn measured backscatter uncertainty for node""")],
+                ['long_name', 'Uncertainty in sigma0'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['sig0_atm_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    sigma0 atmospheric correction within the swath from
-                    model data""")],
+                ['long_name', 'Atmospheric sigma0 calibration'],
                 ['units', '1'],
-                ['valid_min', 1],
-                ['valid_max', 10],
-                ['comment', textjoin("""TBD""")],
+                ['valid_min', 0.5],
+                ['valid_max', 5],
+                ['comment', textjoin("""
+                    Atmospheric sigma0 correction within the swath from model
+                    data.""")],
                 ])],
         ['geoid_hght',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Geoid model height above the ellipsoid at node location""")],
+                ['long_name', 'Geoid model height above ellipsoid'],
                 ['units', 'm'],
                 ['valid_min', -200],
                 ['valid_max', 2000],
                 ['comment', textjoin("""Current baseline is EGM2008""")],
                 ])],
-        ['earth_tide',
+        ['solid_tide',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average height of Earth tide model for node location""")],
+                ['long_name', 'Height of solid Earth tide model'],
                 ['units', 'm'],
-                ['valid_min', 50],
-                ['valid_max', 100],
-                ['comment', textjoin("""TBD""")],
+                ['valid_min', -1],
+                ['valid_max', 1],
+                ['comment', textjoin("""
+                    Height of solid Earth tide model at node location.""")],
                 ])],
         ['pole_tide',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average height of pole tide model for node location""")],
+                ['long_name', 'Height of Pole tide model'],
                 ['units', 'm'],
-                ['valid_min', -0.2],
-                ['valid_max', 0.2],
-                ['comment', textjoin("""TBD""")],
+                ['valid_min', -1],
+                ['valid_max', 1],
+                ['comment', textjoin("""
+                    Height of Earth Pole tide model at node location.""")],
                 ])],
         ['load_tide',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average height from loading by water (ocean) tide model for
-                    node""")],
+                ['long_name', 'Height from loading by ocean tide model'],
                 ['units', 'm'],
-                ['valid_min', -9999],
-                ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['valid_min', -1],
+                ['valid_max', 1],
+                ['comment', textjoin("""
+                    Height from loading by ocean tide model at node location.
+                    Ocean loading extends some distance inland.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Numerical weather model dry tropospheric correction to
-                    surface height""")],
+                ['long_name', 'Model dry tropospheric correction to height'],
                 ['units', 'm'],
                 ['valid_min', -2.5],
                 ['valid_max', 0],
                 ['comment', textjoin("""
-                    Negative as additive range correction.""")],
+                    Numerical weather model dry tropospheric correction to
+                    surface height. To replace, subtract from height, add new
+                    value with same sign convention.""")],
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Numerical weather model wet tropospheric correction to
-                    surface height""")],
+                ['long_name', 'Model wet tropospheric correction to height'],
                 ['units', 'm'],
-                ['valid_min', -0.4],
+                ['valid_min', -1],
                 ['valid_max', 0],
                 ['comment', textjoin("""
-                    Negative as additive range correction.""")],
+                    Numerical weather model dry tropospheric correction to
+                    surface height. To replace, subtract from height, add new
+                    value with same sign convention.""")],
                 ])],
         ['iono_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Ionospheric model correction to surface height""")],
+                ['long_name', 'Model ionospheric correction to height'],
                 ['units', 'm'],
-                ['valid_min', -0.4],
+                ['valid_min', -0.1],
                 ['valid_max', 0],
                 ['comment', textjoin("""
-                    Negative as additive range correction.""")],
+                    Ionospheric model correction to surface height. To
+                    replace, subtract from height, add new value with same
+                    sign convention.""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    KaRIn correction from crossover cal processing evaluated
-                    for reach""")],
+                ['long_name', 'Crossover correction to height'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    KaRIn correction from crossover cal processing evaluated
+                    for node.""")],
                 ])],
         ['kar_att_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Height correction from KaRIn orientation (attitude)
-                    determination""")],
+                ['long_name', 'Height correction for KaRIn attitude'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Height correction from KaRIn orientation (attitude)
+                    determination.""")],
                 ])],
         ['h_bias_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Overall instrument system height bias""")],
+                ['long_name', 'KaRIn height bias'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Overall instrument system height bias.""")],
                 ])],
         ['sys_cg_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    KaRIn to s/c CG correction to height (m)""")],
+                ['long_name', 'Center of gravity correction to height'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    KaRIn to s/c CG correction to height.""")],
                 ])],
         ['intr_cal_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Corrections on height deduced from instrument internal
-                    calibrations if applicable""")],
+                ['long_name', 'Instrument calibration correction to height'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Total of corrections to height deduced from instrument
+                    internal calibration(s).""")],
                 ])],
         ['p_height',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Prior height estimate from DEM, first year of SWOT, or ?
-                    """)],
+                ['long_name', 'Prior height estimate'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Prior height estimate from DEM, first year of SWOT, or
+                    TBD.""")],
                 ])],
         ['p_height_var',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Prior height variability from DEM, first year of SWOT, or ?
-                    """)],
+                ['long_name', 'Prior height variability'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Prior height variability from historical data, probability
+                    mask, or TBD.""")],
                 ])],
         ['p_width',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""Width from prior database""")],
+                ['long_name', 'Prior width'],
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 10000],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Width from prior database.""")],
                 ])],
         ['p_width_var',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Prior width variability from historical data,
-                    probability mask, or ?""")],
+                ['long_name', 'Prior width variability'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Prior width variability from historical data, probability
+                    mask, or TBD.""")],
                 ])],
         ['p_dist_out',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Distance from outlet of this river branch.""")],
+                ['long_name', 'Distance from outlet'],
                 ['units', 'm'],
-                ['valid_min', 10],
+                ['valid_min', 1],
                 ['valid_max', 10000],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Additional comment TBD.""")],
                 ])],
         ['p_class',
          odict([['dtype', 'u2'],
-                ['long_name', textjoin("""
-                    Planform type from prior database""")],
+                ['long_name', 'Planform type'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Planform type from prior database. Type list is TBD.""")],
                 ])],
         ['grand_id',
          odict([['dtype', 'u2'],
-                ['long_name', textjoin("""
-                    Identification number of dam from GranD database""")],
+                ['long_name', 'Dam Id from GranD database'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    http://www.gwsp.org/products/grand-database.html """)],
                 ])],
     ])
     for name, reference in VARIABLES.items():
@@ -635,7 +677,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['area_of_ht'] = node_outputs['area_of_ht']
             klass['xtrk_dist'] = node_outputs['xtrack']
             klass['n_good_pix'] = node_outputs['nobs']
-            klass['rdr_sig0'] = node_outputs['rdr_sig0']
+            klass['rdr_sigma0'] = node_outputs['rdr_sig0']
             klass['rdr_sig0_u'] = node_outputs['rdr_sig0_u']
             # compute node distance from prior
             klass['node_dist'] = np.sqrt(
@@ -648,7 +690,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         pixc_vec = L2PIXCVector.from_ncfile(index_file)
 
         pixc2rivertile_map = {
-            '/pixel_cloud/solid_earth_tide': 'earth_tide',
+            '/pixel_cloud/solid_earth_tide': 'solid_tide',
             '/pixel_cloud/pole_tide': 'pole_tide',
             '/pixel_cloud/load_tide_sol1': 'load_tide',
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
@@ -710,23 +752,26 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
         ['p_latitud',
          odict([['dtype', 'f4'],
-                ['long_name', 'prior latitude'],
+                ['long_name',
+                    'Latitude of the center of the reach from prior database '],
                 ['units', 'degrees_north'],
                 ['valid_min', -90],
                 ['valid_max', 90],
                 ['comment', textjoin("""
-                    Latitude of the along-stream center point of the reach
-                    from a priori database""")],
+                    Along-stream center. 13 digits adequate for microdeg gives
+                    sub-meter location.""")],
                 ])],
         ['p_longitud',
          odict([['dtype', 'f4'],
-                ['long_name', 'prior longitude'],
+                ['long_name', textjoin("""
+                    East Longitude of the center of the reach from prior
+                    database""")],
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 360],
                 ['comment', textjoin("""
-                    Longitude of the along-stream center point of the reach
-                    from a priori database""")],
+                    Along-stream center. 13 digits adequate for microdeg gives
+                    sub-meter location.""")],
                 ])],
         ['height',
          odict([['dtype', 'f4'],
@@ -814,8 +859,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', -1000],
                 ['valid_max', 100],
                 ['comment', textjoin("""
-                    Enhanced Reach average slope relative to geoid produced
-                    using smoothing of node heights.""")],
+                    Enhanced reach slope relative to geoid produced using
+                    smoothing (window TBD) of node heights. Negative slope
+                    means downstream: downstream height is lower.""")],
                 ])],
         ['slope2_u',
          odict([['dtype', 'f4'],
@@ -868,22 +914,23 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['area_total',
          odict([['dtype', 'f4'],
-                ['long_name', 'total area of detected water'],
+                ['long_name', 'Total water area with estimate of dark water'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
                 ['comment', textjoin("""
-                    Total water area, including estimate of dark water.""")],
+                    Total estimated area including dark water. Best estimate
+                    using water fraction.""")],
                 ])],
         ['area_tot_u',
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
-                    Uncertainty in total area of detected water""")],
+                    Uncertainty in total water area""")],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
                 ['comment', textjoin("""
-                    Uncertainty in total water area.""")],
+                    TBD additional comment on method.""")],
                 ])],
         ['area_of_ht',
          odict([['dtype', 'f4'],
@@ -897,77 +944,100 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['layovr_val',
          odict([['dtype', 'f4'],
-                ['long_name', 'layover metric'],
+                ['long_name', 'Metric of layover effect'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 5000],
                 ['comment', textjoin("""
-                    Numerical variable to supplement layover flag""")],
+                    Numerical variable to supplement layover flag. Will be
+                    defined later depending on layover algorithm(s). Could be
+                    layover area.""")],
                 ])],
         ['node_dist',
          odict([['dtype', 'f4'],
-                ['long_name', 'mean distance of nodes to prior nodes'],
+                ['long_name',
+                    'Mean distance between a priori nodes and observed nodes'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
                 ['comment', textjoin("""
-                    Mean distance of observed node from a priori node
-                    location""")],
+                    TBD comment on method, nodes included to be defined.""")],
                 ])],
         ['xtrk_dist',
          odict([['dtype', 'f4'],
-                ['long_name', 'cross-track distance'],
+                ['long_name', textjoin("""
+                    Average distance of nodes in reach to satellite ground
+                    track""")],
                 ['units', 'm'],
                 ['valid_min', 10000],
                 ['valid_max', 65000],
                 ['comment', textjoin("""
-                    Average distance from nodes in reach to the satellite
-                    ground track""")],
+                    TBD additional comment on method.""")],
+                ])],
+        ['n_chan_max',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Maximum number of channels detected in nodes'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 100],
+                ['comment', textjoin("""
+                    From values determined for each node.""")],
+                ])],
+        ['n_chan_mod',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Mode of number of channels detected in nodes'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 100],
+                ['comment', textjoin("""
+                    From values determined for each node.""")],
                 ])],
         ['discharge',
          odict([['dtype', 'f4'],
-                ['long_name', 'discharge'],
+                ['long_name', 'Discharge consensus value'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Consensus value reach average river discharge.""")],
+                    Value from TBD consensus discharge algorithm. No Discharge
+                    in distributed product until validated.""")],
                 ])],
         ['dischg_u',
          odict([['dtype', 'f4'],
-                ['long_name', 'discharge uncertainty'],
+                ['long_name', 'Uncertainty in consensus discharge'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Uncertainty in consensus reach average river discharge.""")],
+                    TBD additional comment on method.""")],
                 ])],
         ['discharge1',
          odict([['dtype', 'f4'],
-                ['long_name', 'model 1 discharge'],
+                ['long_name', 'Discharge from model_1'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Model 1 value reach average river discharge.""")],
+                    Added 3 models as placeholders; may be as many as 7. Lake
+                    product has only 1 model for Storage Change.""")],
                 ])],
         ['dischg1_u',
          odict([['dtype', 'f4'],
-                ['long_name', 'model 1 discharge uncertainty'],
+                ['long_name', 'Uncertainty in model_1 discharge'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Uncertainty in model 1 reach average river discharge.""")],
+                    TBD additional comment on method.""")],
                 ])],
         ['discharge2',
          odict([['dtype', 'f4'],
-                ['long_name', 'model 2 discharge'],
+                ['long_name', 'Discharge from model_2'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Model 2 value reach average river discharge.""")],
+                    Second of 3 added models as placeholders.""")],
                 ])],
         ['dischg2_u',
          odict([['dtype', 'f4'],
@@ -976,16 +1046,16 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Uncertainty in model 2 reach average river discharge.""")],
+                    TBD additional comment on method.""")],
                 ])],
         ['discharge3',
          odict([['dtype', 'f4'],
-                ['long_name', 'model 3 discharge'],
+                ['long_name', 'Discharge from model_3'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Model 3 value reach average river discharge.""")],
+                    Third of 3 added models as placeholders""")],
                 ])],
         ['dischg3_u',
          odict([['dtype', 'f4'],
@@ -994,62 +1064,43 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['comment', textjoin("""
-                    Uncertainty in model 3 reach average river discharge.""")],
+                    TBD additional comment on method.""")],
                 ])],
         ['dark_f',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates low signal to noise ration possible due to rain,
-                    dark water, and others""")],
+                ['long_name', 'Dark water flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
-                ['valid_min', 0],
-                ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
-                ])],
-        ['frozen_f',
-         odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates if the surface is frozen""")],
-                ['flag_meanings', textjoin("""TBD""")],
-                ['flag_masks', 'TBD'],
-                ['flag_values', 'TBD'],
-                ['valid_min', 0],
-                ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
-                ])],
-        ['layover_f',
-         odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Indicates if significant layover effect in node""")],
-                ['flag_meanings', textjoin("""TBD""")],
-                ['flag_masks', 'TBD'],
-                ['flag_values', 'TBD'],
-                ['valid_min', 0],
-                ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
-                ])],
-        ['n_good_nod',
-         odict([['dtype', 'u1'],
-                ['long_name', 'number of good nodes'],
-                ['flag_meanings', textjoin("""TBD""")],
-                ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 254],
                 ['comment', textjoin("""
-                    Number of good nodes in reach used for slope fit""")],
+                    Indicates low signal to noise ratio possibly due to rain,
+                    dark water, and other effects thqt  significantly affect
+                    mesurements for this reach.""")],
                 ])],
-        ['quality_f',
+        ['frozen_f',
          odict([['dtype', 'u1'],
-                ['long_name', textjoin("""
-                    Quality indicator on measurement, other quantities""")],
+                ['long_name', 'Frozen flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Indicates if the surface is frozen based on TBD.""")],
+                ])],
+        ['layover_f',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Layover flag'],
+                ['flag_meanings', textjoin("""TBD""")],
+                ['flag_masks', 'TBD'],
+                ['flag_values', 'TBD'],
+                ['valid_min', 0],
+                ['valid_max', 254],
+                ['comment', textjoin("""
+                    Indicates if significant layover effect in reach. See
+                    layovr_val in Expert.""")],
                 ])],
         ['partial_f',
          odict([['dtype', 'u1'],
@@ -1063,142 +1114,178 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""TBD""")],
                 ])],
-        ['xovr_cal_f',
+        ['n_good_nod',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Number of good nodes used in fit for height'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 254],
+                ['comment', textjoin("""
+                    TBD additional comment.""")],
+                ])],
+        ['obs_frac_n',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Fraction of nodes observed in reach'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 1],
+                ['comment', textjoin("""
+                    Fraction based on number of nodes. Indicates that Reach is
+                    near edge and part may be lost due to orbit variation. TBD
+                    counting of nodes lost to dark water or layover.""")],
+                ])],
+        ['reach_q',
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
-                    Quality of the cross-over calibrations""")],
+                    Summary quality indicator for reach measurement""")],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['comment', textjoin("""TBD""")],
-                ])],
-        ['frac_obs',
-         odict([['dtype', 'f4'],
-                ['long_name', 'fraction of nodes in reach observed'],
-                ['units', '1'],
-                ['valid_min', 0],
-                ['valid_max', 1],
                 ['comment', textjoin("""
-                    TBD""")],
+                    May Include instrument, model flags, obs_frac.""")],
+                ])],
+        ['xovr_cal_q',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Quality of the cross-over calibrations'],
+                ['flag_meanings', textjoin("""TBD""")],
+                ['flag_masks', 'TBD'],
+                ['flag_values', 'TBD'],
+                ['valid_min', 0],
+                ['valid_max', 254],
+                ['comment', textjoin("""
+                    "Method for combining for Reach is TBD. Basic because all
+                    flags Basic?""")],
                 ])],
         ['geoid_hght',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Geoid model height above the ellipsoid at reach location""")],
+                ['long_name', 'Geoid height'],
                 ['units', 'm'],
                 ['valid_min', -200],
                 ['valid_max', 2000],
-                ['comment', textjoin("""Current baseline is EGM2008""")],
+                ['comment', textjoin("""
+                    Geoid model height above the ellipsoid. Current baseline
+                    is EGM2008.""")],
                 ])],
-        ['earth_tide',
+        ['geoid_slop',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average height of Earth tide model for reach location""")],
+                ['long_name', 'Geoid slope'],
+                ['units', '1e-6'],
+                ['valid_min', -1000],
+                ['valid_max', 1000],
+                ['comment', textjoin("""
+                    Geoid model slope in the direction of the Reach.""")],
+                ])],
+        ['solid_tide',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Height of solid Earth tide'],
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 100],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Avg height of solid Earth tide model for Reach.""")],
                 ])],
         ['pole_tide',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average height of pole tide model for reach location""")],
+                ['long_name', 'Height of pole tide'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
                 ['valid_max', 0.2],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Avg height of solid Earth Pole tide model for Reach.""")],
                 ])],
         ['load_tide',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Average height from loading by water (ocean) tide model for
-                    reach""")],
+                ['long_name', 'Ocean loading tide'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Avg height from loading by water (ocean) tide model for
+                    reach. Ocean loading may extend beyond tidally affected
+                    reaches.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Numerical weather model dry tropospheric correction to
-                    surface height""")],
+                ['long_name', 'Model dry tropospheric correction to height'],
                 ['units', 'm'],
                 ['valid_min', -2.5],
                 ['valid_max', 0],
                 ['comment', textjoin("""
-                    Negative as additive range correction.""")],
+                    Numerical weather model dry tropospheric correction to
+                    surface height. To replace, subtract from height, add new
+                    value with same sign convention.""")],
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Numerical weather model wet tropospheric correction to
-                    surface height""")],
+                ['long_name', 'Model wet tropospheric correction to height'],
                 ['units', 'm'],
-                ['valid_min', -0.4],
+                ['valid_min', -1],
                 ['valid_max', 0],
                 ['comment', textjoin("""
-                    Negative as additive range correction.""")],
+                    Numerical weather model dry tropospheric correction to
+                    surface height. To replace, subtract from height, add new
+                    value with same sign convention.""")],
                 ])],
         ['iono_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Ionospheric model correction to surface height""")],
+                ['long_name', 'Model ionospheric correction to height'],
                 ['units', 'm'],
                 ['valid_min', -0.4],
                 ['valid_max', 0],
                 ['comment', textjoin("""
-                    Negative as additive range correction.""")],
+                    Ionospheric model correction to surface height. To replace,
+                    subtract from height, add new value with same sign
+                    convention. """)],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    KaRIn correction from crossover cal processing evaluated
-                    for reach""")],
+                ['long_name', 'Crossover correction to height'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    KaRIn correction from crossover cal processing evaluated
+                    for Reach.""")],
                 ])],
         ['kar_att_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Height correction from KaRIn orientation (attitude)
-                    determination""")],
+                ['long_name', 'Height correction for KaRIn attitude'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Height correction from KaRIn orientation (attitude)
+                    determination.""")],
                 ])],
         ['h_bias_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Overall instrument system height bias""")],
+                ['long_name', 'KaRIn height bias'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Overall instrument system height bias.""")],
                 ])],
         ['sys_cg_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    KaRIn to s/c CG correction to height (m)""")],
+                ['long_name', 'Center of gravity correction to height'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    KaRIn to s/c CG correction to height.""")],
                 ])],
         ['intr_cal_c',
          odict([['dtype', 'f4'],
-                ['long_name', textjoin("""
-                    Corrections on height deduced from instrument internal
-                    calibrations if applicable""")],
+                ['long_name', 'Instrument calibration correction to height'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['comment', textjoin("""TBD""")],
+                ['comment', textjoin("""
+                    Total of corrections to height deduced from instrument
+                    internal calibration(s).""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
@@ -1225,7 +1312,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['area_of_ht'] = reach_outputs['area_of_ht']
             klass['xtrk_dist'] = reach_outputs['xtrk_dist']
             klass['n_good_nod'] = reach_outputs['n_good_nod']
-            klass['frac_obs'] = reach_outputs['frac_obs']
+            klass['obs_frac_n'] = reach_outputs['frac_obs']
+            klass['node_dist'] = reach_outputs['node_dist']
             klass['loc_offset'] = reach_outputs['loc_offset']
 
             # may not be populated depending on run config

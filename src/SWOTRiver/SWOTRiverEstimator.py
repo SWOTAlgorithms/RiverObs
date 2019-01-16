@@ -503,9 +503,6 @@ class SWOTRiverEstimator(SWOTL2):
                 LOGGER.debug('max_width read')
 
             else:
-                max_width = None
-
-            if max_width is None:
                 try:
                     # probably should scale this to look some fraction
                     # farther than the database width
