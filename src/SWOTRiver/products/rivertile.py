@@ -1288,6 +1288,203 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Total of corrections to height deduced from instrument
                     internal calibration(s).""")],
                 ])],
+        ['n_reach_up',
+         odict([['dtype', 'i1'],
+                ['long_name', 'Number of upstream reaches'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 4],
+                ['comment', textjoin("""
+                    Number of upstream reaches >1 indicates multichannel
+                    upstream. If number >3 should consider using Raster
+                    product.""")],
+                ])],
+        ['n_reach_dn',
+         odict([['dtype', 'i1'],
+                ['long_name', 'Number of downstream reaches'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 4],
+                ['comment', textjoin("""
+                    Number of downstream reaches >1 indicates multichannel
+                    downstream. If number >3 should consider using Raster
+                    product.""")],
+                ])],
+        ['p_height',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Prior height estimate'],
+                ['units', '1'],
+                ['valid_min', -1000],
+                ['valid_max', 5000],
+                ['comment', textjoin("""
+                    Prior height estimate from DEM, first year of SWOT, or
+                    TBD.""")],
+                ])],
+        ['p_height_var',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Prior height variability'],
+                ['units', 'm'],
+                ['valid_min', 0],
+                ['valid_max', 9999],
+                ['comment', textjoin("""
+                    Prior height variability from historical data, probability
+                    mask, or TBD.""")],
+                ])],
+        ['p_width',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Prior width'],
+                ['units', 'm'],
+                ['valid_min', 50],
+                ['valid_max', 10000],
+                ['comment', textjoin("""
+                    Width from prior database.""")],
+                ])],
+        ['p_width_var',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Prior width variability'],
+                ['units', 'm'],
+                ['valid_min', 0],
+                ['valid_max', 10000],
+                ['comment', textjoin("""
+                    Prior width variability from historical data, probability
+                    mask, or TBD.""")],
+                ])],
+        ['p_class',
+         odict([['dtype', 'u2'],
+                ['long_name', 'Planform type'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 65535],
+                ['comment', textjoin("""
+                    Planform type from prior database. Type list is TBD.""")],
+                ])],
+        ['p_n_nodes',
+         odict([['dtype', 'u1'],
+                ['long_name', 'Prior number of nodes'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 255],
+                ['comment', textjoin("""
+                    Use with number of good nodes to assess quality of Reach
+                    quantities.""")],
+                ])],
+        ['p_dist_out',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Distance from outlet'],
+                ['units', 'm'],
+                ['valid_min', 1],
+                ['valid_max', 10000],
+                ['comment', textjoin("""
+                    Additional comment TBD.""")],
+                ])],
+        ['p_length',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Length of reach'],
+                ['units', 'm'],
+                ['valid_min', 1],
+                ['valid_max', 10000],
+                ['comment', textjoin("""
+                    Along-stream length of reach. Used to compute width from
+                    area.""")],
+                ])],
+        ['mean_flow',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Mean flow'],
+                ['units', 'm^3/s'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Estimate of mean annual flow (MAF) derived from global
+                    hydrological models or other datasets [m3/s], from the
+                    Science Team.""")],
+                ])],
+        ['grand_id',
+         odict([['dtype', 'u2'],
+                ['long_name', 'Dam Id from GranD database'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 65535],
+                ['comment', textjoin("""
+                    http://www.gwsp.org/products/grand-database.html """)],
+                ])],
+        ['disch_c_c1',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Consensus discharge coefficient 1'],
+                ['units', 's/m^1/3'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Manning's n. Typical value ~0.03 - 0.06.  Units = s/m^1/3.
+                    """)],
+                ])],
+        ['disch_c_c2',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Consensus discharge coefficient 2'],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Cross-sectional area during the 1st overpass.""")],
+                ])],
+        ['dischg1_c1',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Discharge model_1 coefficient 1'],
+                ['units', 's/m^1/3'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Manning's n. Typical value ~0.03 - 0.06.  Units = s/m^1/3.
+                    """)],
+                ])],
+        ['dischg1_c2',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Discharge model_1 coefficient 2'],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Coefficient 2 for discharge model 1. May be more than 2
+                    coefficients.""")],
+                ])],
+        ['dischg2_c1',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Discharge model_2 coefficient 1'],
+                ['units', 's/m^1/3'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Coefficient 1 for discharge model 3.""")],
+                ])],
+        ['dischg2_c2',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Discharge model_2 coefficient 2'],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Coefficient 2 for discharge model 1. May be more than 2
+                    coefficients.""")],
+                ])],
+        ['dischg3_c1',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Discharge model_3 coefficient 1'],
+                ['units', 's/m^1/3'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Coefficient 1 for discharge model 3.""")],
+                ])],
+        ['dischg3_c2',
+         odict([['dtype', 'f4'],
+                ['long_name', 'Discharge model_3 coefficient 2'],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['comment', textjoin("""
+                    Coefficient 2 for discharge model 3. May be more than 2
+                    coefficients.""")],
+                ])],
+
     ])
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
