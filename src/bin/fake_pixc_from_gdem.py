@@ -5,6 +5,30 @@ fake_pixc_from_gdem.py: Makes a fake pixc from a gdem
 Useage: fake_pixc_from_gdem.py pixc.nc gdem.nc fake_pixc.nc
 
 Author (s): Alex Fore
+
+To run it through RiverObs, run swot_pixc2rivertile.py with this config:
+
+width_db_file             (-) = None
+use_width_db              (-) = False
+reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190116/
+class_list                (-) = [1,]
+use_fractional_inundation (-) = [False,]
+use_segmentation          (-) = [True,]
+use_heights               (-) = [True,]
+min_points                (-) = 100
+clip_buffer               (-) = 0.1
+ds                        (-) = None
+refine_centerline         (-) = False
+smooth                    (-) = 0.01
+alpha                     (-) = 1
+max_iter                  (-) = 1
+scalar_max_width          (-) = 600.0
+minobs                    (-) = 10
+trim_ends                 (-) = False
+min_fit_points            (-) = 3
+do_improved_geolocation   (-) = False
+geolocation_method        (-) = taylor
+fractional_inundation_kwd (-) = 'water_frac'
 """
 import argparse
 import os
@@ -25,6 +49,11 @@ def main():
          netCDF4.Dataset(args.pixc_file, 'r') as ifp_pixc,\
          netCDF4.Dataset(args.fake_pixc_file, 'w') as ofp:
 
+        # copy attributes
+        for attr in ifp_pixc.__dict__:
+            value = ifp_pixc.__dict__[attr]
+            setattr(ofp, attr, value)
+
         # copy tvp data
         ofp.createGroup('tvp')
         ofp.groups['tvp'].createDimension('nr_tvps', 0)
@@ -36,6 +65,7 @@ def main():
         # copy pixel_cloud attributes
         ofp.createGroup('pixel_cloud')
         ofp.groups['pixel_cloud'].createDimension('record', 0)
+        ofp.groups['pixel_cloud'].createDimension('depth', 2)
 
         for attr in ifp_pixc.groups['pixel_cloud'].__dict__:
             value = ifp_pixc.groups['pixel_cloud'].__dict__[attr]
@@ -54,7 +84,7 @@ def main():
             np.arange(gdem_shape[1]), np.arange(gdem_shape[0]))
         cross_track, tmp = np.meshgrid(cross_track_, np.arange(gdem_shape[0]))
 
-        mask = landtype > 0
+        mask = landtype == 1
         pixc_shape = range_index[mask].shape
         pixel_area = subsample_factor * range_spacing * azimuth_spacing
 
@@ -62,7 +92,7 @@ def main():
         out_pixc_dsets['range_index'] = range_index[mask]
         out_pixc_dsets['azimuth_index'] = azimuth_index[mask]
         out_pixc_dsets['classification'] = landtype[mask]
-        out_pixc_dsets['continuous_classification'] = out_pixc_dsets[
+        out_pixc_dsets['water_frac'] = out_pixc_dsets[
             'classification'].copy()*0 + 1.0
         out_pixc_dsets['latitude'] = latitude[mask]
         out_pixc_dsets['longitude'] = longitude[mask]
@@ -72,9 +102,24 @@ def main():
         out_pixc_dsets['num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
 
+        out_shape = out_pixc_dsets['range_index'].shape
+
+        for varname in ifp_pixc.groups['pixel_cloud'].variables:
+            if varname not in out_pixc_dsets:
+                if varname == 'interferogram':
+                    value = np.zeros(list(out_shape)+[2,])
+                else:
+                    value = np.zeros(out_shape)
+                out_pixc_dsets[varname] = value
+
         for varname, varvalue in out_pixc_dsets.items():
-            var = ofp.createVariable(
-                '/pixel_cloud/'+varname, varvalue.dtype.str, ('record',))
+            if varname == 'interferogram':
+                var = ofp.createVariable(
+                    '/pixel_cloud/'+varname, varvalue.dtype.str,
+                    ('record', 'depth'))
+            else:
+                var = ofp.createVariable(
+                    '/pixel_cloud/'+varname, varvalue.dtype.str, ('record',))
             var[:] = varvalue
 
 

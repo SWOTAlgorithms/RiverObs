@@ -1072,9 +1072,12 @@ class SWOTRiverEstimator(SWOTL2):
         ss = river_reach.s - np.mean(self.river_obs.centerline.s)
         hh = river_reach.h_n_ave
         ww = 1/(river_reach.h_a_std**2)
-
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
-        fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
+
+        if all(np.isnan(ww)):
+            fit = statsmodels.api.OLS(hh, SS).fit()
+        else:
+            fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
 
         reach_stats['slope'] = fit.params[0]
         reach_stats['height'] = fit.params[1]
