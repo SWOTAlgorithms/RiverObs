@@ -40,6 +40,7 @@ class L2HRRiverTile(Product):
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
             reach_outputs, reach_collection)
+        klass.reaches.update_from_nodes(klass.nodes)
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
@@ -364,7 +365,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""
                     Indicates low signal to noise ratio possibly due to rain,
-                    dark water, and other effects thqt  significantly affect
+                    dark water, and other effects that  significantly affect
                     mesurements for this node.""")],
                 ])],
         ['frozen_f',
@@ -532,7 +533,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     replace, subtract from height, add new value with same
                     sign convention.""")],
                 ])],
-        ['xovr_cal_c',
+        ['xover_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', 'Crossover correction to height'],
                 ['units', 'm'],
@@ -570,7 +571,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     KaRIn to s/c CG correction to height.""")],
                 ])],
-        ['intr_cal_c',
+        ['inst_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', 'Instrument calibration correction to height'],
                 ['units', 'm'],
@@ -696,7 +697,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
-            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
+            '/pixel_cloud/xover_height_cor': 'xover_cal_c',
             '/tvp/time': 'time',
             '/tvp/time_tai': 'time_tai'}
 
@@ -1076,7 +1077,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 254],
                 ['comment', textjoin("""
                     Indicates low signal to noise ratio possibly due to rain,
-                    dark water, and other effects thqt  significantly affect
+                    dark water, and other effects that  significantly affect
                     mesurements for this reach.""")],
                 ])],
         ['frozen_f',
@@ -1239,7 +1240,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     subtract from height, add new value with same sign
                     convention. """)],
                 ])],
-        ['xovr_cal_c',
+        ['xover_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', 'Crossover correction to height'],
                 ['units', 'm'],
@@ -1277,7 +1278,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     KaRIn to s/c CG correction to height.""")],
                 ])],
-        ['intr_cal_c',
+        ['inst_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', 'Instrument calibration correction to height'],
                 ['units', 'm'],
@@ -1350,3 +1351,18 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
         pass
+
+    def update_from_nodes(self, nodes):
+        """Averages node things to reach things and populates self"""
+        keys = ['time', 'time_tai', 'geoid_hght', 'solid_tide',
+                'pole_tide', 'load_tide', 'dry_trop_c', 'wet_trop_c', 'iono_c',
+                'xover_cal_c', 'kar_att_c', 'h_bias_c', 'sys_cg_c',
+                'inst_cal_c']
+
+        for key in keys:
+            node_value = getattr(nodes, key)
+            reach_value = getattr(self, key)
+            for ii, reach_id in enumerate(self.reach_id):
+                reach_value[ii] = np.mean(
+                    node_value[nodes.reach_id == reach_id])
+            self[key] = reach_value
