@@ -367,7 +367,7 @@ class RiverObs:
         holding the result and the unpopulated nodes (when requested) holding
         the missing_value.
         """
-        outputs = { k: [] for k in [
+        outputs = {key: [] for key in [
             'h', 'h_std', 'h_u', 'lat_u', 'lon_u', 'area', 'area_u',
             'width_area', 'width_area_u', 'sig0', 'sig0_u', 'sig0_std']}
 
