@@ -735,7 +735,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['reaches', 0]])
+    DIMENSIONS = odict([['reaches', 0], ['reach_neighbors', 4]])
+    DIMENSIONS_REACHES = odict([['reaches', 0]])
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i4'],
@@ -1311,6 +1312,24 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     downstream. If number >3 should consider using Raster
                     product.""")],
                 ])],
+        ['rch_id_up',
+         odict([['dtype', 'i4'],
+                ['long_name', 'Ids of upstream reaches'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 2147483647],
+                ['comment', textjoin("""
+                    Comma separated list (52 char allows 4 entries).""")],
+                ])],
+        ['rch_id_dn',
+         odict([['dtype', 'i4'],
+                ['long_name', 'Ids of upstream reaches'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 2147483647],
+                ['comment', textjoin("""
+                    Comma separated list (52 char allows 4 entries).""")],
+                ])],
         ['p_height',
          odict([['dtype', 'f4'],
                 ['long_name', 'Prior height estimate'],
@@ -1488,7 +1507,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
 
     ])
     for name, reference in VARIABLES.items():
-        reference['dimensions'] = DIMENSIONS
+        if name in ['rch_id_up', 'rch_id_dn']:
+            reference['dimensions'] = DIMENSIONS
+        else:
+            reference['dimensions'] = DIMENSIONS_REACHES
 
     @classmethod
     def from_riverobs(cls, reach_outputs, reach_collection):
