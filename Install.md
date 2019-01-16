@@ -3,7 +3,7 @@
 Starting with an anaconda 3.7 env on linux: https://www.anaconda.com/download/#linux
 
 * install anaconda
-* conda install netCDF4 pyproj pysal rtree shapely gdal fiona (this can be quite slow!)
+* ```conda install netCDF4 pyproj pysal rtree shapely gdal fiona``` (this can be quite slow!)
 
 Add this to your .profile, .bash_profile, .zshenv,..etc:
 ```
@@ -11,7 +11,7 @@ Add this to your .profile, .bash_profile, .zshenv,..etc:
 ```
 
 # Unsupported installation method below
-* This would be a great project for a contributor!
+* Updating the below instructions along with ```setup.py``` would be a great project for a contributor!
 
 ## Preliminaries
 
