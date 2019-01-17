@@ -14,7 +14,7 @@ template config file:
 
 width_db_file             (-) = None
 use_width_db              (-) = False
-reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20181221/netcdf-fixup
+reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190116
 class_list                (-) = [2, 3, 4, 22, 23, 24]
 use_fractional_inundation (-) = [True, True, False, False, False, False]
 use_segmentation          (-) = [False, True, True, False, True, True]
@@ -28,8 +28,9 @@ alpha                     (-) = 1
 max_iter                  (-) = 1
 scalar_max_width          (-) = 600.0
 minobs                    (-) = 10
+trim_ends                 (-) = False
 min_fit_points            (-) = 3
-do_improved_geolocation   (-) = True
+do_improved_geolocation   (-) = False
 geolocation_method        (-) = taylor
 height_agg_method         (-) = weight
 area_agg_method           (-) = composite

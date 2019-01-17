@@ -28,7 +28,6 @@ trim_ends                 (-) = False
 min_fit_points            (-) = 3
 do_improved_geolocation   (-) = False
 geolocation_method        (-) = taylor
-fractional_inundation_kwd (-) = 'water_frac'
 """
 import argparse
 import os
