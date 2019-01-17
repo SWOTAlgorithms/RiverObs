@@ -53,6 +53,7 @@ import ast
 import argparse
 import netCDF4
 import logging
+import subprocess
 
 import RDF
 import SWOTRiver.Estimate
@@ -64,10 +65,13 @@ def main():
     parser.add_argument('out_pixc_vector_file', help='Output PIXC vector file')
     parser.add_argument('rdf_file', help='Static config params')
     parser.add_argument('--shpbasedir', type=str, default=None)
-    parser.add_argument('--sensor-file', type=str, default=None)
     parser.add_argument(
         '-l', '--log-level', type=str, default="warning",
         help="logging level, one of: debug info warning error")
+    parser.add_argument(
+        '--gdem-file', '-g', type=str, default=None,
+        help="GDEM file; if commanded makes a fake pixc from GDEM and runs"+
+             "RiverObs on that instead of on pixc_file")
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
@@ -83,12 +87,20 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if any([key == item for item in [
-            'geolocation_method', 'reach_db_path']]):
+            'geolocation_method', 'reach_db_path', 'height_agg_method',
+            'area_agg_method']]):
             continue
         config[key] = ast.literal_eval(config[key])
 
+    pixc_file = args.pixc_file
+    if args.gdem_file is not None:
+        import fake_pixc_from_gdem
+        pixc_file = 'fake_pixel_cloud.nc'
+        fake_pixc_from_gdem.fake_pixc_from_gdem(
+            args.gdem_file, args.pixc_file, pixc_file)
+
     l2pixc_to_rivertile = SWOTRiver.Estimate.L2PixcToRiverTile(
-            args.pixc_file, args.out_pixc_vector_file, args.sensor_file)
+            pixc_file, args.out_pixc_vector_file)
 
     l2pixc_to_rivertile.load_config(config)
     l2pixc_to_rivertile.do_river_processing()

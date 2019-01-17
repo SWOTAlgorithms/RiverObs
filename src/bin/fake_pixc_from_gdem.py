@@ -34,19 +34,12 @@ import os
 import netCDF4
 import numpy as np
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('pixc_file', help='pixel cloud file')
-    parser.add_argument('gdem_file', help='GDEM file')
-    parser.add_argument('fake_pixc_file', help='Output fake pixc file')
-    parser.add_argument('--subsample-factor', default=2, type=int)
-    args = parser.parse_args()
-
-    subsample_factor = args.subsample_factor
-
-    with netCDF4.Dataset(args.gdem_file, 'r') as ifp_gdem,\
-         netCDF4.Dataset(args.pixc_file, 'r') as ifp_pixc,\
-         netCDF4.Dataset(args.fake_pixc_file, 'w') as ofp:
+def fake_pixc_from_gdem(
+    gdem_file, pixc_file, fake_pixc_file, subsample_factor=2):
+    """Fakes a pixel cloud file from a gdem file"""
+    with netCDF4.Dataset(gdem_file, 'r') as ifp_gdem,\
+         netCDF4.Dataset(pixc_file, 'r') as ifp_pixc,\
+         netCDF4.Dataset(fake_pixc_file, 'w') as ofp:
 
         # copy attributes
         for attr in ifp_pixc.__dict__:
@@ -137,6 +130,18 @@ def main():
                     '/pixel_cloud/'+varname, varvalue.dtype.str, ('record',))
             var[:] = varvalue
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('pixc_file', help='pixel cloud file')
+    parser.add_argument('gdem_file', help='GDEM file')
+    parser.add_argument('fake_pixc_file', help='Output fake pixc file')
+    parser.add_argument('--subsample-factor', default=2, type=int)
+    args = parser.parse_args()
+
+    # Fake it!
+    fake_pixc_from_gdem(
+        args.gdem_file, args.pixc_file, args.fake_pixc_file,
+        args.subsample_factor):
 
 if __name__ == "__main__":
     main()
