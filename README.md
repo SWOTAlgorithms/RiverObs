@@ -2,10 +2,11 @@
 # RiverObs
 
 This is a package written initially by
-[Ernesto Rodriguez](mailto:ernesto.rodriguez@jpl.nasa.gov)  to estimate
+[Ernesto Rodriguez](mailto:ernesto.rodriguez@jpl.nasa.gov) to estimate
 various river parameters starting from remote sensing data.
-[Brent Williams](mailto:brent.a.williams@jpl.nasa.gov) has also provided
+[Alex Fore](mailto:alexander.fore@jpl.nasa.gov) and [Brent Williams](mailto:brent.a.williams@jpl.nasa.gov) have also provided
 code to reflect the evolving SWOT project.
+The code is currently maintained by the SWOT Algorithm Definition Team.
 
 Detailed installation instructions are in the Install.md file.
 
