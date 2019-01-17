@@ -84,6 +84,10 @@ def main():
             np.arange(gdem_shape[1]), np.arange(gdem_shape[0]))
         cross_track, tmp = np.meshgrid(cross_track_, np.arange(gdem_shape[0]))
 
+        # set azimuth and range size
+        ofp.groups['pixel_cloud'].interferogram_size_azimuth = gdem_shape[0]
+        ofp.groups['pixel_cloud'].interferogram_size_range = gdem_shape[1]
+
         mask = landtype == 1
         pixc_shape = range_index[mask].shape
         pixel_area = subsample_factor * range_spacing * azimuth_spacing
