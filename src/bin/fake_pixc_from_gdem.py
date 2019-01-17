@@ -10,7 +10,7 @@ To run it through RiverObs, run swot_pixc2rivertile.py with this config:
 
 width_db_file             (-) = None
 use_width_db              (-) = False
-reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190116/
+reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190116
 class_list                (-) = [1,]
 use_fractional_inundation (-) = [False,]
 use_segmentation          (-) = [True,]
@@ -57,10 +57,21 @@ def main():
         # copy tvp data
         ofp.createGroup('tvp')
         ofp.groups['tvp'].createDimension('nr_tvps', 0)
-
         for key, value in ifp_pixc.groups['tvp'].variables.items():
             var = ofp.createVariable('/tvp/'+key, value.dtype.str, ('nr_tvps',))
             var[:] = value[:]
+
+        # copy noise data
+        try:
+            noise_grp = ifp_pixc.groups['noise']
+            ofp.createGroup('noise')
+            ofp.groups['noise'].createDimension('num_lines', 0)
+            for key, value in noise_grp.variables.items():
+                var = ofp.createVariable(
+                    '/noise/'+key, value.dtype.str, ('num_lines',))
+                var[:] = value[:]
+        except KeyError:
+            pass
 
         # copy pixel_cloud attributes
         ofp.createGroup('pixel_cloud')
@@ -74,6 +85,7 @@ def main():
         landtype = ifp_gdem.variables['landtype'][:][::subsample_factor]
         latitude = ifp_gdem.variables['latitude'][:][::subsample_factor]
         longitude = ifp_gdem.variables['longitude'][:][::subsample_factor]
+        longitude[longitude<0] += 360
         elevation = ifp_gdem.variables['elevation'][:][::subsample_factor]
         cross_track_ = ifp_gdem.variables['cross_track'][:]
         range_spacing = ifp_gdem.ground_spacing
