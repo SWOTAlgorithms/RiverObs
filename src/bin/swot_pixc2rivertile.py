@@ -8,7 +8,8 @@ swot_pixc2rivertile.py l2pixc rivertile.nc pixcvector.nc config.rdf
 Optional args:
 --shpbasedir dirname    -- writes shapefiles in dirname/reaches dirname/nodes
 --sensor-file sensor.nc -- gets sensor info from sensor.nc
-
+--gdem-file gdem.nc     -- will make a fake pixel cloud from a gdem and run
+                           riverobs on that instead.
 
 template config file:
 
