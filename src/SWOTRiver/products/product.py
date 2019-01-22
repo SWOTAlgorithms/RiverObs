@@ -56,8 +56,6 @@ def get_subclasses(cls):
     return products
 
 def sort_variable_attribute_odict(in_odict):
-    # TODO: handle non-standard attrs by placing them 
-    #       after standard name and before units
     blessed_order = [
         'dtype',
         'dimensions',
@@ -67,7 +65,7 @@ def sort_variable_attribute_odict(in_odict):
         'time',
         'standard_time',
         'tai_utc_difference',
-        'leap_second',# if have special attrs put them before units
+        'leap_second',
         'units',
         'scale_factor',
         'coordinates',
@@ -78,13 +76,29 @@ def sort_variable_attribute_odict(in_odict):
         'valid_max',
         'comment',
         ]
-    lst = []
-    for key in blessed_order:
-        try:
-            lst.append([key,in_odict[key]])
-        except KeyError: 
-            pass
-    return odict(lst)
+
+    # These come first in this order
+    first_attrs = ['dtype', 'dimensions', 'long_name', 'standard_name',
+                   'calendar', 'time', 'standard_time', 'tai_utc_difference',
+                   'leap_second']
+    # Then put in non-standard ones, and finally these ones in this order
+    last_attrs = ['units', 'scale_factor', 'coordinates', 'quality_flag',
+                  'flag_meanings', 'flag_values', 'valid_min', 'valid_max',
+                  'comment']
+
+    attr_list = []
+    for key in first_attrs:
+        if key in in_odict:
+            attr_list.append([key, in_odict[key]])
+
+    for key in in_odict:
+        if key not in first_attrs and key not in last_attrs:
+            attr_list.append([key, in_odict[key]])
+
+    for key in last_attrs:
+        if key in in_odict:
+            attr_list.append([key, in_odict[key]])
+    return odict(attr_list)
 
 class Product(object):
     """Base class for SWOT-like data products.
