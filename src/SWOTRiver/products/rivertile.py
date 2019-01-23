@@ -350,7 +350,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Centroid of height of pixels in node with respect to the
                     reference ellipsoid. Fully corrected for instrument and
                     media delays, but NOT[?] geophysical fields. Nominal
-                    "centroid" is average; other method TBD.""")],
+                    centroid is average; other method TBD.""")],
                 ])],
         ['height2_u',
          odict([['dtype', 'f4'],
