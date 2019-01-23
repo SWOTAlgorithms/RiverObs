@@ -142,7 +142,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     the first measurement of the data set. If a leap second
                     occurs within the data set, the attribute leap_second is
                     set to the UTC time at which the leap second occurs.
-                    Precision 1 microsecond. """)],
+                    Precision 1 microsecond.""")],
                 ])],
         ['time_tai',
          odict([['dtype', 'f8'],
@@ -708,7 +708,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 65535],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    http://www.gwsp.org/products/grand-database.html """)],
+                    http://www.gwsp.org/products/grand-database.html""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
@@ -1351,7 +1351,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Ionospheric model correction to surface height. To replace,
                     subtract from height, add new value with same sign
-                    convention. """)],
+                    convention.""")],
                 ])],
         ['xover_cal_c',
          odict([['dtype', 'f4'],
@@ -1553,7 +1553,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 65535],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    http://www.gwsp.org/products/grand-database.html """)],
+                    http://www.gwsp.org/products/grand-database.html""")],
                 ])],
         ['disch_c_c1',
          odict([['dtype', 'f4'],
