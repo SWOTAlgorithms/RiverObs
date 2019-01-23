@@ -45,7 +45,7 @@ def match_reaches(truth, data):
 
 
 def match_nodes(truth, data):
-    common_ids = np.intersect1d(data.reaches.node_id, truth.reaches.node_id)
+    common_ids = np.intersect1d(data.nodes.node_id, truth.nodes.node_id)
     data_mapping = [
         np.where(data.nodes.node_id == node)[0][0] for node in common_ids]
     true_mapping = [
