@@ -1079,7 +1079,8 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
 
-        reach_stats['slope'] = fit.params[0]
+        # fit slope is meters per meter; data product wants mm/km
+        reach_stats['slope'] = fit.params[0] * 1e6
         reach_stats['height'] = fit.params[1]
 
         # use White’s (1980) heteroskedasticity robust standard errors.
@@ -1091,7 +1092,9 @@ class SWOTRiverEstimator(SWOTL2):
         # do fit on geoid heights
         gg = river_reach.geoid_hght
         geoid_fit = statsmodels.api.OLS(gg, SS).fit()
-        reach_stats['geoid_slop'] = geoid_fit.params[0]
+
+        # fit slope is meters per meter; data product wants mm/km
+        reach_stats['geoid_slop'] = geoid_fit.params[0] * 1e6
         reach_stats['geoid_hght'] = geoid_fit.params[1]
 
         LOGGER.debug('Reach height/slope processing finished')
