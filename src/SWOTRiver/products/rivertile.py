@@ -189,7 +189,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', "Uncertainty in latitude of node"],
                 ['units', 'degrees'],
                 ['valid_min', 0],
-                ['valid_max', 10],
+                ['valid_max', 1],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
@@ -199,7 +199,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'Uncertainty in longitude of node'],
                 ['units', 'degrees'],
                 ['valid_min', 0],
-                ['valid_max', 10],
+                ['valid_max', 1],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
@@ -224,7 +224,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'Uncertainty in node height'],
                 ['standard_name', 'height'],
                 ['units', 'm'],
-                ['valid_min', 0.1],
+                ['valid_min', 0.001],
                 ['valid_max', 50.0],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -340,23 +340,23 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', 
                 textjoin("""
-                    Centoid height of pixels in node with respect to the
+                    Centroid height of pixels in node with respect to the
                     reference ellipsoid""")],
                 ['units', 'm'],
                 ['valid_min', -1000],
                 ['valid_max', 5000],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Centoid of height of pixels in node with respect to the
+                    Centroid of height of pixels in node with respect to the
                     reference ellipsoid. Fully corrected for instrument and
                     media delays, but NOT[?] geophysical fields. Nominal
-                    "centorid" is average; other method TBD""")],
+                    "centroid" is average; other method TBD.""")],
                 ])],
         ['height2_u',
          odict([['dtype', 'f4'],
                 ['long_name', 'Uncertainty in height2 estimate'],
                 ['units', 'm'],
-                ['valid_min', 0.1],
+                ['valid_min', 0.001],
                 ['valid_max', 10.0],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""TBD additional comment.""")],
@@ -820,7 +820,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_latitud',
          odict([['dtype', 'f4'],
                 ['long_name',
-                    'Latitude of the center of the reach from prior database '],
+                    'Latitude of the center of the reach from prior database'],
                 ['units', 'degrees_north'],
                 ['valid_min', -90],
                 ['valid_max', 90],
@@ -922,7 +922,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'Uncertainty in reach average river width'],
                 ['units', 'm'],
                 ['valid_min', 50],
-                ['valid_max', 100],
+                ['valid_max', 1000],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
