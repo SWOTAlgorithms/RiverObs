@@ -52,7 +52,7 @@ def match_nodes(truth, data):
         np.where(truth.nodes.node_id == node)[0][0] for node in common_ids]
 
     new_nodes = data.nodes.copy(with_variables=False)
-    for name in truth.nodes.variables:
+    for name in data.nodes.variables:
         new_nodes[name] = data.nodes[name][data_mapping]
     data.nodes = new_nodes
 
@@ -65,11 +65,11 @@ def match_nodes(truth, data):
 def get_metrics(truth, data):
     metrics = {
         'area': (
-            (data.area_detct.data - truth.area_detct.data) /
-            truth.area_detct.data) * 100.0,
-        'height': (data.height.data - truth.height.data) * 1e2,
-        'slope': (data.slope.data - truth.slope.data) / 10,
-        'length': np.ones_like(data.height.data)*10,
+            (data.area_detct - truth.area_detct) /
+            truth.area_detct) * 100.0,
+        'height': (data.height - truth.height) * 1e2,
+        'slope': (data.slope - truth.slope) / 10,
+        'length': np.ones_like(data.height)*10,
     }
     return metrics
 

@@ -32,7 +32,7 @@ class ReachPlot():
 
     def plot(self, independent, dependent, color_key):
         scatter = self.axis.scatter(
-            independent, dependent, c=self.truth.reaches[color_key].data,
+            independent, dependent, c=self.truth.reaches[color_key],
             cmap=CMAP)
         colorbar = plt.colorbar(scatter)
         colorbar.set_label(color_key)
@@ -49,11 +49,11 @@ class ReachPlot():
 
 class AreaPlot(ReachPlot):
     def plot(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct.data)
+        true_area = np.sqrt(self.truth.reaches.area_detct)
         super().plot(true_area, self.metrics['area'], 'xtrk_dist')
 
     def plot_requirements(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct.data)
+        true_area = np.sqrt(self.truth.reaches.area_detct)
         buff = 100
         i = 1
         self.axis.plot([np.sqrt(50*10e3), 1000], [i*25, i*25], '--g')
@@ -79,11 +79,11 @@ class AreaPlot(ReachPlot):
 
 class HeightPlot(ReachPlot):
     def plot(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct.data)
+        true_area = np.sqrt(self.truth.reaches.area_detct)
         super().plot(true_area, self.metrics['height'], 'xtrk_dist')
 
     def plot_requirements(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct.data)
+        true_area = np.sqrt(self.truth.reaches.area_detct)
         buff = 100
         i = 1
         self.axis.plot([250, 1000], [i*25, i*25], '--y')
