@@ -68,7 +68,7 @@ def get_metrics(truth, data):
             (data.area_detct.data - truth.area_detct.data) /
             truth.area_detct.data) * 100.0,
         'height': (data.height.data - truth.height.data) * 1e2,
-        'slope': (data.slope2 - truth.slope2) * 1e5,
+        'slope': (data.slope.data - truth.slope.data) * 1e5,
         'length': np.ones_like(data.height.data)*10,
     }
     return metrics
