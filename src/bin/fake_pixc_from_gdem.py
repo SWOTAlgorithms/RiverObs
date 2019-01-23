@@ -141,7 +141,7 @@ def main():
     # Fake it!
     fake_pixc_from_gdem(
         args.gdem_file, args.pixc_file, args.fake_pixc_file,
-        args.subsample_factor):
+        args.subsample_factor)
 
 if __name__ == "__main__":
     main()
