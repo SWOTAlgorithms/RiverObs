@@ -213,10 +213,10 @@ def main():
         args.gdem_rivertile, args.pixc_rivertile)
     SWOTRiver.analysis.riverobs.match_rivertiles(truth, data)
     HeightPlots(
-        truth.nodes, data.nodes, ['height','height_u','height2_u'], 'height',
+        truth.nodes, data.nodes, ['height', 'height_u'], 'height',
         title=args.title+'-height', tofile=args.print)
     ParamPlots(
-        truth.nodes, data.nodes, ['area_detct','area_det_u'], 'area_detct',
+        truth.nodes, data.nodes, ['area_detct',], 'area_detct',
         percent=True, title=args.title+'-area', tofile=args.print)
     plot_locations(
         truth.nodes, data.nodes, title=args.title+'-locations',
