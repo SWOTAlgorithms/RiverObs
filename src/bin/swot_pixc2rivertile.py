@@ -58,6 +58,7 @@ import subprocess
 
 import RDF
 import SWOTRiver.Estimate
+from SWOTRiver.products.pixcvec import L2PIXCVector
 
 def main():
     parser = argparse.ArgumentParser()
@@ -108,6 +109,10 @@ def main():
     l2pixc_to_rivertile.do_improved_geolocation()
     l2pixc_to_rivertile.flag_lakes_pixc()
     l2pixc_to_rivertile.build_products()
+
+    # rewrite index file to make it look like an SDS one
+    L2PIXCVector.from_ncfile(l2pixc_to_rivertile.index_file
+        ).to_ncfile(l2pixc_to_rivertile.index_file)
 
     l2pixc_to_rivertile.rivertile_product.to_ncfile(args.out_riverobs_file)
     if args.shpbasedir is not None:
