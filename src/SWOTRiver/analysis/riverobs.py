@@ -65,11 +65,10 @@ def match_nodes(truth, data):
 def get_metrics(truth, data):
     metrics = {
         'area': (
-            (data.area_detct - truth.area_detct) /
-            truth.area_detct) * 100.0,
+            (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
         'height': (data.height - truth.height) * 1e2,
         'slope': (data.slope - truth.slope) / 10,
-        'length': np.ones_like(data.height)*10,
+        'width': data.width - truth.width,
     }
     return metrics
 
