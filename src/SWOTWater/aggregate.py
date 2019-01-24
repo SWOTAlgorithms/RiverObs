@@ -192,7 +192,7 @@ def height_with_uncerts(
     return (height_out, height_std_out, height_uncert_out, lat_uncert_out,
             lon_uncert_out)
 
-def area_only(pixel_area, klass, good,
+def area_only(pixel_area, water_fraction, klass, good,
               interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
               method='composite'):
     """
@@ -202,10 +202,11 @@ def area_only(pixel_area, klass, good,
     or outliers, if desired
     
     INPUTS:
-    pixel_area  = 1d array of pixel_area
-    klass       = classification, with edges
-    good        = mask for filtering out some pixels
-    method      = type of aggregator ('simple', 'water_fraction', 'composite')
+    pixel_area     = 1d array of pixel_area
+    water_fraction = 1d array of water fraction
+    klass          = classification, with edges
+    good           = mask for filtering out some pixels
+    method         = type of aggregator('simple', 'water_fraction', 'composite')
 
     OUTPUTS:
     area_out  = aggregated height
@@ -231,16 +232,18 @@ def area_only(pixel_area, klass, good,
     I[(Idw + Idw_in+ Ide) > 0] = 1.0 #all pixels near water
 
     if method == 'simple':
-        area_agg = simple(pixel_area[good]*Idw[good], metric='sum')
+        area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
         num_pixels = simple(Idw[good], metric='sum')
     elif method == 'water_fraction':
-        area_agg = simple(pixel_area[good]*I[good], metric='sum')
+        area_agg = simple(
+            pixel_area[good] * water_fraction[good] * I[good], metric='sum')
         num_pixels = simple(I[good], metric='sum')
     elif method == 'composite':
-        area_agg_in = simple(pixel_area[good]*Idw_in[good], metric='sum')
-        area_agg_edge = simple(pixel_area[good]*Ide[good], metric='sum')
+        area_agg_in = simple(pixel_area[good] * Idw_in[good], metric='sum')
+        area_agg_edge = simple(
+            pixel_area[good] * water_fraction[good] * Ide[good], metric='sum')
         area_agg = area_agg_in + area_agg_edge
-        num_pixels = simple(Idw_in[good]+Ide[good], metric='sum')
+        num_pixels = simple(Idw_in[good] + Ide[good], metric='sum')
     else:
         raise Exception("Unknown area aggregation method: {}".format(method))
     return area_agg, num_pixels
@@ -406,7 +409,7 @@ def area_with_uncert(
     land_edge_klass=2, method='composite'):
 
     area_agg, num_pixels = area_only(
-        pixel_area, klass, good, method=method,
+        pixel_area, water_fraction, klass, good, method=method,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass,
         land_edge_klass=land_edge_klass)

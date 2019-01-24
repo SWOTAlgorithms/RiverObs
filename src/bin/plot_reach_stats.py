@@ -22,8 +22,9 @@ CMAP = 'plasma'
 
 
 class ReachPlot():
-    def __init__(self, truth, metrics, title=None, filename=None):
+    def __init__(self, truth, data, metrics, title=None, filename=None):
         self.truth = truth
+        self.data = data
         self.metrics = metrics
         self.title = title
         self.filename = filename
@@ -32,7 +33,7 @@ class ReachPlot():
 
     def plot(self, independent, dependent, color_key):
         scatter = self.axis.scatter(
-            independent, dependent, c=self.truth.reaches[color_key],
+            independent, dependent, c=self.data.reaches[color_key],
             cmap=CMAP)
         colorbar = plt.colorbar(scatter)
         colorbar.set_label(color_key)
@@ -163,9 +164,9 @@ def main():
             filenames = [args.title + '-' + name for name in filenames]
     else:
         filenames = [None, None, None]
-    AreaPlot(truth, metrics, args.title, filenames[0])
-    HeightPlot(truth, metrics, args.title, filenames[1])
-    SlopePlot(truth, metrics, args.title, filenames[2])
+    AreaPlot(truth, data, metrics, args.title, filenames[0])
+    HeightPlot(truth, data, metrics, args.title, filenames[1])
+    SlopePlot(truth, data, metrics, args.title, filenames[2])
     if not args.print:
         print('show')
         plt.show()
