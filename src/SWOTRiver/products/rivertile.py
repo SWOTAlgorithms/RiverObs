@@ -978,7 +978,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'Area of detected water pixels'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
-                ['valid_max', 10000*200],
+                ['valid_max', 100000000],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     TBC: Aggregation of node areas of pixcels used.""")],
@@ -999,7 +999,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'Total water area with estimate of dark water'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
-                ['valid_max', 10000*200],
+                ['valid_max', 100000000],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Total estimated area including dark water. Best estimate
@@ -1022,7 +1022,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Area of pixels used to compute height""")],
                 ['units', 'm^2'],
                 ['valid_min', 100],
-                ['valid_max', 10000*200],
+                ['valid_max', 100000000],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     No uncertainty for this area.""")],
