@@ -96,8 +96,11 @@ class ParamPlots(NodePlots):
         for field in self.fields:
             if field.endswith('_u'):
                 error = self.data[field][i_data]
-                print(error)
                 label = field
+                if field=='area_det_u':
+                    # need to convert area uncert to % error
+                    error = (error / self.data['area_detct'][i_data])*100.0
+                    label = label + '% error'
             else:
                 Ldata = len(self.data[field][i_data])
                 Ltruth = len(self.truth[field][i_truth])
@@ -216,7 +219,7 @@ def main():
         truth.nodes, data.nodes, ['height', 'height_u'], 'height',
         title=args.title+'-height', tofile=args.print)
     ParamPlots(
-        truth.nodes, data.nodes, ['area_detct',], 'area_detct',
+        truth.nodes, data.nodes, ['area_detct', 'area_det_u'], 'area_detct',
         percent=True, title=args.title+'-area', tofile=args.print)
     plot_locations(
         truth.nodes, data.nodes, title=args.title+'-locations',
