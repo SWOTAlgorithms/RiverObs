@@ -89,8 +89,8 @@ def get_variable(dataset, key):
         tmp[tmp == tmp.fill_value] = np.ma.masked
         return tmp
     variable = variable[:]
-    if np.ma.is_masked(variable):
-        variable.set_fill_value(FILL_VALUE)
+    variable = variable.view(np.ma.MaskedArray)
+    variable.set_fill_value(FILL_VALUE)
     return variable
 
 
