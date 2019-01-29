@@ -8,12 +8,95 @@ import netCDF4
 import logging
 import warnings
 import numpy as np
+import math
 from collections import OrderedDict as odict
 
 from RiverObs.RiverReach import RiverReach
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 LOGGER = logging.getLogger(__name__)
+
+def get_blocking_widths(x, y):
+    """
+    Computes the blocking widths for nodes at x, y
+
+    Assumes x, y are ordered from upstream to downstream (i.e. generally from
+    highest point to lowest).
+
+    widths are signed: looking from upstream to downstream, bending left is
+    positive and bending right is negative.
+    """
+    widths = np.nan*np.ones(x.shape)
+
+    for ii in range(len(x)):
+        # consider a limited set of permutations of nodes that can block
+        # this node.
+        for joff_m in [1, 2, 3]:
+            for joff_p in [1, 2, 3]:
+                # skip first/last
+                if ii - joff_m < 0 or ii + joff_p >= len(x):
+                    continue
+
+                x1, y1 = x[ii-joff_m], y[ii-joff_m]
+                x2, y2 = x[ii], y[ii]
+                x3, y3 = x[ii+joff_p], y[ii+joff_p]
+
+                alpha, beta = blocking_width(x1, y1, x2, y2, x3, y3)
+                this_width = (alpha+beta)/2
+
+                if (np.isnan(widths[ii]) or
+                    np.abs(this_width) < np.abs(widths[ii])):
+                    widths[ii] = this_width
+    return widths
+
+def blocking_width(x1, y1, x2, y2, x3, y3):
+    """
+    Computes width at which point (x2, y2) is blocked by other nodes
+    i.e. point in plane eqi-distant to all three.
+    """
+    # points midway beteen adjacent nodes
+    xa = 0.5*(x1+x2);
+    ya = 0.5*(y1+y2);
+
+    xb = 0.5*(x2+x3);
+    yb = 0.5*(y2+y3);
+
+    # construct normal to connecting vectors, which is the line of
+    # equidistant points
+
+    # normal to r2-f1:
+    x_normal_21 = y1-y2;
+    y_normal_21 = x2-x1;
+    norm = math.sqrt(x_normal_21**2 + y_normal_21**2);
+    x_normal_21 = x_normal_21 / norm;
+    y_normal_21 = y_normal_21 / norm;
+
+    # normal to r3-r2:
+    x_normal_32 = y2-y3;
+    y_normal_32 = x3-x2;
+    norm = math.sqrt(x_normal_32**2 + y_normal_32**2);
+    x_normal_32 = x_normal_32 / norm;
+    y_normal_32 = y_normal_32 / norm;
+
+    # test if points co-linear
+    if x_normal_21 == x_normal_32 and y_normal_21 == y_normal_32:
+        return np.Infinity, np.Infinity
+
+    # Solve this set of equations:
+    # xa+alpha*x_normal_21 = xb + beta*x_normal_32
+    # ya+alpha*y_normal_21 = yb + beta*y_normal_32
+
+    if x_normal_32 != 0:
+        # doing it on paper gives me (normal solution):
+        alpha = (
+            ((yb-ya) + y_normal_32/x_normal_32 * (xa-xb)) /
+            (y_normal_21-y_normal_32*x_normal_21/x_normal_32))
+        beta = (xa-xb)/x_normal_32 + alpha * x_normal_21/x_normal_32
+    else:
+        # equations simplify if x_normal_32 == 0
+        alpha = (xb-xa)/x_normal_21
+        beta = ((ya-yb) + (xa-xb)*y_normal_21 / x_normal_21)/y_normal_32
+    return alpha, beta
 
 class ReachExtractor(object):
     """
@@ -88,6 +171,8 @@ class ReachExtractor(object):
 
             x, y = lat_lon_region.proj(lon, lat)
 
+            blocking_widths = get_blocking_widths(x, y)
+
             # TODO add stuff from DB here
             metadata = {
                 'lakeFlag': this_reach['reaches']['lakeflag'][0],
@@ -97,7 +182,8 @@ class ReachExtractor(object):
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,
-                reach_index=ii, node_indx=node_indx))
+                reach_index=ii, node_indx=node_indx,
+                blocking_widths=blocking_widths))
 
         self.idx = 0
         self.nreaches = len(self.reach)
