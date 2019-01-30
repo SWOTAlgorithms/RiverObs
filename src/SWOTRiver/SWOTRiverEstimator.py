@@ -951,6 +951,19 @@ class SWOTRiverEstimator(SWOTL2):
                 dtype=np.float64) * self.river_obs.missing_value
             width_db = width_db[self.river_obs.populated_nodes]
 
+        # flag for bad widths
+        min_n = self.river_obs.get_node_stat('min', 'n')
+        max_n = self.river_obs.get_node_stat('max', 'n')
+
+        blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
+
+        # test at 5% inside of blocking width
+        test_width = blocking_width * 0.95
+
+        is_blocked = np.logical_or(
+            np.logical_and(test_width < 0, min_n < test_width),
+            np.logical_and(test_width > 0, max_n > test_width))
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
@@ -982,6 +995,7 @@ class SWOTRiverEstimator(SWOTL2):
             'longitud_u': longitud_u.astype('float32'),
             'width_u': width_u.astype('float32'),
             'geoid_hght': geoid_hght.astype('float32'),
+            'node_blocked': is_blocked.astype('uint8'),
         }
 
         if xtrack_median is not None:
