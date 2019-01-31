@@ -41,9 +41,7 @@ def get_blocking_widths(x, y):
                 x2, y2 = x[ii], y[ii]
                 x3, y3 = x[ii+joff_p], y[ii+joff_p]
 
-                alpha, beta = blocking_width(x1, y1, x2, y2, x3, y3)
-                this_width = (alpha+beta)/2
-
+                this_width = blocking_width(x1, y1, x2, y2, x3, y3)
                 if (np.isnan(widths[ii]) or
                     np.abs(this_width) < np.abs(widths[ii])):
                     widths[ii] = this_width
@@ -96,7 +94,14 @@ def blocking_width(x1, y1, x2, y2, x3, y3):
         # equations simplify if x_normal_32 == 0
         alpha = (xb-xa)/x_normal_21
         beta = ((ya-yb) + (xa-xb)*y_normal_21 / x_normal_21)/y_normal_32
-    return alpha, beta
+
+    xc = xa+alpha*x_normal_21
+    yc = ya+alpha*y_normal_21
+
+    dist = math.sqrt((x2-xc)**2 + (y2-yc)**2)
+    if alpha < 0:
+        dist *= -1
+    return dist
 
 class ReachExtractor(object):
     """
