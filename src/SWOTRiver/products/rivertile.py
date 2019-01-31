@@ -433,8 +433,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'u1'],
                 ['long_name', textjoin("""
                     Summary quality indicator on Node measurement""")],
-                ['flag_meanings', textjoin("""TBD""")],
-                ['flag_masks', 'TBD'],
+                ['flag_meanings', textjoin("""
+                    bad_width""")],
+                ['flag_masks', np.array([1]).astype('u1')],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
@@ -748,6 +749,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
                 (node_outputs['y']-node_outputs['y_prior'])**2)
+
+            # set quality flag
+            klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
+                klass.VARIABLES['node_q']['dtype'])
+            klass['node_q'][node_outputs['node_blocked']==1] |= 1
+
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
