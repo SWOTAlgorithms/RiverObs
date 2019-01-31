@@ -288,16 +288,9 @@ class SWOTRiverEstimator(SWOTL2):
             except TypeError:
                 pass
 
-        # set the pixcvec geolocations to the pixel cloud values
-        # TODO: update these with height constrained geolocation
-        self.lat_vec = self.lat
-        self.lon_vec = self.lon
-        self.height_vec = self.h_noise
-
         # Try to read the pixel area from the L2 file, or compute it
         # from look angle and azimuth spacing, or from azimuth spacing
         # and ground spacing
-
         try:
             # hopefully already there
             self.pixel_area = self.get('pixel_area')
@@ -801,9 +794,9 @@ class SWOTRiverEstimator(SWOTL2):
                               self.river_obs.d, self.river_obs.s,
                               self.river_obs.n, reach_idx,
                               segOut, self.h_flg[self.river_obs.in_channel],
-                              self.lat_vec[self.river_obs.in_channel],
-                              self.lon_vec[self.river_obs.in_channel],
-                              self.height_vec[self.river_obs.in_channel])
+                              self.lat[self.river_obs.in_channel],
+                              self.lon[self.river_obs.in_channel],
+                              self.h_noise[self.river_obs.in_channel])
 
         # Add the observations
         self.river_obs.add_obs('h_noise', self.h_noise)
@@ -1172,6 +1165,7 @@ class SWOTRiverEstimator(SWOTL2):
         node as well as the pixel cloud coordinates (range and azimuth, or
         original image coordinate [e.g., gdem along- and cross-track index])
         """
+        lon[lon<0] += 360
         # append the new data
         with nc.Dataset(self.output_file, 'a') as ofp:
             curr_len = len(ofp.variables['range_index'])
