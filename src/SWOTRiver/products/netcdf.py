@@ -37,6 +37,11 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
                     continue
                 if np.iscomplexobj(value):
                     value = value.real
+
+                # cast min/max/fill
+                if name in ['valid_min', 'valid_max', '_FillValue']:
+                    value = data.dtype.type(value)
+
                 dataset[key].setncattr(name, value)
     if 'complex' in array.dtype.name:
         # Add the depth dimension
