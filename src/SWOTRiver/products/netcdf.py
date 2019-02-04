@@ -39,7 +39,7 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
                     value = value.real
 
                 # cast min/max/fill
-                if name in ['valid_min', 'valid_max', '_FillValue']:
+                if name in ['valid_min', 'valid_max']:
                     value = data.dtype.type(value)
 
                 dataset[key].setncattr(name, value)
