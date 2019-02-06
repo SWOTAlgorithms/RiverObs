@@ -34,9 +34,17 @@ def main():
             pixc_vector.latitude_vectorproc[mask],
             s=50, c=this_color, edgecolor='none')
 
+    is_bad_width = rivertile.nodes.node_q & 0x1 > 0
+
     axis.scatter(
-        rivertile.nodes.longitude, rivertile.nodes.latitude,
-        marker='+', c='k')
+        rivertile.nodes.longitude[is_bad_width],
+        rivertile.nodes.latitude[is_bad_width],
+        marker='s', c='m')
+
+    axis.scatter(
+        rivertile.nodes.longitude[~is_bad_width],
+        rivertile.nodes.latitude[~is_bad_width],
+        marker='x', c='m')
 
     axis.set_xlabel('longitude')
     axis.set_ylabel('latitude')

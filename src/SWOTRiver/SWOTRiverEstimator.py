@@ -951,7 +951,7 @@ class SWOTRiverEstimator(SWOTL2):
         blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
 
         # test at 5% inside of blocking width
-        test_width = blocking_width * 0.95
+        test_width = blocking_width * 0.90
 
         is_blocked = np.logical_or(
             np.logical_and(test_width < 0, min_n < test_width),
@@ -1129,8 +1129,6 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.createVariable(
                 'reach_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'river_tag', 'i4', 'record', fill_value=FILL_VALUES['i4'])
-            ofp.createVariable(
                 'segmentation_label', 'i4', 'record',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
@@ -1174,9 +1172,6 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['azimuth_index'][curr_len:new_len] = img_y
             ofp.variables['node_index'][curr_len:new_len] = node_index
             ofp.variables['reach_index'][curr_len:new_len] = reach_index
-            # set river_tag to reach_index + 1 for now (0 assumes not a reach)
-            #  (TODO: figure out what this should be)
-            ofp.variables['river_tag'][curr_len:new_len] = reach_index + 1
             ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
             ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
             ofp.variables['distance_to_node'][curr_len:new_len] = dst
