@@ -145,8 +145,8 @@ def height_uncert_multilook(
 
     num_looks = agg_looks * num_pixels
 
-    # get phase noise std using CRB
-    phase_std = (0.5 / num_looks) * (1.0-coh**2)/(coh**2)
+    # get phase noise variance using CRB
+    phase_var = (0.5 / num_looks) * (1.0-coh**2)/(coh**2)
     agg_dh_dphi = simple(dh_dphi[good]*weight_norm[good])
     agg_dh_dphi2 = simple(dh_dphi[good]**2*weight_norm[good])
 
@@ -157,13 +157,13 @@ def height_uncert_multilook(
     agg_dlon_dphi2 = simple(dlon_dphi[good]**2*weight_norm[good])
 
     height_uncert_out = np.sqrt(
-        phase_std) * np.abs(np.array(agg_dh_dphi2)/np.array(agg_dh_dphi))
+        phase_var) * np.abs(np.array(agg_dh_dphi2)/np.array(agg_dh_dphi))
 
     lat_uncert_out = np.sqrt(
-        phase_std) * np.abs(np.array(agg_dlat_dphi2)/np.array(agg_dlat_dphi))
+        phase_var) * np.abs(np.array(agg_dlat_dphi2)/np.array(agg_dlat_dphi))
 
     lon_uncert_out = np.sqrt(
-        phase_std) * np.abs(np.array(agg_dlon_dphi2)/np.array(agg_dlon_dphi))
+        phase_var) * np.abs(np.array(agg_dlon_dphi2)/np.array(agg_dlon_dphi))
 
     return height_uncert_out, lat_uncert_out, lon_uncert_out
 
