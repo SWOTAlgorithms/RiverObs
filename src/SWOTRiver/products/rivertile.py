@@ -75,13 +75,23 @@ class ShapeWriterMixIn(object):
         properties_ = properties.copy()
         properties['time_str'] = 'str'
 
+        # special treatment of these
+        if is_reach:
+            properties['rch_id_up'] = 'str'
+            properties['rch_id_dn'] = 'str'
+
         # mash up the schema
         schema = {'geometry': 'Point', 'properties': properties}
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
             for ii in range(self.reach_id.shape[0]):
-                this_property = odict([[
-                    key, np.asscalar(self[key][ii])] for key in
-                    properties_])
+
+                this_property = odict()
+                for key in properties_:
+                    if key in ['rch_id_up', 'rch_id_dn']:
+                        this_property[key] = ' '.join([
+                            str(item) for item in self[key][ii]])
+                    else:
+                        this_property[key] = np.asscalar(self[key][ii])
 
                 if is_reach:
                     point = Point(float(self.p_longitud[ii]),
@@ -586,7 +596,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     replace, subtract from height, add new value with same
                     sign convention.""")],
                 ])],
-        ['xover_cal_c',
+        ['xovr_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', 'Crossover correction to height'],
                 ['units', 'm'],
@@ -649,7 +659,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Prior height estimate from prior database""")],
                 ])],
-        ['p_height_var',
+        ['p_hght_var',
          odict([['dtype', 'f4'],
                 ['long_name', 'Prior height variability'],
                 ['units', 'm'],
@@ -670,7 +680,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Width from prior database.""")],
                 ])],
-        ['p_width_var',
+        ['p_wid_var',
          odict([['dtype', 'f4'],
                 ['long_name', 'Prior width variability'],
                 ['units', 'm'],
@@ -768,7 +778,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
-            '/pixel_cloud/xover_height_cor': 'xover_cal_c',
+            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
             '/tvp/time': 'time',
             '/tvp/time_tai': 'time_tai'}
 
@@ -1360,7 +1370,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     subtract from height, add new value with same sign
                     convention.""")],
                 ])],
-        ['xover_cal_c',
+        ['xovr_cal_c',
          odict([['dtype', 'f4'],
                 ['long_name', 'Crossover correction to height'],
                 ['units', 'm'],
@@ -1466,7 +1476,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Prior height estimate from prior database.""")],
                 ])],
-        ['p_height_var',
+        ['p_hght_var',
          odict([['dtype', 'f4'],
                 ['long_name', 'Prior height variability'],
                 ['units', 'm'],
@@ -1487,7 +1497,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Width from prior database.""")],
                 ])],
-        ['p_width_var',
+        ['p_wid_var',
          odict([['dtype', 'f4'],
                 ['long_name', 'Prior width variability'],
                 ['units', 'm'],
@@ -1710,7 +1720,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         """Averages node things to reach things and populates self"""
         keys = ['time', 'time_tai', 'geoid_hght', 'solid_tide',
                 'pole_tide', 'load_tide', 'dry_trop_c', 'wet_trop_c', 'iono_c',
-                'xover_cal_c', 'kar_att_c', 'h_bias_c', 'sys_cg_c',
+                'xovr_cal_c', 'kar_att_c', 'h_bias_c', 'sys_cg_c',
                 'inst_cal_c']
 
         for key in keys:

@@ -117,7 +117,7 @@ def main():
     l2pixc_to_rivertile.rivertile_product.to_ncfile(args.out_riverobs_file)
     if args.shpbasedir is not None:
         if not os.path.isdir(args.shpbasedir):
-            os.path.mkdir(args.shpbasedir)
+            os.mkdir(args.shpbasedir)
         l2pixc_to_rivertile.rivertile_product.nodes.write_shapes(
             os.path.join(args.shpbasedir, 'nodes.shp'))
         l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
