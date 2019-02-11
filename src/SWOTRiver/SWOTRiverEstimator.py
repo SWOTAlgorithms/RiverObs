@@ -7,7 +7,6 @@ from __future__ import absolute_import, division, print_function
 import os
 import scipy.ndimage
 import numpy as np
-import pandas as pd
 import netCDF4 as nc
 import collections
 import scipy.stats
