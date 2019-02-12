@@ -87,11 +87,16 @@ class ShapeWriterMixIn(object):
 
                 this_property = odict()
                 for key in properties_:
+                    if np.ma.isMaskedArray(self[key]):
+                        this_item = self[key].data
+                    else:
+                        this_item = self[key]
+
                     if key in ['rch_id_up', 'rch_id_dn']:
                         this_property[key] = ' '.join([
-                            str(item) for item in self[key][ii]])
+                            str(item) for item in this_item[ii]])
                     else:
-                        this_property[key] = np.asscalar(self[key][ii])
+                        this_property[key] = np.asscalar(this_item[ii])
 
                 if is_reach:
                     point = Point(float(self.p_longitud[ii]),
@@ -119,6 +124,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
@@ -133,6 +139,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Nodes numbered sequentially within a reach. Increasing in
@@ -144,6 +151,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 's'],
                 ['valid_min', 0],
                 ['valid_max', 1e10],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Time of measurement in seconds in the UTC time scale since
@@ -160,6 +168,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 's'],
                 ['valid_min', 0],
                 ['valid_max', 1e10],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Time of measurement in seconds in the TAI time scale since
@@ -176,6 +185,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'degrees_north'],
                 ['valid_min', -78],
                 ['valid_max', 78],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD[Average latitude, not necessarily along stream]. 13
@@ -188,6 +198,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 360],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     East longitude is convention for all products.
@@ -200,6 +211,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'degrees'],
                 ['valid_min', 0],
                 ['valid_max', 1],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
@@ -210,6 +222,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'degrees'],
                 ['valid_min', 0],
                 ['valid_max', 1],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
@@ -222,6 +235,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -500],
                 ['valid_max', 5000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Node averaged water surface height with respect to the
@@ -236,6 +250,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0.001],
                 ['valid_max', 50.0],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Uncertainy in Node height wrt geoid, including
@@ -247,6 +262,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 50.0],
                 ['valid_max', 40000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Node average river width based on area_total.""")],
@@ -257,15 +273,17 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['area_detct',
          odict([['dtype', 'f4'],
                 ['long_name', 'Area of detected water pixels'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 100],
                 ['valid_max', 40000*200],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBC: Aggregation of node areas of pixels used.""")],
@@ -274,9 +292,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Uncertainty in area of detected water pixels""")],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD comment on method relative to area_total""")],
@@ -284,9 +303,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['area_total',
          odict([['dtype', 'f4'],
                 ['long_name', 'Total water area with estimate of dark water'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 100],
                 ['valid_max', 40000*200],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Total estimated area including dark water. Best estimate
@@ -295,18 +315,20 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['area_tot_u',
          odict([['dtype', 'f4'],
                 ['long_name', 'Uncertainty in total water area'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 100],
                 ['valid_max', 10000*200],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""TBD additional comment on method.""")],
                 ])],
         ['area_of_ht',
          odict([['dtype', 'f4'],
                 ['long_name', 'Area of pixels used to compute height'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 100],
                 ['valid_max', 40000*200],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     No uncertainty for this area.""")],
@@ -317,6 +339,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 5000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Numerical variable to supplement layover flag.  Will be
@@ -330,6 +353,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment [not necessarily along stream].""")],
@@ -341,6 +365,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 10000],
                 ['valid_max', 65000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD:Different sign for Left/Right? Precision 1 m OK? If
@@ -355,6 +380,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -1000],
                 ['valid_max', 5000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Centroid of height of pixels in node with respect to the
@@ -368,35 +394,39 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0.001],
                 ['valid_max', 10.0],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['n_chan_max',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Maximum number of channels detected in node'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""Value determined for each node.""")],
                 ])],
         ['n_chan_mod',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Mode of number of channels detected in node'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""Value determined for each node.""")],
                 ])],
         ['dark_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dark water flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Indicates low signal to noise ratio possibly due to rain,
@@ -404,43 +434,46 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     measurements for this node.""")],
                 ])],
         ['frozen_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Frozen flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Indicates if the surface is frozen based on TBD.""")],
                 ])],
         ['layover_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Layover flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Indicates if significant layover effect in node. See
                     layovr_val in Expert.""")],
                 ])],
         ['n_good_pix',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Number of good pixels in node'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['node_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', textjoin("""
                     Summary quality indicator on Node measurement""")],
                 ['flag_meanings', textjoin("""
@@ -449,18 +482,20 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     May Include instrument, model flags, obs_frac""")],
                 ])],
         ['partial_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Indicator that node is partially observed'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Indicates that node is near edge and part may be lost due
@@ -468,13 +503,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     layover].""")],
                 ])],
         ['xovr_cal_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Quality indicator of cross-over calibration'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
@@ -484,6 +520,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', -10],
                 ['valid_max', 100],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     KaRIn measured backscatter (sigma0) averaged for Node. In
@@ -495,6 +532,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
@@ -504,6 +542,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0.5],
                 ['valid_max', 5],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Total of corrections to sigma0 deduced from instrument
@@ -515,6 +554,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0.5],
                 ['valid_max', 5],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Atmospheric sigma0 correction within the swath from model
@@ -526,6 +566,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -200],
                 ['valid_max', 2000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""Current baseline is EGM2008""")],
                 ])],
@@ -535,6 +576,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Height of solid Earth tide model at node location.""")],
@@ -545,6 +587,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Height of Earth Pole tide model at node location.""")],
@@ -555,6 +598,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Height from loading by ocean tide model at node location.
@@ -566,6 +610,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -2.5],
                 ['valid_max', 0],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Numerical weather model dry tropospheric correction to
@@ -578,6 +623,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 0],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Numerical weather model dry tropospheric correction to
@@ -590,6 +636,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -0.1],
                 ['valid_max', 0],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Ionospheric model correction to surface height. To
@@ -602,6 +649,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     KaRIn correction from crossover cal processing evaluated
@@ -613,6 +661,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Height correction from KaRIn orientation (attitude)
@@ -624,6 +673,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Overall KaRIn instrument system height bias.""")],
@@ -634,6 +684,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     KaRIn to s/c CG correction to height.""")],
@@ -644,6 +695,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Total of corrections to height deduced from instrument
@@ -655,6 +707,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Prior height estimate from prior database""")],
@@ -665,6 +718,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 9999],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Prior height variability from historical data, probability
@@ -676,6 +730,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 10000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Width from prior database.""")],
@@ -686,6 +741,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Prior width variability from historical data, probability
@@ -697,26 +753,29 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 1],
                 ['valid_max', 10000],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Additional comment TBD.""")],
                 ])],
         ['p_class',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Planform type'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Planform type from prior database. Type list is TBD.""")],
                 ])],
         ['grand_id',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dam Id from GranD database'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     http://www.gwsp.org/products/grand-database.html""")],
@@ -824,6 +883,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
@@ -841,6 +901,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'degrees_north'],
                 ['valid_min', -90],
                 ['valid_max', 90],
+                ['_FillValue', -9999],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Along-stream center. 13 digits adequate for microdeg gives
@@ -854,7 +915,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 360],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Along-stream center. 13 digits adequate for microdeg gives
                     sub-meter location.""")],
@@ -866,7 +928,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -500],
                 ['valid_max', 5000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Reach water surface height with respect to the geoid with
                     all corrections and geophysical fields applied. Computed
@@ -880,7 +943,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 20],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Uncertainy in reach height wrt geoid, including
                     uncertainties of corrections and references, and variation
@@ -892,7 +956,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1e-6'],
                 ['valid_min', -1000],
                 ['valid_max', 100],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Reach water surface slope with respect to the geoid with
                     all corrections and geophysical fields applied. Computed
@@ -905,7 +970,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1e-6'],
                 ['valid_min', 0],
                 ['valid_max', 50],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Uncertainy in Reach fitted slope, including uncertainties
                     of corrections and references, and variation about the
@@ -918,7 +984,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -10000],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -99999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Along reach offset distance of observed points from nominal
                     center. Sign convention TBD.""")],
@@ -929,7 +996,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Reach average river width based on area_total.
                     Prior value in Prior section.""")],
@@ -940,7 +1008,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 1000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
                 ])],
@@ -951,7 +1020,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1e-6'],
                 ['valid_min', -1000],
                 ['valid_max', 100],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Enhanced reach slope relative to geoid produced using
                     smoothing (window TBD) of node heights. Negative slope
@@ -963,17 +1033,19 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1e-6'],
                 ['valid_min', 0],
                 ['valid_max', 50],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Uncertainty in enhanced reach slope.""")],
                 ])],
         ['d_x_area',
          odict([['dtype', 'f4'],
                 ['long_name', 'Change in cross-sectional area'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 100],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Change in channel cross sectional area from baseline.
                     Determination of baseline is TBD.""")],
@@ -982,10 +1054,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Uncertainty in change in cross-section""")],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 99999],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Uncertainty in reach average cross-sectional area change.
                     """)],
@@ -993,10 +1066,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['area_detct',
          odict([['dtype', 'f4'],
                 ['long_name', 'Area of detected water pixels'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 1000000000],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     TBC: Aggregation of node areas of pixcels used.""")],
                 ])],
@@ -1004,20 +1078,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Uncertainty in area of detected water""")],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Uncertainty in area of detected water pixels.""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f4'],
                 ['long_name', 'Total water area with estimate of dark water'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 1000000000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Total estimated area including dark water. Best estimate
                     using water fraction.""")],
@@ -1026,10 +1102,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Uncertainty in total water area""")],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     TBD additional comment on method.""")],
                 ])],
@@ -1037,10 +1114,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', textjoin("""
                     Area of pixels used to compute height""")],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 100],
                 ['valid_max', 1000000000],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     No uncertainty for this area.""")],
                 ])],
@@ -1050,7 +1128,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 5000],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Numerical variable to supplement layover flag. Will be
                     defined later depending on layover algorithm(s). Could be
@@ -1063,7 +1142,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     TBD comment on method, nodes included to be defined.""")],
                 ])],
@@ -1075,37 +1155,41 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 10000],
                 ['valid_max', 65000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     TBD additional comment on method.""")],
                 ])],
         ['n_chan_max',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Maximum number of channels detected in nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     From values determined for each node.""")],
                 ])],
         ['n_chan_mod',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Mode of number of channels detected in nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     From values determined for each node.""")],
                 ])],
         ['discharge',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge consensus value'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Value from TBD consensus discharge algorithm. No Discharge
                     in distributed product until validated.""")],
@@ -1113,20 +1197,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg_u',
          odict([['dtype', 'f4'],
                 ['long_name', 'Uncertainty in consensus discharge'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     TBD additional comment on method.""")],
                 ])],
         ['discharge1',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge from model_1'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Added 3 models as placeholders; may be as many as 7. Lake
                     product has only 1 model for Storage Change.""")],
@@ -1134,112 +1220,122 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg1_u',
          odict([['dtype', 'f4'],
                 ['long_name', 'Uncertainty in model_1 discharge'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     TBD additional comment on method.""")],
                 ])],
         ['discharge2',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge from model_2'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Second of 3 added models as placeholders.""")],
                 ])],
         ['dischg2_u',
          odict([['dtype', 'f4'],
                 ['long_name', 'model 2 discharge uncertainty'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     TBD additional comment on method.""")],
                 ])],
         ['discharge3',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge from model_3'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Third of 3 added models as placeholders.""")],
                 ])],
         ['dischg3_u',
          odict([['dtype', 'f4'],
                 ['long_name', 'model 3 discharge uncertainty'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     TBD additional comment on method.""")],
                 ])],
         ['dark_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dark water flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Indicates low signal to noise ratio possibly due to rain,
                     dark water, and other effects that  significantly affect
                     measurements for this reach.""")],
                 ])],
         ['frozen_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Frozen flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Indicates if the surface is frozen based on TBD.""")],
                 ])],
         ['layover_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Layover flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Indicates if significant layover effect in reach. See
                     layovr_val in Expert.""")],
                 ])],
         ['partial_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Indicates that part of reach may be lost'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Indicates that Reach is near edge and part may be lost due
                     to orbit variation""")],
                 ])],
         ['n_good_nod',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Number of good nodes used in fit for height'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
                 ])],
@@ -1249,14 +1345,15 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 1],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Fraction based on number of nodes. Indicates that Reach is
                     near edge and part may be lost due to orbit variation. TBD
                     counting of nodes lost to dark water or layover.""")],
                 ])],
         ['reach_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', textjoin("""
                     Summary quality indicator for reach measurement""")],
                 ['flag_meanings', textjoin("""TBD""")],
@@ -1264,19 +1361,21 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     May include instrument, model flags, obs_frac.""")],
                 ])],
         ['xovr_cal_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Quality of the cross-over calibrations'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Method for combining for Reach is TBD. Basic because all
                     flags Basic?""")],
@@ -1287,7 +1386,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -200],
                 ['valid_max', 2000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Geoid model height above the ellipsoid. Current baseline
                     is EGM2008.""")],
@@ -1298,7 +1398,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1e-6'],
                 ['valid_min', -1000],
                 ['valid_max', 1000],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Geoid model slope in the direction of the Reach.""")],
                 ])],
@@ -1308,7 +1409,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 100],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Avg height of solid Earth tide model for Reach.""")],
                 ])],
@@ -1318,7 +1420,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -0.2],
                 ['valid_max', 0.2],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Avg height of solid Earth Pole tide model for Reach.""")],
                 ])],
@@ -1328,7 +1431,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Avg height from loading by water (ocean) tide model for
                     reach. Ocean loading may extend beyond tidally affected
@@ -1340,7 +1444,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -2.5],
                 ['valid_max', 0],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Numerical weather model dry tropospheric correction to
                     surface height. To replace, subtract from height, add new
@@ -1352,7 +1457,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 0],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Numerical weather model wet tropospheric correction to
                     surface height. To replace, subtract from height, add new
@@ -1364,7 +1470,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -0.4],
                 ['valid_max', 0],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Ionospheric model correction to surface height. To replace,
                     subtract from height, add new value with same sign
@@ -1376,7 +1483,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     KaRIn correction from crossover cal processing evaluated
                     for Reach.""")],
@@ -1387,7 +1495,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Height correction from KaRIn orientation (attitude)
                     determination.""")],
@@ -1398,7 +1507,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Overall instrument system height bias.""")],
                 ])],
@@ -1408,7 +1518,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     KaRIn to s/c CG correction to height.""")],
                 ])],
@@ -1418,7 +1529,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Total of corrections to height deduced from instrument
                     internal calibration(s).""")],
@@ -1440,7 +1552,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 4],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Number of downstream reaches >1 indicates multichannel
                     downstream. If number >3 should consider using Raster
@@ -1452,7 +1565,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Comma separated list (52 char allows 4 entries).""")],
                 ])],
@@ -1462,7 +1576,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Comma separated list (52 char allows 4 entries).""")],
                 ])],
@@ -1472,7 +1587,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', -1000],
                 ['valid_max', 5000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Prior height estimate from prior database.""")],
                 ])],
@@ -1482,7 +1598,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 9999],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Prior height variability from historical data, probability
                     mask, or TBD.""")],
@@ -1493,7 +1610,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Width from prior database.""")],
                 ])],
@@ -1503,28 +1621,31 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Prior width variability from historical data, probability
                     mask, or TBD.""")],
                 ])],
         ['p_class',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Planform type'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Planform type from prior database. Type list is TBD.""")],
                 ])],
         ['p_n_nodes',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Prior number of nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Use with number of good nodes to assess quality of Reach
                     quantities.""")],
@@ -1535,7 +1656,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 1],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Additional comment TBD.""")],
                 ])],
@@ -1545,7 +1667,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 'm'],
                 ['valid_min', 1],
                 ['valid_max', 10000],
-                ['tag_basic_expert', 'Basic'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Along-stream length of reach. Used to compute width from
                     area.""")],
@@ -1553,32 +1676,35 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['mean_flow',
          odict([['dtype', 'f4'],
                 ['long_name', 'Mean flow'],
-                ['units', 'm^3/s'],
+                ['units', 'm3 s-1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Estimate of mean annual flow (MAF) derived from global
                     hydrological models or other datasets [m3/s], from the
                     Science Team.""")],
                 ])],
         ['grand_id',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dam Id from GranD database'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     http://www.gwsp.org/products/grand-database.html""")],
                 ])],
         ['disch_c_c1',
          odict([['dtype', 'f4'],
                 ['long_name', 'Consensus discharge coefficient 1'],
-                ['units', 's/m^1/3'],
+                ['units', 's m-1/3'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Manning's n. Typical value ~0.03 - 0.06.  Units = s/m^1/3.
                     """)],
@@ -1586,30 +1712,33 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['disch_c_c2',
          odict([['dtype', 'f4'],
                 ['long_name', 'Consensus discharge coefficient 2'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Cross-sectional area during the 1st overpass.""")],
                 ])],
         ['dischg1_c1',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge model_1 coefficient 1'],
-                ['units', 's/m^1/3'],
+                ['units', 's m-1/3'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Coefficient 1 for discharge model 1.""")],
                 ])],
         ['dischg1_c2',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge model_1 coefficient 2'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Coefficient 2 for discharge model 1. May be more than 2
                     coefficients.""")],
@@ -1617,20 +1746,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg2_c1',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge model_2 coefficient 1'],
-                ['units', 's/m^1/3'],
+                ['units', 's m-1/3'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Coefficient 1 for discharge model 2.""")],
                 ])],
         ['dischg2_c2',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge model_2 coefficient 2'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Coefficient 2 for discharge model 2. May be more than 2
                     coefficients.""")],
@@ -1638,20 +1769,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg3_c1',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge model_3 coefficient 1'],
-                ['units', 's/m^1/3'],
+                ['units', 's m-1/3'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Coefficient 1 for discharge model 3.""")],
                 ])],
         ['dischg3_c2',
          odict([['dtype', 'f4'],
                 ['long_name', 'Discharge model_3 coefficient 2'],
-                ['units', 'm^2'],
+                ['units', 'm2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
-                ['tag_basic_expert', 'Expert'],
+                ['_FillValue', -9999],
+                ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Coefficient 2 for discharge model 3. May be more than 2
                     coefficients.""")],
