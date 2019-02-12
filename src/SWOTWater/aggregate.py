@@ -80,7 +80,7 @@ def height_only(height, good, height_std=1.0, method='weight'):
     weight_norm = weight/weight_sum_pixc
     return height_out, weight_norm
 
-def height_uncert_std(height, good, num_rare_looks, num_med_looks):
+def height_uncert_std(height, good, num_rare_looks, num_med_looks, height_std=1.0, method='weight'):
     """
     Compute the sample standard devieation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
@@ -96,8 +96,22 @@ def height_uncert_std(height, good, num_rare_looks, num_med_looks):
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
     """
-    h_std  = simple(height[good], metric='std')
+    
+    # need to do a weighted sample std when aggregating with weights
+    # TODO: for median, should probably throw out outliers...
+    weight = np.ones(np.shape(height))# default to uniform
+    if method == 'weight':
+        weight = np.ones(np.shape(height))/(height_std)**2
+    height_agg = simple(weight[good]*height[good], metric='sum')
+    weight_sum = simple(weight[good], metric='sum')
+    height_mean = height_agg/weight_sum
+    height_agg2 = simple(
+        weight[good]*(height[good]-height_mean)**2.0, metric='sum')
+    h_std = np.sqrt(height_agg2/weight_sum)
+    
     num_pixels = simple(height[good], metric='count')
+    # num_med_looks is rare_looks*num_pix_in_adaptive_window,
+    # so need to normalize out rare to get number of independent pixels
     num_ind_pixels = simple(num_med_looks[good]/num_rare_looks[good],'mean')
     height_std_out = h_std * np.sqrt(num_ind_pixels/num_pixels)
     return height_std_out
@@ -183,7 +197,8 @@ def height_with_uncerts(
 
     # now compute uncertainties
     height_std_out = height_uncert_std(
-        height, good, num_rare_looks, num_med_looks)
+        height, good, num_rare_looks, num_med_looks,
+        height_std=height_std, method=method)
 
     height_uncert_out, lat_uncert_out, lon_uncert_out = height_uncert_multilook(
         ifgram, power1, power2, weight_norm, good,
