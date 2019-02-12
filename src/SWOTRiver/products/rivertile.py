@@ -87,11 +87,16 @@ class ShapeWriterMixIn(object):
 
                 this_property = odict()
                 for key in properties_:
+                    if np.ma.isMaskedArray(self[key]):
+                        this_item = self[key].data
+                    else:
+                        this_item = self[key]
+
                     if key in ['rch_id_up', 'rch_id_dn']:
                         this_property[key] = ' '.join([
-                            str(item) for item in self[key][ii]])
+                            str(item) for item in this_item[ii]])
                     else:
-                        this_property[key] = np.asscalar(self[key][ii])
+                        this_property[key] = np.asscalar(this_item[ii])
 
                 if is_reach:
                     point = Point(float(self.p_longitud[ii]),
@@ -99,8 +104,6 @@ class ShapeWriterMixIn(object):
                 else:
                     point = Point(float(self.longitude[ii]),
                                   float(self.latitude[ii]))
-
-                from IPython import embed; embed()
 
                 # add time-string
                 this_property['time_str'] = (
@@ -396,7 +399,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['n_chan_max',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Maximum number of channels detected in node'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -406,7 +409,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""Value determined for each node.""")],
                 ])],
         ['n_chan_mod',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Mode of number of channels detected in node'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -416,7 +419,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""Value determined for each node.""")],
                 ])],
         ['dark_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dark water flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -431,7 +434,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     measurements for this node.""")],
                 ])],
         ['frozen_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Frozen flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -444,7 +447,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Indicates if the surface is frozen based on TBD.""")],
                 ])],
         ['layover_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Layover flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -458,7 +461,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     layovr_val in Expert.""")],
                 ])],
         ['n_good_pix',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Number of good pixels in node'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -470,7 +473,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
         ['node_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', textjoin("""
                     Summary quality indicator on Node measurement""")],
                 ['flag_meanings', textjoin("""
@@ -485,7 +488,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     May Include instrument, model flags, obs_frac""")],
                 ])],
         ['partial_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Indicator that node is partially observed'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -500,7 +503,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     layover].""")],
                 ])],
         ['xovr_cal_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Quality indicator of cross-over calibration'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -756,7 +759,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Additional comment TBD.""")],
                 ])],
         ['p_class',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Planform type'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -767,7 +770,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Planform type from prior database. Type list is TBD.""")],
                 ])],
         ['grand_id',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dam Id from GranD database'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1158,7 +1161,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     TBD additional comment on method.""")],
                 ])],
         ['n_chan_max',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Maximum number of channels detected in nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1169,7 +1172,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     From values determined for each node.""")],
                 ])],
         ['n_chan_mod',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Mode of number of channels detected in nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1270,7 +1273,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     TBD additional comment on method.""")],
                 ])],
         ['dark_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dark water flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -1285,7 +1288,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     measurements for this reach.""")],
                 ])],
         ['frozen_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Frozen flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -1298,7 +1301,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Indicates if the surface is frozen based on TBD.""")],
                 ])],
         ['layover_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Layover flag'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -1312,7 +1315,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     layovr_val in Expert.""")],
                 ])],
         ['partial_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Indicates that part of reach may be lost'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -1326,7 +1329,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     to orbit variation""")],
                 ])],
         ['n_good_nod',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Number of good nodes used in fit for height'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1350,7 +1353,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     counting of nodes lost to dark water or layover.""")],
                 ])],
         ['reach_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', textjoin("""
                     Summary quality indicator for reach measurement""")],
                 ['flag_meanings', textjoin("""TBD""")],
@@ -1364,7 +1367,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     May include instrument, model flags, obs_frac.""")],
                 ])],
         ['xovr_cal_q',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Quality of the cross-over calibrations'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
@@ -1625,7 +1628,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     mask, or TBD.""")],
                 ])],
         ['p_class',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Planform type'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1636,7 +1639,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Planform type from prior database. Type list is TBD.""")],
                 ])],
         ['p_n_nodes',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Prior number of nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1684,7 +1687,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Science Team.""")],
                 ])],
         ['grand_id',
-         odict([['dtype', 'u2'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'Dam Id from GranD database'],
                 ['units', '1'],
                 ['valid_min', 0],
