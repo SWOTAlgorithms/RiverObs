@@ -275,7 +275,7 @@ class Product(object):
             data_dict = cls.ATTRIBUTES
             default_dtype = 'str'
         try:
-            fill = data_dict[name]['fill']
+            fill = data_dict[name]['_FillValue']
         except KeyError:
             if dtype is None:
                 if 'dtype' in data_dict[name]:
