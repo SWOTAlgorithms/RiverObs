@@ -130,6 +130,9 @@ class L2PixcToRiverTile(object):
             smooth=self.config['smooth'],
             alpha=self.config['alpha'],
             max_iter=self.config['max_iter'])
+            
+        # Close netcdf now that we're done with it
+        river_estimator.nc.close()
 
         self.node_outputs, self.reach_outputs = None, None
         if len(self.reach_collection) > 0:

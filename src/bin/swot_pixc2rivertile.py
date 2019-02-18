@@ -122,6 +122,8 @@ def main():
             os.path.join(args.shpbasedir, 'nodes.shp'))
         l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
             os.path.join(args.shpbasedir, 'reaches.shp'))
+    if args.gdem_file is not None:
+        os.remove('fake_pixel_cloud.nc')
 
 if __name__ == "__main__":
     main()
