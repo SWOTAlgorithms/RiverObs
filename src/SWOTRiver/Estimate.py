@@ -89,7 +89,7 @@ class L2PixcToRiverTile(object):
 
         if 'area_agg_method' not in self.config:
             self.config['area_agg_method'] = 'composite'
-        
+
         if 'preseg_dilation_iter' not in self.config:
             self.config['preseg_dilation_iter'] = 0
 

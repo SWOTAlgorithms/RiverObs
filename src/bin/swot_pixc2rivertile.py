@@ -35,6 +35,7 @@ do_improved_geolocation   (-) = False
 geolocation_method        (-) = taylor
 height_agg_method         (-) = weight
 area_agg_method           (-) = composite
+preseg_dilation_iter      (-) = 1
 
 Config file just has processing parameters, no filenames (shape_file_root
 will be overwritten in SDS env with "prior_rivers" in current
@@ -45,7 +46,6 @@ class_list                (-) = [1,]
 use_fractional_inundation (-) = [False,]
 use_segmentation          (-) = [True,]
 use_heights               (-) = [True,]
-preseg_dilation_iter      (-) = 1
 
 Author (s): Alex Fore
 """

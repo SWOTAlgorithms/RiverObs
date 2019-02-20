@@ -369,7 +369,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.fit_collection = collections.OrderedDict()
         self.nc.close()
 
-    def segment_water_class(self, preseg_dilation_iter = 0):
+    def segment_water_class(self, preseg_dilation_iter=0):
         """
         do image segmentation algorithm on the water class to label
         unconnected features
@@ -383,10 +383,10 @@ class SWOTRiverEstimator(SWOTL2):
         # so that water features very close to each other 
         # (with 2*preseg_dilation_iter or fewer land pixels separating them) 
         # are given same label
-        if (preseg_dilation_iter>0):
+        if preseg_dilation_iter > 0:
             cls_tmp = np.zeros((maxY + 1, maxX + 1))
             cls_tmp[self.img_y, self.img_x] = 1
-            cls_tmp = binary_dilation(cls_tmp,iterations=preseg_dilation_iter)
+            cls_tmp = binary_dilation(cls_tmp, iterations=preseg_dilation_iter)
             cls_img[cls_tmp==1] = 1
         # segment the water class image
         lbl, nlbl = scipy.ndimage.label(cls_img)
