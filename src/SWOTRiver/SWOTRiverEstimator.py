@@ -22,6 +22,7 @@ from RiverObs import IteratedRiverObs
 from RiverObs import RiverNode
 from RiverObs import RiverReach
 from Centerline.Centerline import CenterLineException
+from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
 
@@ -376,7 +377,14 @@ class SWOTRiverEstimator(SWOTL2):
         cls_img = np.zeros((maxY + 1, maxX + 1))
         cls_img[self.img_y, self.img_x] = self.isWater
 
-        # Do some regularization with morphological operations? (TODO)
+        # Do some regularization with morphological operations
+        # so that water features very close to each other 
+        # (with 2 or 1 land pixels separating them) are given same label
+        if (True):# temporary fake switch to toggle on/off pre-seg. dilation
+            cls_tmp = np.zeros((maxY + 1, maxX + 1))
+            cls_tmp[self.img_y, self.img_x] = 1
+            cls_tmp = binary_dilation(cls_tmp)
+            cls_img[cls_tmp==1] = 1
         # segment the water class image
         lbl, nlbl = scipy.ndimage.label(cls_img)
 
