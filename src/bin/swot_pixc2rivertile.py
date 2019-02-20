@@ -45,6 +45,7 @@ class_list                (-) = [1,]
 use_fractional_inundation (-) = [False,]
 use_segmentation          (-) = [True,]
 use_heights               (-) = [True,]
+preseg_dilation_iter      (-) = 1
 
 Author (s): Alex Fore
 """

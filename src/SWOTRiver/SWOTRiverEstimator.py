@@ -187,6 +187,7 @@ class SWOTRiverEstimator(SWOTL2):
                  subsample_factor=1,
                  height_agg_method='weight',#[weight, median, uniform, orig]
                  area_agg_method='composite',
+                 preseg_dilation_iter=0,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -206,6 +207,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.use_heights = use_heights
         self.height_agg_method = height_agg_method
         self.area_agg_method = area_agg_method
+        self.preseg_dilation_iter = preseg_dilation_iter
 
         # Initialize the base class
         SWOTL2.__init__(
@@ -344,7 +346,7 @@ class SWOTRiverEstimator(SWOTL2):
                 if self.use_segmentation[i]:
                     index = self.klass == k
                     self.isWater[index] = 1
-            self.segment_water_class()
+            self.segment_water_class(self.preseg_dilation_iter)
         else:
             self.seg_label = None
 
@@ -367,7 +369,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.fit_collection = collections.OrderedDict()
         self.nc.close()
 
-    def segment_water_class(self):
+    def segment_water_class(self, preseg_dilation_iter = 0):
         """
         do image segmentation algorithm on the water class to label
         unconnected features
@@ -379,11 +381,12 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Do some regularization with morphological operations
         # so that water features very close to each other 
-        # (with 2 or 1 land pixels separating them) are given same label
-        if (True):# temporary fake switch to toggle on/off pre-seg. dilation
+        # (with 2*preseg_dilation_iter or fewer land pixels separating them) 
+        # are given same label
+        if (preseg_dilation_iter>0):
             cls_tmp = np.zeros((maxY + 1, maxX + 1))
             cls_tmp[self.img_y, self.img_x] = 1
-            cls_tmp = binary_dilation(cls_tmp)
+            cls_tmp = binary_dilation(cls_tmp,iterations=preseg_dilation_iter)
             cls_img[cls_tmp==1] = 1
         # segment the water class image
         lbl, nlbl = scipy.ndimage.label(cls_img)
