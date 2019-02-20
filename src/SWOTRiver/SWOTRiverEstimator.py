@@ -364,6 +364,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs_collection = collections.OrderedDict()
         self.river_reach_collection = collections.OrderedDict()
         self.fit_collection = collections.OrderedDict()
+        self.nc.close()
 
     def segment_water_class(self):
         """

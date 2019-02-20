@@ -96,7 +96,8 @@ def main():
     pixc_file = args.pixc_file
     if args.gdem_file is not None:
         import fake_pixc_from_gdem
-        pixc_file = 'fake_pixel_cloud.nc'
+        import tempfile
+        pixc_file = tempfile.mktemp()
         fake_pixc_from_gdem.fake_pixc_from_gdem(
             args.gdem_file, args.pixc_file, pixc_file)
 
@@ -122,6 +123,9 @@ def main():
             os.path.join(args.shpbasedir, 'nodes.shp'))
         l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
             os.path.join(args.shpbasedir, 'reaches.shp'))
+
+    if args.gdem_file is not None:
+        os.remove(pixc_file)
 
 if __name__ == "__main__":
     main()
