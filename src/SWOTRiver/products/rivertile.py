@@ -64,8 +64,8 @@ class ShapeWriterMixIn(object):
 
         try:
             # these are for the geometry part of schema
-            properties.pop('latitude')
-            properties.pop('longitude')
+            properties.pop('lat_prior')
+            properties.pop('lon_prior')
             is_reach = False
 
         except KeyError:
@@ -102,8 +102,8 @@ class ShapeWriterMixIn(object):
                     point = Point(float(self.p_longitud[ii]),
                                   float(self.p_latitud[ii]))
                 else:
-                    point = Point(float(self.longitude[ii]),
-                                  float(self.latitude[ii]))
+                    point = Point(float(self.lon_prior[ii]),
+                                  float(self.lat_prior[ii]))
 
                 # add time-string
                 this_property['time_str'] = (
@@ -226,6 +226,33 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     TBD additional comment.""")],
+                ])],
+        ['lat_prior',
+         odict([['dtype', 'f8'],
+                ['long_name', 'Latitude of prior node in database'],
+                ['standard_name', 'latitude'],
+                ['units', 'degrees_north'],
+                ['valid_min', -78],
+                ['valid_max', 78],
+                ['_FillValue', -9999],
+                ['tag_basic_expert', 'Basic'],
+                ['comment', textjoin("""
+                    TBD[Average latitude, not necessarily along stream]. 13
+                    digits adequate for microdeg gives sub-meter location.""")],
+                ])],
+        ['lon_prior',
+         odict([['dtype', 'f8'],
+                ['long_name', 'Longitude of prior node in database'],
+                ['standard_name', 'longitude'],
+                ['units', 'degrees_east'],
+                ['valid_min', 0],
+                ['valid_max', 360],
+                ['_FillValue', -9999],
+                ['tag_basic_expert', 'Basic'],
+                ['comment', textjoin("""
+                    East longitude is convention for all products.
+                    TBD[Average longitude, not necessarily along stream]. 13
+                    digits adequate for microdeg gives sub-meter location.""")],
                 ])],
         ['height',
          odict([['dtype', 'f4'],
@@ -818,6 +845,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
                 (node_outputs['y']-node_outputs['y_prior'])**2)
+
+            klass['lat_prior'] = node_outputs['lat_prior']
+            klass['lon_prior'] = node_outputs['lon_prior']
 
             # set quality flag
             klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(

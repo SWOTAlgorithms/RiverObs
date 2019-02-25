@@ -969,6 +969,9 @@ class SWOTRiverEstimator(SWOTL2):
             np.logical_and(test_width < 0, min_n < test_width),
             np.logical_and(test_width > 0, max_n > test_width))
 
+        lon_prior = reach.lon[self.river_obs.populated_nodes]
+        lat_prior = reach.lat[self.river_obs.populated_nodes]
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
@@ -992,6 +995,8 @@ class SWOTRiverEstimator(SWOTL2):
             'nobs_h': nobs_h.astype('int32'),
             'x_prior': x_prior.astype('float64'),
             'y_prior': y_prior.astype('float64'),
+            'lon_prior': lon_prior.astype('float64'),
+            'lat_prior': lat_prior.astype('float64'),
             'node_indx': node_indx.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
             'rdr_sig0': rdr_sig0.astype('float32'),
