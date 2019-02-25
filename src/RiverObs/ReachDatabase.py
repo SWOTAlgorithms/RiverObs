@@ -233,7 +233,8 @@ class ReachDatabase(Product):
     def __call__(self, reach_id):
         """Returns dict-o-stuff for reach_id"""
         return {"nodes": self.nodes(reach_id),
-                "reaches": self.reaches(reach_id)}
+                "reaches": self.reaches(reach_id),
+                "centerlines": self.centerlines(reach_id)}
 
     def __add__(self, other):
         # hack it up
@@ -388,6 +389,13 @@ class ReachDatabaseCenterlines(Product):
         ['cl_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_POINTS]])],
         ])
+
+    def __call__(self, reach_id):
+        """Returns dict of reach attributes for reach_id"""
+        mask = np.any(self.reach_id == reach_id, axis=0)
+        outputs = {
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        return outputs
 
     def __add__(self, other):
         klass = ReachDatabaseCenterlines()
