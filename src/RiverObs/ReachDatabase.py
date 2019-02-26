@@ -182,7 +182,9 @@ class ReachExtractor(object):
             metadata = {
                 'lakeFlag': this_reach['reaches']['lakeflag'][0],
                 'lon': this_reach['reaches']['x'][0],
-                'lat': this_reach['reaches']['y'][0]}
+                'lat': this_reach['reaches']['y'][0],
+                'centerline_lon': this_reach['centerlines']['x'],
+                'centerline_lat': this_reach['centerlines']['y']}
 
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(

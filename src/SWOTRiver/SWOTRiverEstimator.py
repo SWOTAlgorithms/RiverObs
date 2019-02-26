@@ -1129,6 +1129,8 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             uint8_flg = reach.metadata['lakeFlag']
         reach_stats['lake_flag'] = uint8_flg
+        reach_stats['centerline_lon'] =  reach.metadata['centerline_lon']
+        reach_stats['centerline_lat'] =  reach.metadata['centerline_lat']
 
         river_reach.metadata = reach_stats
         return river_reach

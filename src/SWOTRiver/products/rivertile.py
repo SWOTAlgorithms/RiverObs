@@ -12,7 +12,7 @@ import fiona
 import netCDF4
 import datetime
 import warnings
-from shapely.geometry import Point, mapping
+from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
 from SWOTRiver.products.pixcvec import L2PIXCVector
@@ -53,6 +53,7 @@ class L2HRRiverTile(Product):
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
     def write_shapes(self, shp_fname):
+
         REMAP_DICT = {
             'i1': 'int', 'i2': 'int', 'i4': 'int',
             'u1': 'int', 'u2': 'int', 'u4': 'int',
@@ -69,19 +70,24 @@ class ShapeWriterMixIn(object):
             is_reach = False
 
         except KeyError:
+            properties.pop('centerline_lat')
+            properties.pop('centerline_lon')
             is_reach = True
 
         # add time-string
         properties_ = properties.copy()
         properties['time_str'] = 'str'
 
+
+        # mash up the schema
+        schema = {'geometry': 'Point', 'properties': properties}
+
         # special treatment of these
         if is_reach:
             properties['rch_id_up'] = 'str'
             properties['rch_id_dn'] = 'str'
+            schema['geometry'] = 'LineString'
 
-        # mash up the schema
-        schema = {'geometry': 'Point', 'properties': properties}
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
             for ii in range(self.reach_id.shape[0]):
 
@@ -99,11 +105,15 @@ class ShapeWriterMixIn(object):
                         this_property[key] = np.asscalar(this_item[ii])
 
                 if is_reach:
-                    point = Point(float(self.p_longitud[ii]),
-                                  float(self.p_latitud[ii]))
+                    lons = self.centerline_lon[ii]
+                    lats = self.centerline_lat[ii]
+                    is_valid = np.abs(lats)<90
+
+                    this_geo = LineString([
+                        (x, y) for x, y in zip(lons[is_valid], lats[is_valid])])
                 else:
-                    point = Point(float(self.lon_prior[ii]),
-                                  float(self.lat_prior[ii]))
+                    this_geo = Point(float(self.lon_prior[ii]),
+                                     float(self.lat_prior[ii]))
 
                 # add time-string
                 this_property['time_str'] = (
@@ -111,7 +121,7 @@ class ShapeWriterMixIn(object):
                         seconds=this_property['time'])
                     ).strftime('%Y-%m-%dT%H:%M%S.%fZ')
 
-                ofp.write({'geometry': mapping(point), 'id': ii,
+                ofp.write({'geometry': mapping(this_geo), 'id': ii,
                            'properties': this_property, 'type': 'Feature'})
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
@@ -904,8 +914,11 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['reaches', 0], ['reach_neighbors', 4]])
+    DIMENSIONS = odict([
+        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 500]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
+    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 500]])
+    DIMENSIONS_REACH_NEIGHBORS = odict([['reaches', 0], ['reach_neighbors', 4]])
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i4'],
@@ -924,6 +937,28 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
+        ['centerline_lat',
+         odict([['dtype', 'f4'],
+                ['long_name',
+                    'Latitude of the centerline of the reach from prior database'],
+                ['units', 'degrees_north'],
+                ['valid_min', -90],
+                ['valid_max', 90],
+                ['_FillValue', -9999],
+                ['tag_basic_expert', 'Basic'],
+                ['comment', textjoin("""""")],
+                ])],
+        ['centerline_lon',
+         odict([['dtype', 'f4'],
+                ['long_name',
+                    'Longitude of the centerline of the reach from prior database'],
+                ['units', 'degrees_east'],
+                ['valid_min', 0],
+                ['valid_max', 360],
+                ['_FillValue', -9999],
+                ['tag_basic_expert', 'Basic'],
+                ['comment', textjoin("""""")],
+                ])],
         ['p_latitud',
          odict([['dtype', 'f4'],
                 ['long_name',
@@ -1823,7 +1858,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     ])
     for name, reference in VARIABLES.items():
         if name in ['rch_id_up', 'rch_id_dn']:
-            reference['dimensions'] = DIMENSIONS
+            reference['dimensions'] = DIMENSIONS_REACH_NEIGHBORS
+        elif name in ['centerline_lat', 'centerline_lon']:
+            reference['dimensions'] = DIMENSIONS_CENTERLINES
         else:
             reference['dimensions'] = DIMENSIONS_REACHES
 
@@ -1856,6 +1893,18 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_nodes'] = reach_outputs['prior_n_nodes']
             klass['p_latitud'] = reach_outputs['prior_lat']
             klass['p_longitud'] = reach_outputs['prior_lon']
+
+            cl_lon = klass['centerline_lon'][:]
+            cl_lat = klass['centerline_lat'][:]
+            for ii in range(klass.dimensions['reaches']):
+                this_len = len(reach_outputs['centerline_lon'][ii])
+                tmp_lon = reach_outputs['centerline_lon'][ii]
+                tmp_lon[tmp_lon < 0] += 360
+                cl_lon[ii, 0:this_len] = tmp_lon
+                cl_lat[ii, 0:this_len] = reach_outputs['centerline_lat'][ii]
+
+            klass['centerline_lon'] = cl_lon
+            klass['centerline_lat'] = cl_lat
 
             # may not be populated depending on run config
             for inkey, outkey in {'slp_enhncd': 'slope2'}.items():
