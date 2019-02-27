@@ -37,13 +37,13 @@ def main():
     is_bad_width = rivertile.nodes.node_q & 0x1 > 0
 
     axis.scatter(
-        rivertile.nodes.longitude[is_bad_width],
-        rivertile.nodes.latitude[is_bad_width],
+        rivertile.nodes.lon_prior[is_bad_width],
+        rivertile.nodes.lat_prior[is_bad_width],
         marker='s', c='m')
 
     axis.scatter(
-        rivertile.nodes.longitude[~is_bad_width],
-        rivertile.nodes.latitude[~is_bad_width],
+        rivertile.nodes.lon_prior[~is_bad_width],
+        rivertile.nodes.lat_prior[~is_bad_width],
         marker='x', c='m')
 
     axis.set_xlabel('longitude')
