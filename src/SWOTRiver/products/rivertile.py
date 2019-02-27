@@ -858,6 +858,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
             klass['lat_prior'] = node_outputs['lat_prior']
             klass['lon_prior'] = node_outputs['lon_prior']
+            klass['lon_prior'][klass['lon_prior']<0] += 360
 
             # set quality flag
             klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
