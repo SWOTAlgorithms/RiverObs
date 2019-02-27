@@ -9,12 +9,25 @@ import logging
 import warnings
 import numpy as np
 import math
+import pyproj
+
 from collections import OrderedDict as odict
 
 from RiverObs.RiverReach import RiverReach
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
 
 LOGGER = logging.getLogger(__name__)
+
+class LatLonRegion:
+    """
+    Hacked up class to use for cheap-n-easy use of ReachExtractor
+
+    Look/act/quack like SWOTL2 at least for ReachExtractor's use
+    """
+    def __init__(self, bounding_box):
+        self.bounding_box = bounding_box
+        self.proj = pyproj.Proj(
+            proj='laea', x_0=0, y_0=0, lat_0=None, lon_0=None, ellps='WGS84')
 
 def get_blocking_widths(x, y):
     """
