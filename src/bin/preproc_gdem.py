@@ -12,6 +12,38 @@ import scipy.stats
 import scipy.ndimage
 import numpy as np
 
+import RiverObs.ReachDatabase
+
+LOGGER = logging.getLogger(__name__)
+
+def select_river_label(type, type_label, gdem_x, gdem_y, reaches):
+    """
+    Picks the label that is nearest to the reach lons/lats.
+    """
+    LOGGER.info('select_river_label')
+    reach_x, reach_y = np.array([]), np.array([])
+    for item in reaches:
+        reach_x = np.append(reach_x, item.x)
+        reach_y = np.append(reach_y, item.y)
+
+    uniq_labels = np.unique(type_label[type == 1])
+    type_dist = 9999999*np.ones(uniq_labels.shape)
+
+    for ilabel, uniq_label in enumerate(uniq_labels[:20]):
+        these_x = gdem_x[type_label == uniq_label]
+        these_y = gdem_y[type_label == uniq_label]
+        delta2 = (
+            (these_x[:, np.newaxis] - reach_x)**2 +
+            (these_y[:, np.newaxis] - reach_y)**2)
+        min_d2 = delta2.min(axis=0)
+        type_dist[ilabel] = np.mean(np.sqrt(min_d2))
+
+        LOGGER.debug(
+            "Feature label, dist, num: {} {} {}".format(
+                uniq_label, type_dist[ilabel], len(these_x)))
+
+    return uniq_labels[type_dist.argmin()]
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('in_gdem_file', help='Input GDEM file')
@@ -28,17 +60,29 @@ def main():
     logging.basicConfig(level=level, format=format)
 
     with netCDF4.Dataset(args.in_gdem_file, 'r') as ifp:
-        type = ifp.variables['landtype'][:]
+        in_type = ifp.variables['landtype'][:]
         lat = ifp.variables['latitude'][:]
         lon = ifp.variables['longitude'][:]
 
-    # labeled in descending order of counts
+    type = np.zeros(in_type.shape)
+    type[in_type == 1] = 1
+
+    # Extract prior node locations, first make a LatLonRegion
+    llbox = RiverObs.ReachDatabase.LatLonRegion(
+        [lon.min(), lat.min(), lon.max(), lat.max()])
+
+    # project GDEM coordinates
+    gdem_x, gdem_y = llbox.proj(lon, lat)
+
+    # Extract Reaches
+    reaches = RiverObs.ReachDatabase.ReachExtractor(args.reachdb_path, llbox)
+
+    # Labeled in descending order of counts
     type_label, num_labels = scipy.ndimage.label(type)
 
-    # Get land and river labels (assume largest connected water feature is the
-    # river of interest).
+    # Get land and river labels.
     land_label = scipy.stats.mode(type_label[type == 0]).mode[0]
-    river_label = scipy.stats.mode(type_label[type == 1]).mode[0]
+    river_label = select_river_label(type, type_label, gdem_x, gdem_y, reaches)
 
     # Water that is not in the largest water features
     water_not_main_label = np.logical_and(
