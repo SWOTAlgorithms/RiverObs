@@ -162,7 +162,7 @@ def select_river_labels(type, type_label, gdem_x, gdem_y, reaches):
             # subsample randomly if its big 
             if cnts[ilabel] > max_compare:
                 these_x, these_y = np.random.permutation(
-                    np.array([these_x, these_y]))[:, :max_compare]
+                    np.array([these_x, these_y]).T)[:max_compare, :].T
 
             # compute distance between the pixels in the feature and the reach
             delta2 = (
@@ -178,7 +178,8 @@ def select_river_labels(type, type_label, gdem_x, gdem_y, reaches):
                     ireach, uniq_label, type_dist[ilabel], len(these_x), cnts[ilabel]))
 
         this_label = uniq_labels[type_dist.argmin()]
-        print ('this_label: ',this_label)
+        LOGGER.debug(
+            "label: {}, selected for reach {}".format(this_label,ireach))
         if this_label not in labels:
             labels.append(this_label)
 
