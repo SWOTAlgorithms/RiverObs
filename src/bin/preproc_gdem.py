@@ -33,7 +33,7 @@ def erosion_segmentation(ltype_in, erosion_iter, plot=False):
 
     # Now segment the image
     type_label, num_labels = scipy.ndimage.label(ltype)
-    
+
     # Assign closest label to orphaned pixels 
     # (i.e., pixels that were originally eroded out of mask)
     # first diate out to get back the edges and assign to nearest feature
@@ -43,23 +43,29 @@ def erosion_segmentation(ltype_in, erosion_iter, plot=False):
         LOGGER.debug(
                 "grey dilation iter: {} of {}".format(i,erosion_iter))
         tmp1 = scipy.ndimage.morphology.grey_dilation(
-            type_label_tmp,size=5)
-        msk = np.logical_and(np.logical_and(type_label_tmp==0, tmp1>0), ltype_in==1)
+            type_label_tmp, size=5)
+        msk = np.logical_and(
+            np.logical_and(type_label_tmp == 0, tmp1 > 0), ltype_in == 1)
         type_label_tmp[msk] = tmp1[msk]
+
     type_label_tmp = type_label_tmp * ltype_in
     # Now handle remaining orphaned regions 
     # (e.g., skinny things that completely eroded)
     orphan_mask = np.zeros_like(ltype_in)
-    orphan_mask[np.logical_and(ltype_in==1, type_label_tmp<=0)] = 1
+    orphan_mask[np.logical_and(ltype_in == 1, type_label_tmp <= 0)] = 1
+
     # Dilate the orphan mask to connect regions that touch
     orphan_dilated = scipy.ndimage.morphology.binary_dilation(
-        orphan_mask,iterations = 1)
+        orphan_mask,iterations=1)
+
     # segment the orphans
     orphan_label, num_orphan_labels = scipy.ndimage.label(orphan_dilated)
+
     # Combine labels with orphans as highest labels
     combo_label = type_label_tmp.copy()
-    combo_label[orphan_label>0] = orphan_label[orphan_label>0] + np.max(type_label_tmp)
-    combo_label[ltype_in==0] = 0
+    combo_label[orphan_label > 0] = (
+        orphan_label[orphan_label > 0] + np.max(type_label_tmp))
+    combo_label[ltype_in == 0] = 0
     combo_label0 = combo_label.copy()
 
     # See if any orphans are actually touching other features
@@ -70,17 +76,18 @@ def erosion_segmentation(ltype_in, erosion_iter, plot=False):
         label_intersect = type_label_tmp[slyce]*orphan_dilated[slyce]
         if np.sum(label_intersect)>0:
             msk = np.logical_and(
-                orphan_label[slyce]==labels[i+1], ltype_in[slyce]==1)
+                orphan_label[slyce] == labels[i+1], ltype_in[slyce] == 1)
             combo_label[slyce][msk] = scipy.stats.mode(
-                label_intersect[label_intersect>0])[0]
-    if (False):
+                label_intersect[label_intersect > 0])[0]
+
+    if plot:
         import matplotlib.pyplot as plt
         # for setting the zoom
         a0=7700
         a1=8200
         c0=2700
         c1=3100
-        
+
         plt.figure()
         plt.imshow(wrap_label_for_plots(type_label_tmp),cmap='jet')
         plt.colorbar()
@@ -102,7 +109,6 @@ def erosion_segmentation(ltype_in, erosion_iter, plot=False):
         plt.ylim([a0,a1])
         plt.xlim(c0,c1)
 
-        
         plt.figure()
         plt.imshow(wrap_label_for_plots(combo_label),cmap='jet')
         plt.colorbar()
@@ -110,7 +116,6 @@ def erosion_segmentation(ltype_in, erosion_iter, plot=False):
         plt.ylim([a0,a1])
         plt.xlim(c0,c1)
 
-       
         plt.figure()
         plt.imshow(wrap_label_for_plots(combo_label0),cmap='jet')
         plt.colorbar()
@@ -118,7 +123,6 @@ def erosion_segmentation(ltype_in, erosion_iter, plot=False):
         plt.ylim([a0,a1])
         plt.xlim(c0,c1)
 
-       
         plt.figure()
         plt.imshow(wrap_label_for_plots(orphan_label),cmap='jet')
         plt.colorbar()
@@ -154,7 +158,7 @@ def select_river_labels(type, type_label, gdem_x, gdem_y, reaches):
             # probably not it if only 1000 pixels in feature
             if cnts[ilabel] < min_compare:
                 continue
-            
+
             # get the pixels in the feature
             these_x = gdem_x[type_label == uniq_label]
             these_y = gdem_y[type_label == uniq_label]
@@ -174,12 +178,12 @@ def select_river_labels(type, type_label, gdem_x, gdem_y, reaches):
             type_dist[ilabel] = np.mean(np.sqrt(min_d2))
 
             LOGGER.debug(
-                "reach, label, dist, num: {} {} {} {} {}".format(
-                    ireach, uniq_label, type_dist[ilabel], len(these_x), cnts[ilabel]))
+                "reach, label, dist, num: {} {} {} {}".format(
+                    ireach, uniq_label, type_dist[ilabel], cnts[ilabel]))
 
         this_label = uniq_labels[type_dist.argmin()]
         LOGGER.debug(
-            "label: {}, selected for reach {}".format(this_label,ireach))
+            "label: {}, selected for reach {}".format(this_label, ireach))
         if this_label not in labels:
             labels.append(this_label)
 
@@ -194,8 +198,8 @@ def main():
         '-l', '--log-level', type=str, default="warning",
         help="logging level, one of: debug info warning error")
     parser.add_argument('--plot', default=False, action='store_true')
-    parser.add_argument('--erosion-iter', type=int, default=0,
-                        help='erosion iterations')
+    parser.add_argument(
+        '--erosion-iter', type=int, default=0, help='erosion iterations')
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
@@ -223,7 +227,8 @@ def main():
 
     # Optionally erode before segmentation
     if args.erosion_iter > 0:
-        type_label = erosion_segmentation(type, args.erosion_iter, plot=args.plot)
+        type_label = erosion_segmentation(
+            type, args.erosion_iter, plot=args.plot)
     else:
         # Labeled in descending order of counts
         type_label, num_labels = scipy.ndimage.label(type)
