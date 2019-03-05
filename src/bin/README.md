@@ -28,3 +28,18 @@ Compares the pixel cloud rivertile data product to that which was generated usin
 usage: plot_reach_stats.py [-h] [-t TITLE] [-p] pixc_rivertile gdem_rivertile
 ```
 Compares the pixel cloud and gdem rivertile data products similar to plot_riverobs.py but compares reaches instead.
+
+# preproc_gdem.py
+```
+usage: preproc_gdem.py [-h] [-l LOG_LEVEL] [--plot]
+                       [--erosion-iter EROSION_ITER]
+                       in_gdem_file out_gdem_file reachdb_path
+```
+Pre-processes the GDEM to trim out some non-river / main channel water.
+
+Basically, it works in two steps:
+* segmenting the water features into disconnected (or close-to-disconnected) regions
+* assigning a particular feature label to each river reach using proximity to the river database.
+ 
+There is an optional parameter called ```--erosion-iter``` that you can fiddle with that can be used to disconnect features that are technically touching, but only barely.  What it does is first erode the water mask before the initial segmentation, then figures out how to handle the things that got eroded in a fancy way. 
+ 
