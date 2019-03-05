@@ -24,6 +24,10 @@ def wrap_label_for_plots(arr_in, wrap_value=20):
     return np.mod(arr_out, wrap_value)
 
 def erosion_segmentation(ltype_in, erosion_iter, plot=False):
+    """
+    It erodes the water mask before the initial segmentation, then figures
+    out how to handle the things that got eroded in a fancy way.
+    """
     LOGGER.info('erosion_segmentation')
     # First erode the water mask
     ltypeb = scipy.ndimage.morphology.binary_erosion(
@@ -255,12 +259,9 @@ def main():
             reach_lat = np.append(reach_lat, item.lat)
 
         figure, axis = plt.subplots()
+        axis.plot(reach_lon, reach_lat, 'rs')
         axis.plot(lon[type==1], lat[type==1], 'g.')
         axis.plot(lon[out_type==1], lat[out_type==1], 'k.')
-        #axis.scatter(lon[type==1], lat[type==1],
-        #             c=wrap_label_for_plots(type_label[type==1]),
-        #             edgecolors='none')
-        axis.plot(reach_lon, reach_lat, 'rs')
         axis.set_xlabel('longitude')
         axis.set_ylabel('latitude')
 
