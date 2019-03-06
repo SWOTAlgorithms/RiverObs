@@ -50,9 +50,51 @@ class L2HRRiverTile(Product):
             self.reaches.update_from_pixc(pixc_file, index_file)
             self.reaches.update_from_nodes(self.nodes)
 
+    def enforce_shapes(self, node_shapefile, reach_shapefile):
+        """Checks that self contains whats in the shapefile"""
+        for id_key, part, shapefile in zip(
+            ['node_id', 'reach_id'], [self.nodes, self.reaches],
+            [node_shapefile, reach_shapefile]):
+
+            with fiona.open(shapefile) as fc:
+                schema = fc.schema
+                items = list(fc.items())
+
+            shp_vars = {}
+            for varname in schema['properties']:
+                shp_vars[varname] = np.array([
+                    item[1]['properties'][varname] for item in items])
+
+            shp_ids, shp_idx = np.unique(
+                shp_vars[id_key], return_index=True)
+            nc_ids, nc_idx = np.unique(
+                part[id_key], return_index=True)
+            common_ids = np.intersect1d(shp_ids, nc_ids)
+
+            shp_idx = shp_idx[np.isin(nc_ids, shp_ids)]
+            nc_idx = nc_idx[np.isin(shp_ids, nc_ids)]
+
+            if len(shp_idx) != len(nc_idx):
+                print("Shape and NetCDF not same size!")
+
+            for varname in shp_vars:
+
+                # skip these ones
+                if varname in ['rch_id_up', 'rch_id_dn', 'time_str']:
+                    continue
+
+                shp_var = shp_vars[varname][shp_idx]
+                try:
+                    nc_var = part[varname][nc_idx]
+                    print(varname, (nc_var-shp_var).mean(),
+                          (nc_var-shp_var).std())
+                except (KeyError, AttributeError):
+                    print(varname+" not found.")
+
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
     def write_shapes(self, shp_fname):
+        """Writes self to a shapefile"""
 
         REMAP_DICT = {
             'i1': 'int', 'i2': 'int', 'i4': 'int',
@@ -125,7 +167,10 @@ class ShapeWriterMixIn(object):
                            'properties': this_property, 'type': 'Feature'})
 
         with open(shp_fname.replace('.shp', '.prj'), 'w') as ofp:
-            ofp.write('GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137,298.257223563]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n')
+            ofp.write((
+                'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'+
+                'SPHEROID["WGS_1984",6378137,298.257223563]],'+
+                'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'))
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = odict()
