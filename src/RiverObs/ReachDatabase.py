@@ -203,7 +203,8 @@ class ReachExtractor(object):
             self.reach.append(RiverReach(
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,
                 reach_index=ii, node_indx=node_indx,
-                blocking_widths=blocking_widths))
+                blocking_widths=blocking_widths,
+                width=this_reach['nodes']['width']))
 
         self.idx = 0
         self.nreaches = len(self.reach)
