@@ -614,6 +614,13 @@ class SWOTRiverEstimator(SWOTL2):
                 print("CenterLineException: ", e)
                 continue
 
+            # Add width per node to centerline and re-init IteratedRiverObs
+            # to use the per node max widths.
+            river_obs.add_centerline_obs(
+                self.reaches[i_reach].x, self.reaches[i_reach].y,
+                self.reaches[i_reach].width, 'max_width')
+            river_obs.reinitialize()
+
             if len(river_obs.x) == 0:
                 LOGGER.debug(
                     'No observations mapped to nodes in this reach')
