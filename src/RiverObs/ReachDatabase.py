@@ -25,9 +25,10 @@ class LatLonRegion:
     Look/act/quack like SWOTL2 at least for ReachExtractor's use
     """
     def __init__(self, bounding_box):
-        self.bounding_box = bounding_box
+        lat_0 = (self.bounding_box[3] + self.bounding_box[1]) / 2.0
+        lon_0 = (self.bounding_box[2] + self.bounding_box[0]) / 2.0
         self.proj = pyproj.Proj(
-            proj='laea', x_0=0, y_0=0, lat_0=None, lon_0=None, ellps='WGS84')
+            proj='laea', x_0=0, y_0=0, lat_0=lat_0, lon_0=lon_0, ellps='WGS84')
 
 def get_blocking_widths(x, y):
     """
