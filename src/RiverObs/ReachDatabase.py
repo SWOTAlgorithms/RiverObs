@@ -25,6 +25,7 @@ class LatLonRegion:
     Look/act/quack like SWOTL2 at least for ReachExtractor's use
     """
     def __init__(self, bounding_box):
+        self.bounding_box = bounding_box
         lat_0 = (self.bounding_box[3] + self.bounding_box[1]) / 2.0
         lon_0 = (self.bounding_box[2] + self.bounding_box[0]) / 2.0
         self.proj = pyproj.Proj(
