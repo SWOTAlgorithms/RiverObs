@@ -164,8 +164,9 @@ class ReachExtractor(object):
         self.reach_idx = []
         for ii, reach_idx in enumerate(try_reach_idx):
 
-            LOGGER.debug('Appending reach {} of {}'.format(
-                ii, len(try_reach_idx)))
+            if ii % 100 == 0:
+                LOGGER.debug('Appending reach {} of {}'.format(
+                    ii, len(try_reach_idx)))
             this_reach = reach_db(reach_idx)
             lon = this_reach['nodes']['x']
             lat = this_reach['nodes']['y']
