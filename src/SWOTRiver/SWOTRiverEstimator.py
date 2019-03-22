@@ -1117,7 +1117,7 @@ class SWOTRiverEstimator(SWOTL2):
         # use White’s (1980) heteroskedasticity robust standard errors.
         # https://www.statsmodels.org/dev/generated/
         #        statsmodels.regression.linear_model.RegressionResults.html
-        reach_stats['slope_u'] = fit.HC0_se[0]
+        reach_stats['slope_u'] = fit.HC0_se[0] * 1e6
         reach_stats['height_u'] = fit.HC0_se[1]
 
         # do fit on geoid heights
