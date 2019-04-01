@@ -202,7 +202,8 @@ class ReachExtractor(object):
                 'lon': this_reach['reaches']['x'][0],
                 'lat': this_reach['reaches']['y'][0],
                 'centerline_lon': this_reach['centerlines']['x'],
-                'centerline_lat': this_reach['centerlines']['y']}
+                'centerline_lat': this_reach['centerlines']['y'],
+                'area_fits': this_reach['reaches']['area_fits']}
 
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
@@ -312,6 +313,8 @@ class ReachDatabaseNodes(Product):
 class ReachDatabaseReaches(Product):
     """Prior Reach database reaches"""
     ATTRIBUTES = odict([])
+    GROUPS = odict([['area_fits', 'ReachDatabaseReachAreaFits']])
+
     DIMENSIONS = odict([['centerlines', 2], ['reach_neighbors', 4], ['reaches', 0]])
     DIMENSIONS_CLIDS = odict([['centerlines', 2], ['reaches', 0]])
     DIMENSIONS_REACH_UPDOWN = odict([['reach_neighbors', 4], ['reaches', 0]])
@@ -350,6 +353,7 @@ class ReachDatabaseReaches(Product):
         mask = self.reach_id == reach_id
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        outputs['area_fits'] = self.area_fits(mask)
         return outputs
 
     def __add__(self, other):
@@ -392,6 +396,45 @@ class ReachDatabaseReaches(Product):
                lonmin < reach_lonmax and lonmax > reach_lonmin):
                 overlapping_reach_ids.append(reach_id)
         return overlapping_reach_ids
+
+class ReachDatabaseReachAreaFits(Product):
+    """class for prior reach database reach area_fits datagroup"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([
+        ['nCoeffs', 0], ['nReg', 0], ['hbreak_dim', 0], ['reaches', 0]])
+    DIMENSIONS_HW_BREAK = odict([['hbreak_dim', 0], ['reaches', 0]])
+    DIMENSIONS_REACHES = odict([['reaches', 0]])
+    DIMENSIONS_FIT = odict([['nCoeffs', 0], ['nReg', 0], ['reaches', 0]])
+    VARIABLES = odict([
+        ['h_break',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_HW_BREAK]])],
+        ['w_break',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_HW_BREAK]])],
+        ['h_variance',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['w_variance',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['hw_covariance',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['med_flow_area',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['h_err_stdev',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['w_err_stdev',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['h_w_nobs',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['fit_coeffs',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_FIT]])],
+        ])
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        return outputs
 
 class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""

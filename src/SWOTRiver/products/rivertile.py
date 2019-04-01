@@ -1086,9 +1086,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['looks_to_efflooks', {}]])
 
     DIMENSIONS = odict([
-        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 500]])
+        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
-    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 500]])
+    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 1000]])
     DIMENSIONS_REACH_NEIGHBORS = odict([['reaches', 0], ['reach_neighbors', 4]])
     VARIABLES = odict([
         ['reach_id',
