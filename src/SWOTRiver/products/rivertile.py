@@ -93,6 +93,27 @@ class L2HRRiverTile(Product):
 
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
+    def write_shape_xml(self, filename):
+        """Writes the XML metadata to filename"""
+        with open(filename, 'w') as ofp:
+            ofp.write("<?xml version='1.0' encoding='UTF-8'?>\n")
+            ofp.write('<swot_product>\n')
+            ofp.write('  <attributes>\n')
+            for key, value in self.attributes.items():
+                ofp.write('    <{}>{}</{}>\n'.format(key, value, key))
+            ofp.write('  </attributes>\n')
+            ofp.write('  <datasets>\n')
+            for dset, attr_dict in self.VARIABLES.items():
+                ofp.write('    <{}>\n'.format(dset))
+                for attrname, attrvalue in attr_dict.items():
+                    # skip these ones
+                    if attrname not in ['dtype', 'dimensions', '_FillValue']:
+                        ofp.write('      <{}>{}</{}>\n'.format(
+                            attrname, attrvalue, attrname))
+                ofp.write('    </{}>\n'.format(dset))
+            ofp.write('  </datasets>\n')
+            ofp.write('</swot_product>\n')
+
     def write_shapes(self, shp_fname):
         """Writes self to a shapefile"""
 
@@ -173,7 +194,54 @@ class ShapeWriterMixIn(object):
                 'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'))
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
-    ATTRIBUTES = odict()
+    ATTRIBUTES = odict([
+        ['Conventions', {}],
+        ['title', {}],
+        ['institution', {}],
+        ['source', {}],
+        ['history', {}],
+        ['mission_name', {}],
+        ['references', {}],
+        ['reference_document', {}],
+        ['contact', {}],
+        ['cycle_number', {}],
+        ['pass_number', {}],
+        ['tile_number', {}],
+        ['swath_side', {}],
+        ['tile_name', {}],
+        ['wavelength', {}],
+        ['near_range', {}],
+        ['nominal_slant_range_spacing', {}],
+        ['start_time', {}],
+        ['stop_time', {}],
+        ['ephemeris', {}],
+        ['yaw_flip', {}],
+        ['hpa_cold', {}],
+        ['processing_beamwidth', {}],
+        ['inner_first_latitude', {}],
+        ['inner_first_longitude', {}],
+        ['inner_last_latitude', {}],
+        ['inner_last_longitude', {}],
+        ['outer_first_latitude', {}],
+        ['outer_first_longitude', {}],
+        ['outer_last_latitude', {}],
+        ['outer_last_longitude', {}],
+        ['slc_first_line_index_in_tvp', {}],
+        ['slc_last_line_index_in_tvp', {}],
+        ['xref_input_l1b_hr_slc_file', {}],
+        ['xref_input_static_karin_cal_file', {}],
+        ['xref_input_ref_dem_file', {}],
+        ['xref_input_water_mask_file', {}],
+        ['xref_input_static_geophys_files', {}],
+        ['xref_input_dynamic_geophys_files', {}],
+        ['xref_input_int_lr_xover_cal_file', {}],
+        ['xref_l2_hr_pixc_config_parameters_file', {}],
+        ['ellipsoid_semi_major_axis', {}],
+        ['ellipsoid_flattening', {}],
+        ['interferogram_size_azimuth', {}],
+        ['interferogram_size_range', {}],
+        ['looks_to_efflooks', {}]])
+
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
         ['reach_id',
@@ -936,6 +1004,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 group, dset = key.split('/')[1::]
                 pixc_data[key] = ifp.groups[group][dset][:]
 
+            for attr in self.ATTRIBUTES.keys():
+                try:
+                    value = getattr(ifp, attr)
+                except AttributeError:
+                    value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
+                self[attr] = value
+
         for inkey, outkey in pixc2rivertile_map.items():
             # subset pixel cloud data to look like pixcvec data
             if inkey.split('/')[1] == 'tvp':
@@ -962,7 +1037,54 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             self[outkey] = outdata
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
-    ATTRIBUTES = odict()
+    ATTRIBUTES = odict([
+        ['Conventions', {}],
+        ['title', {}],
+        ['institution', {}],
+        ['source', {}],
+        ['history', {}],
+        ['mission_name', {}],
+        ['references', {}],
+        ['reference_document', {}],
+        ['contact', {}],
+        ['cycle_number', {}],
+        ['pass_number', {}],
+        ['tile_number', {}],
+        ['swath_side', {}],
+        ['tile_name', {}],
+        ['wavelength', {}],
+        ['near_range', {}],
+        ['nominal_slant_range_spacing', {}],
+        ['start_time', {}],
+        ['stop_time', {}],
+        ['ephemeris', {}],
+        ['yaw_flip', {}],
+        ['hpa_cold', {}],
+        ['processing_beamwidth', {}],
+        ['inner_first_latitude', {}],
+        ['inner_first_longitude', {}],
+        ['inner_last_latitude', {}],
+        ['inner_last_longitude', {}],
+        ['outer_first_latitude', {}],
+        ['outer_first_longitude', {}],
+        ['outer_last_latitude', {}],
+        ['outer_last_longitude', {}],
+        ['slc_first_line_index_in_tvp', {}],
+        ['slc_last_line_index_in_tvp', {}],
+        ['xref_input_l1b_hr_slc_file', {}],
+        ['xref_input_static_karin_cal_file', {}],
+        ['xref_input_ref_dem_file', {}],
+        ['xref_input_water_mask_file', {}],
+        ['xref_input_static_geophys_files', {}],
+        ['xref_input_dynamic_geophys_files', {}],
+        ['xref_input_int_lr_xover_cal_file', {}],
+        ['xref_l2_hr_pixc_config_parameters_file', {}],
+        ['ellipsoid_semi_major_axis', {}],
+        ['ellipsoid_flattening', {}],
+        ['interferogram_size_azimuth', {}],
+        ['interferogram_size_range', {}],
+        ['looks_to_efflooks', {}]])
+
     DIMENSIONS = odict([
         ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 500]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
@@ -1974,8 +2096,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
-        """Adds more datasets from pixc_file file using index_file"""
-        pass
+        """Copies some attributes from input PIXC file"""
+        with netCDF4.Dataset(pixc_file, 'r') as ifp:
+            for attr in self.ATTRIBUTES.keys():
+                try:
+                    value = getattr(ifp, attr)
+                except AttributeError:
+                    value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
+                self[attr] = value
 
     def update_from_nodes(self, nodes):
         """Averages node things to reach things and populates self"""
