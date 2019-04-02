@@ -51,10 +51,7 @@ def _area(
     fit_height_var - height error std**2
     cov_height_width - covariance matrix for width / height
     """
-    poly_ints = []
-    for poly_fit in poly_fits:
-        poly_ints.append(np.polyint(poly_fit))
-    poly_ints = np.array(poly_ints)
+    poly_ints = np.array([np.polyint(item) for item in poly_fits])
 
     height_fits_ll = height_breakpoints[0:-1]
     height_fits_ul = height_breakpoints[1:]
