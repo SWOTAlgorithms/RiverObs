@@ -187,11 +187,14 @@ class ShapeWriterMixIn(object):
                 ofp.write({'geometry': mapping(this_geo), 'id': ii,
                            'properties': this_property, 'type': 'Feature'})
 
+        # write shape XML metadata and prj file
+        self.write_shape_xml(shp_fname.replace('.shp', '.xml'))
         with open(shp_fname.replace('.shp', '.prj'), 'w') as ofp:
             ofp.write((
                 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'+
                 'SPHEROID["WGS_1984",6378137,298.257223563]],'+
                 'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'))
+
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = odict([
