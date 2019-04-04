@@ -11,6 +11,7 @@ import warnings
 import netCDF4
 import numpy as np
 import logging
+import datetime
 
 import RDF
 import SWOTRiver.EstimateSWOTRiver
@@ -262,6 +263,20 @@ class L2PixcToRiverTile(object):
         # add in a bunch more stuff from PIXC
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
+
+        history_string = "Created {}".format(
+            datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
+        self.rivertile_product.nodes.title = \
+            "Level 2 KaRIn High Rate River Tile Node Data Product"
+        self.rivertile_product.nodes.history = history_string
+        self.rivertile_product.nodes.xref_input_l2_hr_pixc_file = \
+            self.pixc_file
+
+        self.rivertile_product.reaches.title = \
+            "Level 2 KaRIn High Rate River Tile Reach Data Product"
+        self.rivertile_product.reaches.history = history_string
+        self.rivertile_product.reaches.xref_input_l2_hr_pixc_file = \
+            self.pixc_file
 
         # copy attributes from pixel cloud to pixel cloud vector
         with netCDF4.Dataset(self.index_file, 'a') as ofp,\
