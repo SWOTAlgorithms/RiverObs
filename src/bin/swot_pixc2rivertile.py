@@ -70,7 +70,7 @@ def main():
     parser.add_argument('rdf_file', help='Static config params')
     parser.add_argument('--shpbasedir', type=str, default=None)
     parser.add_argument(
-        '-l', '--log-level', type=str, default="warning",
+        '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
     parser.add_argument(
         '--gdem-file', '-g', type=str, default=None,

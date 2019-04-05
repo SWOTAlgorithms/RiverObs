@@ -11,6 +11,8 @@ from .RiverNode import RiverNode
 
 LOGGER = logging.getLogger(__name__)
 
+MISSING_VALUE = -9999
+
 class RiverObs:
     """
     A class for holding all of the river observations associated with a reach.
@@ -59,7 +61,7 @@ class RiverObs:
                  max_width=None,
                  minobs=1,
                  node_class=RiverNode,
-                 missing_value=-9999):
+                 missing_value=MISSING_VALUE):
 
         self.missing_value = missing_value
 

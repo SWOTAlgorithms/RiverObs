@@ -17,6 +17,7 @@ from collections import OrderedDict as odict
 
 from SWOTRiver.products.pixcvec import L2PIXCVector
 from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
+from RiverObs.RiverObs import MISSING_VALUE
 
 class L2HRRiverTile(Product):
     UID = "l2_hr_rivertile"

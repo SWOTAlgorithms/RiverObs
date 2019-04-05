@@ -21,6 +21,8 @@ from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import RiverNode
 from RiverObs import RiverReach
+from RiverObs.RiverObs import MISSING_VALUE
+
 from Centerline.Centerline import CenterLineException
 from scipy.ndimage.morphology import binary_dilation
 
@@ -1090,9 +1092,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['width_u'] = np.sqrt(np.sum(
             river_reach.area_u**2)) / reach_stats['length']
 
-        reach_stats['n_good_nod'] = len(river_reach.s)
-        reach_stats['frac_obs'] = (
-            len(river_reach.s) / len(self.river_obs.centerline.s))
         reach_stats['loc_offset'] = (
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
 
@@ -1105,20 +1104,33 @@ class SWOTRiverEstimator(SWOTL2):
         ww = 1/(river_reach.h_a_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
 
-        if all(np.isnan(ww)):
-            fit = statsmodels.api.OLS(hh, SS).fit()
+        mask = np.logical_and(hh > -500, hh < 9000)
+
+        reach_stats['n_good_nod'] = mask.sum()
+        reach_stats['frac_obs'] = (
+            mask.sum() / len(self.river_obs.centerline.s))
+
+        if mask.sum() > 1:
+            if all(np.isnan(ww)):
+                fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
+            else:
+                fit = statsmodels.api.WLS(
+                    hh[mask], SS[mask], weights=ww[mask]).fit()
+
+            # fit slope is meters per meter; data product wants mm/km
+            reach_stats['slope'] = fit.params[0] * 1e6
+            reach_stats['height'] = fit.params[1]
+
+            # use White’s (1980) heteroskedasticity robust standard errors.
+            # https://www.statsmodels.org/dev/generated/
+            #        statsmodels.regression.linear_model.RegressionResults.html
+            reach_stats['slope_u'] = fit.HC0_se[0] * 1e6
+            reach_stats['height_u'] = fit.HC0_se[1]
         else:
-            fit = statsmodels.api.WLS(hh, SS, weights=ww).fit()
-
-        # fit slope is meters per meter; data product wants mm/km
-        reach_stats['slope'] = fit.params[0] * 1e6
-        reach_stats['height'] = fit.params[1]
-
-        # use White’s (1980) heteroskedasticity robust standard errors.
-        # https://www.statsmodels.org/dev/generated/
-        #        statsmodels.regression.linear_model.RegressionResults.html
-        reach_stats['slope_u'] = fit.HC0_se[0] * 1e6
-        reach_stats['height_u'] = fit.HC0_se[1]
+            reach_stats['slope'] = MISSING_VALUE
+            reach_stats['slope_u'] = MISSING_VALUE
+            reach_stats['height'] = MISSING_VALUE
+            reach_stats['height_u'] = MISSING_VALUE
 
         # do fit on geoid heights
         gg = river_reach.geoid_hght
