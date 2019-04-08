@@ -257,8 +257,12 @@ class L2PixcToRiverTile(object):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
 
-        self.rivertile_product = L2HRRiverTile.from_riverobs(
-            self.node_outputs, self.reach_outputs, self.reach_collection)
+        try:
+            self.rivertile_product = L2HRRiverTile.from_riverobs(
+                self.node_outputs, self.reach_outputs, self.reach_collection)
+        except AttributeError:
+            LOGGER.warn('Output products are empty')
+            self.rivertile_product = L2HRRiverTile()
 
         # add in a bunch more stuff from PIXC
         self.rivertile_product.update_from_pixc(
