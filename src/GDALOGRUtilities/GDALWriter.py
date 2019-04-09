@@ -10,6 +10,7 @@ from numpy.ma import masked_array, is_masked
 from osgeo import gdal
 import osr
 
+
 def get_gdal_type(dtype):
     """Given a numpy data type, return the corresponding """
 
@@ -28,12 +29,21 @@ def get_gdal_type(dtype):
     elif dtype == np.float64:
         gdal_type = gdal.GDT_Float64
     else:
-        raise Exception('Unknown dtype: %s'%dtype)
+        raise Exception('Unknown dtype: %s' % dtype)
     return gdal_type
 
-def write_llh_to_gdal(llh_data,lon_min,dlon,lat_min,dlat,
-                      gdal_format, dst_filename, origin_up=True,
-                      options=None,nodata_value=None,vflip_data=False):
+
+def write_llh_to_gdal(llh_data,
+                      lon_min,
+                      dlon,
+                      lat_min,
+                      dlat,
+                      gdal_format,
+                      dst_filename,
+                      origin_up=True,
+                      options=None,
+                      nodata_value=None,
+                      vflip_data=False):
     """Write an LLH layer to a GIS file in a gdal supported format.
 
     vflip_data: if True llh_data => llh_data[::-1,:]. Use in case the data
@@ -44,31 +54,33 @@ def write_llh_to_gdal(llh_data,lon_min,dlon,lat_min,dlat,
 
     # Get the driver and open the output file
 
-    driver = gdal.GetDriverByName( gdal_format )
+    driver = gdal.GetDriverByName(gdal_format)
     if driver == None:
-        raise Exception('Unimplented gdal driver: %s'%driver)
+        raise Exception('Unimplented gdal driver: %s' % driver)
 
-    dst_ds = driver.Create( dst_filename, llh_data.shape[1], llh_data.shape[0],
-                            bands=1, eType = gdal_type) #, options=options )
+    dst_ds = driver.Create(
+        dst_filename,
+        llh_data.shape[1],
+        llh_data.shape[0],
+        bands=1,
+        eType=gdal_type)  #, options=options )
 
     # Flip the data if needed to be consistent with the geotransform
 
     if vflip_data:
-        llh_data = llh_data[::-1,:]
+        llh_data = llh_data[::-1, :]
 
     # Set all of the transform information
 
     if origin_up:
         nlat = llh_data.shape[0]
-        lat_max = lat_min + (nlat -1)*dlat
-        dst_ds.SetGeoTransform( [ lon_min, dlon, 0,
-                                  lat_max, 0, -dlat ] )
+        lat_max = lat_min + (nlat - 1) * dlat
+        dst_ds.SetGeoTransform([lon_min, dlon, 0, lat_max, 0, -dlat])
     else:
-        dst_ds.SetGeoTransform( [ lon_min, dlon, 0,
-                                      lat_min, 0, dlat ] )
+        dst_ds.SetGeoTransform([lon_min, dlon, 0, lat_min, 0, dlat])
     srs = osr.SpatialReference()
-    srs.SetWellKnownGeogCS( 'WGS84' )
-    dst_ds.SetProjection( srs.ExportToWkt() )
+    srs.SetWellKnownGeogCS('WGS84')
+    dst_ds.SetProjection(srs.ExportToWkt())
 
     # Now write the raster
 
@@ -80,18 +92,24 @@ def write_llh_to_gdal(llh_data,lon_min,dlon,lat_min,dlat,
     if is_masked(llh_data):
         if nodata_value != None:
             llh_data.data[llh_data.mask] = nodata_value
-        band.WriteArray( llh_data.data )
+        band.WriteArray(llh_data.data)
     else:
-        band.WriteArray( llh_data )
+        band.WriteArray(llh_data)
 
     # Clean up by closing the dataset
 
     dst_ds = None
     src_ds = None
 
-def write_numpy_to_gdal(data,geotransform,wkt_proj,
-                        dst_filename, gdal_format='GTiff',origin_up=True,
-                        options=None,nodata_value=None):
+
+def write_numpy_to_gdal(data,
+                        geotransform,
+                        wkt_proj,
+                        dst_filename,
+                        gdal_format='GTiff',
+                        origin_up=True,
+                        options=None,
+                        nodata_value=None):
     """Given numpy data and projection information, write to a gdal file.
 
     Parameters
@@ -119,20 +137,21 @@ def write_numpy_to_gdal(data,geotransform,wkt_proj,
 
     # Get the driver and open the output file
 
-    driver = gdal.GetDriverByName( gdal_format )
+    driver = gdal.GetDriverByName(gdal_format)
     if driver == None:
-        raise Exception('Unimplented gdal driver: %s'%driver)
+        raise Exception('Unimplented gdal driver: %s' % driver)
 
-    dst_ds = driver.Create( dst_filename, data.shape[1], data.shape[0],
-                            bands=1, eType = gdal_type) #, options=options )
+    dst_ds = driver.Create(
+        dst_filename, data.shape[1], data.shape[0], bands=1,
+        eType=gdal_type)  #, options=options )
 
     # Set all of the transform information
 
     if origin_up:
-        data = data[::-1,:]
+        data = data[::-1, :]
 
-    dst_ds.SetGeoTransform( geotransform )
-    dst_ds.SetProjection( wkt_proj )
+    dst_ds.SetGeoTransform(geotransform)
+    dst_ds.SetProjection(wkt_proj)
 
     # Now write the raster
 
@@ -144,9 +163,9 @@ def write_numpy_to_gdal(data,geotransform,wkt_proj,
     if is_masked(data):
         if nodata_value != None:
             data.data[data.mask] = nodata_value
-        band.WriteArray( data.data )
+        band.WriteArray(data.data)
     else:
-        band.WriteArray( data.data )
+        band.WriteArray(data.data)
 
     # Clean up by closing the dataset
 

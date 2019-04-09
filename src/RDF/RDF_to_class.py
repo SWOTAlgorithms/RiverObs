@@ -4,6 +4,7 @@ from __future__ import absolute_import, division, print_function
 
 from .RDF import RDF
 
+
 class RDF_to_class:
     """Convert the data in an RDF file or class to a class whose
     members are assigned desired variable names and corresponting
@@ -58,45 +59,45 @@ class RDF_to_class:
     the rdf is read from the file. file takes precedence over rdf.
     """
 
-    def __init__(self,d, file=None,  rdf=None):
+    def __init__(self, d, file=None, rdf=None):
         self.d = d
         for tpl in list(d.values()):
             if len(tpl) < 3:
-                name,format = tpl
+                name, format = tpl
                 #exec("self.%s = None"%(name))
-                setattr(self,name,None)
+                setattr(self, name, None)
             else:
-                name,format,default = tpl
+                name, format, default = tpl
                 #exec("self.%s = %s"%(name,default))
-                setattr(self,name,default)
+                setattr(self, name, default)
 
         if rdf != None: self.fromRDF(rdf)
         if file != None: self.fromFile(file)
 
-    def fromRDF(self,rdf):
+    def fromRDF(self, rdf):
         """Read the values from an rdf instance."""
 
         for key in list(self.d.keys()):
             format = self.d[key][1]
             try:
                 if format == "s":
-                    setattr(self,self.d[key][0],rdf[key])
+                    setattr(self, self.d[key][0], rdf[key])
 
                 elif format == "d":
-                    setattr(self,self.d[key][0],rdf.int(key))
+                    setattr(self, self.d[key][0], rdf.int(key))
 
                 elif format == "f":
-                    setattr(self,self.d[key][0],rdf.float(key))
+                    setattr(self, self.d[key][0], rdf.float(key))
 
             except:
                 name = self.d[key][0]
                 if name not in self.__dict__:
-                    raise ValueError("Cannot find keyword: %s"%key)
+                    raise ValueError("Cannot find keyword: %s" % key)
 
-
-    def fromFile(self,file):
+    def fromFile(self, file):
         """Read from a file."""
         self.fromRDF(RDF().rdfParse(file))
+
 
 def test():
 
@@ -106,10 +107,10 @@ def test():
     rdf["key3"] = "1.2 2.3 3.4"
 
     d = {
-        "key1":("x","f","None"),
-        "key2":("y","d","None"),
-        "key3":("z","s","None")
-        }
+        "key1": ("x", "f", "None"),
+        "key2": ("y", "d", "None"),
+        "key3": ("z", "s", "None")
+    }
 
     a = RDF_to_class(d)
 
@@ -128,5 +129,6 @@ def test():
     a.fromFile("junk.dat")
 
     print(a.__dict__)
+
 
 if __name__ == '__main__': test()

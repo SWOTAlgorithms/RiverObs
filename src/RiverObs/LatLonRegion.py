@@ -3,8 +3,7 @@ A base class implemention the LatLonRegion protocol.
 """
 
 from __future__ import absolute_import, division, print_function
-
-from pyproj import Proj
+import pyproj
 
 class LatLonRegion:
     """Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion object
@@ -43,19 +42,36 @@ class LatLonRegion:
     +x_0=False Easting, set to 0
     +y_0=False Northing, set to 0
     """
-    def __init__(self,lonmin,latmin,lonmax,latmax,
-                proj='laea',x_0=0,y_0=0,lat_0=None,lon_0=None,
-                ellps='WGS84',**proj_kwds):
 
-        self.lonmin,self.latmin,self.lonmax,self.latmax = lonmin,latmin,lonmax,latmax
-        self.bounding_box = self.lonmin,self.latmin,self.lonmax,self.latmax
+    def __init__(self,
+                 lonmin,
+                 latmin,
+                 lonmax,
+                 latmax,
+                 proj='laea',
+                 x_0=0,
+                 y_0=0,
+                 lat_0=None,
+                 lon_0=None,
+                 ellps='WGS84',
+                 **proj_kwds):
+
+        self.lonmin, self.latmin, self.lonmax, self.latmax = lonmin, latmin, lonmax, latmax
+        self.bounding_box = self.lonmin, self.latmin, self.lonmax, self.latmax
 
         # Find lat_0 and lon_0 if not specified previously
 
         if lat_0 == None:
-            lat_0 = (latmax+latmin)/2.
+            lat_0 = (latmax + latmin) / 2.
 
         if lon_0 == None:
-            lon_0 = (lonmax+lonmin)/2.
+            lon_0 = (lonmax + lonmin) / 2.
 
-        self.proj = Proj(proj=proj,lat_0=lat_0,lon_0=lon_0,x_0=x_0,y_0=y_0,ellps=ellps,**proj_kwds)
+        self.proj = pyproj.Proj(
+            proj=proj,
+            lat_0=lat_0,
+            lon_0=lon_0,
+            x_0=x_0,
+            y_0=y_0,
+            ellps=ellps,
+            **proj_kwds)

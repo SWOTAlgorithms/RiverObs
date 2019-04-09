@@ -30,7 +30,6 @@ junk*
 build/
 html/
 CVS/
-bin/
 lib/
 include/
 man/

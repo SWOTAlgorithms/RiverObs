@@ -1,5 +1,4 @@
 #! /usr/bin/env python
-
 """
 Given a SWOTL2 file, estimate all of the reaches within it and
 output the results to a file
@@ -8,6 +7,7 @@ output the results to a file
 from __future__ import absolute_import, division, print_function
 
 # make sure the libraries are importable
+
 
 def search_for_libraries():
     """Search for the libraries."""
@@ -19,8 +19,11 @@ def search_for_libraries():
     try:
         from SWOTRiver import SWOTRiverEstimator
     except:
-        sys.stderr.write("Libraries not found. Make sure you are running in the SWOTRiver environment.\n")
+        sys.stderr.write(
+            "Libraries not found. Make sure you are running in the SWOTRiver environment.\n"
+        )
         sys.exit(1)
+
 
 #search_for_libraries()
 
@@ -106,55 +109,50 @@ output file                            = sacramento_reach_estimates.h5
 
 input_vars = {
     # SWOT L2 DATA INPUTS
+    'good data labels': ('class_list', 'd'),
+    'latitude keyword': ('lat_kwd', 's'),
+    'longitude keyword': ('lon_kwd', 's'),
+    'classification keyword': ('class_kwd', 's'),
+    'height measurement keyword': ('height_kwd', 's'),
+    'true height keyword': ('true_height_kwd', 's'),
+    'no noise height keyword': ('no_noise_height_kwd', 's'),
+    'xtrack keyword': ('xtrack_kwd', 's'),
+    'projection': ('proj', 's'),
+    'false easting': ('x_0', 'f'),
+    'false northing': ('y_0', 'f'),
+    'lat_0': ('lat_0', 's'),
+    'lon_0': ('lon_0', 's'),
+    'ellipsoid': ('ellps', 's'),
 
-    'good data labels' : ('class_list','d'),
-    'latitude keyword' : ('lat_kwd','s'),
-    'longitude keyword' : ('lon_kwd','s'),
-    'classification keyword' : ('class_kwd','s'),
-    'height measurement keyword' : ('height_kwd','s'),
-    'true height keyword' : ('true_height_kwd','s'),
-    'no noise height keyword' : ('no_noise_height_kwd','s'),
-    'xtrack keyword' : ('xtrack_kwd','s'),
-    'projection' : ('proj','s'),
-    'false easting' : ('x_0','f'),
-    'false northing' : ('y_0','f'),
-    'lat_0' : ('lat_0','s'),
-    'lon_0' : ('lon_0','s'),
-    'ellipsoid' : ('ellps','s'),
+    # CENTERLINE DATA BASE INPUTS
+    'reach data base directory': ('reach_db_dir', 's'),
+    'shape file root name': ('shape_file_root', 's'),
+    'width data base directory': ('width_db_dir', 's'),
+    'width db file name': ('width_db_file', 's'),
+    'clip to data bounding box': ('clip', 'd'),
+    'clip buffer': ('clip_buffer', 'f'),
+    'use width db': ('use_width_db', 'd'),
 
-# CENTERLINE DATA BASE INPUTS
+    # CENTERLINE AND REFINEMENT PARAMETERS
+    'centerline spacing': ('ds', 'float'),
+    'refine centerline': ('refine_centerline', 'd'),
+    'smooth parameter': ('smooth', 'f'),
+    'alpha': ('alpha', 'f'),
+    'maximum iterations': ('max_iter', 'd'),
+    'scalar maximum width': ('scalar_max_width', 'f'),
 
-    'reach data base directory' : ('reach_db_dir','s'),
-    'shape file root name' : ('shape_file_root','s'),
-    'width data base directory' : ('width_db_dir','s'),
-    'width db file name' : ('width_db_file','s'),
-    'clip to data bounding box' : ('clip','d'),
-    'clip buffer' : ('clip_buffer','f'),
-    'use width db' : ('use_width_db','d'),
+    # ESTIMATION PARAMETERS
+    'subreach size': ('subreach_size', 'f'),
+    'minimum number of points to fit': ('min_fit_points', 'd'),
+    'step': ('step', 'f'),
+    'fit types': ('fit_types', 's'),
+    'starting along track distance': ('smin', 'f'),
+    'minimum observations per node': ('minobs', 'd'),
 
-# CENTERLINE AND REFINEMENT PARAMETERS
+    # OUTPUT OPTIONS
+    'output file': ('output_file', 's'),
+}
 
-    'centerline spacing': ('ds','float'),
-    'refine centerline' : ('refine_centerline','d'),
-    'smooth parameter' : ('smooth','f'),
-    'alpha' : ('alpha','f'),
-    'maximum iterations' : ('max_iter','d'),
-    'scalar maximum width' : ('scalar_max_width','f'),
-
-# ESTIMATION PARAMETERS
-
-    'subreach size' : ('subreach_size','f'),
-    'minimum number of points to fit' : ('min_fit_points','d'),
-    'step' : ('step','f'),
-    'fit types' : ('fit_types','s'),
-    'starting along track distance' : ('smin','f'),
-    'minimum observations per node' : ('minobs', 'd'),
-
-# OUTPUT OPTIONS
-
-    'output file' : ('output_file','s'),
-
-    }
 
 def parse_inputs():
     """Create the argument parser."""
@@ -163,22 +161,35 @@ def parse_inputs():
         description='Estimate heigt and slope for a SWOT simulation.',
         usage=rdf_file_template)
 
-    parser.add_argument('rdf_file',help='Input RDF file')
-    parser.add_argument('data_dirs',metavar='data_dir',
-                        nargs='+',help='Directories containing simulation data')
+    parser.add_argument('rdf_file', help='Input RDF file')
+    parser.add_argument(
+        'data_dirs',
+        metavar='data_dir',
+        nargs='+',
+        help='Directories containing simulation data')
 
-    parser.add_argument('-f','--format',help="OGR file format  (default 'ESRI Shapefile')",
-                        default='ESRI Shapefile')
-    parser.add_argument('--dlat',type=float,help='latitude tile size (default +1)',
-                        default=1.)
-    parser.add_argument('--dlon',type=float,help='longitude tile size (default +1)',
-                        default=1.)
+    parser.add_argument(
+        '-f',
+        '--format',
+        help="OGR file format  (default 'ESRI Shapefile')",
+        default='ESRI Shapefile')
+    parser.add_argument(
+        '--dlat',
+        type=float,
+        help='latitude tile size (default +1)',
+        default=1.)
+    parser.add_argument(
+        '--dlon',
+        type=float,
+        help='longitude tile size (default +1)',
+        default=1.)
 
     args = parser.parse_args()
 
     return args
 
-def get_bbox_from_files(sim_files,dlat,dlon):
+
+def get_bbox_from_files(sim_files, dlat, dlon):
     """Given a list of files, return a list of bounding box
     coordinates suitable for passing to OGRWriter."""
 
@@ -198,22 +209,24 @@ def get_bbox_from_files(sim_files,dlat,dlon):
         else:
             latmin = float(location[5:7])
 
-        bounding_boxes.append(box(lonmin,latmin,lonmin+dlon,latmin+dlat))
+        bounding_boxes.append(
+            box(lonmin, latmin, lonmin + dlon, latmin + dlat))
 
     return bounding_boxes
 
-def write_catalog(output_file,format,bounding_boxes,sim_files):
+
+def write_catalog(output_file, format, bounding_boxes, sim_files):
     """Write coverage polygons with metadata."""
 
-    fields = {'file':('str',42)}
+    fields = {'file': ('str', 42)}
 
-    writer = OGRWriter(output_file,fields=fields,driver=format,
-                       geometry='Polygon')
+    writer = OGRWriter(
+        output_file, fields=fields, driver=format, geometry='Polygon')
 
-    for i,bbox in enumerate(bounding_boxes):
-        field_record = {'file':split(sim_files[i])[-1]}
-        print(split(sim_files[i])[-1][0:7],bbox.wkt)
-        writer.add_wkt_feature(bbox.wkt,field_record)
+    for i, bbox in enumerate(bounding_boxes):
+        field_record = {'file': split(sim_files[i])[-1]}
+        print(split(sim_files[i])[-1][0:7], bbox.wkt)
+        writer.add_wkt_feature(bbox.wkt, field_record)
     writer.close()
 
 
@@ -224,7 +237,7 @@ def main():
     # Parse the input RDF
 
     print(args.rdf_file)
-    pars = RDF_to_class(input_vars,file=args.rdf_file)
+    pars = RDF_to_class(input_vars, file=args.rdf_file)
 
     if type(pars.class_list) == int:
         pars.class_list = [pars.class_list]
@@ -245,7 +258,7 @@ def main():
 
     sim_files = []
     for directory in args.data_dirs:
-        files = glob(join(directory,'*_cycle_*_pass_*.*.nc'))
+        files = glob(join(directory, '*_cycle_*_pass_*.*.nc'))
         if len(files) > 0:
             sim_files += files
 
@@ -257,9 +270,9 @@ def main():
     # Open the width database, if desired
 
     if bool(pars.use_width_db):
-        width_db_file = join(pars.width_db_dir,pars.width_db_file)
+        width_db_file = join(pars.width_db_dir, pars.width_db_file)
         width_db = WidthDataBase(width_db_file)
-        print(('Width data base file opened: %s'%width_db_file))
+        print(('Width data base file opened: %s' % width_db_file))
     else:
         width_db = None
 
@@ -267,22 +280,29 @@ def main():
 
     for sim_file in sim_files:
 
-        print(('Reading file: %s'%sim_file))
+        print(('Reading file: %s' % sim_file))
 
         # Initialize the data
 
         for k in pars.__dict__:
             if k not in ['d']:
-                print('%s : %s'%(k,pars.__dict__[k]))
+                print('%s : %s' % (k, pars.__dict__[k]))
 
         try:
-            estimator = SWOTRiverEstimator(sim_file,class_list=pars.class_list,
-                        lat_kwd=pars.lat_kwd, lon_kwd=pars.lon_kwd,
-                        class_kwd=pars.class_kwd,
-                        height_kwd=pars.height_kwd,true_height_kwd=pars.true_height_kwd,
-                        proj=pars.proj,x_0=pars.x_0,y_0=pars.y_0,
-                        lat_0=pars.lat_0,lon_0=pars.lon_0,
-                        ellps=pars.ellps)
+            estimator = SWOTRiverEstimator(
+                sim_file,
+                class_list=pars.class_list,
+                lat_kwd=pars.lat_kwd,
+                lon_kwd=pars.lon_kwd,
+                class_kwd=pars.class_kwd,
+                height_kwd=pars.height_kwd,
+                true_height_kwd=pars.true_height_kwd,
+                proj=pars.proj,
+                x_0=pars.x_0,
+                y_0=pars.y_0,
+                lat_0=pars.lat_0,
+                lon_0=pars.lon_0,
+                ellps=pars.ellps)
             print('data read')
         except:
             print('Insufficient number of points. Continuing to next file')
@@ -290,14 +310,15 @@ def main():
 
         # Initialize the output file for append
 
-        estimator.init_output_file(pars.output_file,mode='a')
+        estimator.init_output_file(pars.output_file, mode='a')
 
         # Get the reaches corresponding to these data
 
-        reaches = estimator.get_reaches(shape_file_root,
-                                        clip=bool(pars.clip),
-                                        clip_buffer=pars.clip_buffer)
-        print(('Number of reaches read: %d'%reaches.nreaches))
+        reaches = estimator.get_reaches(
+            shape_file_root,
+            clip=bool(pars.clip),
+            clip_buffer=pars.clip_buffer)
+        print(('Number of reaches read: %d' % reaches.nreaches))
 
         # Set the estimator width data base
 
@@ -317,13 +338,17 @@ def main():
                                     step=pars.step,fit_types=pars.fit_types,
                                     ds=pars.ds,smin=pars.smin,minobs=pars.minobs,max_width=None)
                                     """
-            estimator.process_reaches(use_width_db=bool(pars.use_width_db),
-                                    refine_centerline=bool(pars.refine_centerline),
-                                    smooth=pars.smooth,alpha=pars.alpha,
-                                    max_iter=pars.max_iter,scalar_max_width=pars.scalar_max_width,
-                                    min_fit_points=pars.min_fit_points,
-                                    fit_types=pars.fit_types,
-                                    ds=pars.ds,minobs=pars.minobs)
+            estimator.process_reaches(
+                use_width_db=bool(pars.use_width_db),
+                refine_centerline=bool(pars.refine_centerline),
+                smooth=pars.smooth,
+                alpha=pars.alpha,
+                max_iter=pars.max_iter,
+                scalar_max_width=pars.scalar_max_width,
+                min_fit_points=pars.min_fit_points,
+                fit_types=pars.fit_types,
+                ds=pars.ds,
+                minobs=pars.minobs)
             print('reaches processed')
             #print estimator.river_reach_collection[0]
             #print estimator.river_reach_collection[0].h_n_ave

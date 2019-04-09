@@ -128,13 +128,6 @@ minobs = 10
 ! This can happen sometimes in the near range.
 trim_ends = True
 
-! These are the fitting algorithms desired for mean height and slope estimation.
-! More than one type of fit can be requested.
-! 'OLS': ordinary least square
-! 'WLS': weighted least squares
-! 'RLM': Robust Linear Model
-fit_types=['OLS','WLS','RLM']
-
 ! These are the minimum number of points required for a slope fit
 min_fit_points = 3
 """
@@ -144,26 +137,41 @@ min_fit_points = 3
 # with the variable name in struct as 1st item and datatype as second.
 # Datatypes: 's' - string; 'd' - int; 'f' - float
 input_vars = {
-    'l2_file': ('l2_file', 's'), 'fout_node': ('fout_node', 's'),
-    'fout_reach': ('fout_reach', 's'), 'fout_index': ('fout_index', 's'),
-    'lonmin': ('lonmin', 'f'), 'lonmax': ('lonmax', 'f'),
-    'latmin': ('latmin', 'f'), 'latmax': ('latmax', 'f'),
-    'lat_kwd': ('lat_kwd', 's'), 'lon_kwd': ('lon_kwd', 's'),
-    'class_kwd': ('class_kwd', 's'), 'height_kwd': ('height_kwd', 's'),
-    'xtrack_kwd': ('xtrack_kwd', 's'), 'class_list': ('class_list', 's'),
+    'l2_file': ('l2_file', 's'),
+    'fout_node': ('fout_node', 's'),
+    'fout_reach': ('fout_reach', 's'),
+    'fout_index': ('fout_index', 's'),
+    'lonmin': ('lonmin', 'f'),
+    'lonmax': ('lonmax', 'f'),
+    'latmin': ('latmin', 'f'),
+    'latmax': ('latmax', 'f'),
+    'lat_kwd': ('lat_kwd', 's'),
+    'lon_kwd': ('lon_kwd', 's'),
+    'class_kwd': ('class_kwd', 's'),
+    'height_kwd': ('height_kwd', 's'),
+    'xtrack_kwd': ('xtrack_kwd', 's'),
+    'class_list': ('class_list', 's'),
     'fractional_inundation_kwd': ('fractional_inundation_kwd', 's'),
     'use_fractional_inundation': ('use_fractional_inundation', 's'),
     'use_segmentation': ('use_segmentation', 's'),
-    'use_heights': ('use_heights', 's'), 'min_points': ('min_points', 'd'),
+    'use_heights': ('use_heights', 's'),
+    'min_points': ('min_points', 'd'),
     'shape_file_root': ('shape_file_root', 's'),
-    'clip_buffer': ('clip_buffer', 'f'), 'use_width_db': ('use_width_db', 's'),
-    'width_db_file': ('width_db_file', 's'), 'ds': ('ds', 'f'),
-    'refine_centerline': ('refine_centerline', 's'), 'smooth': ('smooth', 'f'),
-    'alpha': ('alpha', 'f'), 'scalar_max_width': ('scalar_max_width', 'f'),
-    'max_iter': ('max_iter', 'd'), 'minobs': ('minobs', 'd'),
-    'trim_ends': ('trim_ends', 's'), 'fit_types': ('fit_types', 's'),
+    'clip_buffer': ('clip_buffer', 'f'),
+    'use_width_db': ('use_width_db', 's'),
+    'width_db_file': ('width_db_file', 's'),
+    'ds': ('ds', 'f'),
+    'refine_centerline': ('refine_centerline', 's'),
+    'smooth': ('smooth', 'f'),
+    'alpha': ('alpha', 'f'),
+    'scalar_max_width': ('scalar_max_width', 'f'),
+    'max_iter': ('max_iter', 'd'),
+    'minobs': ('minobs', 'd'),
+    'trim_ends': ('trim_ends', 's'),
     'min_fit_points': ('min_fit_points', 'd'),
-    'subsample_factor': ('subsample_factor', 'd')}
+    'subsample_factor': ('subsample_factor', 'd')
+}
+
 
 def estimate(params):
     """
@@ -182,36 +190,50 @@ def estimate(params):
     use_heights = ast.literal_eval(params.use_heights)
     use_width_db = ast.literal_eval(params.use_width_db)
     refine_centerline = ast.literal_eval(params.refine_centerline)
-    fit_types = ast.literal_eval(params.fit_types)
 
     # Read the data and estimate the flooded area.
     river_estimator = SWOTRiver.SWOTRiverEstimator(
-        params.l2_file, bounding_box=bounding_box, lat_kwd=params.lat_kwd,
-        lon_kwd=params.lon_kwd, class_kwd=params.class_kwd,
-        height_kwd=params.height_kwd, class_list=class_list,
+        params.l2_file,
+        bounding_box=bounding_box,
+        lat_kwd=params.lat_kwd,
+        lon_kwd=params.lon_kwd,
+        class_kwd=params.class_kwd,
+        height_kwd=params.height_kwd,
+        class_list=class_list,
         xtrack_kwd=params.xtrack_kwd,
         fractional_inundation_kwd=params.fractional_inundation_kwd,
         use_fractional_inundation=use_fractional_inundation,
-        use_segmentation=use_segmentation, use_heights=use_heights,
-        min_points=params.min_points, verbose=True, store_obs=False,
-        store_reaches=False, store_fits=False, output_file=params.fout_index,
-        proj='laea', x_0=0, y_0=0, lat_0=lat_0, lon_0=lon_0,
+        use_segmentation=use_segmentation,
+        use_heights=use_heights,
+        min_points=params.min_points,
+        store_obs=False,
+        store_reaches=False,
+        output_file=params.fout_index,
+        proj='laea',
+        x_0=0,
+        y_0=0,
+        lat_0=lat_0,
+        lon_0=lon_0,
         subsample_factor=params.subsample_factor)
 
     # Load the reaches and width data base
 
     river_estimator.get_reaches(
-        params.shape_file_root,clip_buffer=params.clip_buffer)
+        params.shape_file_root, clip_buffer=params.clip_buffer)
 
     if use_width_db:
         river_estimator.get_width_db(params.width_db_file)
 
     # Process all of the reaches
     reach_collection = river_estimator.process_reaches(
-        scalar_max_width=params.scalar_max_width, minobs=params.minobs,
-        min_fit_points=params.min_fit_points, fit_types=fit_types,
-        use_width_db=use_width_db, ds=params.ds,
-        refine_centerline=refine_centerline, smooth=params.smooth,
-        alpha=params.alpha, max_iter=params.max_iter)
+        scalar_max_width=params.scalar_max_width,
+        minobs=params.minobs,
+        min_fit_points=params.min_fit_points,
+        use_width_db=use_width_db,
+        ds=params.ds,
+        refine_centerline=refine_centerline,
+        smooth=params.smooth,
+        alpha=params.alpha,
+        max_iter=params.max_iter)
 
     return reach_collection

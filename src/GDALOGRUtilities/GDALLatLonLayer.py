@@ -13,6 +13,7 @@ from numpy.ma import masked_array
 from numpy.linalg import inv
 from scipy.ndimage.interpolation import map_coordinates
 
+
 class GDALLatLonLayer:
     """A layer of raster data than can be read with GDAL and interrogated with geographic
     coordinates of known projection.
@@ -44,18 +45,23 @@ class GDALLatLonLayer:
 
     """
 
-    def __init__(self, input_file,band=1,
-                 dtype=np.float32,scale=1,offset=0,
-                 destination_projection='+units=m +ellps=WGS84 +datum=WGS84 +proj=longlat ',
-                 ## xoff=0, yoff=0, win_xsize=None, win_ysize=None, buf_xsize=None, buf_ysize=None, buf_obj=None
-                 positive_lon=False,
-                 ):
+    def __init__(
+            self,
+            input_file,
+            band=1,
+            dtype=np.float32,
+            scale=1,
+            offset=0,
+            destination_projection='+units=m +ellps=WGS84 +datum=WGS84 +proj=longlat ',
+            ## xoff=0, yoff=0, win_xsize=None, win_ysize=None, buf_xsize=None, buf_ysize=None, buf_obj=None
+            positive_lon=False,
+    ):
         self.positive_lon = positive_lon
 
         gdal.AllRegister()
         self.data_set = gdal.Open(input_file)
         if self.data_set == None:
-            raise Exception("Could not open file: %s",input_file)
+            raise Exception("Could not open file: %s", input_file)
 
         # Get the transformation from projection to pixel coordinates
 
@@ -67,18 +73,19 @@ class GDALLatLonLayer:
 
         # Convert to a true affine matrix that can be inverted, and invert
 
-        self.ij_to_xy_affine = np.array([ [self.geotransform[1], self.geotransform[2], self.geotransform[0]],
-                                         [self.geotransform[4], self.geotransform[5], self.geotransform[3]],
-                                         [0.,                   0.,                   1.] ])
+        self.ij_to_xy_affine = np.array([[
+            self.geotransform[1], self.geotransform[2], self.geotransform[0]
+        ], [self.geotransform[4], self.geotransform[5], self.geotransform[3]],
+                                         [0., 0., 1.]])
         self.xy_to_ij_affine = inv(self.ij_to_xy_affine)
-
 
         # Get the projection and the Proj projection
 
         self.wkt_proj = self.data_set.GetProjection()
         self.spatial_reference = osr.SpatialReference(wkt=self.wkt_proj)
         self.proj4_proj = self.spatial_reference.ExportToProj4()
-        self.dataset_proj = Proj(self.proj4_proj) # Projection with this data set
+        self.dataset_proj = Proj(
+            self.proj4_proj)  # Projection with this data set
 
         if destination_projection == None:
             destination_projection = self.proj4_proj
@@ -93,7 +100,7 @@ class GDALLatLonLayer:
             self.data = self.data.astype(dtype)
 
         self.nodata_value = self.band.GetNoDataValue()
-        mask = ( self.data == self.nodata_value ) | np.isnan(self.data)
+        mask = (self.data == self.nodata_value) | np.isnan(self.data)
 
         if scale != 1:
             self.data[~mask] *= scale
@@ -104,9 +111,17 @@ class GDALLatLonLayer:
         # be filled with nodata_value
 
         if mask.any():
-            self.data = masked_array(self.data,mask=mask)
+            self.data = masked_array(self.data, mask=mask)
 
-    def __call__(self, x, y, output=None, nearest=False, order=3, mode='constant', cval=0.0, prefilter=False):
+    def __call__(self,
+                 x,
+                 y,
+                 output=None,
+                 nearest=False,
+                 order=3,
+                 mode='constant',
+                 cval=0.0,
+                 prefilter=False):
         """Return the value for a set of coordinates stored using scipy.ndimage.interpolation.map_coordinates
         (if nearest=False) or nearest neighbor interpolation (if nearest=True).
 
@@ -150,89 +165,125 @@ class GDALLatLonLayer:
             x = np.where(x < 0, x + 360., x)
 
         if not nearest:
-            self.i, self.j = self.destinationxy_to_ij(np.asarray(x),np.asarray(y))
+            self.i, self.j = self.destinationxy_to_ij(
+                np.asarray(x), np.asarray(y))
 
             # Call the interpolation routine
 
-            if type(self.i) != type(np.array([])): # a scalar
+            if type(self.i) != type(np.array([])):  # a scalar
 
                 # map_coordinates accepts only array_like inputs, so convert to array
 
-                return map_coordinates(self.data, ([self.j],[self.i]) , output=output, order=order,
-                                       mode=mode, cval=cval, prefilter=prefilter)[0]
+                return map_coordinates(
+                    self.data, ([self.j], [self.i]),
+                    output=output,
+                    order=order,
+                    mode=mode,
+                    cval=cval,
+                    prefilter=prefilter)[0]
             else:
-                return map_coordinates(self.data, (self.j,self.i) , output=output, order=order,
-                                       mode=mode, cval=cval, prefilter=prefilter)
+                return map_coordinates(
+                    self.data, (self.j, self.i),
+                    output=output,
+                    order=order,
+                    mode=mode,
+                    cval=cval,
+                    prefilter=prefilter)
 
-        self.i, self.j = self.destinationxy_to_ij(np.asarray(x),np.asarray(y),asint=True)
-        return self.data[self.j,self.i]
+        self.i, self.j = self.destinationxy_to_ij(
+            np.asarray(x), np.asarray(y), asint=True)
+        return self.data[self.j, self.i]
 
-    def destinationxy_to_datasetxy(self,x,y):
+    def destinationxy_to_datasetxy(self, x, y):
         """Return the data set x,y given the destination x,y"""
 
-        return transform(self.destination_projection,self.dataset_proj,x,y)
+        return transform(self.destination_projection, self.dataset_proj, x, y)
 
-    def datasetxy_to_destinationxy(self,dsx,dsy):
+    def datasetxy_to_destinationxy(self, dsx, dsy):
         """Return the destination set x,y given the data set x,y"""
 
-        return transform(self.dataset_proj,self.destination_projection,dsx,dsy)
+        return transform(self.dataset_proj, self.destination_projection, dsx,
+                         dsy)
 
-    def datasetxy_to_ij(self,dsx,dsy,asint=False):
+    def datasetxy_to_ij(self, dsx, dsy, asint=False):
         """Get the fractional (or integer if asint=True) pixel values given
         the dataset coordinates."""
 
-        i = self.xy_to_ij_affine[0,0]*dsx + self.xy_to_ij_affine[0,1]*dsy + self.xy_to_ij_affine[0,2]
-        j = self.xy_to_ij_affine[1,0]*dsx + self.xy_to_ij_affine[1,1]*dsy + self.xy_to_ij_affine[1,2]
+        i = self.xy_to_ij_affine[0,
+                                 0] * dsx + self.xy_to_ij_affine[0,
+                                                                 1] * dsy + self.xy_to_ij_affine[0,
+                                                                                                 2]
+        j = self.xy_to_ij_affine[1,
+                                 0] * dsx + self.xy_to_ij_affine[1,
+                                                                 1] * dsy + self.xy_to_ij_affine[1,
+                                                                                                 2]
 
         if asint == True:
             if type(i) != int:
-                i = (i+0.5).astype(np.int32)
-                j = (j+0.5).astype(np.int32)
-                i = np.where( i < 0, 0, i)
-                j = np.where( i < 0, 0, j)
-                i = np.where( i >= self.data.shape[0], self.data.shape[0]-1, i)
-                j = np.where( j >= self.data.shape[0], self.data.shape[1]-1, j)
+                i = (i + 0.5).astype(np.int32)
+                j = (j + 0.5).astype(np.int32)
+                i = np.where(i < 0, 0, i)
+                j = np.where(i < 0, 0, j)
+                i = np.where(i >= self.data.shape[0], self.data.shape[0] - 1,
+                             i)
+                j = np.where(j >= self.data.shape[0], self.data.shape[1] - 1,
+                             j)
             else:
-                i = int(i+0.5)
-                j = int(j+0.5)
+                i = int(i + 0.5)
+                j = int(j + 0.5)
                 if i < 0: i = 0
                 if j < 0: j = 0
-                if i >= self.data.shape[0]: i = self.data.shape[0]-1
-                if j >= self.data.shape[1]: i = self.data.shape[1]-1
+                if i >= self.data.shape[0]: i = self.data.shape[0] - 1
+                if j >= self.data.shape[1]: i = self.data.shape[1] - 1
 
-        return i,j
+        return i, j
 
-    def ij_to_datasetxy(self,i,j):
+    def ij_to_datasetxy(self, i, j):
         """Get the dataset x,y values given the pixel row and column."""
 
-        dsx = self.ij_to_xy_affine[0,0]*i + self.ij_to_xy_affine[0,1]*j + self.ij_to_xy_affine[0,2]
-        dsy = self.ij_to_xy_affine[1,0]*i + self.ij_to_xy_affine[1,1]*j + self.ij_to_xy_affine[1,2]
+        dsx = self.ij_to_xy_affine[0,
+                                   0] * i + self.ij_to_xy_affine[0,
+                                                                 1] * j + self.ij_to_xy_affine[0,
+                                                                                               2]
+        dsy = self.ij_to_xy_affine[1,
+                                   0] * i + self.ij_to_xy_affine[1,
+                                                                 1] * j + self.ij_to_xy_affine[1,
+                                                                                               2]
 
         return dsx, dsy
 
-    def destinationxy_to_ij(self,x,y,asint=False):
+    def destinationxy_to_ij(self, x, y, asint=False):
         """Get the fractional (or integer if asint=True) pixel values given
         the destination coordinates."""
 
-        dsx, dsy = self.destinationxy_to_datasetxy(x,y)
-        return self.datasetxy_to_ij(dsx,dsy,asint=asint)
+        dsx, dsy = self.destinationxy_to_datasetxy(x, y)
+        return self.datasetxy_to_ij(dsx, dsy, asint=asint)
 
-    def ij_to_destinationxy(self,i,j):
+    def ij_to_destinationxy(self, i, j):
         """Get the destination x,y values given the pixel row and column."""
 
-        dsx, dsy = self.ij_to_datasetxy(i,j)
-        return self.datasetxy_to_destinationxy(dsx,dsy)
+        dsx, dsy = self.ij_to_datasetxy(i, j)
+        return self.datasetxy_to_destinationxy(dsx, dsy)
+
 
 class GDALDEMLayer(GDALLatLonLayer):
     """A layer of topography data than can be read with GDAL and interrogated with geographic
     coordinates of known projection. Geoid addition and subtraction is optional."""
 
-    def __init__(self, input_file,band=1,
-                 dtype=np.float32,scale=1,offset=0,
-                 destination_projection='+units=m +ellps=WGS84 +datum=WGS84 +proj=longlat ',
-                 to_ellipsoid_height=True,to_geoid_height=False,geoid_file='egm96_15.gtx',geoid_dir=None,
-                 positive_lon=False,
-                 ):
+    def __init__(
+            self,
+            input_file,
+            band=1,
+            dtype=np.float32,
+            scale=1,
+            offset=0,
+            destination_projection='+units=m +ellps=WGS84 +datum=WGS84 +proj=longlat ',
+            to_ellipsoid_height=True,
+            to_geoid_height=False,
+            geoid_file='egm96_15.gtx',
+            geoid_dir=None,
+            positive_lon=False,
+    ):
         """Read the data into an array and get the affine transformations.
 
         input_file: file containing the raster data
@@ -253,24 +304,59 @@ class GDALDEMLayer(GDALLatLonLayer):
         geoid_dir: directory where the gtx geoid file lives.
         """
 
-        GDALLatLonLayer.__init__(self,input_file,band=band,dtype=dtype,scale=scale,offset=offset,destination_projection=destination_projection,
-                                 positive_lon=positive_lon)
+        GDALLatLonLayer.__init__(
+            self,
+            input_file,
+            band=band,
+            dtype=dtype,
+            scale=scale,
+            offset=offset,
+            destination_projection=destination_projection,
+            positive_lon=positive_lon)
 
         # Initialize the geoid from the gtx file
 
         if geoid_dir != None:
-            geoid_file = join(geoid_dir,geoid_file)
+            geoid_file = join(geoid_dir, geoid_file)
 
-        self.geoid = GDALLatLonLayer(geoid_file,dtype=dtype,destination_projection=destination_projection)
+        self.geoid = GDALLatLonLayer(
+            geoid_file,
+            dtype=dtype,
+            destination_projection=destination_projection)
         self.to_ellipsoid_height = to_ellipsoid_height
         self.to_geoid_height = to_geoid_height
 
-    def __call__(self, x, y, output=None, nearest=False, order=3, mode='constant', cval=0.0, prefilter=True):
+    def __call__(self,
+                 x,
+                 y,
+                 output=None,
+                 nearest=False,
+                 order=3,
+                 mode='constant',
+                 cval=0.0,
+                 prefilter=True):
         """Add or subtract geoid to basic GDALLatLonLayer call."""
 
-        h = GDALLatLonLayer.__call__(self,x, y, output=output, nearest=nearest, order=order, mode=mode, cval=cval, prefilter=prefilter)
+        h = GDALLatLonLayer.__call__(
+            self,
+            x,
+            y,
+            output=output,
+            nearest=nearest,
+            order=order,
+            mode=mode,
+            cval=cval,
+            prefilter=prefilter)
 
-        geoid = self.geoid(x, y, output=output, nearest=nearest, order=order, mode=mode, cval=cval, prefilter=prefilter)
+        geoid = self.geoid(
+            x,
+            y,
+            output=output,
+            nearest=nearest,
+            order=order,
+            mode=mode,
+            cval=cval,
+            prefilter=prefilter)
 
         if self.to_ellipsoid_height:
             h += geoid

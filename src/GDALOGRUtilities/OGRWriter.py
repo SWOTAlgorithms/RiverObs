@@ -5,10 +5,11 @@ various sources.
 
 from __future__ import absolute_import, division, print_function
 
-from os.path import split,splitext
+from os.path import split, splitext
 from osgeo import ogr, osr
 from shapely.geometry import asShape, asPoint, asPolygon, asLineString
 from collections import OrderedDict
+
 
 class OGRWriter:
     """A Class to write vector files supported by OGR with inputs from
@@ -65,12 +66,16 @@ class OGRWriter:
     # and OGR supported geometries
 
     geom_type = {
-        'Point':ogr.wkbPoint, 	 # 0-dimensional geometric object, standard WKB
-        'point':ogr.wkbPoint, 	 # 0-dimensional geometric object, standard WKB
-        'LineString': ogr.wkbLineString, 	# 1-dimensional geometric object with linear interpolation between Points, standard WKB
-        'line': ogr.wkbLineString, 	# 1-dimensional geometric object with linear interpolation between Points, standard WKB
-        'Polygon': ogr.wkbPolygon, #planar 2-dimensional geometric object defined by 1 exterior boundary and 0 or more interior boundaries, standard WKB
-        'polygon': ogr.wkbPolygon, #planar 2-dimensional geometric object defined by 1 exterior boundary and 0 or more interior boundaries, standard WKB
+        'Point': ogr.wkbPoint,  # 0-dimensional geometric object, standard WKB
+        'point': ogr.wkbPoint,  # 0-dimensional geometric object, standard WKB
+        'LineString': ogr.
+        wkbLineString,  # 1-dimensional geometric object with linear interpolation between Points, standard WKB
+        'line': ogr.
+        wkbLineString,  # 1-dimensional geometric object with linear interpolation between Points, standard WKB
+        'Polygon': ogr.
+        wkbPolygon,  #planar 2-dimensional geometric object defined by 1 exterior boundary and 0 or more interior boundaries, standard WKB
+        'polygon': ogr.
+        wkbPolygon,  #planar 2-dimensional geometric object defined by 1 exterior boundary and 0 or more interior boundaries, standard WKB
         ## wkbMultiPoint 	 GeometryCollection of Points, standard WKB
         ## wkbMultiLineString 	 GeometryCollection of LineStrings, standard WKB
         ## wkbMultiPolygon 	 GeometryCollection of Polygons, standard WKB
@@ -84,23 +89,30 @@ class OGRWriter:
         ## wkbMultiLineString25D 	 2.5D extension as per 99-402
         ## wkbMultiPolygon25D 	 2.5D extension as per 99-402
         ## wkbGeometryCollection25D 	 2.5D extension as per 99-402
-        }
+    }
 
     field_type = {
-        'int':ogr.OFTInteger, 	# Simple 32bit integer
+        'int': ogr.OFTInteger,  # Simple 32bit integer
         ## OFTIntegerList 	List of 32bit integers
-        'float':ogr.OFTReal, 	# Double Precision floating point
+        'float': ogr.OFTReal,  # Double Precision floating point
         ## OFTRealList 	List of doubles
-        'str':ogr.OFTString, 	# String of ASCII chars
+        'str': ogr.OFTString,  # String of ASCII chars
         ## OFTStringList 	Array of strings
         ## OFTBinary 	Raw Binary data
         ## OFTDate 	Date
         ## OFTTime 	Time
         ## OFTDateTime 	Date and Time
-        }
+    }
 
-    def __init__(self,output_file,layers=[],fields={},driver='ESRI Shapefile',
-                 geometry='Point',coordinate_system='WGS84',proj4_string='',srs=None):
+    def __init__(self,
+                 output_file,
+                 layers=[],
+                 fields={},
+                 driver='ESRI Shapefile',
+                 geometry='Point',
+                 coordinate_system='WGS84',
+                 proj4_string='',
+                 srs=None):
 
         # Set the coordinate system
 
@@ -120,11 +132,11 @@ class OGRWriter:
 
         self.data_source = self.driver.CreateDataSource(output_file)
         if self.data_source is None:
-            raise Exception("Creation of output file %s failed"%output_file)
+            raise Exception("Creation of output file %s failed" % output_file)
 
         # Create all the layers
 
-        if layers == []: # Create the layer with the file name as the
+        if layers == []:  # Create the layer with the file name as the
             layers = [splitext(split(output_file)[-1])[0]]
         elif type(layers) == type(''):
             layers = [layers]
@@ -134,8 +146,8 @@ class OGRWriter:
 
         # make sure the fields are consistent with the layers
 
-        if (type(fields) == type({})) or (type(fields) == type(OrderedDict())) :
-            fields = [fields]*self.nlayers
+        if (type(fields) == type({})) or (type(fields) == type(OrderedDict())):
+            fields = [fields] * self.nlayers
 
         if len(fields) != self.nlayers:
             raise Exception('Field and layer lengths are inconsistent.')
@@ -143,13 +155,13 @@ class OGRWriter:
         self.geometry_type = self.geom_type[geometry]
         self.geometry = geometry
         self.layers = []
-        for i,layer in enumerate(layers):
-            lyr = self.data_source.CreateLayer(layer,srs=self.srs,
-                                               geom_type=self.geometry_type)
+        for i, layer in enumerate(layers):
+            lyr = self.data_source.CreateLayer(
+                layer, srs=self.srs, geom_type=self.geometry_type)
             if lyr is None:
-                raise Exception('Could not create layer: %s'%layer)
+                raise Exception('Could not create layer: %s' % layer)
 
-            self.init_fields(lyr,fields[i])
+            self.init_fields(lyr, fields[i])
 
             self.layers.append(lyr)
 
@@ -157,7 +169,7 @@ class OGRWriter:
         """Close the data source to finish flushing the data."""
         self.data_source.Destroy()
 
-    def init_fields(self,layer,fields):
+    def init_fields(self, layer, fields):
         """Add the appropriate fields to an open layer."""
 
         for field, value in list(fields.items()):
@@ -171,7 +183,7 @@ class OGRWriter:
                 field_type = self.field_type[value[0]]
                 n = value[1]
 
-            field_defn = ogr.FieldDefn(field,field_type)
+            field_defn = ogr.FieldDefn(field, field_type)
             if n > 0:
                 if value[0] == 'str':
                     field_defn.SetWidth(n)
@@ -181,9 +193,13 @@ class OGRWriter:
             # Create the fields
 
             if layer.CreateField(field_defn) != 0:
-                raise Exception('Cannot create field: %s'%field)
+                raise Exception('Cannot create field: %s' % field)
 
-    def add_wkt_feature(self,wkt,field_record,layer_index=0,layer_name=None):
+    def add_wkt_feature(self,
+                        wkt,
+                        field_record,
+                        layer_index=0,
+                        layer_name=None):
         """Add a feature from a WKT (well known text) string and a field dictionary.
 
         Parameters
@@ -202,7 +218,7 @@ class OGRWriter:
         feature = ogr.Feature(layer.GetLayerDefn())
 
         for name, value in list(field_record.items()):
-            feature.SetField(name,value)
+            feature.SetField(name, value)
 
         geometry = ogr.CreateGeometryFromWkt(wkt)
         feature.SetGeometry(geometry)
@@ -212,7 +228,11 @@ class OGRWriter:
 
         feature.Destroy()
 
-    def add_geo_feature(self,object,field_record,layer_index=0,layer_name=None):
+    def add_geo_feature(self,
+                        object,
+                        field_record,
+                        layer_index=0,
+                        layer_name=None):
         """Add a feature from an object that supports the Python Geo interface and
         can be converted to a Shape object by shapely.geometry.asShape.
 
@@ -231,21 +251,36 @@ class OGRWriter:
         """
 
         shape = asShape(object)
-        self.add_wkt_feature(shape.wkt,field_record,layer_index=layer_index,layer_name=layer_name)
+        self.add_wkt_feature(
+            shape.wkt,
+            field_record,
+            layer_index=layer_index,
+            layer_name=layer_name)
 
-    def add_xy_feature(self,x,y,field_record,layer_index=0,layer_name=None):
+    def add_xy_feature(self,
+                       x,
+                       y,
+                       field_record,
+                       layer_index=0,
+                       layer_name=None):
         """Add a feature from x,y numpy arrays (or anything that can be zipped into coordinate pairs).
 
         layer_index: index of the layer to which the feature will be added.
         layer_name: overrides layer index
         """
 
-        coords = list(zip(x,y))
-        if self.geometry in ['Point','point']:
+        coords = list(zip(x, y))
+        if self.geometry in ['Point', 'point']:
             shape = asPoint(coords)
-        elif self.geometry in ['line','LineString']:
+        elif self.geometry in ['line', 'LineString']:
             shape = asLineString(coords)
-        elif self.geometry in ['polygon','Polygon']: # Right now, only simple polygons are supported
+        elif self.geometry in [
+                'polygon', 'Polygon'
+        ]:  # Right now, only simple polygons are supported
             shape = asPolygon(coords)
 
-        self.add_wkt_feature(shape.wkt,field_record,layer_index=layer_index,layer_name=layer_name)
+        self.add_wkt_feature(
+            shape.wkt,
+            field_record,
+            layer_index=layer_index,
+            layer_name=layer_name)

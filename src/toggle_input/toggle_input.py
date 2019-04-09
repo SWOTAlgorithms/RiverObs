@@ -1,4 +1,3 @@
-
 """
 Toggles the input cells of a python notebook.
 
@@ -11,7 +10,7 @@ HTML(toggle_input)
 ##from IPython.display import HTML
 
 ##HTML('''<script>
-##code_show=true; 
+##code_show=true;
 ##function code_toggle() {
 ## if (code_show){
 ## $('div.input').hide();
@@ -19,7 +18,7 @@ HTML(toggle_input)
 ## $('div.input').show();
 ## }
 ## code_show = !code_show
-##} 
+##}
 ##$( document ).ready(code_toggle);
 ##</script>
 ##The raw code for this IPython notebook is by default hidden for easier reading.
@@ -40,4 +39,3 @@ $( document ).ready(code_toggle);
 </script>
 The raw code for this IPython notebook is by default hidden for easier reading.
 To toggle on/off the raw code, click <a href="javascript:code_toggle()">here</a>.'''
-
