@@ -75,9 +75,11 @@ def main():
         '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
     parser.add_argument(
-        '--gdem-file', '-g', type=str, default=None,
+        '--gdem_file', '-g', type=str, default=None,
         help="GDEM file; if commanded makes a fake pixc from GDEM and runs"+
              "RiverObs on that instead of on pixc_file")
+    parser.add_argument(
+        '--gdem_pixc', type=str, default=None, help="gdem-pixel cloud; fake pixc from GDEM")
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
@@ -100,8 +102,11 @@ def main():
     pixc_file = args.pixc_file
     if args.gdem_file is not None:
         import fake_pixc_from_gdem
-        import tempfile
-        pixc_file = tempfile.mktemp()
+        if args.gdem_pixc is not None:
+            pixc_file = args.gdem_pixc
+        else:
+            import tempfile
+            pixc_file = tempfile.mktemp()
         fake_pixc_from_gdem.fake_pixc_from_gdem(
             args.gdem_file, args.pixc_file, pixc_file)
 
@@ -137,7 +142,8 @@ def main():
             os.path.join(args.shpbasedir, 'reaches.shp'))
 
     if args.gdem_file is not None:
-        os.remove(pixc_file)
+        if args.gdem_pixc is None:
+            os.remove(pixc_file)
 
 if __name__ == "__main__":
     main()
