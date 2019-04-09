@@ -265,6 +265,8 @@ class L2PixcToRiverTile(object):
             self.rivertile_product = L2HRRiverTile()
 
         # add in a bunch more stuff from PIXC
+        if not os.path.isfile(self.index_file):
+            L2PIXCVector().to_ncfile(self.index_file)
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
