@@ -278,7 +278,9 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.looks_to_efflooks = None
 
-        good = ~mask
+        # skip NaNs in dheight_dphase
+        good = np.logical_and(~mask, ~np.isnan(self.dh_dphi))
+
         for key in [
             'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
             'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'dlat_dphi',
@@ -1101,7 +1103,7 @@ class SWOTRiverEstimator(SWOTL2):
         # Do weighted LS using height errors
         ss = river_reach.s - np.mean(self.river_obs.centerline.s)
         hh = river_reach.h_n_ave
-        ww = 1/(river_reach.h_a_std**2)
+        ww = 1/(river_reach.h_n_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
 
         mask = np.logical_and(hh > -500, hh < 9000)
