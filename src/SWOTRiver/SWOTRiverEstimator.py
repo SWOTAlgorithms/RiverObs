@@ -279,7 +279,7 @@ class SWOTRiverEstimator(SWOTL2):
             self.looks_to_efflooks = None
 
         # skip NaNs in dheight_dphase
-        good = np.logical_and(~mask, ~np.isnan(self.dh_dphi))
+        good = ~mask
 
         for key in [
             'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
