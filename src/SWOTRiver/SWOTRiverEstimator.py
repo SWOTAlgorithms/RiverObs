@@ -1113,7 +1113,7 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         if mask.sum() > 1:
-            if all(np.isnan(ww)):
+            if all(~np.isfinite(ww)):
                 fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
             else:
                 fit = statsmodels.api.WLS(
