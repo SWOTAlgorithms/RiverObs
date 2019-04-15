@@ -15,6 +15,7 @@ import logging
 
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
+import SWOTRiver.discharge
 from .products.product import FILL_VALUES
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
@@ -1152,6 +1153,16 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['lake_flag'] = uint8_flg
         reach_stats['centerline_lon'] =  reach.metadata['centerline_lon']
         reach_stats['centerline_lat'] =  reach.metadata['centerline_lat']
+
+        # Compute discharge
+        # 1: compuate cross-sectional area of channel
+        area = SWOTRiver.discharge.area(
+            reach_stats['height'], reach_stats['width'],
+            reach.metadata['area_fits'])
+
+        # 2: then...?
+        #reach_stats['discharge'] = ???
+        #reach_stats['dischg_u'] = ???
 
         river_reach.metadata = reach_stats
         return river_reach
