@@ -366,6 +366,8 @@ class ReachDatabaseReaches(Product):
         for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
+
+        klass.area_fits = self.area_fits + other.area_fits
         return klass
 
     def extract(self, bounding_box):
@@ -435,6 +437,21 @@ class ReachDatabaseReachAreaFits(Product):
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
         return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachAreaFits()
+        for dset in ['h_variance', 'w_variance', 'hw_covariance',
+                     'med_flow_area', 'h_err_stdev', 'w_err_stdev', 'h_w_nobs']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        for dset in ['h_break', 'w_break']:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)], 1))
+        for dset in ['fit_coeffs',]:
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)], 2))
+        return klass
 
 class ReachDatabaseCenterlines(Product):
     """Prior Reach database centerlines"""
