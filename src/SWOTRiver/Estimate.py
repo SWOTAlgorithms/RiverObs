@@ -11,6 +11,7 @@ import warnings
 import netCDF4
 import numpy as np
 import logging
+import datetime
 
 import RDF
 import SWOTRiver.EstimateSWOTRiver
@@ -256,12 +257,32 @@ class L2PixcToRiverTile(object):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
 
-        self.rivertile_product = L2HRRiverTile.from_riverobs(
-            self.node_outputs, self.reach_outputs, self.reach_collection)
+        try:
+            self.rivertile_product = L2HRRiverTile.from_riverobs(
+                self.node_outputs, self.reach_outputs, self.reach_collection)
+        except AttributeError:
+            LOGGER.warn('Output products are empty')
+            self.rivertile_product = L2HRRiverTile()
 
         # add in a bunch more stuff from PIXC
+        if not os.path.isfile(self.index_file):
+            L2PIXCVector().to_ncfile(self.index_file)
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
+
+        history_string = "Created {}".format(
+            datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
+        self.rivertile_product.nodes.title = \
+            "Level 2 KaRIn High Rate River Tile Node Data Product"
+        self.rivertile_product.nodes.history = history_string
+        self.rivertile_product.nodes.xref_input_l2_hr_pixc_file = \
+            self.pixc_file
+
+        self.rivertile_product.reaches.title = \
+            "Level 2 KaRIn High Rate River Tile Reach Data Product"
+        self.rivertile_product.reaches.history = history_string
+        self.rivertile_product.reaches.xref_input_l2_hr_pixc_file = \
+            self.pixc_file
 
         # copy attributes from pixel cloud to pixel cloud vector
         with netCDF4.Dataset(self.index_file, 'a') as ofp,\

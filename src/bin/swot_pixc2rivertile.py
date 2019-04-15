@@ -62,6 +62,8 @@ import RDF
 import SWOTRiver.Estimate
 from SWOTRiver.products.pixcvec import L2PIXCVector
 
+LOGGER = logging.getLogger('swot_pixc2rivertile')
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('pixc_file', help='pixel cloud file')
@@ -70,7 +72,7 @@ def main():
     parser.add_argument('rdf_file', help='Static config params')
     parser.add_argument('--shpbasedir', type=str, default=None)
     parser.add_argument(
-        '-l', '--log-level', type=str, default="warning",
+        '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
     parser.add_argument(
         '--gdem-file', '-g', type=str, default=None,
@@ -107,10 +109,18 @@ def main():
             pixc_file, args.out_pixc_vector_file)
 
     l2pixc_to_rivertile.load_config(config)
-    l2pixc_to_rivertile.do_river_processing()
-    l2pixc_to_rivertile.match_pixc_idx()
-    l2pixc_to_rivertile.do_improved_geolocation()
-    l2pixc_to_rivertile.flag_lakes_pixc()
+
+    # generate empty output file on errors
+    try:
+        l2pixc_to_rivertile.do_river_processing()
+        l2pixc_to_rivertile.match_pixc_idx()
+        l2pixc_to_rivertile.do_improved_geolocation()
+        l2pixc_to_rivertile.flag_lakes_pixc()
+
+    except Exception as exception:
+        LOGGER.error(
+            'Unable to continue river processing: {}'.format(exception))
+
     l2pixc_to_rivertile.build_products()
 
     # rewrite index file to make it look like an SDS one
