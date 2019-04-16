@@ -10,7 +10,7 @@ To run it through RiverObs, run swot_pixc2rivertile.py with this config:
 
 width_db_file             (-) = None
 use_width_db              (-) = False
-reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190116
+reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190415
 class_list                (-) = [1,]
 use_fractional_inundation (-) = [False,]
 use_segmentation          (-) = [True,]
