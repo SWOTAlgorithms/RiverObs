@@ -203,7 +203,7 @@ def height_with_uncerts(
     height_uncert_out, lat_uncert_out, lon_uncert_out = height_uncert_multilook(
         ifgram, power1, power2, weight_norm, good,
         num_rare_looks, look_to_efflooks, dh_dphi, dlat_dphi, dlon_dphi)
-    
+
     return (height_out, height_std_out, height_uncert_out, lat_uncert_out,
             lon_uncert_out)
 

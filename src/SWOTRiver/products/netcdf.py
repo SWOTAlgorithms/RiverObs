@@ -12,8 +12,13 @@ import os
 import netCDF4 as nc
 import numpy as np
 
+from SWOTRiver.products.constants import FILL_VALUES
 
-FILL_VALUE = -9.99e9
+
+def get_fill(dtype):
+    """Get the SWOT approved fill value for a data type"""
+    dtype_str = np.dtype(dtype).str[1:]
+    return FILL_VALUES[dtype_str]
 
 
 def set_variable(dataset, key, array, dimensions, attributes=None):
@@ -25,8 +30,8 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
         variable[:, :, 0] == array.real
         variable[:, :, 1] == array.imag
     '''
-    # np.ma.mask_array has fill_value attr, else use FILL_VALUE
-    fill_value = getattr(array, 'fill_value', FILL_VALUE)
+    # np.ma.mask_array has fill_value attr, else use default fill value
+    fill_value = getattr(array, 'fill_value', get_fill(array.dtype))
     def _make_variable(key, data, dimensions, attributes=None):
         dataset.createVariable(
             key, data.dtype, dimensions, fill_value=fill_value)
@@ -37,11 +42,9 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
                     continue
                 if np.iscomplexobj(value):
                     value = value.real
-
                 # cast min/max/fill
                 if name in ['valid_min', 'valid_max']:
                     value = data.dtype.type(value)
-
                 dataset[key].setncattr(name, value)
     if 'complex' in array.dtype.name:
         # Add the depth dimension
@@ -76,26 +79,38 @@ def get_variable(dataset, key):
     variable = dataset[key]
     if variable.dimensions[0] == 'depth' and variable.shape[0] == 2:
         tmp = np.ma.MaskedArray(variable[0] + 1j*variable[1])
-        tmp.set_fill_value(FILL_VALUE + 1j*FILL_VALUE)
         return tmp
     if variable.dimensions[-1] == 'depth' and variable.shape[-1] == 2:
         n_bytes = int(variable.dtype.itemsize*2)
         complex_type = np.dtype('c'+str(n_bytes))
         tmp = variable[:]
-        if isinstance(tmp, np.ma.core.MaskedArray):
+        fill_value = get_fill(complex_type)
+        mask = None
+        if isinstance(tmp, np.ma.MaskedArray):
             # Somehow MaskedArray.view() doesn't work, so convert to a normal
             # array.
-            tmp = tmp.filled()
+            # Keep the current fill value and mask, TODO: use default fill?
+            fill_value = tmp.fill_value
+            # Assume the real mask matches the imaginary mask
+            if isinstance(tmp.mask, np.ndarray):
+                mask = tmp.mask[..., 0]
+            else:
+                mask = tmp.mask
+            tmp = tmp.data
         # Make the data complex
         tmp = tmp.view(dtype=complex_type).squeeze()
         # Turn back into a masked array and re-fill
         tmp = tmp.view(np.ma.MaskedArray)
-        tmp.set_fill_value(FILL_VALUE + 1j*FILL_VALUE)
-        tmp[tmp == tmp.fill_value] = np.ma.masked
+        tmp.set_fill_value(fill_value)
+        if mask is not None:
+            tmp[mask] = np.ma.masked
         return tmp
     variable = variable[:]
+    if isinstance(variable, np.ma.MaskedArray):
+        return variable
     variable = variable.view(np.ma.MaskedArray)
-    variable.set_fill_value(FILL_VALUE)
+    fill_value = get_fill(dataset[key].dtype.str[1:])
+    variable.set_fill_value(fill_value)
     return variable
 
 

@@ -15,6 +15,7 @@ import logging
 
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
+import SWOTRiver.discharge
 from .products.product import FILL_VALUES
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
@@ -278,7 +279,9 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.looks_to_efflooks = None
 
+        # skip NaNs in dheight_dphase
         good = ~mask
+
         for key in [
             'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
             'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'dlat_dphi',
@@ -1101,7 +1104,7 @@ class SWOTRiverEstimator(SWOTL2):
         # Do weighted LS using height errors
         ss = river_reach.s - np.mean(self.river_obs.centerline.s)
         hh = river_reach.h_n_ave
-        ww = 1/(river_reach.h_a_std**2)
+        ww = 1/(river_reach.h_n_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
 
         mask = np.logical_and(hh > -500, hh < 9000)
@@ -1111,7 +1114,7 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         if mask.sum() > 1:
-            if all(np.isnan(ww)):
+            if all(~np.isfinite(ww)):
                 fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
             else:
                 fit = statsmodels.api.WLS(
@@ -1150,6 +1153,16 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['lake_flag'] = uint8_flg
         reach_stats['centerline_lon'] =  reach.metadata['centerline_lon']
         reach_stats['centerline_lat'] =  reach.metadata['centerline_lat']
+
+        # Compute discharge
+        # 1: compuate cross-sectional area of channel
+        area = SWOTRiver.discharge.area(
+            reach_stats['height'], reach_stats['width'],
+            reach.metadata['area_fits'])
+
+        # 2: then...?
+        #reach_stats['discharge'] = ???
+        #reach_stats['dischg_u'] = ???
 
         river_reach.metadata = reach_stats
         return river_reach
