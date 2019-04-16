@@ -75,11 +75,11 @@ def main():
         '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
     parser.add_argument(
-        '--gdem_file', '-g', type=str, default=None,
+        '--gdem-file', '-g', type=str, default=None,
         help="GDEM file; if commanded makes a fake pixc from GDEM and runs"+
              "RiverObs on that instead of on pixc_file")
     parser.add_argument(
-        '--gdem_pixc', type=str, default=None, help="gdem-pixel cloud; fake pixc from GDEM")
+        '--gdem-pixc', type=str, default=None, help="gdem-pixel cloud; fake pixc from GDEM")
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
