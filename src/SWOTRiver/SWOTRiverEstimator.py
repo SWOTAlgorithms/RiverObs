@@ -1101,7 +1101,8 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # Do weighted LS using height errors
+        # Do weighted LS using height errors; flip sign to make
+        # downstream flow positive.
         ss = -(river_reach.s - np.mean(self.river_obs.centerline.s))
         hh = river_reach.h_n_ave
         ww = 1/(river_reach.h_n_std**2)
