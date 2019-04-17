@@ -1164,6 +1164,10 @@ class SWOTRiverEstimator(SWOTL2):
         #reach_stats['discharge'] = ???
         #reach_stats['dischg_u'] = ???
 
+        # add fit_height for improved geolocation
+        river_reach.fit_height = (
+            reach_stats['height'] + reach_stats['slope'] / 1e6 * ss)
+
         river_reach.metadata = reach_stats
         return river_reach
 
