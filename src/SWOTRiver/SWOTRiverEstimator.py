@@ -1102,7 +1102,7 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
         # Do weighted LS using height errors
-        ss = river_reach.s - np.mean(self.river_obs.centerline.s)
+        ss = -(river_reach.s - np.mean(self.river_obs.centerline.s))
         hh = river_reach.h_n_ave
         ww = 1/(river_reach.h_n_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
