@@ -1134,15 +1134,15 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f4'],
                 ['long_name', 'Reach surface slope with respect to the geoid'],
                 ['units', '1e-6'],
-                ['valid_min', -1000],
-                ['valid_max', 100],
+                ['valid_min', -100],
+                ['valid_max', 1000],
                 ['_FillValue', -9999],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Reach water surface slope with respect to the geoid with
                     all corrections and geophysical fields applied. Computed
-                    via polynomial  fit to Node heights. Negative slope means
-                    downstream: downstream height is lower.""")],
+                    via polynomial fit to Node heights. Positive slope means
+                    downstream.""")],
                 ])],
         ['slope_u',
          odict([['dtype', 'f4'],
@@ -1198,14 +1198,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                     'Reach enhanced surface slope with respect to the geoid'],
                 ['units', '1e-6'],
-                ['valid_min', -1000],
-                ['valid_max', 100],
+                ['valid_min', -100],
+                ['valid_max', 1000],
                 ['_FillValue', -9999],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Enhanced reach slope relative to geoid produced using
-                    smoothing (window TBD) of node heights. Negative slope
-                    means downstream: downstream height is lower.""")],
+                    smoothing (window TBD) of node heights. Positive slope
+                    means downstream.""")],
                 ])],
         ['slope2_u',
          odict([['dtype', 'f4'],
