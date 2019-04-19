@@ -550,7 +550,8 @@ class SWOTRiverEstimator(SWOTL2):
         # calculate reach enhanced slope, and add to river_reach_collection
         if enhanced:
             enhanced_slopes = self.compute_enhanced_slopes(
-                river_reach_collection, max_window_size=max_window_size,
+                river_reach_collection, reach_idx_list, ireach_list,
+                max_window_size=max_window_size,
                 min_sigma=min_sigma,
                 window_size_sigma_ratio=window_size_sigma_ratio,
                 enhanced=enhanced)
@@ -1244,8 +1245,8 @@ class SWOTRiverEstimator(SWOTL2):
         return
 
     def compute_enhanced_slopes(
-        self, river_reach_collection, max_window_size, min_sigma,
-        window_size_sigma_ratio, enhanced):
+        self, river_reach_collection, reach_idx_list, ireach_list,
+        max_window_size, min_sigma, window_size_sigma_ratio, enhanced):
         """
         This function calculate enhanced reach slope from smoothed
         node height using Gaussian moving average.

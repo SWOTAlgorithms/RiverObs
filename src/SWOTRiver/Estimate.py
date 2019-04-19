@@ -134,7 +134,8 @@ class L2PixcToRiverTile(object):
             refine_centerline=self.config['refine_centerline'],
             smooth=self.config['smooth'],
             alpha=self.config['alpha'],
-            max_iter=self.config['max_iter'])
+            max_iter=self.config['max_iter'],
+            enhanced=True)
 
         self.node_outputs, self.reach_outputs = None, None
         if len(self.reach_collection) > 0:

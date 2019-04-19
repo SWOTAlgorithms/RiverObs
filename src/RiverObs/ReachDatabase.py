@@ -203,7 +203,9 @@ class ReachExtractor(object):
                 'lat': this_reach['reaches']['y'][0],
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
-                'area_fits': this_reach['reaches']['area_fits']}
+                'area_fits': this_reach['reaches']['area_fits'],
+                'rch_id_up': this_reach['reaches']['rch_id_up'],
+                'rch_id_dn': this_reach['reaches']['rch_id_dn']}
 
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
