@@ -983,6 +983,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
+        width_prior = reach.width[self.river_obs.populated_nodes]
 
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
@@ -1018,6 +1019,7 @@ class SWOTRiverEstimator(SWOTL2):
             'width_u': width_u.astype('float32'),
             'geoid_hght': geoid_hght.astype('float32'),
             'node_blocked': is_blocked.astype('uint8'),
+            'width_prior': width_prior,
         }
 
         if xtrack_median is not None:
@@ -1168,6 +1170,8 @@ class SWOTRiverEstimator(SWOTL2):
         # add fit_height for improved geolocation
         river_reach.fit_height = (
             reach_stats['height'] + reach_stats['slope'] / 1e6 * ss)
+
+        reach_stats['width_prior'] = np.mean(river_reach.width_prior)
 
         river_reach.metadata = reach_stats
         return river_reach
