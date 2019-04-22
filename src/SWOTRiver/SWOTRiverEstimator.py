@@ -1172,6 +1172,7 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['height'] + reach_stats['slope'] / 1e6 * ss)
 
         reach_stats['width_prior'] = np.mean(river_reach.width_prior)
+        reach_stats['length_prior'] = reach.metadata['length'][0]
 
         river_reach.metadata = reach_stats
         return river_reach
