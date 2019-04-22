@@ -1252,16 +1252,17 @@ class SWOTRiverEstimator(SWOTL2):
         For more information, pleasec see Dr. Renato Frasson's paper:
         https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017WR020887
 
-        inputs:
-        river_reach_collection: collection of river_reach instance
+        Inputs:
+        river_reach: collection of node / reach quantities for this reach
+        river_reach_collection: same for all reaches
+        ireach: index into prior DB extracted reaches (self.reaches)
         max_window_size: the max of Gaussian window, default is 10km
         min_sigma : min sigma for gaussian averaging, default is 1km
         window_size_sigma_ratio : default is 5
 
-        output:
-        enhanced_slopes: enhanced reach slopes
+        Output:
+        enhanced_slope: enhanced reach slope
         """
-
         this_id = river_reach.reach_indx[0]
         other_ids = [item.reach_indx[0] for item in river_reach_collection]
 
