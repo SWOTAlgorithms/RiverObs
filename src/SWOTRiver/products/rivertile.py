@@ -1993,6 +1993,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['height_u'] = reach_outputs['height_u']
             klass['slope'] = reach_outputs['slope']
             klass['slope_u'] = reach_outputs['slope_u']
+            klass['slope2'] = reach_outputs['slp_enhncd']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
             klass['area_detct'] = reach_outputs['area']
@@ -2016,6 +2017,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['rch_id_dn'] = reach_outputs['rch_id_dn']
             klass['n_reach_up'] = reach_outputs['n_reach_up']
             klass['n_reach_dn'] = reach_outputs['n_reach_dn']
+            klass['d_x_area'] = reach_outputs['d_x_area']
+            klass['d_x_area_u'] = reach_outputs['d_x_area_u']
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]
@@ -2028,13 +2031,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
 
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
-
-            # may not be populated depending on run config
-            for inkey, outkey in {'slp_enhncd': 'slope2'}.items():
-                try:
-                    klass[outkey] = reach_outputs[inkey]
-                except KeyError:
-                    pass
 
             # set quality flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)

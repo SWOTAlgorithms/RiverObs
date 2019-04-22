@@ -1159,9 +1159,17 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Compute discharge
         # 1: compuate cross-sectional area of channel
-        area = SWOTRiver.discharge.area(
+        area_fit_outputs = SWOTRiver.discharge.area(
             reach_stats['height'], reach_stats['width'],
             reach.metadata['area_fits'])
+
+        reach_stats['d_x_area'] = area_fit_outputs[0]
+        if reach_stats['d_x_area'] < 0:
+            reach_stats['d_x_area'] = MISSING_VALUE_FLT
+
+        reach_stats['d_x_area_u'] = area_fit_outputs[3]
+        if reach_stats['d_x_area_u'] < 0:
+            reach_stats['d_x_area_u'] = MISSING_VALUE_FLT
 
         # 2: then...?
         #reach_stats['discharge'] = ???
