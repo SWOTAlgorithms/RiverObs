@@ -1173,15 +1173,22 @@ class SWOTRiverEstimator(SWOTL2):
 
         # copy things from the prior DB into reach outputs
         reach_stats['width_prior'] = np.mean(river_reach.width_prior)
+        if reach_stats['width_prior'] < 0:
+            reach_stats['width_prior'] = MISSING_VALUE_FLT
+
         reach_stats['length_prior'] = reach.metadata['length'][0]
+        if reach_stats['length_prior'] < 0:
+            reach_stats['length_prior'] = MISSING_VALUE_FLT
 
         reach_stats['rch_id_up'] = np.array([
-            item[0] for item in reach.metadata['rch_id_up']])
-        reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = MISSING_VALUE_FLT
+            item[0] for item in reach.metadata['rch_id_up']], dtype='i4')
+        reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
+            MISSING_VALUE_INT
 
         reach_stats['rch_id_dn'] = np.array([
-            item[0] for item in reach.metadata['rch_id_dn']])
-        reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = MISSING_VALUE_FLT
+            item[0] for item in reach.metadata['rch_id_dn']], dtype='i4')
+        reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
+            MISSING_VALUE_INT
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
