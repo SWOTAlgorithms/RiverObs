@@ -22,7 +22,7 @@ from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import RiverNode
 from RiverObs import RiverReach
-from RiverObs.RiverObs import MISSING_VALUE
+from RiverObs.RiverObs import MISSING_VALUE_FLT, MISSING_VALUE_INT
 
 from Centerline.Centerline import CenterLineException
 from scipy.ndimage.morphology import binary_dilation
@@ -571,7 +571,7 @@ class SWOTRiverEstimator(SWOTL2):
                 # flip sign, convert to mm/km
                 enhanced_slope = enhanced_slope * -1e6
             else:
-                enhanced_slope = MISSING_VALUE
+                enhanced_slope = MISSING_VALUE_FLT
 
             if out_river_reach is not None:
                 # add enhanced slope to river reach outputs
@@ -1132,10 +1132,10 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['slope_u'] = fit.HC0_se[0] * 1e6
             reach_stats['height_u'] = fit.HC0_se[1]
         else:
-            reach_stats['slope'] = MISSING_VALUE
-            reach_stats['slope_u'] = MISSING_VALUE
-            reach_stats['height'] = MISSING_VALUE
-            reach_stats['height_u'] = MISSING_VALUE
+            reach_stats['slope'] = MISSING_VALUE_FLT
+            reach_stats['slope_u'] = MISSING_VALUE_FLT
+            reach_stats['height'] = MISSING_VALUE_FLT
+            reach_stats['height_u'] = MISSING_VALUE_FLT
 
         # do fit on geoid heights
         gg = river_reach.geoid_hght
@@ -1171,8 +1171,20 @@ class SWOTRiverEstimator(SWOTL2):
         river_reach.fit_height = (
             reach_stats['height'] + reach_stats['slope'] / 1e6 * ss)
 
+        # copy things from the prior DB into reach outputs
         reach_stats['width_prior'] = np.mean(river_reach.width_prior)
         reach_stats['length_prior'] = reach.metadata['length'][0]
+
+        reach_stats['rch_id_up'] = np.array([
+            item[0] for item in reach.metadata['rch_id_up']])
+        reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = MISSING_VALUE_FLT
+
+        reach_stats['rch_id_dn'] = np.array([
+            item[0] for item in reach.metadata['rch_id_dn']])
+        reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = MISSING_VALUE_FLT
+
+        reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
+        reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
 
         river_reach.metadata = reach_stats
         return river_reach
