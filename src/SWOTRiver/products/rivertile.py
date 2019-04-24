@@ -705,35 +705,48 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['geoid_hght',
          odict([['dtype', 'f8'],
-                ['long_name', 'Geoid model height above ellipsoid'],
+                ['long_name', 'geoid height'],
+                ['standard_name','geoid_height_above_reference_ellipsoid'],
+                ['source', 'EGM2008'],
+                ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -200],
                 ['valid_max', 2000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
-                ['comment', textjoin("""Current baseline is EGM2008""")],
+                ['comment', textjoin("""
+                    Geoid height above the reference ellipsoid.  The value is
+                    computed from the EGM2008 geoid model with a correction to
+                    refer the value to the mean tide system (i.e., includes
+                    the zero-frequency permanent tide)""")],
                 ])],
         ['solid_tide',
          odict([['dtype', 'f8'],
-                ['long_name', 'Height of solid Earth tide model'],
+                ['long_name', 'solid earth tide'],
+                ['source', textjoin("""
+                    Cartwright and Edden [1973] Corrected tables of tidal
+                    harmonics - J. Geophys. J. R. Astr. Soc., 33, 253-264""")],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Height of solid Earth tide model at node location.""")],
+                    Cartwright/Taylor solid earth tide; units are meters above
+                    the reference ellipsoid.  The zero-frequency permanent tide
+                    is not included.""")],
                 ])],
         ['pole_tide',
          odict([['dtype', 'f8'],
-                ['long_name', 'Height of Pole tide model'],
+                ['long_name', 'geocentric pole tide height'],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Height of Earth Pole tide model at node location.""")],
+                    Geocentric pole tide height; units are meters above the
+                    reference ellipsoid.""")],
                 ])],
         ['load_tide1',
          odict([['dtype', 'f8'],
@@ -763,54 +776,77 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Model dry tropospheric correction to height'],
+                ['long_name', 'dry troposphere vertical correction'],
+                ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
                 ['valid_min', -2.5],
-                ['valid_max', 0],
+                ['valid_max', -2.0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Numerical weather model dry tropospheric correction to
-                    surface height. To replace, subtract from height, add new
-                    value with same sign convention.""")],
+                    Equivalent vertical correction due to dry troposphere delay.
+                    The reported pixel height, latitude and longitude are
+                    computed after adding negative media corrections to
+                    uncorrected range along slant-range paths, accounting for
+                    the differential delay between the two KaRIn antennas. The
+                    equivalent vertical correction is computed by applying
+                    obliquity factors to the slant-path correction. Adding the
+                    reported correction to the reported pixel height results
+                    in the uncorrected pixel height.""")],
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Model wet tropospheric correction to height'],
+                ['long_name', 'wet troposphere vertical correction'],
+                ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
-                ['valid_min', -1],
+                ['valid_min', -0.5],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Numerical weather model dry tropospheric correction to
-                    surface height. To replace, subtract from height, add new
-                    value with same sign convention.""")],
+                    Equivalent vertical correction due to wet troposphere delay.
+                    The reported pixel height, latitude and longitude are
+                    computed after adding negative media corrections to
+                    uncorrected range along slant-range paths, accounting for
+                    the differential delay between the two KaRIn antennas. The
+                    equivalent vertical correction is computed by applying
+                    obliquity factors to the slant-path correction. Adding the
+                    reported correction to the reported pixel height results
+                    in the uncorrected pixel height.""")],
                 ])],
         ['iono_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Model ionospheric correction to height'],
+                ['long_name', 'ionosphere vertical correction'],
+                ['source', 'NASA/JPL Global Ionosphere Map'],
                 ['units', 'm'],
                 ['valid_min', -0.1],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Ionospheric model correction to surface height. To
-                    replace, subtract from height, add new value with same
-                    sign convention.""")],
+                    Equivalent vertical correction due to ionosphere delay.
+                    The reported pixel height, latitude and longitude are
+                    computed after adding negative media corrections to
+                    uncorrected range along slant-range paths, accounting for
+                    the differential delay between the two KaRIn antennas. The
+                    equivalent vertical correction is computed by applying
+                    obliquity factors to the slant-path correction. Adding the
+                    reported correction to the reported pixel height results
+                    in the uncorrected pixel height.""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Crossover correction to height'],
+                ['long_name', 'crossover calibration height correction'],
                 ['units', 'm'],
-                ['valid_min', -9999],
-                ['valid_max', 9999],
+                ['valid_min', -1000],
+                ['valid_max', 1000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    KaRIn correction from crossover cal processing evaluated
-                    for node.""")],
+                    Equivalent height correction estimated from
+                    crossover calibration.  The correction is applied before
+                    geolocation in terms of roll, baseline dilation, etc., but
+                    reported as an equivalent height correction.""")],
                 ])],
         ['kar_att_c',
          odict([['dtype', 'f8'],
@@ -1071,7 +1107,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['centerline_lat',
          odict([['dtype', 'f8'],
                 ['long_name',
-                    'Latitude of the centerline of the reach from prior database'],
+                 'Latitude of the centerline of the reach from prior database'],
                 ['units', 'degrees_north'],
                 ['valid_min', -90],
                 ['valid_max', 90],
@@ -1082,7 +1118,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['centerline_lon',
          odict([['dtype', 'f8'],
                 ['long_name',
-                    'Longitude of the centerline of the reach from prior database'],
+                 'Longitude of the centerline of the reach from prior database'],
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 360],
@@ -1578,19 +1614,24 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['geoid_hght',
          odict([['dtype', 'f8'],
-                ['long_name', 'Geoid height'],
+                ['long_name', 'geoid height'],
+                ['standard_name','geoid_height_above_reference_ellipsoid'],
+                ['source', 'EGM2008'],
+                ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -200],
                 ['valid_max', 2000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
-                    Geoid model height above the ellipsoid. Current baseline
-                    is EGM2008.""")],
+                    Geoid height above the reference ellipsoid.  The value is
+                    computed from the EGM2008 geoid model with a correction to
+                    refer the value to the mean tide system (i.e., includes
+                    the zero-frequency permanent tide)""")],
                 ])],
         ['geoid_slop',
          odict([['dtype', 'f8'],
-                ['long_name', 'Geoid slope'],
+                ['long_name', 'geoid slope'],
                 ['units', '1e-6'],
                 ['valid_min', -1000],
                 ['valid_max', 1000],
@@ -1601,25 +1642,31 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['solid_tide',
          odict([['dtype', 'f8'],
-                ['long_name', 'Height of solid Earth tide'],
+                ['long_name', 'solid earth tide'],
+                ['source', textjoin("""
+                    Cartwright and Edden [1973] Corrected tables of tidal
+                    harmonics - J. Geophys. J. R. Astr. Soc., 33, 253-264""")],
                 ['units', 'm'],
                 ['valid_min', 50],
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Avg height of solid Earth tide model for Reach.""")],
+                    Cartwright/Taylor solid earth tide; units are meters above
+                    the reference ellipsoid.  The zero-frequency permanent tide
+                    is not included.""")],
                 ])],
         ['pole_tide',
          odict([['dtype', 'f8'],
-                ['long_name', 'Height of pole tide'],
+                ['long_name', 'geocentric pole tide height'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Avg height of solid Earth Pole tide model for Reach.""")],
+                    Geocentric pole tide height; units are meters above the
+                    reference ellipsoid.""")],
                 ])],
         ['load_tide1',
          odict([['dtype', 'f8'],
@@ -1651,54 +1698,77 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Model dry tropospheric correction to height'],
+                ['long_name', 'dry troposphere vertical correction'],
+                ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
                 ['valid_min', -2.5],
-                ['valid_max', 0],
+                ['valid_max', -2.0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Numerical weather model dry tropospheric correction to
-                    surface height. To replace, subtract from height, add new
-                    value with same sign convention.""")],
+                    Equivalent vertical correction due to dry troposphere delay.
+                    The reported pixel height, latitude and longitude are
+                    computed after adding negative media corrections to
+                    uncorrected range along slant-range paths, accounting for
+                    the differential delay between the two KaRIn antennas. The
+                    equivalent vertical correction is computed by applying
+                    obliquity factors to the slant-path correction. Adding the
+                    reported correction to the reported pixel height results
+                    in the uncorrected pixel height.""")],
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Model wet tropospheric correction to height'],
+                ['long_name', 'wet troposphere vertical correction'],
+                ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
-                ['valid_min', -1],
+                ['valid_min', -0.5],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Numerical weather model wet tropospheric correction to
-                    surface height. To replace, subtract from height, add new
-                    value with same sign convention.""")],
+                    Equivalent vertical correction due to wet troposphere delay.
+                    The reported pixel height, latitude and longitude are
+                    computed after adding negative media corrections to
+                    uncorrected range along slant-range paths, accounting for
+                    the differential delay between the two KaRIn antennas. The
+                    equivalent vertical correction is computed by applying
+                    obliquity factors to the slant-path correction. Adding the
+                    reported correction to the reported pixel height results
+                    in the uncorrected pixel height.""")],
                 ])],
         ['iono_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Model ionospheric correction to height'],
+                ['long_name', 'ionosphere vertical correction'],
+                ['source', 'NASA/JPL Global Ionosphere Map'],
                 ['units', 'm'],
                 ['valid_min', -0.4],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Ionospheric model correction to surface height. To replace,
-                    subtract from height, add new value with same sign
-                    convention.""")],
+                    Equivalent vertical correction due to ionosphere delay.
+                    The reported pixel height, latitude and longitude are
+                    computed after adding negative media corrections to
+                    uncorrected range along slant-range paths, accounting for
+                    the differential delay between the two KaRIn antennas. The
+                    equivalent vertical correction is computed by applying
+                    obliquity factors to the slant-path correction. Adding the
+                    reported correction to the reported pixel height results
+                    in the uncorrected pixel height.""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'Crossover correction to height'],
+                ['long_name', 'crossover calibration height correction'],
                 ['units', 'm'],
-                ['valid_min', -9999],
-                ['valid_max', 9999],
+                ['valid_min', -1000],
+                ['valid_max', 1000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    KaRIn correction from crossover cal processing evaluated
-                    for Reach.""")],
+                    Equivalent height correction estimated from
+                    crossover calibration.  The correction is applied before
+                    geolocation in terms of roll, baseline dilation, etc., but
+                    reported as an equivalent height correction.""")],
                 ])],
         ['kar_att_c',
          odict([['dtype', 'f8'],
