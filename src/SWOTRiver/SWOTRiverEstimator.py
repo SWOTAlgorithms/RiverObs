@@ -561,19 +561,19 @@ class SWOTRiverEstimator(SWOTL2):
                 river_reach, self.reaches[ireach], ireach, reach_idx,
                 min_fit_points=min_fit_points)
 
-            if enhanced:
-                enhanced_slope = self.compute_enhanced_slope(
-                    river_reach, river_reach_collection, ireach,
-                    max_window_size=max_window_size,
-                    min_sigma=min_sigma,
-                    window_size_sigma_ratio=window_size_sigma_ratio)
-
-                # flip sign, convert to mm/km
-                enhanced_slope = enhanced_slope * -1e6
-            else:
-                enhanced_slope = MISSING_VALUE_FLT
-
             if out_river_reach is not None:
+                if enhanced:
+                    enhanced_slope = self.compute_enhanced_slope(
+                        river_reach, river_reach_collection, ireach,
+                        max_window_size=max_window_size,
+                        min_sigma=min_sigma,
+                        window_size_sigma_ratio=window_size_sigma_ratio)
+
+                    # flip sign, convert to mm/km
+                    enhanced_slope = enhanced_slope * -1e6
+                else:
+                    enhanced_slope = MISSING_VALUE_FLT
+
                 # add enhanced slope to river reach outputs
                 out_river_reach.metadata['slp_enhncd'] = np.float32(
                     enhanced_slope)

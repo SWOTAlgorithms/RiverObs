@@ -1868,7 +1868,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'Prior height estimate'],
                 ['units', '1'],
                 ['valid_min', -1000],
-                ['valid_max', 5000],
+                ['valid_max', 9000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
