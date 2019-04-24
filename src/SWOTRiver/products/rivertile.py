@@ -735,17 +735,31 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Height of Earth Pole tide model at node location.""")],
                 ])],
-        ['load_tide',
+        ['load_tide1',
          odict([['dtype', 'f8'],
-                ['long_name', 'Height from loading by ocean tide model'],
+                ['long_name', 'Geocentric load tide height (solution 1)'],
+                ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Height from loading by ocean tide model at node location.
-                    Ocean loading extends some distance inland.""")],
+                    GOT4.10;; Height from loading by ocean tide model at node
+                    location. Ocean loading extends some distance inland.""")],
+                ])],
+        ['load_tide2',
+         odict([['dtype', 'f8'],
+                ['long_name', 'Geocentric load tide height (solution 2)'],
+                ['institution', 'LEGOS/CNES'],
+                ['units', 'm'],
+                ['valid_min', -1],
+                ['valid_max', 1],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['comment', textjoin("""
+                    FES2014; Height from loading by ocean tide model at node
+                    location. Ocean loading extends some distance inland.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -981,7 +995,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         pixc2rivertile_map = {
             '/pixel_cloud/solid_earth_tide': 'solid_tide',
             '/pixel_cloud/pole_tide': 'pole_tide',
-            '/pixel_cloud/load_tide_sol1': 'load_tide',
+            '/pixel_cloud/load_tide_sol1': 'load_tide1',
+            '/pixel_cloud/load_tide_sol2': 'load_tide2',
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
@@ -1606,18 +1621,33 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Avg height of solid Earth Pole tide model for Reach.""")],
                 ])],
-        ['load_tide',
+        ['load_tide1',
          odict([['dtype', 'f8'],
-                ['long_name', 'Ocean loading tide'],
+                ['long_name', 'Geocentric load tide height (solution 1)'],
+                ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -9999],
                 ['valid_max', 9999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Avg height from loading by water (ocean) tide model for
-                    reach. Ocean loading may extend beyond tidally affected
-                    reaches.""")],
+                    GOT4.10; Avg height from loading by water (ocean) tide
+                    model for reach. Ocean loading may extend beyond tidally
+                    affected reaches.""")],
+                ])],
+        ['load_tide2',
+         odict([['dtype', 'f8'],
+                ['long_name', 'Geocentric load tide height (solution 2)'],
+                ['institution', 'LEGOS/CNES'],
+                ['units', 'm'],
+                ['valid_min', -9999],
+                ['valid_max', 9999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['comment', textjoin("""
+                    FES2014; Avg height from loading by water (ocean) tide
+                    model for reach. Ocean loading may extend beyond tidally
+                    affected reaches.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -2056,9 +2086,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     def update_from_nodes(self, nodes):
         """Averages node things to reach things and populates self"""
         keys = ['time', 'time_tai', 'geoid_hght', 'solid_tide',
-                'pole_tide', 'load_tide', 'dry_trop_c', 'wet_trop_c', 'iono_c',
-                'xovr_cal_c', 'kar_att_c', 'h_bias_c', 'sys_cg_c',
-                'inst_cal_c']
+                'pole_tide', 'load_tide1', 'load_tide2', 'dry_trop_c',
+                'wet_trop_c', 'iono_c', 'xovr_cal_c', 'kar_att_c', 'h_bias_c',
+                'sys_cg_c', 'inst_cal_c']
 
         for key in keys:
             node_value = getattr(nodes, key)
