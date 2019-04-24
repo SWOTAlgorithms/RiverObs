@@ -1327,11 +1327,13 @@ class SWOTRiverEstimator(SWOTL2):
 
         if up_idx is not None:
             reach_upstream = river_reach_collection[up_idx]
-            upstream_prior_s = reach_upstream.metadata['prior_node_s']
-            first_node = first_node + len(reach_upstream.h_n_ave)
-            distances = np.concatenate([
-                reach_upstream.s, distances+upstream_prior_s[-1]])
-            heights = np.concatenate([reach_upstream.h_n_ave, heights])
+            # guard on upstream being unprocessable
+            if 'prior_node_s' in reach_upstream.metadata:
+                upstream_prior_s = reach_upstream.metadata['prior_node_s']
+                first_node = first_node + len(reach_upstream.h_n_ave)
+                distances = np.concatenate([
+                    reach_upstream.s, distances+upstream_prior_s[-1]])
+                heights = np.concatenate([reach_upstream.h_n_ave, heights])
 
         last_node = first_node + len(river_reach.h_n_ave) - 1
 
