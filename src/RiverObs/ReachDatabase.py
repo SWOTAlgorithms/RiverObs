@@ -214,7 +214,8 @@ class ReachExtractor(object):
                 lon=lon, lat=lat, x=x, y=y, metadata=metadata,
                 reach_index=ii, node_indx=node_indx,
                 blocking_widths=blocking_widths,
-                width=this_reach['nodes']['width']))
+                width=this_reach['nodes']['width'],
+                length=this_reach['nodes']['node_length']))
 
         self.idx = 0
         self.nreaches = len(self.reach)
