@@ -1171,9 +1171,20 @@ class SWOTRiverEstimator(SWOTL2):
         if reach_stats['d_x_area_u'] < 0:
             reach_stats['d_x_area_u'] = MISSING_VALUE_FLT
 
-        # 2: then...?
-        #reach_stats['discharge'] = ???
-        #reach_stats['dischg_u'] = ???
+        # 2: Compute MetroMan model
+        cross_sectional_area = (
+            reach_stats['d_x_area'] +
+            reach.metadata['area_fits']['med_flow_area'])
+
+        metro_man_n = reach.metadata['discharge_models']['MetroMan_na'] * (
+            cross_sectional_area/reach_stats['width'])**(
+            reach.metadata['discharge_models']['MetroMan_nb'])
+
+        reach_stats['discharge'] = (
+            cross_sectional_area**(5/3) * reach_stats['width']**(-2/3) *
+            (reach_stats['slope']/10**6)**(1/2)) / metro_man_n
+
+        reach_stats['dischg_u'] = MISSING_VALUE_FLT
 
         # add fit_height for improved geolocation
         river_reach.fit_height = (
