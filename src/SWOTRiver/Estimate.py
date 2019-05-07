@@ -190,7 +190,7 @@ class L2PixcToRiverTile(object):
         except ModuleNotFoundError:
             print("Cant load CNES improved geolocation, skipping!")
             return
-
+        
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
 
         # compute improved geolocation
@@ -199,7 +199,7 @@ class L2PixcToRiverTile(object):
             geoloc_river.PixcvecRiver(self.index_file),
             cnes_sensor,
             geoloc_river.RiverTile.from_node_outputs(self.node_outputs),
-            fit_heights_per_reach=True, interpolate_pixc_between_nodes=True,
+            fit_heights_per_reach='fitted_height_from_riverobs', interpolate_pixc_between_nodes=True,
             method=self.config['geolocation_method'])
 
         # update geoloc in place in index file
