@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 
 import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
-
+import glob
 
 FIGSIZE = (12, 8)
 DPI = 200
@@ -131,30 +131,67 @@ class SlopePlot(ReachPlot):
         self.axis.set_xlabel('river width (m)')
         super().finalize()
 
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('pixc_rivertile', help='pixel cloud rivertile.nc')
-    parser.add_argument('gdem_rivertile', help='GDEM rivertile.nc')
-    parser.add_argument('-t', '--title')
-    parser.add_argument('-p', '--print', action='store_true')
-    args = parser.parse_args()
-
-    metrics = None
-    truth = None
-    truth_tmp, data = SWOTRiver.analysis.riverobs.load_rivertiles(
-        args.gdem_rivertile, args.pixc_rivertile)
-    SWOTRiver.analysis.riverobs.match_reaches(truth_tmp, data)
+def load_and_accumulate(
+    pixc_rivertile, gdem_rivertile, metrics=None, truth=None, data=None):
+    '''
+    load reaches from a particular scene/tile, compute metrics,
+    and accumulate the data, truth and metrics (if input)
+    '''
+    truth_tmp, data_tmp = SWOTRiver.analysis.riverobs.load_rivertiles(
+        gdem_rivertile, pixc_rivertile)
+    if (len(truth_tmp.reaches.reach_id)<=0) or (
+       len(data_tmp.reaches.reach_id)<=0):
+        # do nothing if truth or data file have no reach data
+        return metrics, truth, data
+    SWOTRiver.analysis.riverobs.match_reaches(truth_tmp, data_tmp)
     tmp = SWOTRiver.analysis.riverobs.get_metrics(
-        truth_tmp.reaches, data.reaches)
+        truth_tmp.reaches, data_tmp.reaches)
     if metrics is None:
         metrics = tmp
         truth = truth_tmp
+        data = data_tmp
     else:
         for name, value in tmp.items():
             metrics[name] = np.append(metrics[name], value)
         truth = truth.append(truth_tmp)
-    print(truth.reaches.area_total.shape)
+        data = data.append(data_tmp)
+    return metrics, truth, data
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('pixc_rivertile', help='e.g., pixc/rivertile.nc')
+    parser.add_argument('gdem_rivertile', help='e.g., gdem/rivertile.nc')
+    parser.add_argument('-t', '--title')
+    parser.add_argument('-p', '--print', action='store_true')
+    parser.add_argument('-d', '--dir',
+                        help='base directory to search for rivertile files')
+    parser.add_argument('-f', '--flavor',
+                        help='flavor of pixel cloud processing')
+    args = parser.parse_args()
+
+    metrics = None
+    truth = None
+    data = None
+    print("args.dir: ",args.dir)
+    if args.dir is not None:
+        # TODO: rethink this glob call to be more general
+        #   i.e., not depend so much on assumed directory structure
+        pixc_rivertile_list = glob.glob(
+            args.dir+"/*/*"+args.flavor+'/'+args.pixc_rivertile)
+        for pixc_rivertile in pixc_rivertile_list:
+            basedir = pixc_rivertile[0:-len(args.pixc_rivertile)]
+            gdem_rivertile = basedir + args.gdem_rivertile
+            print (pixc_rivertile)
+            print (gdem_rivertile)
+            if os.path.isfile(gdem_rivertile):
+                # check if the gdem and the pixc are the same
+                metrics, truth, data = load_and_accumulate(
+                    pixc_rivertile, gdem_rivertile, metrics, truth, data)
+    else:
+        metrics, truth, data = load_and_accumulate(
+            args.pixc_rivertile, args.gdem_rivertile)
+
+   
     SWOTRiver.analysis.tabley.print_table(metrics)
     SWOTRiver.analysis.riverobs.print_errors(metrics)
 

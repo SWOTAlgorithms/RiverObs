@@ -163,7 +163,7 @@ class Product(object):
             new_product[key] = value.append(product[key])
         for key, variable in self._variables.items():
             if variable is not None:
-                new_product[key] = np.append(variable, product[key])
+                new_product[key] = np.append(variable, product[key], axis=0)
         return new_product
 
     def _copy(self, new_product, with_variables=True):
