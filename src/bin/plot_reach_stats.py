@@ -51,6 +51,20 @@ class ReachPlot():
         if self.filename is not None:
             self.figure.savefig(self.filename)
 
+class HeightVsAreaPlot(ReachPlot):
+    def plot(self):
+        super().plot(self.metrics['area'], self.metrics['height'], 'xtrk_dist')
+
+    def plot_requirements(self):
+        self.axis.axvline(x=15, color='g')
+        self.axis.axvline(x=-15, color='g')
+        self.axis.axhline(y=10, color='r')
+        self.axis.axhline(y=-10, color='r')
+
+    def finalize(self):
+        self.axis.set_xlabel('area % error')
+        self.axis.set_ylabel('height error (cm)')
+        super().finalize()
 
 class AreaPlot(ReachPlot):
     def plot(self):
@@ -259,14 +273,16 @@ def main():
     SWOTRiver.analysis.riverobs.print_errors(metrics_msk)
 
     if args.print:
-        filenames = ['reach-area.png', 'reach-height.png', 'reach-slope.png']
+        filenames = ['reach-area.png', 'reach-height.png',
+                     'reach-slope.png','reach-height-vs-area.png']
         if args.title is not None:
             filenames = [args.title + '-' + name for name in filenames]
     else:
-        filenames = [None, None, None]
+        filenames = [None, None, None, None]
     AreaPlot(truth, data, metrics, args.title, filenames[0])
     HeightPlot(truth, data, metrics, args.title, filenames[1])
     SlopePlot(truth, data, metrics, args.title, filenames[2])
+    HeightVsAreaPlot(truth, data, metrics, args.title, filenames[3])
     if not args.print:
         print('show')
         plt.show()
