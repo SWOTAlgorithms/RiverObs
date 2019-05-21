@@ -72,6 +72,14 @@ def get_metrics(truth, data):
     }
     return metrics
 
+def mask_for_sci_req(metrics, truth):
+    metrics_msk={}
+    for key in metrics:
+        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),
+              np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
+                             (truth.reaches['width']>100)))
+        metrics_msk[key] = metrics[key][msk]
+    return metrics_msk
 
 def print_errors(metrics):
     # get statistics of area error
@@ -98,3 +106,17 @@ def print_errors(metrics):
         'count': [area_num, height_num, slope_num],
     }
     SWOTRiver.analysis.tabley.print_table(table, precision=8)
+
+
+def print_metrics(metrics, truth, scene):
+    table = {}
+    table['hgt e (cm)'] = metrics['height']
+    table['slp e (cm/km)'] = metrics['slope']
+    table['area e (%)'] = metrics['area']
+    table['wid e (m)'] = metrics['width']
+    table['width (m)'] = truth.reaches['width']
+    table['reach'] = truth.reaches['reach_id']
+    table['xtrk (km)'] = truth.reaches['xtrk_dist']/1e3
+    table['scene'] = scene
+    
+    SWOTRiver.analysis.tabley.print_table(table, precision=5)
