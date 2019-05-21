@@ -152,7 +152,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
             bad = data_tmp.reaches.reach_id[data_tmp.reaches[key].mask]
             if len(bad)>0:
                 bad_reaches = np.concatenate((bad_reaches, bad.data))
-    print("bad_reaches",bad_reaches)
+    print("bad_data_reaches",bad_reaches)
     msk_t = [False for reach in truth_tmp.reaches.reach_id]
     msk_d = [False for reach in data_tmp.reaches.reach_id]
     for i,reach in enumerate(truth_tmp.reaches.reach_id):
@@ -161,8 +161,6 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     for i,reach in enumerate(data_tmp.reaches.reach_id):
         if reach in bad_reaches:
             msk_d[i] = True
-    print(msk_t)
-    print(msk_d)
     for key in truth_tmp.reaches.variables:
         # setting all variables to nans for bad reaches 
         # makes them be excluded when matching
@@ -198,7 +196,6 @@ def load_and_accumulate(
     # get the scene
     path_parts = os.path.abspath(pixc_rivertile).split('/')
     scene0 = path_parts[-4] # assumes particular directory structure...
-    print("scene0:",scene0)
     scene_tmp = [scene0 for item in data_tmp.reaches.reach_id] 
     #for k in range(len(data_tmp.reaches.reach_id)):
     #    scene_tmp.append(scene0)
@@ -213,8 +210,7 @@ def load_and_accumulate(
             metrics[name] = np.append(metrics[name], value)
         truth = truth.append(truth_tmp)
         data = data.append(data_tmp)
-        scene = scene.append(scene_tmp)
-    
+        scene = np.append(scene, scene_tmp)
     return metrics, truth, data, scene
 
 def main():
@@ -247,7 +243,7 @@ def main():
             if os.path.isfile(gdem_rivertile):
                 # check if the gdem and the pixc are the same
                 metrics, truth, data, scene = load_and_accumulate(
-                    pixc_rivertile, gdem_rivertile, metrics, truth, data)
+                    pixc_rivertile, gdem_rivertile, metrics, truth, data, scene)
                 
     else:
         metrics, truth, data, scene = load_and_accumulate(
