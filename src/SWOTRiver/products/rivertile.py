@@ -611,7 +611,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['flag_values', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 254],
-                ['_FillValue', -9999],
+                ['_FillValue', MISSING_VALUE_INT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""TBD additional comment.""")],
                 ])],
@@ -1915,7 +1915,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 65535],
-                ['_FillValue', MISSING_VALUE_FLT],
+                ['_FillValue', MISSING_VALUE_INT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Planform type from prior database. Type list is TBD.""")],
