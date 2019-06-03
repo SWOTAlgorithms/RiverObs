@@ -1021,6 +1021,14 @@ class SWOTRiverEstimator(SWOTL2):
             'width_prior': width_prior,
         }
 
+        # Adjust heights to relative to geoid
+        # (only use geoid heights in valid range)
+        mask = np.logical_and(
+            river_reach_kw_args['geoid_hght'] >= -200,
+            river_reach_kw_args['geoid_hght'] <= 2000)
+        river_reach_kw_args['h_n_ave'][mask] -= \
+            river_reach_kw_args['geoid_hght'][mask]
+
         if xtrack_median is not None:
             river_reach_kw_args['xtrack'] = xtrack_median
         else:
