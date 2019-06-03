@@ -1028,6 +1028,8 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach_kw_args['geoid_hght'] <= 2000)
         river_reach_kw_args['h_n_ave'][mask] -= \
             river_reach_kw_args['geoid_hght'][mask]
+        river_reach_kw_args['h_a_ave'][mask] -= \
+            river_reach_kw_args['geoid_hght'][mask]
 
         if xtrack_median is not None:
             river_reach_kw_args['xtrack'] = xtrack_median
