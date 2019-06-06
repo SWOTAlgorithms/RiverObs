@@ -21,6 +21,9 @@ from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 
+ATTRS_2COPY_FROM_PIXC = [
+    'start_time', 'stop_time', 'cycle_number', 'pass_number']
+
 class L2HRRiverTile(Product):
     UID = "l2_hr_rivertile"
     ATTRIBUTES = odict()
@@ -201,38 +204,68 @@ class ShapeWriterMixIn(object):
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = odict([
-        ['Conventions', {}],
-        ['title', {}],
-        ['institution', {}],
-        ['source', {}],
-        ['history', {}],
-        ['mission_name', {}],
-        ['references', {}],
-        ['reference_document', {}],
-        ['contact', {}],
-        ['cycle_number', {}],
-        ['pass_number', {}],
-        ['tile_number', {}],
-        ['swath_side', {}],
-        ['tile_name', {}],
-        ['wavelength', {}],
-        ['start_time', {}],
-        ['stop_time', {}],
-        ['ephemeris', {}],
-        ['yaw_flip', {}],
-        ['hpa_cold', {}],
-        ['inner_first_latitude', {}],
-        ['inner_first_longitude', {}],
-        ['inner_last_latitude', {}],
-        ['inner_last_longitude', {}],
-        ['outer_first_latitude', {}],
-        ['outer_first_longitude', {}],
-        ['outer_last_latitude', {}],
-        ['outer_last_longitude', {}],
-        ['xref_input_l2_hr_pixc_file', {}],
-        ['xref_l2_hr_rivertile_config_parameters_file', {}],
-        ['ellipsoid_semi_major_axis', {}],
-        ['ellipsoid_flattening', {}]])
+    ['Conventions', {'dtype': 'str' ,
+        'docstr': textjoin("""
+            Esri conventions as given in "ESRI Shapefile Technical
+            Description, an ESRI White Paper, July 1998"
+            http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
+    ['title', {'dtype': 'str',
+        'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
+    ['institution', {'dtype': 'str', 'value': 'JPL',
+         'docstr': 'Name of producing agency.'}],
+    ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
+        'docstr': textjoin("""
+            The method of production of the original data.
+            If it was model-generated, source should name the model and its
+            version, as specifically as could be useful. If it is observational,
+            source should characterize it (e.g., 'Ka-band radar interferometer').""")}],
+    ['history', {'dtype': 'str',
+        'docstr': textjoin("""
+            UTC time when file generated. Format is:
+            'YYYY-MM-DD hh:mm:ss : Creation' """)}],
+    ['mission_name', {'dtype': 'str' , 'docstr': 'SWOT'}],
+    ['references', {'dtype': 'str',
+        'docstr': textjoin("""
+            Published or web-based references that describe
+            the data or methods used to product it. Provides version number of
+            software generating product.""")}],
+    ['reference_document', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name and version of Product Description Document
+            to use as reference for product.""")}],
+    ['contact', {'dtype': 'str',
+        'docstr': textjoin("""
+            Contact information for producer of product.
+            (e.g., 'ops@jpl.nasa.gov').""")}],
+    ['cycle_number', {'dtype': 'i2',
+        'docstr': 'Cycle number of the product granule.'}],
+    ['pass_number', {'dtype': 'i2',
+        'docstr': 'Pass number of the product granule.'}],
+    ['continent', {'dtype': 'str',
+        'docstr': 'Continent the product belongs to.'}],
+    ['start_time', {'dtype': 'str',
+        'docstr': textjoin("""
+            UTC time of first tvp measurement within the data group.
+            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
+    ['stop_time', {'dtype': 'str',
+        'docstr': textjoin("""
+            UTC time of last tvp measurement within the data group.
+            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
+    ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
+        'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
+    ['xref_input_l2_hr_rivertile_files', {'dtype': 'str',
+        'docstr': 'List of RiverTile products used to generate data in product'}],
+    ['xref_static_river_db_file', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name of static river a-priori database file used to generate data
+            in product""")}],
+    ['xref_l2_hr_river_sp_param_file', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name of PGE_L2_HR_RiverSP parameter file used to generate data in
+            product""")}],
+    ])
+    for key in ['Conventions', 'title', 'mission_name']:
+        ATTRIBUTES[key]['value'] = ATTRIBUTES[key]['docstr']
 
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
@@ -1006,7 +1039,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 group, dset = key.split('/')[1::]
                 pixc_data[key] = ifp.groups[group][dset][:]
 
-            for attr in self.ATTRIBUTES.keys():
+            for attr in ATTRS_2COPY_FROM_PIXC:
                 try:
                     value = getattr(ifp, attr)
                 except AttributeError:
@@ -2102,7 +2135,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     def update_from_pixc(self, pixc_file, index_file):
         """Copies some attributes from input PIXC file"""
         with netCDF4.Dataset(pixc_file, 'r') as ifp:
-            for attr in self.ATTRIBUTES.keys():
+            for attr in ATTRS_2COPY_FROM_PIXC:
                 try:
                     value = getattr(ifp, attr)
                 except AttributeError:
