@@ -206,8 +206,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = odict([
     ['Conventions', {'dtype': 'str' ,
         'docstr': textjoin("""
-            Esri conventions as given in "ESRI Shapefile Technical
-            Description, an ESRI White Paper, July 1998"
+            Esri conventions as given in 'ESRI Shapefile Technical
+            Description, an ESRI White Paper, July 1998'
             http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
     ['title', {'dtype': 'str',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
@@ -222,7 +222,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     ['history', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time when file generated. Format is:
-            'YYYY-MM-DD hh:mm:ss : Creation' """)}],
+            'YYYY-MM-DD hh:mm:ss : Creation'""")}],
     ['mission_name', {'dtype': 'str' , 'docstr': 'SWOT'}],
     ['references', {'dtype': 'str',
         'docstr': textjoin("""
