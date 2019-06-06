@@ -1363,7 +1363,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],
-                ['long_name', textjoin(""""
+                ['long_name', textjoin("""
                     mean distance between observed and prior river database
                     node locations""")],
                 ['units', 'm'],
