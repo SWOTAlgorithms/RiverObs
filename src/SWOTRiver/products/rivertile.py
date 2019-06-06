@@ -513,7 +513,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['layovr_val',
          odict([['dtype', 'f8'],
                 ['long_name', 'metric of layover effect'],
-                ['units', '1'],
+                ['units', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 5000],
                 ['_FillValue', MISSING_VALUE_FLT],
@@ -641,7 +641,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
-                ['comment', textjoin("""TBD additional comment.""")],
+                ['comment', textjoin("""
+                    Number of pixels assigned to the node that have a valid
+                    node WSE.""")],
                 ])],
         ['xovr_cal_q',
          odict([['dtype', 'i2'],
@@ -953,7 +955,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['latitude_u'] = node_outputs['latitude_u']
             klass['longitud_u'] = node_outputs['longitud_u']
             klass['wse'] = node_outputs['h_n_ave']
-            klass['wse_u'] = node_outputs['h_n_std']
+            klass['wse_r_u'] = node_outputs['h_n_std']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
             klass['area_detct'] = node_outputs['area']
@@ -1352,7 +1354,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['layovr_val',
          odict([['dtype', 'f8'],
                 ['long_name', 'metric of layover effect'],
-                ['units', '1'],
+                ['units', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
@@ -2045,9 +2047,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         if reach_outputs is not None:
             klass['reach_id'] = reach_outputs['reach_idx']
             klass['wse'] = reach_outputs['height']
-            klass['wse_u'] = reach_outputs['height_u']
+            klass['wse_r_u'] = reach_outputs['height_u']
             klass['slope'] = reach_outputs['slope']
-            klass['slope_u'] = reach_outputs['slope_u']
+            klass['slope_r_u'] = reach_outputs['slope_u']
             klass['slope2'] = reach_outputs['slp_enhncd']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
