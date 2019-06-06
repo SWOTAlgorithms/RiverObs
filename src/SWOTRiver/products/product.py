@@ -231,7 +231,7 @@ class Product(object):
             return self._groups[key]
         # Nothing in memory, return empty data
         if key in self.ATTRIBUTES:
-            return 'None'
+            return self.ATTRIBUTES[key].get('value', 'None')
         if key in self.VARIABLES:
             shape = []
             for dimension in self.VARIABLES[key]['dimensions']:
