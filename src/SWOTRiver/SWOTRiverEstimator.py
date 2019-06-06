@@ -22,7 +22,8 @@ from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs
 from RiverObs import RiverNode
 from RiverObs import RiverReach
-from RiverObs.RiverObs import MISSING_VALUE_FLT, MISSING_VALUE_INT
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 from Centerline.Centerline import CenterLineException
 from scipy.ndimage.morphology import binary_dilation
@@ -1088,7 +1089,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
         reach_stats['prior_lon'] = reach.metadata['lon']
-        if reach_stats['prior_lon'] < 0: reach_stats['prior_lon'] += 360
         reach_stats['prior_lat'] = reach.metadata['lat']
         reach_stats['prior_n_nodes'] = len(reach.x)
 
@@ -1132,14 +1132,14 @@ class SWOTRiverEstimator(SWOTL2):
                 fit = statsmodels.api.WLS(
                     hh[mask], SS[mask], weights=ww[mask]).fit()
 
-            # fit slope is meters per meter; data product wants mm/km
-            reach_stats['slope'] = fit.params[0] * 1e6
+            # fit slope is meters per meter
+            reach_stats['slope'] = fit.params[0]
             reach_stats['height'] = fit.params[1]
 
             # use White’s (1980) heteroskedasticity robust standard errors.
             # https://www.statsmodels.org/dev/generated/
             #        statsmodels.regression.linear_model.RegressionResults.html
-            reach_stats['slope_u'] = fit.HC0_se[0] * 1e6
+            reach_stats['slope_u'] = fit.HC0_se[0]
             reach_stats['height_u'] = fit.HC0_se[1]
         else:
             reach_stats['slope'] = MISSING_VALUE_FLT
@@ -1151,8 +1151,8 @@ class SWOTRiverEstimator(SWOTL2):
         gg = river_reach.geoid_hght
         geoid_fit = statsmodels.api.OLS(gg, SS).fit()
 
-        # fit slope is meters per meter; data product wants mm/km
-        reach_stats['geoid_slop'] = geoid_fit.params[0] * 1e6
+        # fit slope is meters per meter
+        reach_stats['geoid_slop'] = geoid_fit.params[0]
         reach_stats['geoid_hght'] = geoid_fit.params[1]
 
         LOGGER.debug('Reach height/slope processing finished')
@@ -1192,13 +1192,13 @@ class SWOTRiverEstimator(SWOTL2):
 
         reach_stats['discharge'] = (
             cross_sectional_area**(5/3) * reach_stats['width']**(-2/3) *
-            (reach_stats['slope']/10**6)**(1/2)) / metro_man_n
+            (reach_stats['slope'])**(1/2)) / metro_man_n
 
         reach_stats['dischg_u'] = MISSING_VALUE_FLT
 
         # add fit_height for improved geolocation
         river_reach.fit_height = (
-            reach_stats['height'] + reach_stats['slope'] / 1e6 * ss)
+            reach_stats['height'] + reach_stats['slope'] * ss)
 
         # copy things from the prior DB into reach outputs
         reach_stats['width_prior'] = np.mean(river_reach.width_prior)
@@ -1212,12 +1212,12 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['rch_id_up'] = np.array([
             item[0] for item in reach.metadata['rch_id_up']], dtype='i4')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
-            MISSING_VALUE_INT
+            MISSING_VALUE_INT9
 
         reach_stats['rch_id_dn'] = np.array([
             item[0] for item in reach.metadata['rch_id_dn']], dtype='i4')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
-            MISSING_VALUE_INT
+            MISSING_VALUE_INT9
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
