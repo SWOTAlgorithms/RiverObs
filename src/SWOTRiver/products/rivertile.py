@@ -121,8 +121,8 @@ class ShapeWriterMixIn(object):
         """Writes self to a shapefile"""
 
         REMAP_DICT = {
-            'i1': 'int', 'i2': 'int', 'i4': 'int',
-            'u1': 'int', 'u2': 'int', 'u4': 'int',
+            'i1': 'int:4', 'i2': 'int:4', 'i4': 'int:9',
+            'u1': 'int:4', 'u2': 'int:4', 'u4': 'int:9',
             'f4': 'float', 'f8': 'float'}
 
         properties = odict([
