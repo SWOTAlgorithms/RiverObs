@@ -619,10 +619,10 @@ class SWOTRiverEstimator(SWOTL2):
                 continue
 
             # Add width per node to centerline and re-init IteratedRiverObs
-            # to use the per node max widths.
+            # to use the per node max widths (max width == 2x prior DB width)
             river_obs.add_centerline_obs(
                 self.reaches[i_reach].x, self.reaches[i_reach].y,
-                self.reaches[i_reach].width, 'max_width')
+                self.reaches[i_reach].width*2, 'max_width')
             river_obs.reinitialize()
 
             if len(river_obs.x) == 0:
