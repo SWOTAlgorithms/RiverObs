@@ -987,8 +987,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['longitude'] = node_outputs['lon']
             klass['latitude_u'] = node_outputs['latitude_u']
             klass['longitud_u'] = node_outputs['longitud_u']
-            klass['wse'] = node_outputs['h_n_ave']
-            klass['wse_r_u'] = node_outputs['h_n_std']
+            klass['wse'] = node_outputs['wse']
+            klass['wse_r_u'] = node_outputs['wse_std']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
             klass['area_detct'] = node_outputs['area']
@@ -1001,6 +1001,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['rdr_sig0'] = node_outputs['rdr_sig0']
             klass['rdr_sig0_u'] = node_outputs['rdr_sig0_u']
             klass['geoid_hght'] = node_outputs['geoid_hght']
+            klass['solid_tide'] = node_outputs['solid_tide']
+            klass['load_tide1'] = node_outputs['load_tide1']
+            klass['load_tide2'] = node_outputs['load_tide2']
+            klass['pole_tide'] = node_outputs['pole_tide']
             # compute node distance from prior
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
@@ -1022,10 +1026,6 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         pixc_vec = L2PIXCVector.from_ncfile(index_file)
 
         pixc2rivertile_map = {
-            '/pixel_cloud/solid_earth_tide': 'solid_tide',
-            '/pixel_cloud/pole_tide': 'pole_tide',
-            '/pixel_cloud/load_tide_sol1': 'load_tide1',
-            '/pixel_cloud/load_tide_sol2': 'load_tide2',
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
