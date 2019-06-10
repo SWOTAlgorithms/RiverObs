@@ -578,14 +578,13 @@ class SWOTRiverEstimator(SWOTL2):
                         min_sigma=min_sigma,
                         window_size_sigma_ratio=window_size_sigma_ratio)
 
-                    # flip sign, convert to mm/km
-                    enhanced_slope = enhanced_slope * -1e6
+                    # flip sign, convert to m/m
+                    enhanced_slope = enhanced_slope * -1
                 else:
                     enhanced_slope = MISSING_VALUE_FLT
 
                 # add enhanced slope to river reach outputs
-                out_river_reach.metadata['slp_enhncd'] = np.float32(
-                    enhanced_slope)
+                out_river_reach.metadata['slope2'] = np.float32(enhanced_slope)
                 out_river_reach_collection.append(out_river_reach)
 
         return out_river_reach_collection

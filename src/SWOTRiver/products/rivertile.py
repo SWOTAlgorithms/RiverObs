@@ -2083,7 +2083,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['wse_r_u'] = reach_outputs['height_u']
             klass['slope'] = reach_outputs['slope']
             klass['slope_r_u'] = reach_outputs['slope_u']
-            klass['slope2'] = reach_outputs['slp_enhncd']
+            klass['slope2'] = reach_outputs['slope2']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
             klass['area_detct'] = reach_outputs['area']
