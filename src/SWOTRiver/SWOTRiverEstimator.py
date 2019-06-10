@@ -584,7 +584,7 @@ class SWOTRiverEstimator(SWOTL2):
                     enhanced_slope = MISSING_VALUE_FLT
 
                 # add enhanced slope to river reach outputs
-                out_river_reach.metadata['slope2'] = np.float32(enhanced_slope)
+                out_river_reach.metadata['slope2'] = enhanced_slope
                 out_river_reach_collection.append(out_river_reach)
 
         return out_river_reach_collection
