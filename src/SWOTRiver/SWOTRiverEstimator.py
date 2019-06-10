@@ -900,17 +900,13 @@ class SWOTRiverEstimator(SWOTL2):
 
         # number of good heights
         nobs_h = np.asarray(self.river_obs.get_node_stat('countGood', 'h_flg'))
-        # heights using same pixels as widths
-        h_noise_ave0 = np.asarray(
-            self.river_obs.get_node_stat('median', 'h_noise'))
-        h_noise_std0 = np.asarray(
-            self.river_obs.get_node_stat('std', 'h_noise'))
+
         # heights using only "good" heights
-        h_noise_ave = np.asarray(
-            self.river_obs.get_node_stat(
+        wse = np.asarray(self.river_obs.get_node_stat(
                 'median', 'h_noise', good_flag='h_flg'))
-        h_noise_std = np.asarray(
+        wse_u = np.asarray(
             self.river_obs.get_node_stat('std', 'h_noise', good_flag='h_flg'))
+        wse_std = wse_u
 
         # The following are estimates of river width
         width_ptp = np.asarray(self.river_obs.get_node_stat('width_ptp', ''))
@@ -924,13 +920,10 @@ class SWOTRiverEstimator(SWOTL2):
             'median', 'sig0', good_flag='h_flg'))
 
         # area of pixels used to compute heights
-        area_of_ht = np.asarray(
-            self.river_obs.get_node_stat('sum', 'inundated_area',
-                                         good_flag='h_flg'))
-
+        area_of_ht = np.asarray(self.river_obs.get_node_stat(
+            'sum', 'inundated_area', good_flag='h_flg'))
         width_area = np.asarray(
             self.river_obs.get_node_stat('width_area', 'inundated_area'))
-
         geoid_hght = np.asarray(self.river_obs.get_node_stat('mean', 'geoid'))
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('mean', 'solid_earth_tide'))
