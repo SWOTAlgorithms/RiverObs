@@ -11,7 +11,8 @@ from .RiverNode import RiverNode
 
 LOGGER = logging.getLogger(__name__)
 
-MISSING_VALUE_INT = -9999
+MISSING_VALUE_INT4 = -999
+MISSING_VALUE_INT9 = -99999999
 MISSING_VALUE_FLT = -999999999999
 
 class RiverObs:

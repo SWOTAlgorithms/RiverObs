@@ -17,6 +17,9 @@ import RDF
 import SWOTRiver.EstimateSWOTRiver
 from SWOTRiver.products.rivertile import L2HRRiverTile
 from SWOTRiver.products.pixcvec import L2PIXCVector
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -190,7 +193,7 @@ class L2PixcToRiverTile(object):
         except ModuleNotFoundError:
             print("Cant load CNES improved geolocation, skipping!")
             return
-        
+
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
 
         # compute improved geolocation
@@ -199,7 +202,8 @@ class L2PixcToRiverTile(object):
             geoloc_river.PixcvecRiver(self.index_file),
             cnes_sensor,
             geoloc_river.RiverTile.from_node_outputs(self.node_outputs),
-            fit_heights_per_reach='fitted_height_from_riverobs', interpolate_pixc_between_nodes=True,
+            fit_heights_per_reach='fitted_height_from_riverobs',
+            interpolate_pixc_between_nodes=True,
             method=self.config['geolocation_method'])
 
         # update geoloc in place in index file
@@ -264,6 +268,24 @@ class L2PixcToRiverTile(object):
         except AttributeError:
             LOGGER.warn('Output products are empty')
             self.rivertile_product = L2HRRiverTile()
+
+        # If lake flag is set don't output width, area, or slope.
+        for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
+            if self.reach_outputs['lake_flag'][ireach] != 0:
+                self.reach_outputs['slope'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['slope2'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['slope_u'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area_u'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['width'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['width_u'][ireach] = MISSING_VALUE_FLT
+
+                mask = self.node_outputs['reach_indx'] == reach_id
+                self.node_outputs['w_area'][mask] = MISSING_VALUE_FLT
+                self.node_outputs['width_u'][mask] = MISSING_VALUE_FLT
+                self.node_outputs['area'][mask] = MISSING_VALUE_FLT
+                self.node_outputs['area_of_ht'][mask] = MISSING_VALUE_FLT
+                self.node_outputs['area_u'][mask] = MISSING_VALUE_FLT
 
         # add in a bunch more stuff from PIXC
         if not os.path.isfile(self.index_file):
