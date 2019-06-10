@@ -68,11 +68,13 @@ class HeightVsAreaPlot(ReachPlot):
 
 class AreaPlot(ReachPlot):
     def plot(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct)
+        #true_area = np.sqrt(self.truth.reaches.area_detct)
+        true_area = np.sqrt(self.truth.reaches.area_total)
         super().plot(true_area, self.metrics['area'], 'xtrk_dist')
 
     def plot_requirements(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct)
+        #true_area = np.sqrt(self.truth.reaches.area_detct)
+        true_area = np.sqrt(self.truth.reaches.area_total)
         buff = 100
         i = 1
         self.axis.plot([np.sqrt(50*10e3), 1000], [i*25, i*25], '--g')
@@ -98,11 +100,13 @@ class AreaPlot(ReachPlot):
 
 class HeightPlot(ReachPlot):
     def plot(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct)
+        #true_area = np.sqrt(self.truth.reaches.area_detct)
+        true_area = np.sqrt(self.truth.reaches.area_total)
         super().plot(true_area, self.metrics['height'], 'xtrk_dist')
 
     def plot_requirements(self):
-        true_area = np.sqrt(self.truth.reaches.area_detct)
+        #true_area = np.sqrt(self.truth.reaches.area_detct)
+        true_area = np.sqrt(self.truth.reaches.area_total)
         buff = 100
         i = 1
         self.axis.plot([250, 1000], [i*25, i*25], '--y')
@@ -154,7 +158,8 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     only keep reaches that all the pertinent data is good for both truth and meaured 
     """
     bad_reaches = np.array([])
-    main_keys = ['area_detct','height','slope','width']
+    #main_keys = ['area_detct','height','slope','width']
+    main_keys = ['area_total','height','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire 
         # reach by setting all elements to nan

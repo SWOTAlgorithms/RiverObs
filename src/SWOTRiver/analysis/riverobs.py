@@ -65,6 +65,8 @@ def match_nodes(truth, data):
 def get_metrics(truth, data):
     metrics = {
         'area': (
+            (data.area_total - truth.area_total) / truth.area_total) * 100.0,
+        'area_detct':(
             (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
         'height': (data.height - truth.height) * 1e2,
         'slope': (data.slope - truth.slope) / 10,

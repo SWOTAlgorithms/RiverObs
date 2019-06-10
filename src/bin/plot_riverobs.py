@@ -30,7 +30,7 @@ class NodePlots():
         self.plot()
 
     def add_figure(self):
-        figure, axes = plt.subplots(3, 1, figsize=FIGSIZE, dpi=DPI)
+        figure, axes = plt.subplots(2, 1, figsize=FIGSIZE, dpi=DPI)
         self.figures.append(figure)
         self.axes.append(axes)
         return figure, axes
@@ -70,9 +70,9 @@ class ParamPlots(NodePlots):
     def plot_reach(self, reach, reach_id, i_truth, i_data):
         figure, axes = self.add_figure()
         axes[0].set_title('reach %s %s' % (reach, reach_id))
-        self.plot_data(i_truth, i_data, axes[0])
-        self.plot_data(i_truth, i_data, axes[1], style='-')
-        self.plot_error(i_truth, i_data, axes[2], style='.-')
+        #self.plot_data(i_truth, i_data, axes[0])
+        self.plot_data(i_truth, i_data, axes[0], style='o-')
+        self.plot_error(i_truth, i_data, axes[1], style='.-')
         # TODO: compute the bulk errors for each reach
 
     def plot_data(self, i_truth, i_data, axis, style='.'):
@@ -97,9 +97,10 @@ class ParamPlots(NodePlots):
             if field.endswith('_u'):
                 error = self.data[field][i_data]
                 label = field
-                if field=='area_det_u':
+                if field=='area_tot_u':#'area_det_u':
                     # need to convert area uncert to % error
-                    error = (error / self.data['area_detct'][i_data])*100.0
+                    #error = (error / self.data['area_detct'][i_data])*100.0
+                    error = (error / self.data['area_total'][i_data])*100.0
                     label = label + '% error'
             else:
                 Ldata = len(self.data[field][i_data])
@@ -140,9 +141,9 @@ class ParamPlots(NodePlots):
             axis.set_ylabel(self.truth_field + ' error, data-truth')
     def finalize(self):
         for axes in self.axes:
-            ylims = axes[2].get_ylim()
+            ylims = axes[1].get_ylim()
             edge = np.max(np.abs(ylims))
-            axes[2].set_ylim(-1*edge, edge)
+            axes[1].set_ylim(-1*edge, edge)
         super().finalize()
 
 
@@ -150,26 +151,26 @@ class HeightPlots(ParamPlots):
     def finalize(self):
         for axes in self.axes:
             axes[0].set_ylabel('height (m)')
-            axes[1].set_ylabel('height (m)')
-            axes[2].set_ylabel('height error (m), data-truth')
-            axes[2].set_ylim(-0.5, 0.5)
-            axes[2].set_yticks(np.linspace(-0.5, 0.5, 11))
+            #axes[1].set_ylabel('height (m)')
+            axes[1].set_ylabel('height error (m), data-truth')
+            axes[1].set_ylim(-0.5, 0.5)
+            axes[1].set_yticks(np.linspace(-0.5, 0.5, 11))
             for i in [-1, 1]:
                 labels = [
                     'BSM for $A>(250m)^2$', 'BSM for $A>1 km^2$',
                     'TSM for $A>1 km^2$']
                 if i == 1:
                     labels = [None, None, None]
-                axes[2].plot(
+                axes[1].plot(
                     [-9e9, 9e9], [i*0.25, i*0.25], ':y', scalex=False,
                     label=labels[0])
-                axes[2].plot(
+                axes[1].plot(
                     [-9e9, 9e9], [i*0.10, i*0.10], '--y', scalex=False,
                     label=labels[1])
-                axes[2].plot(
+                axes[1].plot(
                     [-9e9, 9e9], [i*0.11, i*0.11], '--r', scalex=False,
                     label=labels[2])
-            axes[2].legend()
+            axes[1].legend()
         super().finalize()
 
 
@@ -219,7 +220,7 @@ def main():
         truth.nodes, data.nodes, ['height', 'height_u', 'height2_u'], 'height',
         title=args.title+'-height', tofile=args.print)
     ParamPlots(
-        truth.nodes, data.nodes, ['area_detct', 'area_det_u'], 'area_detct',
+        truth.nodes, data.nodes, ['area_total', 'area_tot_u'], 'area_total',#truth.nodes, data.nodes, ['area_detct', 'area_det_u'], 'area_detct',
         percent=True, title=args.title+'-area', tofile=args.print)
     plot_locations(
         truth.nodes, data.nodes, title=args.title+'-locations',
