@@ -215,7 +215,7 @@ def area_only(pixel_area, water_fraction, klass, good,
     implements methods: weight (default), median, uniform 
     good is a mask used to filter out heights that are expected to be bad 
     or outliers, if desired
-    
+
     INPUTS:
     pixel_area     = 1d array of pixel_area
     water_fraction = 1d array of water fraction

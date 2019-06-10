@@ -864,9 +864,9 @@ class SWOTRiverEstimator(SWOTL2):
         edge_water = np.zeros(np.shape(self.klass))
         for i, k in enumerate(self.class_list):
             if self.use_fractional_inundation[i]:
-                # this is actually both land and water edges, 
+                # this is actually both land and water edges,
                 # but setting to water edge
-                edge_water[self.klass==k] = 1                
+                edge_water[self.klass==k] = 1
 
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
@@ -964,6 +964,9 @@ class SWOTRiverEstimator(SWOTL2):
                 width_u = node_aggs['width_area_u']
                 area = node_aggs['area']
                 area_u = node_aggs['area_u']
+                area_det = node_aggs['area_det']
+                area_det_u = node_aggs['area_det_u']
+                area_of_ht = node_aggs['area']
 
             if (self.height_agg_method is not 'orig'):
                 wse = node_aggs['h']
@@ -1012,16 +1015,18 @@ class SWOTRiverEstimator(SWOTL2):
             'nobs': nobs.astype('int32'),
             's': s_median.astype('float64'),
             'ds': ds.astype('float64'),
-            'w_ptp': width_ptp.astype('float32'),
-            'w_std': width_std.astype('float32'),
-            'w_area': width_area.astype('float32'),
-            'w_db': width_db.astype('float32'),
-            'area': area.astype('float32'),
-            'area_u': area_u.astype('float32'),
-            'area_of_ht': area_of_ht.astype('float32'),
-            'wse': wse.astype('float32'),
-            'wse_std': wse_std.astype('float32'),
-            'wse_u': wse_u.astype('float32'),
+            'w_ptp': width_ptp.astype('float64'),
+            'w_std': width_std.astype('float64'),
+            'w_area': width_area.astype('float64'),
+            'w_db': width_db.astype('float64'),
+            'area': area.astype('float64'),
+            'area_u': area_u.astype('float64'),
+            'area_det': area_det.astype('float64'),
+            'area_det_u': area_det_u.astype('float64'),
+            'area_of_ht': area_of_ht.astype('float64'),
+            'wse': wse.astype('float64'),
+            'wse_std': wse_std.astype('float64'),
+            'wse_u': wse_u.astype('float64'),
             'nobs_h': nobs_h.astype('int32'),
             'x_prior': x_prior.astype('float64'),
             'y_prior': y_prior.astype('float64'),
@@ -1029,16 +1034,16 @@ class SWOTRiverEstimator(SWOTL2):
             'lat_prior': lat_prior.astype('float64'),
             'node_indx': node_indx.astype('int32'),
             'reach_indx': reach_index.astype('int32'),
-            'rdr_sig0': rdr_sig0.astype('float32'),
-            'rdr_sig0_u': rdr_sig0_u.astype('float32'),
-            'latitude_u': latitude_u.astype('float32'),
-            'longitud_u': longitud_u.astype('float32'),
-            'width_u': width_u.astype('float32'),
-            'geoid_hght': geoid_hght.astype('float32'),
-            'solid_tide': solid_tide.astype('float32'),
-            'load_tide1': load_tide1.astype('float32'),
-            'load_tide2': load_tide2.astype('float32'),
-            'pole_tide': pole_tide.astype('float32'),
+            'rdr_sig0': rdr_sig0.astype('float64'),
+            'rdr_sig0_u': rdr_sig0_u.astype('float64'),
+            'latitude_u': latitude_u.astype('float64'),
+            'longitud_u': longitud_u.astype('float64'),
+            'width_u': width_u.astype('float64'),
+            'geoid_hght': geoid_hght.astype('float64'),
+            'solid_tide': solid_tide.astype('float64'),
+            'load_tide1': load_tide1.astype('float64'),
+            'load_tide2': load_tide2.astype('float64'),
+            'pole_tide': pole_tide.astype('float64'),
             'node_blocked': is_blocked.astype('uint8'),
             'width_prior': width_prior,
         }
@@ -1113,6 +1118,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['area'] = np.sum(river_reach.area)
         reach_stats['area_u'] = np.sqrt(np.sum(
             river_reach.area_u**2))
+
+        reach_stats['area_det'] = np.sum(river_reach.area_det)
+        reach_stats['area_det_u'] = np.sqrt(np.sum(
+            river_reach.area_det_u**2))
 
         reach_stats['area_of_ht'] = np.sum(river_reach.area_of_ht)
 

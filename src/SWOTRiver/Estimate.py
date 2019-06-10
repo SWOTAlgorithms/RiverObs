@@ -275,17 +275,23 @@ class L2PixcToRiverTile(object):
                 self.reach_outputs['slope'][ireach] = MISSING_VALUE_FLT
                 self.reach_outputs['slope2'][ireach] = MISSING_VALUE_FLT
                 self.reach_outputs['slope_u'][ireach] = MISSING_VALUE_FLT
-                self.reach_outputs['area'][ireach] = MISSING_VALUE_FLT
-                self.reach_outputs['area_u'][ireach] = MISSING_VALUE_FLT
+                # TODO mask out slope2_u and slope?_r_u datasets when available
                 self.reach_outputs['width'][ireach] = MISSING_VALUE_FLT
                 self.reach_outputs['width_u'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area_u'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area_det'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area_det_u'][ireach] = MISSING_VALUE_FLT
+                self.reach_outputs['area_of_ht'][ireach] = MISSING_VALUE_FLT
 
                 mask = self.node_outputs['reach_indx'] == reach_id
                 self.node_outputs['w_area'][mask] = MISSING_VALUE_FLT
                 self.node_outputs['width_u'][mask] = MISSING_VALUE_FLT
                 self.node_outputs['area'][mask] = MISSING_VALUE_FLT
+                self.node_outputs['area_det'][mask] = MISSING_VALUE_FLT
                 self.node_outputs['area_of_ht'][mask] = MISSING_VALUE_FLT
                 self.node_outputs['area_u'][mask] = MISSING_VALUE_FLT
+                self.node_outputs['area_det_u'][mask] = MISSING_VALUE_FLT
 
         # add in a bunch more stuff from PIXC
         if not os.path.isfile(self.index_file):

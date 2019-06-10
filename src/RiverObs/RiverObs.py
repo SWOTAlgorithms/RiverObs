@@ -373,7 +373,8 @@ class RiverObs:
         """
         outputs = {key: [] for key in [
             'h', 'h_std', 'h_u', 'lat_u', 'lon_u', 'area', 'area_u',
-            'width_area', 'width_area_u', 'sig0', 'sig0_u', 'sig0_std']}
+            'area_det', 'area_det_u', 'width_area', 'width_area_u', 'sig0',
+            'sig0_u', 'sig0_std']}
 
         for node in self.all_nodes:
             if node in self.populated_nodes:
@@ -385,7 +386,7 @@ class RiverObs:
                 sig0, sig0_std, sig0_u = river_node.sig0_with_uncert(
                     goodvar=good_flag)
 
-                area, width_area, area_u, width_area_u = \
+                area, width_area, area_u, width_area_u, area_det, area_det_u =\
                     river_node.area_with_uncert(method=area_method)
 
                 local_vars = locals()
