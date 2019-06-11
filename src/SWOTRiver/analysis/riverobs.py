@@ -68,7 +68,7 @@ def get_metrics(truth, data):
             (data.area_total - truth.area_total) / truth.area_total) * 100.0,
         'area_detct':(
             (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
-        'height': (data.height - truth.height) * 1e2,
+        'height': (data.wse - truth.wse) * 1e2,
         'slope': (data.slope - truth.slope) / 10,
         'width': data.width - truth.width,
     }

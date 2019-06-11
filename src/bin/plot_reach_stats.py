@@ -159,7 +159,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     """
     bad_reaches = np.array([])
     #main_keys = ['area_detct','height','slope','width']
-    main_keys = ['area_total','height','slope','width']
+    main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire 
         # reach by setting all elements to nan
