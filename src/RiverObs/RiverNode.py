@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import SWOTWater.aggregate as aggregate
+from SWOTWater.constants import PIXC_CLASSES
 
 class RiverNode:
     """
@@ -328,13 +329,12 @@ class RiverNode:
         # (not just the use_heights pixels), but could use goodvar 
         # to filter out outliers
         good = getattr(self, goodvar)
-        interior_water_klass = 4
-        water_edge_klass = 3
-        land_edge_klass = 2
-
-        land_near_dark_water_klass = 22
-        dark_edge_klass = 23
-        dark_klass = 24
+        interior_water_klass = PIXC_CLASSES['open_water']
+        water_edge_klass = PIXC_CLASSES['water_near_land']
+        land_edge_klass = PIXC_CLASSES['land_near_water']
+        land_near_dark_water_klass = PIXC_CLASSES['land_near_dark_water']
+        dark_edge_klass = PIXC_CLASSES['dark_water_edge']
+        dark_klass = PIXC_CLASSES['dark_water']
 
         # decode/encode the water classes to send to external function
         # first set everything to interior water
