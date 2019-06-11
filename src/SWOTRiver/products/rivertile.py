@@ -99,6 +99,21 @@ class L2HRRiverTile(Product):
 
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
+    @staticmethod
+    def get_schema(dtype, valid_max):
+        """Returns the float:13.XX schema so valid max fits"""
+        if dtype in ['i1', 'i2', 'u1', 'u2']:
+            schema = 'int:4'
+        elif dtype in ['i4', 'u4']:
+            schema = 'int:9'
+        elif dtype in ['f4', 'f8']:
+            num_digits_left = 1+np.log10(valid_max)
+            if num_digits_left >= 13:
+                schema = 'float:13'
+            else:
+                schema = 'float:13.%d'%(13-num_digits_left-1)
+        return schema
+
     def write_shape_xml(self, filename):
         """Writes the XML metadata to filename"""
         with open(filename, 'w') as ofp:
@@ -123,14 +138,11 @@ class ShapeWriterMixIn(object):
     def write_shapes(self, shp_fname):
         """Writes self to a shapefile"""
 
-        REMAP_DICT = {
-            'i1': 'int:4', 'i2': 'int:4', 'i4': 'int:9',
-            'u1': 'int:4', 'u2': 'int:4', 'u4': 'int:9',
-            'f4': 'float', 'f8': 'float'}
-
-        properties = odict([
-            [key, REMAP_DICT[self.VARIABLES[key]['dtype']]] for key in
-            self.VARIABLES])
+        properties = odict()
+        for key in self.VARIABLES:
+            dtype = self.VARIABLES[key]['dtype']
+            valid_max = self.VARIABLES['wse']['valid_max']
+            properties[key] = self.get_schema(dtype, valid_max)
 
         try:
             # these are for the geometry part of schema
