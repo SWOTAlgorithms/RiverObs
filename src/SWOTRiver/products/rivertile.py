@@ -168,8 +168,15 @@ class ShapeWriterMixIn(object):
                         this_item = self[key]
 
                     if key in ['rch_id_up', 'rch_id_dn']:
-                        this_property[key] = ' '.join([
-                            str(item) for item in this_item[ii]])
+                        strings = []
+                        for item in this_item[ii]:
+                            if item == self.VARIABLES[key]['_FillValue']:
+                                thisstr = 'no_data'
+                            else:
+                                thisstr = str(item)
+                            strings.append(thisstr)
+
+                        this_property[key] = ' '.join(strings)
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
 
@@ -1840,7 +1847,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Values of reach_id for the upstream reaches, from the
@@ -1854,7 +1861,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Values of reach_id for the downstream reaches, from the
