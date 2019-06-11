@@ -1013,6 +1013,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['lat_prior'] = node_outputs['lat_prior']
             klass['lon_prior'] = node_outputs['lon_prior']
             klass['p_width'] = node_outputs['width_prior']
+            klass['dark_frac'] = node_outputs['dark_frac']
 
             # set quality flag
             klass['quality_f'] = np.zeros(node_outputs['nobs'].shape).astype(
@@ -2109,6 +2110,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['n_reach_dn'] = reach_outputs['n_reach_dn']
             klass['d_x_area'] = reach_outputs['d_x_area']
             klass['d_x_area_u'] = reach_outputs['d_x_area_u']
+            klass['dark_frac'] = reach_outputs['dark_frac']
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]

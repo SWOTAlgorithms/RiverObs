@@ -1006,6 +1006,8 @@ class SWOTRiverEstimator(SWOTL2):
         lat_prior = reach.lat[self.river_obs.populated_nodes]
         width_prior = reach.width[self.river_obs.populated_nodes]
 
+        dark_frac = 1-area_det/area
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
@@ -1046,6 +1048,7 @@ class SWOTRiverEstimator(SWOTL2):
             'pole_tide': pole_tide.astype('float64'),
             'node_blocked': is_blocked.astype('uint8'),
             'width_prior': width_prior,
+            'dark_frac': dark_frac,
         }
 
         if xtrack_median is not None:
@@ -1241,6 +1244,9 @@ class SWOTRiverEstimator(SWOTL2):
             item[0] for item in reach.metadata['rch_id_dn']], dtype='i4')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
+
+        reach_stats['dark_frac'] = (
+            1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
