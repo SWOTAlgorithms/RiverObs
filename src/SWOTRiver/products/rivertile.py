@@ -100,14 +100,17 @@ class L2HRRiverTile(Product):
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
     @staticmethod
-    def get_schema(dtype, valid_max):
+    def get_schema(dtype, valid_max, valid_min):
         """Returns the float:13.XX schema so valid max fits"""
         if dtype in ['i1', 'i2', 'u1', 'u2']:
             schema = 'int:4'
         elif dtype in ['i4', 'u4']:
             schema = 'int:9'
         elif dtype in ['f4', 'f8']:
-            num_digits_left = 1+np.log10(valid_max)
+            num_digits_left = 1+np.log10(
+                np.max([np.abs(valid_max), np.abs(valid_min)]))
+            if valid_min < 0:
+                num_digits_left += 1
             if num_digits_left >= 13:
                 schema = 'float:13'
             else:
@@ -139,10 +142,9 @@ class ShapeWriterMixIn(object):
         """Writes self to a shapefile"""
 
         properties = odict()
-        for key in self.VARIABLES:
-            dtype = self.VARIABLES[key]['dtype']
-            valid_max = self.VARIABLES['wse']['valid_max']
-            properties[key] = self.get_schema(dtype, valid_max)
+        for key, var in self.VARIABLES.items():
+            properties[key] = self.get_schema(
+                var['dtype'], var['valid_max'], var['valid_min'])
 
         try:
             # these are for the geometry part of schema
