@@ -238,9 +238,11 @@ class Product(object):
                 shape.append(self.dimensions[dimension])
             dtype = self.VARIABLES[key].get('dtype', np.float32)
             quantized_fill = self._getfill(key)
+            value = np.ones(shape, dtype=dtype)
+            value[:] = quantized_fill
             return np.ma.masked_array(
-                data=np.ones(shape)*quantized_fill, dtype=dtype,
-                fill_value=quantized_fill, mask=np.ones(shape))
+                data=value, dtype=dtype, fill_value=quantized_fill,
+                mask=np.ones(shape))
         if key in self.GROUPS:
             self[key] = self.get_product(self.GROUPS[key])()
             return self[key]

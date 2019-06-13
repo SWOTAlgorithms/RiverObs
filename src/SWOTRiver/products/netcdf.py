@@ -35,7 +35,10 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
     def _make_variable(key, data, dimensions, attributes=None):
         dataset.createVariable(
             key, data.dtype, dimensions, fill_value=fill_value)
-        dataset[key][:] = data
+        if data.dtype.str[0] == 'S' and np.ma.isMaskedArray(data):
+            dataset[key][:] = data.data
+        else:
+            dataset[key][:] = data
         if attributes is not None:
             for name, value in attributes.items():
                 if name in ('dtype', 'dimensions', '_FillValue'):

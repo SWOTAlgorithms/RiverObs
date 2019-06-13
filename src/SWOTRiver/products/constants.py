@@ -13,6 +13,7 @@ FILL_VALUES = {
     'int32': 2**31-1, 'uint32': 2**32-1,
     'int16': 2**15-1, 'uint16': 2**16-1,
     'int8': 2**7-1, 'uint8': 2**8-1,
+    'char': '*',
 }
 FILL_VALUES['c16'] = FILL_VALUES['double'] + 1j*FILL_VALUES['double']
 FILL_VALUES['c8'] = FILL_VALUES['single'] + 1j*FILL_VALUES['single']
@@ -26,3 +27,4 @@ FILL_VALUES['u8'] = FILL_VALUES['uint64']
 FILL_VALUES['u4'] = FILL_VALUES['uint32']
 FILL_VALUES['u2'] = FILL_VALUES['uint16']
 FILL_VALUES['u1'] = FILL_VALUES['uint8']
+FILL_VALUES['S1'] = FILL_VALUES['char']
