@@ -378,29 +378,31 @@ class Product(object):
                   shape_dims={}):
         """Prints the XML for this data product"""
 
+        klass = cls()
+
         INDENT = 2*' '
         if prefix is None:
             try:
-                uid = cls.UID
+                uid = klass.UID
             except AttributeError:
-                uid = cls.__class__.__name__
+                uid = klass.__class__.__name__
 
             ofp.write(INDENT+'<product>\n')
             ofp.write(2*INDENT+'<science uid="%s">\n'% uid)
             ofp.write(3*INDENT+'<nodes>\n')
 
-        for group in cls.GROUPS:
+        for group in klass.GROUPS:
             if prefix is None:
                 next_prefix = group
             else:
                 next_prefix = '%s/%s' % (prefix, group)
 
-            cls.get_product(cls.GROUPS[group]).print_xml(
+            klass.get_product(klass.GROUPS[group]).print_xml(
                     prefix=next_prefix, ofp=ofp, shape_names=shape_names,
                     shape_dims=shape_dims)
 
-        for dset in cls.VARIABLES:
-            attrs = copy.deepcopy(cls.VARIABLES[dset])
+        for dset in klass.VARIABLES:
+            attrs = copy.deepcopy(klass.VARIABLES[dset])
             # get dtype str representation from instance of number
             try:
                 type_str = np.dtype(attrs.pop('dtype')).str
@@ -430,7 +432,7 @@ class Product(object):
             attrs.pop('dimensions', None)
 
             # _FillValue special handling
-            attrs["_FillValue"] = cls._getfill(dset)
+            attrs["_FillValue"] = klass._getfill(dset)
             attrs.move_to_end("_FillValue", last=False)# put fill value in front
 
             # XML node name
@@ -477,8 +479,8 @@ class Product(object):
             ofp.write(string)
 
         # add attributes
-        for atr in cls.ATTRIBUTES:
-            attrs = copy.deepcopy(cls.ATTRIBUTES[atr])
+        for atr in klass.ATTRIBUTES:
+            attrs = copy.deepcopy(klass.ATTRIBUTES[atr])
             if prefix is None:
                 this_prefix = ''
             else:
