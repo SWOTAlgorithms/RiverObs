@@ -461,6 +461,16 @@ class Product(object):
                     5*INDENT+'<annotation app="conformance" %s/>' % annotations,
                     4*INDENT+'</integer>\n'])
 
+            elif type_str[1] == 'S':
+                width = int(type_str[2])
+                annotations += ' '.join([
+                    '{}="{}"'.format(a, b) for a, b in attrs.items()])
+                string = '\n'.join([
+                    4*INDENT+'<string name="%s" shape="%s" width="%d">' % (
+                        dset_name, shape_name, width),
+                    5*INDENT+'<annotation app="conformance" %s/>' % annotations,
+                    4*INDENT+'</string>\n'])
+
             else:
                 raise TypeError("Only ints / floats supported so far!")
 
