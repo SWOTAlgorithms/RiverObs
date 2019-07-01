@@ -377,7 +377,6 @@ class Product(object):
     def print_xml(cls, prefix=None, ofp=sys.stdout, shape_names=[],
                   shape_dims={}):
         """Prints the XML for this data product"""
-
         klass = cls()
 
         INDENT = 2*' '
@@ -422,12 +421,6 @@ class Product(object):
                 shape_names.append(shape_name)
                 shape_dims[shape_name] = attrs['dimensions']
 
-            # scale_factor always float (don't cast to an int)
-            try:
-                annotations = 'scale_factor="%f" ' % attrs.pop('scale_factor')
-            except KeyError:
-                annotations = ''
-
             # Don't write out dimensions
             attrs.pop('dimensions', None)
 
@@ -442,10 +435,17 @@ class Product(object):
                 if np.iscomplexobj(value):
                     attrs[name] = value.real
 
+            things = []
+            for key, value in attrs.items():
+                # explicitly use floats for scale_factor
+                if key == 'scale_factor':
+                    things.append('%s="%f" ' % (key, value))
+                else:
+                    things.append('{}="{}"'.format(key, value))
+            annotations = ' '.join(things)
+
             # for floats
             if type_str[1] == 'f':
-                annotations += ' '.join([
-                    '{}="{}"'.format(a, b) for a, b in attrs.items()])
                 string = '\n'.join([
                     4*INDENT+'<real name="%s" shape="%s" width="%d">' % (
                         dset_name, shape_name, width),
@@ -454,8 +454,6 @@ class Product(object):
 
             # for integers
             elif type_str[1] == 'i' or type_str[1] == 'u':
-                annotations += ' '.join([
-                    '{}="{}"'.format(a, b) for a, b in attrs.items()])
                 signed_str = 'true' if type_str[1] == 'i' else 'false'
                 string = '\n'.join([
                     4*INDENT+'<integer name="%s" shape="%s" width="%d" signed="%s">' % (
@@ -465,8 +463,6 @@ class Product(object):
 
             elif type_str[1] == 'S':
                 width = int(type_str[2])
-                annotations += ' '.join([
-                    '{}="{}"'.format(a, b) for a, b in attrs.items()])
                 string = '\n'.join([
                     4*INDENT+'<string name="%s" shape="%s" width="%d">' % (
                         dset_name, shape_name, width),
