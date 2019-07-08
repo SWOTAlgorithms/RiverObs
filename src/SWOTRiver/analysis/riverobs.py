@@ -10,13 +10,13 @@ import warnings
 
 import numpy as np
 
-import SWOTRiver.products.product
+import SWOTWater.products.product
 import SWOTRiver.analysis.tabley
 
 
 def load_rivertiles(truth_file, data_file):
-    truth = SWOTRiver.products.product.MutableProduct.from_ncfile(truth_file)
-    data = SWOTRiver.products.product.MutableProduct.from_ncfile(data_file)
+    truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
+    data = SWOTWater.products.product.MutableProduct.from_ncfile(data_file)
     return truth, data
 
 

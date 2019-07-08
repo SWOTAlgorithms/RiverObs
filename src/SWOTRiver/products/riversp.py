@@ -5,7 +5,7 @@ All rights reserved.
 
 Author (s): Alex Fore
 '''
-from SWOTRiver.products.rivertile import L2HRRiverTile
+from SWOTWater.products.rivertile import L2HRRiverTile
 
 class L2HRRiverSP(L2HRRiverTile):
     """

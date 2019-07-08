@@ -14,7 +14,7 @@ import pyproj
 from collections import OrderedDict as odict
 
 from RiverObs.RiverReach import RiverReach
-from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
+from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 
 LOGGER = logging.getLogger(__name__)
 

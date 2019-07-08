@@ -12,7 +12,7 @@ import os
 import netCDF4 as nc
 import numpy as np
 
-from SWOTRiver.products.constants import FILL_VALUES
+from SWOTWater.products.constants import FILL_VALUES
 
 
 def get_fill(dtype):

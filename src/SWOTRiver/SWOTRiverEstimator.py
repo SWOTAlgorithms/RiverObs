@@ -16,7 +16,7 @@ import logging
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
 import SWOTRiver.discharge
-from .products.product import FILL_VALUES
+from SWOTWater.products.constants import FILL_VALUES
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
 from RiverObs import IteratedRiverObs

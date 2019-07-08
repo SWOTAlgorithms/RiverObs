@@ -16,7 +16,7 @@ from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
 from SWOTRiver.products.pixcvec import L2PIXCVector
-from SWOTRiver.products.product import Product, FILL_VALUES, textjoin
+from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 

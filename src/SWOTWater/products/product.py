@@ -15,8 +15,8 @@ import textwrap
 import numpy as np
 import netCDF4 as nc
 
-import SWOTRiver.products.netcdf as netcdf
-from SWOTRiver.products.constants import FILL_VALUES
+import SWOTWater.products.netcdf as netcdf
+from SWOTWater.products.constants import FILL_VALUES
 
 FIELD_WARNING = "I'm afraid I can't do that. {} is not in {}"
 
