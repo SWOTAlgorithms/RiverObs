@@ -5,15 +5,13 @@ All rights reserved.
 
 Author (s): Alex Fore
 '''
-from SWOTWater.products.rivertile import L2HRRiverTile
+from SWOTRiver.products.rivertile import L2HRRiverTile
 
 class L2HRRiverSP(L2HRRiverTile):
     """
     Class for River SP data product
     """
     UID = "l2_hr_riversp"
-    pass
-
     @classmethod
     def from_rivertiles(cls, rivertiles):
         """
