@@ -1293,6 +1293,11 @@ class SWOTRiverEstimator(SWOTL2):
             for att_name in self.nc.__dict__:
                 setattr(ofp, att_name, getattr(self.nc, att_name))
 
+            if 'pixel_cloud' in self.nc.groups:
+                for att_name in self.nc.groups['pixel_cloud'].__dict__:
+                    setattr(ofp, att_name, getattr(
+                        self.nc.groups['pixel_cloud'], att_name))
+
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
                          cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
                          height):
@@ -1303,6 +1308,7 @@ class SWOTRiverEstimator(SWOTL2):
         """
         lon[lon<0] += 360
         # append the new data
+
         with nc.Dataset(self.output_file, 'a') as ofp:
             curr_len = len(ofp.variables['range_index'])
             new_len = curr_len + len(img_x)
