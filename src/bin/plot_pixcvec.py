@@ -34,7 +34,7 @@ def main():
             pixc_vector.latitude_vectorproc[mask],
             s=50, c=this_color, edgecolor='none')
 
-    is_bad_width = rivertile.nodes.node_q & 0x1 > 0
+    is_bad_width = rivertile.nodes.quality_f & 0x1 > 0
 
     axis.scatter(
         rivertile.nodes.lon_prior[is_bad_width],
