@@ -97,6 +97,13 @@ class L2HRRiverTile(Product):
                 except (KeyError, AttributeError):
                     print(varname+" not found.")
 
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = L2HRRiverTile()
+        klass.nodes = self.nodes + other.nodes
+        klass.reaches = self.reaches + other.reaches
+        return klass
+
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
     @staticmethod
@@ -1092,6 +1099,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
             # stuff in product
             self[outkey] = outdata
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = RiverTileNodes()
+        for key in klass.VARIABLES:
+            setattr(klass, key, np.concatenate((
+                getattr(self, key), getattr(other, key))))
+        return klass
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
     ATTRIBUTES = RiverTileNodes.ATTRIBUTES
@@ -2178,3 +2193,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 reach_value[ii] = np.mean(
                     node_value[nodes.reach_id == reach_id])
             self[key] = reach_value
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = RiverTileReaches()
+        for key in klass.VARIABLES:
+            setattr(klass, key, np.concatenate((
+                getattr(self, key), getattr(other, key))))
+        return klass

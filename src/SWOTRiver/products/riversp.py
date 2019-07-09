@@ -19,6 +19,6 @@ class L2HRRiverSP(L2HRRiverTile):
         """
         klass = cls()
         # It does somthing like this
-        # for rivertile in rivertiles:
-        #    cls += rivertile
+        for rivertile in rivertiles:
+           klass += rivertile
         return klass
