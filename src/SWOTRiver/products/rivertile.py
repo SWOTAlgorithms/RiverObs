@@ -48,6 +48,14 @@ class L2HRRiverTile(Product):
             reach_outputs, reach_collection)
         return klass
 
+    @classmethod
+    def from_shapes(cls, node_shape_path, reach_shape_path):
+        """Constructs self from shapefiles"""
+        klass = cls()
+        klass.nodes = RiverTileNodes.from_shapes(node_shape_path)
+        klass.reaches = RiverTileReaches.from_shapes(reach_shape_path)
+        return klass
+
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
         with warnings.catch_warnings():
@@ -1048,6 +1056,25 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 klass.VARIABLES['quality_f']['dtype'])
             klass['quality_f'][node_outputs['node_blocked']==1] |= 1
 
+        return klass
+
+    @classmethod
+    def from_shapes(cls, shape_path):
+        """Constructs self from shapefiles"""
+        klass = cls()
+        with fiona.open(shape_path) as ifp:
+            records = list(ifp)
+        data = {}
+        data['lon_prior'] = np.array([
+            record['geometry']['coordinates'][0] for record in records])
+        data['lat_prior'] = np.array([
+            record['geometry']['coordinates'][1] for record in records])
+        for key, reference in klass.VARIABLES.items():
+            if key not in ['lat_prior', 'lon_prior']:
+                data[key] = np.array([
+                    record['properties'][key] for record in records])
+        for key, value in data.items():
+            setattr(klass, key, value)
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
@@ -2168,6 +2195,47 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
 
             assert(len(reach_collection) == len(klass['reach_id']))
 
+        return klass
+
+    @classmethod
+    def from_shapes(cls, shape_path):
+        """Constructs self from shapefiles"""
+        klass = cls()
+        with fiona.open(shape_path) as ifp:
+            records = list(ifp)
+
+        cl_fill = klass.VARIABLES['centerline_lon']['_FillValue']
+        cl_len = klass.DIMENSIONS['centerlines']
+
+        data = {}
+        data['centerline_lon'] = np.ones([len(records), cl_len]) * cl_fill
+        data['centerline_lat'] = np.ones([len(records), cl_len]) * cl_fill
+
+        for irec, record in enumerate(records):
+            this_cl = np.array(records[0]['geometry']['coordinates'])
+            data['centerline_lon'][irec, :this_cl.shape[0]] = this_cl[:, 0]
+            data['centerline_lat'][irec, :this_cl.shape[0]] = this_cl[:, 1]
+
+        for key, reference in klass.VARIABLES.items():
+            if key in ['centerline_lon', 'centerline_lat']:
+                pass
+
+            elif key in ['rch_id_up', 'rch_id_dn']:
+                fill = klass.VARIABLES[key]['_FillValue']
+                n_ids = klass.DIMENSIONS['reach_neighbors']
+                data[key] = np.ones([len(records), n_ids])*fill
+                for irec, record in enumerate(records):
+                    tmp = record['properties'][key].replace(
+                        'no_data', str(fill))
+                    data[key][irec, :] = np.array([
+                        int(item) for item in tmp.split(' ')])
+
+            else:
+                data[key] = np.array([
+                    record['properties'][key] for record in records])
+
+        for key, value in data.items():
+            setattr(klass, key, value)
         return klass
 
     def update_from_pixc(self, pixc_file, index_file):
