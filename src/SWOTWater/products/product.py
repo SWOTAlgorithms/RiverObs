@@ -42,9 +42,10 @@ def sort_variable_attribute_odict(in_odict):
                    'calendar', 'time', 'standard_time', 'tai_utc_difference',
                    'leap_second']
     # Then put in non-standard ones, and finally these ones in this order
-    LAST_ATTRS = ['units', 'scale_factor', 'coordinates', 'quality_flag',
-                  'flag_meanings', 'flag_values', 'valid_min', 'valid_max',
-                  'comment']
+    LAST_ATTRS = [
+        'units', 'add_offset', 'scale_factor', 'coordinates',
+        'quality_flag', 'flag_meanings', 'flag_values', 'valid_min',
+        'valid_max', 'comment']
 
     attr_list = []
     for key in FIRST_ATTRS:
@@ -437,8 +438,8 @@ class Product(object):
 
             things = []
             for key, value in attrs.items():
-                # explicitly use floats for scale_factor
-                if key == 'scale_factor':
+                # explicitly use floats for add_offset and scale_factor
+                if key in ['add_offset', 'scale_factor']:
                     things.append('%s="%f" ' % (key, value))
                 else:
                     things.append('{}="{}"'.format(key, value))
@@ -543,13 +544,14 @@ class Product(object):
         """
         dtype = self.VARIABLES[my_var]['dtype']
         scale_factor = self.VARIABLES[my_var].get('scale_factor', 1)
+        add_offset = self.VARIABLES[my_var].get('add_offset', 0)
         quantized_fill = self._getfill(my_var)
         fill = FILL_VALUES[value.dtype.str[1:]]
 
         valid = np.logical_and(value != fill, ~np.isnan(value))
         quantized_values = quantized_fill * np.ones(value.shape)
         quantized_values[valid] = (
-            value[valid] / scale_factor).astype(dtype)
+            (value[valid]-add_offset) / scale_factor).astype(dtype)
         out_value = np.ma.masked_array(
             data=quantized_values, dtype=dtype, fill_value=quantized_fill,
             mask=np.logical_not(valid))
