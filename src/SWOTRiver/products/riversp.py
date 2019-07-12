@@ -30,6 +30,7 @@ class L2HRRiverSP(L2HRRiverTile):
 
     def sort(self):
         """sorts self according to the PDD"""
+        # sort first by reach_id, then by node_id
         node_sort_idx = np.lexsort((self.nodes.reach_id, self.nodes.node_id))
         for key, values in self.nodes.variables.items():
             self.nodes[key] = values[node_sort_idx]
