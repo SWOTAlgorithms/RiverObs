@@ -68,8 +68,8 @@ def get_metrics(truth, data):
             (data.area_total - truth.area_total) / truth.area_total) * 100.0,
         'area_detct':(
             (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
-        'height': (data.wse - truth.wse) * 1e2,
-        'slope': (data.slope - truth.slope) / 10,
+        'height': (data.wse - truth.wse) * 1e2,#convert m to cm
+        'slope': (data.slope - truth.slope) * 1e5,#convert from m/m to cm/km
         'width': data.width - truth.width,
     }
     return metrics

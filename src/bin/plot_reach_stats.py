@@ -63,7 +63,7 @@ class HeightVsAreaPlot(ReachPlot):
 
     def finalize(self):
         self.axis.set_xlabel('area % error')
-        self.axis.set_ylabel('height error (cm)')
+        self.axis.set_ylabel('wse error (cm)')
         super().finalize()
 
 class AreaPlot(ReachPlot):
@@ -123,7 +123,7 @@ class HeightPlot(ReachPlot):
         self.axis.plot([1000, np.amax(true_area)+buff], [i*11, i*11], '--r')
 
     def finalize(self):
-        self.axis.set_ylabel('height error (cm)')
+        self.axis.set_ylabel('wse error (cm)')
         self.axis.set_xlabel('sqrt reach area (m)')
         super().finalize()
 
@@ -278,8 +278,8 @@ def main():
     SWOTRiver.analysis.riverobs.print_errors(metrics_msk)
 
     if args.print:
-        filenames = ['reach-area.png', 'reach-height.png',
-                     'reach-slope.png','reach-height-vs-area.png']
+        filenames = ['reach-area.png', 'reach-wse.png',
+                     'reach-slope.png','reach-wse-vs-area.png']
         if args.title is not None:
             filenames = [args.title + '-' + name for name in filenames]
     else:

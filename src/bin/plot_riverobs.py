@@ -150,9 +150,9 @@ class ParamPlots(NodePlots):
 class HeightPlots(ParamPlots):
     def finalize(self):
         for axes in self.axes:
-            axes[0].set_ylabel('height (m)')
+            axes[0].set_ylabel('wse (m)')
             #axes[1].set_ylabel('height (m)')
-            axes[1].set_ylabel('height error (m), data-truth')
+            axes[1].set_ylabel('wse error (m), data-truth')
             axes[1].set_ylim(-0.5, 0.5)
             axes[1].set_yticks(np.linspace(-0.5, 0.5, 11))
             for i in [-1, 1]:
