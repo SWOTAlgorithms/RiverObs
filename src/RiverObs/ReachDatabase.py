@@ -132,28 +132,8 @@ class ReachExtractor(object):
         if os.path.isdir(reach_db_path):
             LOGGER.info('Extracting reaches')
             # figure out which db tiles to use
-            reach_db = None
-            for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
-                with netCDF4.Dataset(db_file, 'r') as ifp:
-
-                    reach_lonmin, reach_lonmax = ifp.x_min, ifp.x_max
-                    reach_latmin, reach_latmax = ifp.y_min, ifp.y_max
-
-                    # check for wraps
-                    if reach_lonmax < reach_lonmin: reach_lonmax += 360
-
-                    if (reach_lonmin < lonmax and reach_lonmax > lonmin and
-                        reach_latmin < latmax and reach_latmax > latmin):
-
-                        LOGGER.info('Using reach db tile {}'.format(db_file))
-                        with warnings.catch_warnings():
-                            warnings.simplefilter("ignore")
-                            this_db = ReachDatabase.from_ncfile(db_file)
-
-                        if reach_db is None:
-                            reach_db = this_db
-                        else:
-                            reach_db = reach_db + this_db
+            reach_db = ReachDatabase.from_dir(
+                reach_db_path, lat_lon_region.bounding_box)
 
         else:
             # assume already done
@@ -274,6 +254,45 @@ class ReachDatabase(Product):
         klass.x_max = np.max([self.x_max, other.x_max])
         klass.y_min = np.min([self.y_min, other.y_min])
         klass.y_max = np.max([self.y_max, other.y_max])
+        return klass
+
+    @classmethod
+    def from_dir(cls, reach_db_path, bounding_box):
+        """
+        Builds a ReachDatabase from a directory of ReachDatabases and a 
+        bounding box.
+
+        bounding_box = [min_lon, min_lat, max_lon, max_lat]
+        """
+        lonmin, latmin, lonmax, latmax = bounding_box
+
+        # wrap to [180, 180) interval
+        if lonmin > 180:
+            lonmin -= 360
+        if lonmax > 180:
+            lonmax -= 360
+
+        if lonmax < lonmin: lonmax += 360
+        klass = None
+        for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
+            with netCDF4.Dataset(db_file, 'r') as ifp:
+                reach_lonmin, reach_lonmax = ifp.x_min, ifp.x_max
+                reach_latmin, reach_latmax = ifp.y_min, ifp.y_max
+
+                # check for wraps
+                if reach_lonmax < reach_lonmin: reach_lonmax += 360
+
+                if (reach_lonmin < lonmax and reach_lonmax > lonmin and
+                    reach_latmin < latmax and reach_latmax > latmin):
+
+                    LOGGER.info('Using reach db tile {}'.format(db_file))
+                    with warnings.catch_warnings():
+                        warnings.simplefilter("ignore")
+                        this_db = ReachDatabase.from_ncfile(db_file)
+                    if klass is None:
+                        klass = this_db
+                    else:
+                        klass = klass + this_db
         return klass
 
 class ReachDatabaseNodes(Product):
