@@ -800,7 +800,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Geocentric pole tide height.  The sum total of the
                     contribution from the solid-Earth (body) pole tide height
                     and the load pole tide height (i.e., the effect of the
-                    ocean pole tide loading of the Earth’s crust).""")],
+                    ocean pole tide loading of the Earth's crust).""")],
                 ])],
         ['load_tide1',
          odict([['dtype', 'f8'],
@@ -814,7 +814,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to compute
+                    loading of the Earth's crust. This value is used to compute
                     wse. The value is computed from the FES2014 ocean tide
                     model.""")],
                 ])],
@@ -830,7 +830,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. The value is computed from
+                    loading of the Earth's crust. The value is computed from
                     the GOT4.10c ocean tide model.""")],
                 ])],
         ['dry_trop_c',
@@ -877,7 +877,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Equivalent vertical correction due to ionosphere delay.
                     Adding the reported correction to the reported reach WSE
                     results in the uncorrected reach WSE. The value is computed
-                    from JPL’s Global Ionosphere Map (GIM).""")],
+                    from JPL's Global Ionosphere Map (GIM).""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
@@ -1778,7 +1778,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Geocentric pole tide height.  The sum total of the
                     contribution from the solid-Earth (body) pole tide height
                     and the load pole tide height (i.e., the effect of the
-                    ocean pole tide loading of the Earth’s crust).""")],
+                    ocean pole tide loading of the Earth's crust).""")],
                 ])],
         ['load_tide1',
          odict([['dtype', 'f8'],
@@ -1792,7 +1792,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to compute
+                    loading of the Earth's crust. This value is used to compute
                     wse. The value is computed from the FES2014 ocean tide
                     model.""")],
                 ])],
@@ -1808,7 +1808,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. The value is computed from
+                    loading of the Earth's crust. The value is computed from
                     the GOT4.10c ocean tide model.""")],
                 ])],
         ['dry_trop_c',
@@ -1855,7 +1855,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Equivalent vertical correction due to ionosphere delay.
                     Adding the reported correction to the reported reach WSE
                     results in the uncorrected reach WSE. The value is computed
-                    from JPL’s Global Ionosphere Map (GIM).""")],
+                    from JPL's Global Ionosphere Map (GIM).""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
