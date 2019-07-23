@@ -288,7 +288,7 @@ class ReachDatabase(Product):
                     LOGGER.info('Using reach db tile {}'.format(db_file))
                     with warnings.catch_warnings():
                         warnings.simplefilter("ignore")
-                        this_db = ReachDatabase.from_ncfile(db_file)
+                        this_db = cls.from_ncfile(db_file)
                     if klass is None:
                         klass = this_db
                     else:
