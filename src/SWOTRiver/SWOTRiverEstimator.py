@@ -877,6 +877,16 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('pixel_area', self.pixel_area)
         dsets_to_load.append('pixel_area')
 
+        # Adjust heights to geoid and do tide corrections 
+        # (need to do before load_nodes or it is not updated in nodes)
+        mask = np.logical_and(
+            self.river_obs.geoid > -200, self.river_obs.geoid < 200)
+        self.river_obs.h_noise[mask] -= (
+            self.river_obs.geoid[mask] +
+            self.river_obs.solid_earth_tide[mask] +
+            self.river_obs.load_tide_sol1[mask] +
+            self.river_obs.pole_tide[mask])
+
         self.river_obs.load_nodes(dsets_to_load)
         LOGGER.debug('Observations added to nodes')
 
@@ -933,16 +943,7 @@ class SWOTRiverEstimator(SWOTL2):
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('mean', 'pole_tide'))
 
-        # Adjust heights to geoid and do tide corrections
-        mask = np.logical_and(
-            self.river_obs.geoid > -200, self.river_obs.geoid < 200)
-
-        self.river_obs.h_noise[mask] -= (
-            self.river_obs.geoid[mask] +
-            self.river_obs.solid_earth_tide[mask] +
-            self.river_obs.load_tide_sol1[mask] +
-            self.river_obs.pole_tide[mask])
-
+        
         # get the aggregated heights and widths with their corrosponding 
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
