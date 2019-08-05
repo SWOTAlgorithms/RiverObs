@@ -369,13 +369,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     seconds. The difference (in seconds) with time in UTC is
                     given by the metadata [time:tai_utc_difference].""")],
                 ])],
-        ['latitude',
+        ['lat',
          odict([['dtype', 'f8'],
                 ['long_name', 'latitude of centroid of water-detected pixels'],
                 ['standard_name', 'latitude'],
                 ['units', 'degrees_north'],
-                ['valid_min', -90],
-                ['valid_max', 90],
+                ['valid_min', -80],
+                ['valid_max', 80],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -383,7 +383,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     assigned to the node.  Positive latitude values increase
                     northward from the equator.""")],
                 ])],
-        ['longitude',
+        ['lon',
          odict([['dtype', 'f8'],
                 ['long_name', 'longitude of centroid of water-detected pixels'],
                 ['standard_name', 'longitude'],
@@ -398,7 +398,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     more positive to the east and more negative to the west of
                     the Prime Meridian.""")],
                 ])],
-        ['latitude_u',
+        ['lat_u',
          odict([['dtype', 'f8'],
                 ['long_name', "uncertainty in the node latitude"],
                 ['units', 'degrees_north'],
@@ -410,7 +410,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Total one-sigma uncertainty in the latitude of the centroid
                     of water-detected pixels assigned to the node.""")],
                 ])],
-        ['longitud_u',
+        ['lon_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in the node longitude'],
                 ['units', 'degrees_east'],
@@ -609,8 +609,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'distance to the satellite ground track'],
                 ['units', 'm'],
-                ['valid_min', 10000],
-                ['valid_max', 65000],
+                ['valid_min', -75000],
+                ['valid_max', 75000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -731,8 +731,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'sigma0'],
                 ['units', '1'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -1],
+                ['valid_max', 1000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -745,8 +745,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in sigma0'],
                 ['units', '1'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', 0],
+                ['valid_max', 1000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -762,8 +762,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['source', 'EGM2008'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -150],
+                ['valid_max', 150],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -779,8 +779,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Cartwright and Edden [1973] Corrected tables of tidal
                     harmonics - J. Geophys. J. R. Astr. Soc., 33, 253-264""")],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -1],
+                ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -792,8 +792,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -808,8 +808,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['source', 'FES2014'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -824,8 +824,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['source', 'GOT4.10c'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -838,8 +838,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'dry tropospheric vertical correction to WSE'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
-                ['valid_min', -2.5],
-                ['valid_max', -2.0],
+                ['valid_min', -3.0],
+                ['valid_max', -1.5],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -854,7 +854,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'model wet tropospheric correction to WSE'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
-                ['valid_min', -0.5],
+                ['valid_min', -1],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -867,9 +867,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['iono_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'ionospheric vertical correction to WSE'],
-                ['source', 'JPL Global Ionosphere Map'],
+                ['source', 'Global Ionosphere Maps'],
+                ['institution', 'JPL'],
                 ['units', 'm'],
-                ['valid_min', -0.1],
+                ['valid_min', -0.5],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -877,14 +878,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Equivalent vertical correction due to ionosphere delay.
                     Adding the reported correction to the reported reach WSE
                     results in the uncorrected reach WSE. The value is computed
-                    from JPL's Global Ionosphere Map (GIM).""")],
+                    from the JPL Global Ionosphere Maps (GIM).""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'crossover calibration WSE correction'],
                 ['units', 'm'],
-                ['valid_min', -1000],
-                ['valid_max', 1000],
+                ['valid_min', -10],
+                ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -1019,10 +1020,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         if node_outputs is not None:
             klass['reach_id'] = node_outputs['reach_indx']
             klass['node_id'] = node_outputs['node_indx']
-            klass['latitude'] = node_outputs['lat']
-            klass['longitude'] = node_outputs['lon']
-            klass['latitude_u'] = node_outputs['latitude_u']
-            klass['longitud_u'] = node_outputs['longitud_u']
+            klass['lat'] = node_outputs['lat']
+            klass['lon'] = node_outputs['lon']
+            klass['lat_u'] = node_outputs['latitude_u']
+            klass['lon_u'] = node_outputs['longitud_u']
             klass['wse'] = node_outputs['wse']
             klass['wse_r_u'] = node_outputs['wse_std']
             klass['width'] = node_outputs['w_area']
@@ -1180,13 +1181,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""""")],
                 ])],
-        ['p_latitud',
+        ['p_lat',
          odict([['dtype', 'f8'],
                 ['long_name', 'latitude of the center of the reach'],
                 ['standard_name', 'latitude'],
                 ['units', 'degrees_north'],
-                ['valid_min', -90],
-                ['valid_max', 90],
+                ['valid_min', -80],
+                ['valid_max', 80],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1194,7 +1195,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     database. Positive values increase northward of the
                     equator.""")],
                 ])],
-        ['p_longitud',
+        ['p_lon',
          odict([['dtype', 'f8'],
                 ['long_name', 'longitude of the center of the reach'],
                 ['standard_name', 'longitude'],
@@ -1496,8 +1497,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     distance to the satellite ground track""")],
                 ['units', 'm'],
-                ['valid_min', -100000],
-                ['valid_max', 100000],
+                ['valid_min', -75000],
+                ['valid_max', 75000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -1724,8 +1725,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['source', 'EGM2008'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -150],
+                ['valid_max', 150],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -1757,8 +1758,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Cartwright and Edden [1973] Corrected tables of tidal
                     harmonics - J. Geophys. J. R. Astr. Soc., 33, 253-264""")],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -1],
+                ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
@@ -1770,8 +1771,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
@@ -1786,8 +1787,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['source', 'FES2014'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -1802,8 +1803,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['source', 'GOT4.10c'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -1816,8 +1817,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'dry tropospheric vertical correction to WSE'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
-                ['valid_min', -2.5],
-                ['valid_max', -2.0],
+                ['valid_min', -3.0],
+                ['valid_max', -1.5],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -1832,7 +1833,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'model wet tropospheric correction to WSE'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['units', 'm'],
-                ['valid_min', -0.5],
+                ['valid_min', -1],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -1845,9 +1846,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['iono_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'ionospheric vertical correction to WSE'],
-                ['source', 'JPL Global Ionosphere Map'],
+                ['source', 'Global Ionosphere Maps'],
+                ['institution', 'JPL'],
                 ['units', 'm'],
-                ['valid_min', -0.1],
+                ['valid_min', -0.5],
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -1855,14 +1857,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Equivalent vertical correction due to ionosphere delay.
                     Adding the reported correction to the reported reach WSE
                     results in the uncorrected reach WSE. The value is computed
-                    from JPL's Global Ionosphere Map (GIM).""")],
+                    the JPL Global Ionosphere Maps (GIM).""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'crossover calibration WSE correction'],
                 ['units', 'm'],
-                ['valid_min', -1000],
-                ['valid_max', 1000],
+                ['valid_min', -10],
+                ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -2163,8 +2165,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['geoid_hght'] = reach_outputs['geoid_hght']
             klass['geoid_slop'] = reach_outputs['geoid_slop']
             klass['p_n_nodes'] = reach_outputs['prior_n_nodes']
-            klass['p_latitud'] = reach_outputs['prior_lat']
-            klass['p_longitud'] = reach_outputs['prior_lon']
+            klass['p_lat'] = reach_outputs['prior_lat']
+            klass['p_lon'] = reach_outputs['prior_lon']
             klass['p_width'] = reach_outputs['width_prior']
             klass['p_length'] = reach_outputs['length_prior']
             klass['rch_id_up'] = reach_outputs['rch_id_up']
