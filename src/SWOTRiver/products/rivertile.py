@@ -56,6 +56,11 @@ class L2HRRiverTile(Product):
         klass.reaches = RiverTileReaches.from_shapes(reach_shape_path)
         return klass
 
+    def uncorrect_tides(self):
+        """Removes geoid, solid earth tide, pole tide, and load tide"""
+        self.nodes.uncorrect_tides()
+        self.reaches.uncorrect_tides()
+
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
         with warnings.catch_warnings():
@@ -1077,6 +1082,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         for key, value in data.items():
             setattr(klass, key, value)
         return klass
+
+    def uncorrect_tides(self):
+        """Removes geoid, solid earth tide, pole tide, and load tide"""
+        mask = np.logical_and(
+            self.geoid_hght > -200, self.geoid_hght < 200)
+        self.wse[mask] += (
+            self.geoid_hght[mask] + self.solid_tide[mask] +
+            self.load_tide1[mask] + self.pole_tide[mask])
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
@@ -2239,6 +2252,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         for key, value in data.items():
             setattr(klass, key, value)
         return klass
+
+    def uncorrect_tides(self):
+        """Removes geoid, solid earth tide, pole tide, and load tide"""
+        mask = np.logical_and(
+            self.geoid_hght > -200, self.geoid_hght < 200)
+        self.wse[mask] += (
+            self.geoid_hght[mask] + self.solid_tide[mask] +
+            self.load_tide1[mask] + self.pole_tide[mask])
 
     def update_from_pixc(self, pixc_file, index_file):
         """Copies some attributes from input PIXC file"""
