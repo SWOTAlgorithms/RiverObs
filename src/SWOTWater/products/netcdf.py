@@ -14,6 +14,7 @@ import numpy as np
 
 from SWOTWater.products.constants import FILL_VALUES
 
+DEPTH_DIMNAMES = ['depth', 'complex_depth']
 
 def get_fill(dtype):
     """Get the SWOT approved fill value for a data type"""
@@ -25,7 +26,7 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
     '''Set the NetCDF variable, dealing with complex numbers.
 
     If array is complex, it is stored in the dataset with a third dimension,
-    'depth', so that:
+    'complex_depth', so that:
         variable.shape == (lines, pixels, 2)
         variable[:, :, 0] == array.real
         variable[:, :, 1] == array.imag
@@ -51,8 +52,8 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
                 dataset[key].setncattr(name, value)
     if 'complex' in array.dtype.name:
         # Add the depth dimension
-        if 'depth' not in dataset.dimensions:
-            dataset.createDimension('depth', 2)
+        if 'complex_depth' not in dataset.dimensions:
+            dataset.createDimension('complex_depth', 2)
         shape = array.shape
         n_bytes = int(array.dtype.itemsize/2)
         float_type = np.dtype('f'+str(n_bytes))
@@ -61,7 +62,7 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
             # array.
             array = array.filled()
         tmp = array.view(dtype=float_type).reshape(shape+(2,))
-        _make_variable(key, tmp, dimensions+['depth'], attributes)
+        _make_variable(key, tmp, dimensions+['complex_depth'], attributes)
     else:
         _make_variable(key, array, dimensions, attributes)
 
@@ -77,13 +78,13 @@ def get_variable(dataset, key):
     '''Get the NetCDF variable and dimensions, dealing with complex numbers.
 
     Key is assumed to be complex if the variable has a first or last dimension
-    of 'depth' with length 2.
+    of 'complex_depth' or 'depth' with length 2.
     '''
     variable = dataset[key]
-    if variable.dimensions[0] == 'depth' and variable.shape[0] == 2:
+    if variable.dimensions[0] in DEPTH_DIMNAMES and variable.shape[0] == 2:
         tmp = np.ma.MaskedArray(variable[0] + 1j*variable[1])
         return tmp
-    if variable.dimensions[-1] == 'depth' and variable.shape[-1] == 2:
+    if variable.dimensions[-1] in DEPTH_DIMNAMES and variable.shape[-1] == 2:
         n_bytes = int(variable.dtype.itemsize*2)
         complex_type = np.dtype('c'+str(n_bytes))
         tmp = variable[:]
@@ -124,8 +125,8 @@ def get_variable_dimensions(dataset, key):
     of 'depth' with length 2. This dimension is removed from the returned list.
     '''
     variable = dataset[key]
-    if variable.dimensions[0] == 'depth' and variable.shape[0] == 2:
+    if variable.dimensions[0] in DEPTH_DIMNAMES and variable.shape[0] == 2:
         return variable.dimensions[1:]
-    if variable.dimensions[-1] == 'depth' and variable.shape[-1] == 2:
+    if variable.dimensions[-1] in DEPTH_DIMNAMES and variable.shape[-1] == 2:
         return variable.dimensions[:-1]
     return variable.dimensions

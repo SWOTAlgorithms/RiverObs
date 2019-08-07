@@ -411,7 +411,7 @@ class Product(object):
 
             if type_str[1] == 'c':
                 type_str = type_str[0] + 'f{}'.format(int(int(type_str[2:])/2))
-                attrs['dimensions']['depth'] = 2
+                attrs['dimensions']['complex_depth'] = 2
 
             # XML wdith value
             width = int(type_str[2]) * 8
