@@ -154,7 +154,7 @@ def height_uncert_multilook(
     coh = abs(agg_real + 1j *agg_imag)/np.sqrt(agg_p1*agg_p2)
 
     # get total num_eff_looks
-    rare_looks = num_rare_looks/looks_to_efflooks
+    rare_looks = num_rare_looks#/looks_to_efflooks
     agg_looks = simple(rare_looks[good])
 
     num_looks = agg_looks * num_pixels
