@@ -410,9 +410,9 @@ def area_uncert(
                                 + var_area_composite_bar
                                 + var_pix_area_composite_bar
                                 + B_term_composite)
-    std_out = std_composite
+        std_out = std_composite
     if method == 'simple':
-        std_out = std_wd
+        std_out = std_dw
     if method == 'water_fraction':
         std_out = std_alpha
     return std_out
@@ -434,7 +434,7 @@ def area_with_uncert(
         klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
-        method='composite')
+        method=method)
 
     # normalize to get area percent error
     area_pcnt_uncert = area_unc/abs(area_agg)*100.0
