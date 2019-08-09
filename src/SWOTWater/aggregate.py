@@ -434,7 +434,7 @@ def area_with_uncert(
         klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
-        method='composite')
+        method=method)
 
     # normalize to get area percent error
     area_pcnt_uncert = area_unc/abs(area_agg)*100.0
