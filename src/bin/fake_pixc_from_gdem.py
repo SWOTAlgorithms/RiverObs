@@ -77,7 +77,7 @@ def fake_pixc_from_gdem(
         landtype = ifp_gdem.variables['landtype'][:][::subsample_factor]
         latitude = ifp_gdem.variables['latitude'][:][::subsample_factor]
         longitude = ifp_gdem.variables['longitude'][:][::subsample_factor]
-        longitude[longitude<0] += 360
+        longitude[longitude>180] -= 360
         elevation = ifp_gdem.variables['elevation'][:][::subsample_factor]
         cross_track_ = ifp_gdem.variables['cross_track'][:]
         range_spacing = ifp_gdem.ground_spacing
