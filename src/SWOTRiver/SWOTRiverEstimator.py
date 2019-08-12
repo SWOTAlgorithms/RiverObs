@@ -1307,9 +1307,7 @@ class SWOTRiverEstimator(SWOTL2):
         node as well as the pixel cloud coordinates (range and azimuth, or
         original image coordinate [e.g., gdem along- and cross-track index])
         """
-        lon[lon<0] += 360
         # append the new data
-
         with nc.Dataset(self.output_file, 'a') as ofp:
             curr_len = len(ofp.variables['range_index'])
             new_len = curr_len + len(img_x)

@@ -304,6 +304,10 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
+        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec.update_from_rivertile(self.rivertile_product)
+        pixcvec.to_ncfile(self.index_file)
+
         history_string = "Created {}".format(
             datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
         self.rivertile_product.nodes.title = \
@@ -321,11 +325,6 @@ class L2PixcToRiverTile(object):
         # copy attributes from pixel cloud to pixel cloud vector
         with netCDF4.Dataset(self.index_file, 'a') as ofp,\
              netCDF4.Dataset(self.pixc_file, 'r') as ifp:
-
-            # put lon in [0, 360)
-            lon = ofp.variables['longitude_vectorproc'][:]
-            lon[lon < 0] += 360
-            ofp.variables['longitude_vectorproc'][:] = lon
 
             for attr in L2PIXCVector.ATTRIBUTES.keys():
                 try:

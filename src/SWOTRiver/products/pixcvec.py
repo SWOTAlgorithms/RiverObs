@@ -10,6 +10,8 @@ import numpy as np
 from collections import OrderedDict as odict
 
 from SWOTWater.products.product import Product, FILL_VALUES, textjoin
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 class L2PIXCVector(Product):
     UID = "l2_hr_pixcvector"
@@ -95,8 +97,8 @@ class L2PIXCVector(Product):
                 ['long_name', 'longitude'],
                 ['standard_name', 'longitude'],
                 ['units', 'degrees_east'],
-                ['valid_min', 0],
-                ['valid_max', 360],
+                ['valid_min', -180],
+                ['valid_max', 180],
                 ['comment', 'longitude (east of the prime meridian)'],
                 ])],
         ['height_vectorproc',
@@ -177,7 +179,54 @@ class L2PIXCVector(Product):
                 ['valid_max', 1],
                 ['comment', 'lake flag'],
                 ])],
+        ['ice_clim_f',
+         odict([['dtype', 'i2'],
+                ['long_name', 'climatological ice cover flag'],
+                ['source', 'UNC'],
+                ['flag_meanings', textjoin("""
+                    no_ice_cover partial_ice_cover full_ice_cover
+                    not_available""")],
+                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 255],
+                ['comment', textjoin("""
+                    Climatological ice cover flag indicating whether the node
+                    is ice-covered on the day of the observation based on
+                    external climatological information (not the SWOT
+                    measurement).  Values of 0, 1, and 2 indicate that the
+                    node is not ice covered, partially ice covered, and fully
+                    ice covered, respectively. A value of 255 indicates that
+                    this flag is not available.""")],
+                ])],
+        ['ice_dyn_f',
+         odict([['dtype', 'i2'],
+                ['long_name', 'dynamical ice cover flag'],
+                ['source', 'UNC'],
+                ['flag_meanings', textjoin("""
+                    no_ice_cover partial_ice_cover full_ice_cover
+                    not_available""")],
+                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 255],
+                ['comment', textjoin("""
+                    Dynamic ice cover flag indicating whether the surface is
+                    ice-covered on the day of the observation based on
+                    analysis of external satellite optical data.  Values of
+                    0, 1, and 2 indicate that the node is not ice covered,
+                    partially ice covered, and fully ice covered, respectively.
+                    A value of 255 indicates that this flag is not available.
+                    """)],
+                ])],
         ])
 
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
+
+    def update_from_rivertile(self, rivertile):
+        """Updates some stuff in PIXCVecRiver from RiverTile"""
+        for node_id, ice_clim_f, ice_dyn_f in zip(
+            rivertile.nodes.node_id, rivertile.nodes.ice_clim_f,
+            rivertile.nodes.ice_dyn_f):
+            mask = self.node_index == node_id
+            self.ice_clim_f[mask] = ice_clim_f
+            self.ice_dyn_f[mask] = ice_dyn_f
