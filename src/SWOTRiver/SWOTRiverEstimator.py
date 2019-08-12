@@ -1201,7 +1201,7 @@ class SWOTRiverEstimator(SWOTL2):
             reach.metadata['area_fits'])
 
         reach_stats['d_x_area'] = area_fit_outputs[0]
-        if reach_stats['d_x_area'] < 0:
+        if reach_stats['d_x_area'] < -10000000:
             reach_stats['d_x_area'] = MISSING_VALUE_FLT
 
         reach_stats['d_x_area_u'] = area_fit_outputs[3]
