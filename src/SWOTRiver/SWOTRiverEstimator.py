@@ -1258,46 +1258,37 @@ class SWOTRiverEstimator(SWOTL2):
     def create_index_file(self):
         """Initializes the pixel cloud vector file"""
         with nc.Dataset(self.output_file, 'w') as ofp:
-            ofp.createDimension('record', None)
+            ofp.createDimension('points', None)
             ofp.createVariable(
-                'range_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'range_index', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'azimuth_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'azimuth_index', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'node_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'node_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'reach_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'reach_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'segmentation_label', 'i4', 'record',
+                'segmentation_label', 'i4', 'points',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'good_height_flag', 'i1', 'record',
+                'good_height_flag', 'i1', 'points',
                 fill_value=FILL_VALUES['i1'])
             ofp.createVariable(
-                'distance_to_node', 'f4', 'record',
+                'distance_to_node', 'f4', 'points',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'along_reach', 'f4', 'record', fill_value=FILL_VALUES['f4'])
+                'along_reach', 'f4', 'points', fill_value=FILL_VALUES['f4'])
             ofp.createVariable(
-                'cross_reach', 'f4', 'record', fill_value=FILL_VALUES['f4'])
+                'cross_reach', 'f4', 'points', fill_value=FILL_VALUES['f4'])
             ofp.createVariable(
-                'latitude_vectorproc', 'f8', 'record',
+                'latitude_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
             ofp.createVariable(
-                'longitude_vectorproc', 'f8', 'record',
+                'longitude_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
             ofp.createVariable(
-                'height_vectorproc', 'f8', 'record',
+                'height_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
-
-            # copy attributes from pixel cloud product
-            for att_name in self.nc.__dict__:
-                setattr(ofp, att_name, getattr(self.nc, att_name))
-
-            if 'pixel_cloud' in self.nc.groups:
-                for att_name in self.nc.groups['pixel_cloud'].__dict__:
-                    setattr(ofp, att_name, getattr(
-                        self.nc.groups['pixel_cloud'], att_name))
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
                          cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
@@ -1313,8 +1304,8 @@ class SWOTRiverEstimator(SWOTL2):
             new_len = curr_len + len(img_x)
             ofp.variables['range_index'][curr_len:new_len] = img_x
             ofp.variables['azimuth_index'][curr_len:new_len] = img_y
-            ofp.variables['node_index'][curr_len:new_len] = node_index
-            ofp.variables['reach_index'][curr_len:new_len] = reach_index
+            ofp.variables['node_id'][curr_len:new_len] = node_index
+            ofp.variables['reach_id'][curr_len:new_len] = reach_index
             ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
             ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
             ofp.variables['distance_to_node'][curr_len:new_len] = dst

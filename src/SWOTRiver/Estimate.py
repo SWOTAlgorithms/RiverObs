@@ -173,6 +173,11 @@ class L2PixcToRiverTile(object):
         else:
             warnings.warn('Reach collection has zero entries')
 
+        # add attributes from pixc to pixcvecriver file
+        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec.update_from_pixc(self.pixc_file)
+        pixcvec.to_ncfile(self.index_file)
+
     def do_improved_geolocation(self):
         """
         Uses output of river processing (nodes) and rare sensor data to
@@ -233,12 +238,8 @@ class L2PixcToRiverTile(object):
                 ofp.variables['azimuth_index'][:] * int(nr_pixels) +
                 ofp.variables['range_index'][:])
 
-            pixc_index = np.array(np.where(
+            ofp.variables['pixc_index'][:] = np.array(np.where(
                 np.in1d(pixc_idx, pixcvec_idx))).astype('int32')[0]
-
-            var = ofp.createVariable(
-                'pixc_index', pixc_index.dtype.str, ('record', ))
-            var[:] = pixc_index[:]
 
     def flag_lakes_pixc(self):
         """
@@ -246,17 +247,14 @@ class L2PixcToRiverTile(object):
         """
         LOGGER.info('flag_lakes_pixc')
         with netCDF4.Dataset(self.index_file, 'a') as ofp:
-            pixc_reach = ofp.variables['reach_index'][:]
+            pixc_reach = ofp.variables['reach_id'][:]
 
             # make lake_flag dataset and fill with 255
-            var_lake_flag = ofp.createVariable(
-                'lake_flag', np.dtype('uint8'), ('record', ))
-            var_lake_flag[:] = 255*np.ones(pixc_reach.shape)
-
+            ofp.variables['lake_flag'][:] = 255*np.ones(pixc_reach.shape)
             if self.reach_outputs is not None:
                 for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
                                             self.reach_outputs['lake_flag']):
-                    var_lake_flag[pixc_reach == reach] = lake_flag
+                    ofp.variables['lake_flag'][pixc_reach == reach] = lake_flag
 
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
@@ -321,14 +319,3 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.reaches.history = history_string
         self.rivertile_product.reaches.xref_input_l2_hr_pixc_file = \
             self.pixc_file
-
-        # copy attributes from pixel cloud to pixel cloud vector
-        with netCDF4.Dataset(self.index_file, 'a') as ofp,\
-             netCDF4.Dataset(self.pixc_file, 'r') as ifp:
-
-            for attr in L2PIXCVector.ATTRIBUTES.keys():
-                try:
-                    value = getattr(ifp, attr)
-                except AttributeError:
-                    value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
-                setattr(ofp, attr, value)

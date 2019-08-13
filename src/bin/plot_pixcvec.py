@@ -27,7 +27,7 @@ def main():
     figure, axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
     for ii, node_id in enumerate(rivertile.nodes.node_id):
 
-        mask = pixc_vector.node_index == node_id
+        mask = pixc_vector.node_id == node_id
         this_color = scatter_colors[ii%len(scatter_colors)]
         axis.scatter(
             pixc_vector.longitude_vectorproc[mask],
