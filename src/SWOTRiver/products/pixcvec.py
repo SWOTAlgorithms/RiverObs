@@ -258,14 +258,22 @@ class L2PIXCVector(Product):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
-                ['comment', 'index in pixel cloud product'],
+                ['comment', textjoin("""
+                    Index of the data in the pixel_cloud group of the
+                    L2_HR_PIXC file that is associated with the pixel.""")],
                 ])],
         ['lake_flag',
          odict([['dtype', 'u1'],
                 ['long_name', 'lake flag'],
                 ['valid_min', 0],
                 ['valid_max', 1],
-                ['comment', 'lake flag'],
+                ['comment', textjoin("""
+                    Flag indicating if the pixel is to be processed by the
+                    L2_HR_LakeTile processor.  0= pixel is not to be processed
+                    by the L2_HR_LakeTile processor.  1= pixel is to be
+                    processed by the L2_HR_LakeTile processor.  A value of 1
+                    can occur for pixels that are associated with a connected
+                    lake type (T=3) in the reach_id and node_id.""")],
                 ])],
         ['segmentation_label',
          odict([['dtype', 'i4'],
@@ -273,14 +281,18 @@ class L2PIXCVector(Product):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
-                ['comment', 'segmentation label'],
+                ['comment', textjoin("""
+                    A unique number of identifying which connected water
+                    segment the pixel was assigned to.""")],
                 ])],
         ['good_height_flag',
          odict([['dtype', 'u1'],
                 ['long_name', 'good height flag'],
                 ['valid_min', 0],
                 ['valid_max', 1],
-                ['comment', 'good height flag'],
+                ['comment', textjoin("""
+                    Flag indicating that the pixel has a valid improved
+                    height.""")],
                 ])],
         ['distance_to_node',
          odict([['dtype', 'f4'],
@@ -288,7 +300,9 @@ class L2PIXCVector(Product):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 9999],
-                ['comment', 'distance to node'],
+                ['comment', textjoin("""
+                    Distance from the pixel to the PRD node that it is
+                    associated with.""")],
                 ])],
         ['along_reach',
          odict([['dtype', 'f4'],
@@ -296,7 +310,10 @@ class L2PIXCVector(Product):
                 ['units', 'm'],
                 ['valid_min', -999999],
                 ['valid_max', 999999],
-                ['comment', 'along reach distance'],
+                ['comment', textjoin("""
+                    Along-reach component of pixel location relative to PRD
+                    node location. Negative=nominally upstream of PRD node.
+                    Positive=nominally downstream of PRD node""")],
                 ])],
         ['cross_reach',
          odict([['dtype', 'f4'],
@@ -304,7 +321,10 @@ class L2PIXCVector(Product):
                 ['units', 'm'],
                 ['valid_min', -999999],
                 ['valid_max', 999999],
-                ['comment', 'across reach distance'],
+                ['comment', textjoin("""
+                    Cross-reach component of pixel location relative to PRD
+                    node location. Negative= left side of centerline.
+                    Positive= right side of centerline.""")],
                 ])],
         ])
 
