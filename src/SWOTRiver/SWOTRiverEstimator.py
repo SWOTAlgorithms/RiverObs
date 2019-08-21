@@ -597,6 +597,27 @@ class SWOTRiverEstimator(SWOTL2):
         """
         Assigns pixels to nodes for every reach.
         """
+        # First extract the segmentation lables to keep
+        dominant_labels = []
+        for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
+            if len(self.reaches[i_reach].x) <= 3:
+                continue
+            try:
+                river_obs = IteratedRiverObs(
+                    self.reaches[i_reach], self.x, self.y, ds=ds,
+                    seg_label=self.seg_label, max_width=scalar_max_width,
+                    minobs=minobs)
+            except CenterLineException as e:
+                print("CenterLineException: ", e)
+                continue
+            if river_obs.dominant_label is not None:
+                dominant_labels.append(river_obs.dominant_label)
+
+        seg_label = self.seg_label.copy()
+        if len(dominant_labels) > 1:
+            for dominant_label in dominant_labels[1:]:
+                seg_label[seg_label == dominant_label] = dominant_labels[0]
+
         # Iterate over reaches, assign pixels to nodes
         river_obs_list = []
         reach_idx_list = []
@@ -618,7 +639,7 @@ class SWOTRiverEstimator(SWOTL2):
                     self.x,
                     self.y,
                     ds=ds,
-                    seg_label=self.seg_label,
+                    seg_label=seg_label,
                     max_width=scalar_max_width,
                     minobs=minobs)
 
