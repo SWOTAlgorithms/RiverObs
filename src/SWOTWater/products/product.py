@@ -265,7 +265,7 @@ class Product(object):
         if isinstance(variable, np.ma.MaskedArray):
             mask = variable.mask
         else:
-            mask = None
+            mask = False
         quantized_fill = self._getfill(key, dtype)
         return np.ma.masked_array(
             data=variable.astype(dtype), dtype=dtype,
@@ -328,6 +328,13 @@ class Product(object):
             netcdf.set_variable(
                 dataset, key, variable, list(form['dimensions']),
                 attributes=form)
+
+    def get_biggest_var(self):
+        var_names = [key for key, attr in self.VARIABLES.items()
+                     if hasattr(self[key], 'nbytes')]
+        var_sizes = [self[key].nbytes for key in var_names]
+        biggest = max(zip(var_sizes, var_names))
+        return biggest[1], biggest[0]
 
     @classmethod
     def from_ncfile(cls, filename, variables=None):
