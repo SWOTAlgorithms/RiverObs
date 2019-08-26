@@ -13,9 +13,10 @@ def area(observed_height, observed_width, area_fits):
     area_fits - dictionary of things extracted from prior DB
     """
     height_breakpoints = np.squeeze(area_fits['h_break'])
-    poly_fits = np.squeeze(area_fits['fit_coeffs'])
-    poly_fits = np.squeeze(area_fits['fit_coeffs'])
-    poly_fits = np.squeeze(area_fits['fit_coeffs'])
+    poly_fits = [
+        np.squeeze(area_fits['fit_coeffs'])[:, 0],
+        np.squeeze(area_fits['fit_coeffs'])[:, 1],
+        np.squeeze(area_fits['fit_coeffs'])[:, 2]]
 
     area_median_flow = np.squeeze(area_fits['med_flow_area'])
 

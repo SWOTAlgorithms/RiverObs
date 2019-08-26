@@ -1129,8 +1129,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             for reach_id in np.unique(self.reach_id):
                 for node_id in self.node_id[self.reach_id == reach_id]:
                     pixc_mask = np.logical_and(
-                        pixc_vec.reach_index == reach_id,
-                        pixc_vec.node_index == node_id)
+                        pixc_vec.reach_id == reach_id,
+                        pixc_vec.node_id == node_id)
 
                     out_mask = np.logical_and(
                         self.reach_id == reach_id, self.node_id == node_id)

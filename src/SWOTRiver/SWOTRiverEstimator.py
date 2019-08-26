@@ -174,8 +174,8 @@ class SWOTRiverEstimator(SWOTL2):
                  dh_dphi_kwd='dheight_dphase',
                  dlat_dphi_kwd='dlatitude_dphase',
                  dlon_dphi_kwd='dlongitude_dphase',
-                 num_rare_looks_kwd='num_rare_looks',
-                 num_med_looks_kwd='num_med_looks',
+                 num_rare_looks_kwd='eff_num_rare_looks',
+                 num_med_looks_kwd='eff_num_medium_looks',
                  looks_to_efflooks_kwd='looks_to_efflooks',
                  false_detection_rate_kwd='false_detection_rate',
                  missed_detection_rate_kwd='missed_detection_rate',
@@ -824,8 +824,7 @@ class SWOTRiverEstimator(SWOTL2):
                               reach.node_indx[self.river_obs.index],
                               self.river_obs.d, self.river_obs.s,
                               self.river_obs.n, reach_idx,
-                              segOut, self.h_flg[self.river_obs.in_channel],
-                              self.lat[self.river_obs.in_channel],
+                              segOut, self.lat[self.river_obs.in_channel],
                               self.lon[self.river_obs.in_channel],
                               self.h_noise[self.river_obs.in_channel])
 
@@ -1201,7 +1200,7 @@ class SWOTRiverEstimator(SWOTL2):
             reach.metadata['area_fits'])
 
         reach_stats['d_x_area'] = area_fit_outputs[0]
-        if reach_stats['d_x_area'] < 0:
+        if reach_stats['d_x_area'] < -10000000:
             reach_stats['d_x_area'] = MISSING_VALUE_FLT
 
         reach_stats['d_x_area_u'] = area_fit_outputs[3]
@@ -1258,67 +1257,52 @@ class SWOTRiverEstimator(SWOTL2):
     def create_index_file(self):
         """Initializes the pixel cloud vector file"""
         with nc.Dataset(self.output_file, 'w') as ofp:
-            ofp.createDimension('record', None)
+            ofp.createDimension('points', None)
             ofp.createVariable(
-                'range_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'range_index', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'azimuth_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'azimuth_index', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'node_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'node_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'reach_index', 'i4', 'record', fill_value=FILL_VALUES['i4'])
+                'reach_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'segmentation_label', 'i4', 'record',
+                'segmentation_label', 'i4', 'points',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'good_height_flag', 'i1', 'record',
-                fill_value=FILL_VALUES['i1'])
-            ofp.createVariable(
-                'distance_to_node', 'f4', 'record',
+                'distance_to_node', 'f4', 'points',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'along_reach', 'f4', 'record', fill_value=FILL_VALUES['f4'])
+                'along_reach', 'f4', 'points', fill_value=FILL_VALUES['f4'])
             ofp.createVariable(
-                'cross_reach', 'f4', 'record', fill_value=FILL_VALUES['f4'])
+                'cross_reach', 'f4', 'points', fill_value=FILL_VALUES['f4'])
             ofp.createVariable(
-                'latitude_vectorproc', 'f8', 'record',
+                'latitude_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
             ofp.createVariable(
-                'longitude_vectorproc', 'f8', 'record',
+                'longitude_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
             ofp.createVariable(
-                'height_vectorproc', 'f8', 'record',
+                'height_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
-
-            # copy attributes from pixel cloud product
-            for att_name in self.nc.__dict__:
-                setattr(ofp, att_name, getattr(self.nc, att_name))
-
-            if 'pixel_cloud' in self.nc.groups:
-                for att_name in self.nc.groups['pixel_cloud'].__dict__:
-                    setattr(ofp, att_name, getattr(
-                        self.nc.groups['pixel_cloud'], att_name))
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
-                         cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
+                         cross_reach, reach_index, seg_lbl, lat, lon,
                          height):
         """
         Write out the river obs indices for each pixel that get mapped to a
         node as well as the pixel cloud coordinates (range and azimuth, or
         original image coordinate [e.g., gdem along- and cross-track index])
         """
-        lon[lon<0] += 360
         # append the new data
-
         with nc.Dataset(self.output_file, 'a') as ofp:
             curr_len = len(ofp.variables['range_index'])
             new_len = curr_len + len(img_x)
             ofp.variables['range_index'][curr_len:new_len] = img_x
             ofp.variables['azimuth_index'][curr_len:new_len] = img_y
-            ofp.variables['node_index'][curr_len:new_len] = node_index
-            ofp.variables['reach_index'][curr_len:new_len] = reach_index
+            ofp.variables['node_id'][curr_len:new_len] = node_index
+            ofp.variables['reach_id'][curr_len:new_len] = reach_index
             ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
-            ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
             ofp.variables['distance_to_node'][curr_len:new_len] = dst
             ofp.variables['along_reach'][curr_len:new_len] = along_reach
             ofp.variables['cross_reach'][curr_len:new_len] = cross_reach
