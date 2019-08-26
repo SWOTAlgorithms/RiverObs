@@ -240,7 +240,7 @@ class L2PIXCVector(Product):
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover
                     not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2, 255]).astype('u1')],
                 ['valid_min', 0],
                 ['valid_max', 255],
                 ['comment', textjoin("""
@@ -266,6 +266,9 @@ class L2PIXCVector(Product):
         ['lake_flag',
          odict([['dtype', 'u1'],
                 ['long_name', 'lake flag'],
+                ['flag_meanings', textjoin("""
+                    river lake river_under_tide canal no_hydrosheds dam""")],
+                ['flag_values', np.array([0, 1, 2, 3, 4, 5]).astype('u1')],
                 ['valid_min', 0],
                 ['valid_max', 5],
                 ['comment', textjoin("""
