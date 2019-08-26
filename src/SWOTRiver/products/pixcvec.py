@@ -260,20 +260,24 @@ class L2PIXCVector(Product):
                 ['valid_max', 2147483647],
                 ['comment', textjoin("""
                     Index of the data in the pixel_cloud group of the
-                    L2_HR_PIXC file that is associated with the pixel.""")],
+                    L2_HR_PIXC file that is associated with the pixel. This
+                    index starts counting from zero.""")],
                 ])],
         ['lake_flag',
          odict([['dtype', 'u1'],
                 ['long_name', 'lake flag'],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 5],
                 ['comment', textjoin("""
-                    Flag indicating if the pixel is to be processed by the
-                    L2_HR_LakeTile processor.  0= pixel is not to be processed
-                    by the L2_HR_LakeTile processor.  1= pixel is to be
-                    processed by the L2_HR_LakeTile processor.  A value of 1
-                    can occur for pixels that are associated with a connected
-                    lake type (T=3) in the reach_id and node_id.""")],
+                    Flag indicating the reach from the PRD.  0= Reach was
+                    flagged as belonging to a river. 1= Reach was flagged as
+                    belonging to a lake. 2= Reach was flagged as a river under
+                    the influence of tides.  3= Reach was flagged as being
+                    under the influence of a canal.  4= Unable to connect reach
+                    with HydroSHEDS topology.  5= Reach was flagged as being
+                    under the influence of a dam.  A value of 1 can occur for
+                    pixels that are associated with a connected lake type (T=3)
+                    in the reach_id and node_id.""")],
                 ])],
         ['segmentation_label',
          odict([['dtype', 'i4'],
@@ -285,15 +289,6 @@ class L2PIXCVector(Product):
                     A unique number of identifying which connected water
                     segment the pixel was assigned to.""")],
                 ])],
-        ['good_height_flag',
-         odict([['dtype', 'u1'],
-                ['long_name', 'good height flag'],
-                ['valid_min', 0],
-                ['valid_max', 1],
-                ['comment', textjoin("""
-                    Flag indicating that the pixel has a valid improved
-                    height.""")],
-                ])],
         ['distance_to_node',
          odict([['dtype', 'f4'],
                 ['long_name', 'distance to node'],
@@ -301,8 +296,8 @@ class L2PIXCVector(Product):
                 ['valid_min', 0],
                 ['valid_max', 9999],
                 ['comment', textjoin("""
-                    Distance from the pixel to the PRD node that it is
-                    associated with.""")],
+                    Distance from the non-improved pixel location to the PRD
+                    node that it is associated with.""")],
                 ])],
         ['along_reach',
          odict([['dtype', 'f4'],
@@ -311,9 +306,9 @@ class L2PIXCVector(Product):
                 ['valid_min', -999999],
                 ['valid_max', 999999],
                 ['comment', textjoin("""
-                    Along-reach component of pixel location relative to PRD
-                    node location. Negative=nominally upstream of PRD node.
-                    Positive=nominally downstream of PRD node""")],
+                    Along-reach component of non-improved pixel location
+                    relative to PRD node location. Negative=nominally upstream
+                    of PRD node. Positive=nominally downstream of PRD node""")],
                 ])],
         ['cross_reach',
          odict([['dtype', 'f4'],
@@ -322,9 +317,9 @@ class L2PIXCVector(Product):
                 ['valid_min', -999999],
                 ['valid_max', 999999],
                 ['comment', textjoin("""
-                    Cross-reach component of pixel location relative to PRD
-                    node location. Negative= left side of centerline.
-                    Positive= right side of centerline.""")],
+                    Cross-reach component of non-improved pixel location
+                    relative to PRD node location. Negative= left side of
+                    centerline. Positive= right side of centerline.""")],
                 ])],
         ])
 
