@@ -31,14 +31,40 @@ class ReachPlot():
         self.figure, self.axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
         self.plot()
 
-    def plot(self, independent, dependent, color_key, color_abs=True):
+    def plot(self, independent, dependent, color_key, color_abs=True, outlierlim=None):
         if color_abs:
             col = np.abs(self.data.reaches[color_key])
         else:
             col = self.data.reaches[color_key]
+        # clip outliers and plot them with different marker
+        outliers = np.ones(np.shape(independent),dtype=bool)
+        indep = independent.copy()#np.ones(np.shape(independent))
+        dep = dependent.copy()#np.ones(np.shape(dependent))
+        if outlierlim is not None:
+            if len(outlierlim)==4:
+                outliers = np.logical_or(
+                    np.logical_or(
+                        np.logical_or(dependent<outlierlim[0],
+                                      dependent>outlierlim[1]),
+                                      independent<outlierlim[2]),
+                                      independent>outlierlim[3])
+                dep[dep<outlierlim[0]] = outlierlim[0]
+                dep[dep>outlierlim[1]] = outlierlim[1]
+                indep[indep<outlierlim[2]] = outlierlim[2]
+                indep[indep>outlierlim[3]] = outlierlim[3]
+            else:
+                outliers = np.logical_or(
+                    (dependent<outlierlim[0]),(dependent>outlierlim[1]))
+                #indep = independent.copy()
+                dep[dep<outlierlim[0]] = outlierlim[0]
+                dep[dep>outlierlim[1]] = outlierlim[1]
+        not_outliers = np.logical_not(outliers)
         scatter = self.axis.scatter(
-            independent, dependent, c=col,
+            independent[not_outliers], dependent[not_outliers], c=col[not_outliers],
             cmap=CMAP)
+        scatter_out = self.axis.scatter(
+            indep[outliers], dep[outliers], c=col[outliers],
+            cmap=CMAP, marker = '+')
         colorbar = plt.colorbar(scatter)
         colorbar.set_label(color_key)
         self.plot_requirements()
@@ -53,7 +79,8 @@ class ReachPlot():
 
 class HeightVsAreaPlot(ReachPlot):
     def plot(self):
-        super().plot(self.metrics['area'], self.metrics['height'], 'xtrk_dist')
+        super().plot(self.metrics['area'], self.metrics['height'], 'xtrk_dist',
+                     outlierlim=(-50,50,-50,50))
 
     def plot_requirements(self):
         self.axis.axvline(x=15, color='g')
@@ -70,7 +97,7 @@ class AreaPlot(ReachPlot):
     def plot(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.reaches.area_total)
-        super().plot(true_area, self.metrics['area'], 'xtrk_dist')
+        super().plot(true_area, self.metrics['area'], 'xtrk_dist', outlierlim=(-50,50))
 
     def plot_requirements(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
@@ -82,9 +109,10 @@ class AreaPlot(ReachPlot):
         self.axis.plot(
             [np.sqrt(170*10e3), np.amax(true_area)+buff], [i*15, i*15], '--r')
         self.axis.set_xlim((0, np.amax(true_area)+buff))
+        #self.axis.set_ylim((-50,50))
         self.axis.legend(
             ['SG for $A>0.7 km^2$', 'BSM for $A>1 km^2$',
-             'TSM for $A>1.3 km^2$', '$<10km$ reach','$\geq 10km$ reach'],
+             'TSM for $A>1.3 km^2$', 'data','outlier clipped'],
             loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
         i = -1
         self.axis.plot([np.sqrt(50*10e3), 1000], [i*25, i*25], '--g')
@@ -102,7 +130,7 @@ class HeightPlot(ReachPlot):
     def plot(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.reaches.area_total)
-        super().plot(true_area, self.metrics['height'], 'xtrk_dist')
+        super().plot(true_area, self.metrics['height'], 'xtrk_dist', outlierlim=(-50,50))
 
     def plot_requirements(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
@@ -113,9 +141,10 @@ class HeightPlot(ReachPlot):
         self.axis.plot([1000, np.amax(true_area)+buff], [i*10, i*10], '--y')
         self.axis.plot([1000, np.amax(true_area)+buff], [i*11, i*11], '--r')
         self.axis.set_xlim((0,np.amax(true_area)+buff))
+        #self.axis.set_ylim((-50,50))
         self.axis.legend(
             ['BSM for $A>(250m)^2$', 'BSM for $A>1 km^2$',
-             'TSM for $A>1 km^2$', '$<10km$ reach','$\geq 10km$ reach'],
+             'TSM for $A>1 km^2$', 'data','outlier clipped'],
             loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
         i = -1
         self.axis.plot([250, 1000], [i*25, i*25], '--y')
@@ -131,7 +160,7 @@ class HeightPlot(ReachPlot):
 class SlopePlot(ReachPlot):
     def plot(self):
         true_width = self.truth.reaches.width
-        super().plot(true_width, self.metrics['slope'], 'xtrk_dist')
+        super().plot(true_width, self.metrics['slope'], 'xtrk_dist', outlierlim=(-5,5))
 
     def plot_requirements(self):
         true_width = self.truth.reaches.width
@@ -142,7 +171,7 @@ class SlopePlot(ReachPlot):
         self.axis.set_xlim((0, np.amax(true_width)+buff))
         self.axis.legend(
             ['BSM for $A>1 km^2$', 'TSM for $A>1 km^2$',
-             '$<10km$ reach','$\geq 10km$ reach'],
+             'data','outlier clipped'],
             loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.1))
         i = -1
         self.axis.plot([100, np.amax(true_width)+buff], [i*1.7, i*1.7], '--y')
@@ -273,9 +302,12 @@ def main():
     SWOTRiver.analysis.riverobs.print_metrics(metrics, truth, scene)
     print("\nFor All Data")
     SWOTRiver.analysis.riverobs.print_errors(metrics)
-    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m")
-    metrics_msk = SWOTRiver.analysis.riverobs.mask_for_sci_req(metrics, truth)
-    SWOTRiver.analysis.riverobs.print_errors(metrics_msk)
+    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2")
+    msk = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+        metrics, truth, scene)
+    SWOTRiver.analysis.riverobs.print_metrics(metrics, truth, scene, msk)
+    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2")
+    SWOTRiver.analysis.riverobs.print_errors(metrics, msk)
 
     if args.print:
         filenames = ['reach-area.png', 'reach-wse.png',
