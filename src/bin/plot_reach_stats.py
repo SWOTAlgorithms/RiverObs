@@ -16,16 +16,17 @@ import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
 
-FIGSIZE = (12, 8)
+FIGSIZE = (8, 4) #(12, 8)
 DPI = 200
 CMAP = 'plasma'
 
 
 class ReachPlot():
-    def __init__(self, truth, data, metrics, title=None, filename=None):
+    def __init__(self, truth, data, metrics, title=None, filename=None, msk=True):
         self.truth = truth
         self.data = data
         self.metrics = metrics
+        self.msk = msk
         self.title = title
         self.filename = filename
         self.figure, self.axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
@@ -33,34 +34,34 @@ class ReachPlot():
 
     def plot(self, independent, dependent, color_key, color_abs=True, outlierlim=None):
         if color_abs:
-            col = np.abs(self.data.reaches[color_key])
+            col = np.abs(self.data.reaches[color_key][self.msk])
         else:
-            col = self.data.reaches[color_key]
+            col = self.data.reaches[color_key][self.msk]
         # clip outliers and plot them with different marker
-        outliers = np.ones(np.shape(independent),dtype=bool)
-        indep = independent.copy()#np.ones(np.shape(independent))
-        dep = dependent.copy()#np.ones(np.shape(dependent))
+        outliers = np.ones(np.shape(independent[self.msk]),dtype=bool)
+        indep = independent[self.msk].copy()
+        dep = dependent[self.msk].copy()
         if outlierlim is not None:
             if len(outlierlim)==4:
                 outliers = np.logical_or(
                     np.logical_or(
-                        np.logical_or(dependent<outlierlim[0],
-                                      dependent>outlierlim[1]),
-                                      independent<outlierlim[2]),
-                                      independent>outlierlim[3])
+                        np.logical_or(dep<outlierlim[0],
+                                      dep>outlierlim[1]),
+                                      indep<outlierlim[2]),
+                                      indep>outlierlim[3])
                 dep[dep<outlierlim[0]] = outlierlim[0]
                 dep[dep>outlierlim[1]] = outlierlim[1]
                 indep[indep<outlierlim[2]] = outlierlim[2]
                 indep[indep>outlierlim[3]] = outlierlim[3]
             else:
                 outliers = np.logical_or(
-                    (dependent<outlierlim[0]),(dependent>outlierlim[1]))
+                    (dep<outlierlim[0]),(dep>outlierlim[1]))
                 #indep = independent.copy()
                 dep[dep<outlierlim[0]] = outlierlim[0]
                 dep[dep>outlierlim[1]] = outlierlim[1]
         not_outliers = np.logical_not(outliers)
         scatter = self.axis.scatter(
-            independent[not_outliers], dependent[not_outliers], c=col[not_outliers],
+            indep[not_outliers], dep[not_outliers], c=col[not_outliers],
             cmap=CMAP)
         scatter_out = self.axis.scatter(
             indep[outliers], dep[outliers], c=col[outliers],
@@ -101,7 +102,7 @@ class AreaPlot(ReachPlot):
 
     def plot_requirements(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
-        true_area = np.sqrt(self.truth.reaches.area_total)
+        true_area = np.sqrt(self.truth.reaches.area_total[self.msk])
         buff = 100
         i = 1
         self.axis.plot([np.sqrt(50*10e3), 1000], [i*25, i*25], '--g')
@@ -134,7 +135,7 @@ class HeightPlot(ReachPlot):
 
     def plot_requirements(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
-        true_area = np.sqrt(self.truth.reaches.area_total)
+        true_area = np.sqrt(self.truth.reaches.area_total[self.msk])
         buff = 100
         i = 1
         self.axis.plot([250, 1000], [i*25, i*25], '--y')
@@ -244,7 +245,10 @@ def load_and_accumulate(
     # get the scene
     path_parts = os.path.abspath(pixc_rivertile).split('/')
     scene0 = path_parts[-4] # assumes particular directory structure...
-    scene_tmp = [scene0 for item in data_tmp.reaches.reach_id] 
+    # put in the pass and tile too
+    cycle_pass_tile_flavor = path_parts[-3].split('_')
+    scene1 = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
+    scene_tmp = [scene1 for item in data_tmp.reaches.reach_id] 
     #for k in range(len(data_tmp.reaches.reach_id)):
     #    scene_tmp.append(scene0)
     # accumulate if needed
@@ -303,12 +307,19 @@ def main():
     print("\nFor All Data")
     SWOTRiver.analysis.riverobs.print_errors(metrics)
     print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2")
-    msk = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, scene)
-    SWOTRiver.analysis.riverobs.print_metrics(metrics, truth, scene, msk)
+    msk, fit_error, dark_frac = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+        metrics, truth, data, scene)
+    SWOTRiver.analysis.riverobs.print_metrics(metrics, truth, scene, msk, fit_error, dark_frac)
     print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2")
     SWOTRiver.analysis.riverobs.print_errors(metrics, msk)
 
+    # plot the fit error histogram
+    plt.figure()
+    plt.scatter(fit_error[msk], metrics['height'][msk], c=dark_frac[msk])
+    plt.colorbar()
+    plt.xlabel('fit_error')
+    plt.ylabel('metrics')
+    
     if args.print:
         filenames = ['reach-area.png', 'reach-wse.png',
                      'reach-slope.png','reach-wse-vs-area.png']
@@ -316,10 +327,10 @@ def main():
             filenames = [args.title + '-' + name for name in filenames]
     else:
         filenames = [None, None, None, None]
-    AreaPlot(truth, data, metrics, args.title, filenames[0])
-    HeightPlot(truth, data, metrics, args.title, filenames[1])
-    SlopePlot(truth, data, metrics, args.title, filenames[2])
-    HeightVsAreaPlot(truth, data, metrics, args.title, filenames[3])
+    AreaPlot(truth, data, metrics, args.title, filenames[0], msk=msk)
+    HeightPlot(truth, data, metrics, args.title, filenames[1], msk=msk)
+    SlopePlot(truth, data, metrics, args.title, filenames[2], msk=msk)
+    HeightVsAreaPlot(truth, data, metrics, args.title, filenames[3], msk=msk)
     if not args.print:
         print('show')
         plt.show()

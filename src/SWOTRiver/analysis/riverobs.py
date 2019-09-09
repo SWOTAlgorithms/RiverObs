@@ -74,13 +74,42 @@ def get_metrics(truth, data):
     }
     return metrics
 
-def mask_for_sci_req(metrics, truth, scene):
+def compute_reach_fit_error(truth):
+    fit_error = []
+    for reach in truth.reaches['reach_id']:
+        inds = (truth.nodes['reach_id'] == reach)
+        ind = (truth.reaches['reach_id'] == reach)
+        #print("ind",ind)
+        #print("truth.reaches['wse'][ind]",truth.reaches['wse'][ind])
+        #print("reach", reach)
+        #print("truth.reaches['reach_id'][ind]",truth.reaches['reach_id'][ind])
+        try:
+            y0 = truth.nodes['wse'][inds]
+            x0 = truth.nodes['node_id'][inds]
+            # exclude nans and infs
+            y = y0[np.isfinite(y0)]
+            x = x0[np.isfinite(y0)]
+            z = np.polyfit( x, y, 1)
+            p = np.poly1d(z)
+            err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
+        except np.linalg.LinAlgError:
+            err = 1000000000
+            print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
+        fit_error.append(err)
+    return np.array(fit_error)
+        
+def mask_for_sci_req(metrics, truth, data, scene):
+    # find reaches where the height profile linear fit is not that good
+    # so we can filter out bogus/non-realistic reaches from the analysis
+    fit_error = compute_reach_fit_error(truth)
     
+    # now make the mask
     msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),
           np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
           np.logical_and((truth.reaches['width']>100),
-              truth.reaches['area_total']>1e6)))
-    return msk
+          np.logical_and((truth.reaches['area_total']>1e6),
+          np.logical_and(fit_error < 150.0, data.reaches['dark_frac'] < 0.35)))))
+    return msk, fit_error, data.reaches['dark_frac']
 
 def print_errors(metrics, msk=True):
     # get statistics of area error
@@ -109,11 +138,10 @@ def print_errors(metrics, msk=True):
     SWOTRiver.analysis.tabley.print_table(table, precision=8)
 
 
-def print_metrics(metrics, truth, scene, msk=None):
+def print_metrics(metrics, truth, scene, msk=None, fit_error=None, dark_frac=None):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['height']),dtype = bool)
-    print(np.array(scene)[msk])
     table['hgt e (cm)'] = metrics['height'][msk]
     table['slp e (cm/km)'] = metrics['slope'][msk]
     table['area e (%)'] = metrics['area'][msk]
@@ -121,6 +149,10 @@ def print_metrics(metrics, truth, scene, msk=None):
     table['width (m)'] = truth.reaches['width'][msk]
     table['reach'] = truth.reaches['reach_id'][msk]
     table['xtrk (km)'] = truth.reaches['xtrk_dist'][msk]/1e3
-    table['scene'] = np.array(scene)[msk]
+    table['scene_pass_tile'] = np.array(scene)[msk]
+    if fit_error is not None:
+        table['fit_error (cm)'] = np.array(fit_error)[msk]
+    if dark_frac is not None:
+        table['dark_frac'] = np.array(dark_frac)[msk]
     
     SWOTRiver.analysis.tabley.print_table(table, precision=5)
