@@ -598,7 +598,10 @@ class SWOTRiverEstimator(SWOTL2):
         Assigns pixels to nodes for every reach.
         """
         # First extract the segmentation lables to keep
-        dominant_labels = []
+        all_dominant_labels = []
+        all_ids = []
+        all_up_ids = []
+        all_dn_ids = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
             if len(self.reaches[i_reach].x) <= 3:
                 continue
@@ -610,13 +613,14 @@ class SWOTRiverEstimator(SWOTL2):
             except CenterLineException as e:
                 print("CenterLineException: ", e)
                 continue
-            if river_obs.dominant_label is not None:
-                dominant_labels.append(river_obs.dominant_label)
 
-        seg_label = self.seg_label.copy()
-        if len(dominant_labels) > 1:
-            for dominant_label in dominant_labels[1:]:
-                seg_label[seg_label == dominant_label] = dominant_labels[0]
+            if river_obs.dominant_label is not None:
+                all_dominant_labels.append(river_obs.dominant_label)
+                all_ids.append(reach_idx)
+                all_up_ids.append(
+                    self.reaches[i_reach].metadata['rch_id_up'][:,0])
+                all_dn_ids.append(
+                    self.reaches[i_reach].metadata['rch_id_dn'][:,0])
 
         # Iterate over reaches, assign pixels to nodes
         river_obs_list = []
@@ -632,6 +636,22 @@ class SWOTRiverEstimator(SWOTL2):
 
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
+
+            seg_label = self.seg_label.copy()
+
+            try:
+                this_idx = np.where(reach_idx == all_ids)[0][0]
+                adjacent_ids = np.concatenate([
+                    all_up_ids[this_idx], all_dn_ids[this_idx]])
+                adjacent_ids = adjacent_ids[adjacent_ids != 0]
+
+                this_label = all_dominant_labels[this_idx]
+                for that_label, that_id in zip(all_dominant_labels, all_ids):
+                    if that_id in adjacent_ids:
+                        seg_label[self.seg_label == that_label] = this_label
+
+            except IndexError:
+                pass
 
             try:
                 river_obs = IteratedRiverObs(
