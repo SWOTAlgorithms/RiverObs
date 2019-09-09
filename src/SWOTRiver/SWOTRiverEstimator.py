@@ -845,8 +845,7 @@ class SWOTRiverEstimator(SWOTL2):
                               reach.node_indx[self.river_obs.index],
                               self.river_obs.d, self.river_obs.s,
                               self.river_obs.n, reach_idx,
-                              segOut, self.h_flg[self.river_obs.in_channel],
-                              self.lat[self.river_obs.in_channel],
+                              segOut, self.lat[self.river_obs.in_channel],
                               self.lon[self.river_obs.in_channel],
                               self.h_noise[self.river_obs.in_channel])
 
@@ -1292,9 +1291,6 @@ class SWOTRiverEstimator(SWOTL2):
                 'segmentation_label', 'i4', 'points',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'good_height_flag', 'i1', 'points',
-                fill_value=FILL_VALUES['i1'])
-            ofp.createVariable(
                 'distance_to_node', 'f4', 'points',
                 fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
@@ -1312,7 +1308,7 @@ class SWOTRiverEstimator(SWOTL2):
                 fill_value=FILL_VALUES['f8'])
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
-                         cross_reach, reach_index, seg_lbl, h_flg, lat, lon,
+                         cross_reach, reach_index, seg_lbl, lat, lon,
                          height):
         """
         Write out the river obs indices for each pixel that get mapped to a
@@ -1328,7 +1324,6 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['node_id'][curr_len:new_len] = node_index
             ofp.variables['reach_id'][curr_len:new_len] = reach_index
             ofp.variables['segmentation_label'][curr_len:new_len] = seg_lbl
-            ofp.variables['good_height_flag'][curr_len:new_len] = h_flg
             ofp.variables['distance_to_node'][curr_len:new_len] = dst
             ofp.variables['along_reach'][curr_len:new_len] = along_reach
             ofp.variables['cross_reach'][curr_len:new_len] = cross_reach
