@@ -21,13 +21,14 @@ CMAP = 'plasma'
 
 
 class ReachPlot():
-    def __init__(self, truth, data, metrics, title=None, filename=None, msk=True):
+    def __init__(self, truth, data, metrics, title=None, filename=None, msk=True, is_lake=False):
         self.truth = truth
         self.data = data
         self.metrics = metrics
         self.msk = msk
         self.title = title
         self.filename = filename
+        self.is_lake = is_lake
         self.figure, self.axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
         self.plot()
 
@@ -103,26 +104,39 @@ class AreaPlot(ReachPlot):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total[self.msk])
         buff = 100
+        # set up the default legend and y-axis for req. for rivers
+        legnd = ['Goal for $A>0.7 km^2$', 'Req. for $A>1 km^2$',
+             'TSM for $A>1.3 km^2$', 'data','outlier clipped']
+        goal_x = [np.sqrt(50*10e3), 1000]
+        req_x = [1000, np.sqrt(170*10e3)]
+        tsm_x = [np.sqrt(170*10e3), np.amax(true_area)+buff]
+        if self.is_lake:
+            # set up the default legend and y-axis for req. for lakes
+            legnd = ['Goal for $(100 m)^2<A<(250m)^2$', 'Req. for $A>(250 m)^2$',
+                'TSM for $A>1 km^2$', 'data','outlier clipped']
+            goal_x = [100, 250]
+            req_x = [250, np.amax(true_area)+buff]
+            tsm_x = [1000, np.amax(true_area)+buff]
+        
+        
         i = 1
-        self.axis.plot([np.sqrt(50*10e3), 1000], [i*25, i*25], '--g')
-        self.axis.plot([1000, np.sqrt(170*10e3)], [i*15, i*15], '--y')
-        self.axis.plot(
-            [np.sqrt(170*10e3), np.amax(true_area)+buff], [i*15, i*15], '--r')
+        self.axis.plot(goal_x, [i*25, i*25], '--g')
+        self.axis.plot(req_x, [i*15, i*15], '--y')
+        self.axis.plot(tsm_x, [i*15, i*15], '--r')
         self.axis.set_xlim((0, np.amax(true_area)+buff))
         #self.axis.set_ylim((-50,50))
-        self.axis.legend(
-            ['SG for $A>0.7 km^2$', 'BSM for $A>1 km^2$',
-             'TSM for $A>1.3 km^2$', 'data','outlier clipped'],
-            loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
+        self.axis.legend(legnd,loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
         i = -1
-        self.axis.plot([np.sqrt(50*10e3), 1000], [i*25, i*25], '--g')
-        self.axis.plot([1000, np.sqrt(170*10e3)], [i*15, i*15], '--y')
-        self.axis.plot(
-            [np.sqrt(170*10e3), np.amax(true_area)+buff], [i*15, i*15], '--r')
+        self.axis.plot(goal_x, [i*25, i*25], '--g')
+        self.axis.plot(req_x, [i*15, i*15], '--y')
+        self.axis.plot(tsm_x, [i*15, i*15], '--r')
 
     def finalize(self):
         self.axis.set_ylabel('area % error')
-        self.axis.set_xlabel('sqrt reach area (m)')
+        if self.is_lake:
+            self.axis.set_xlabel('sqrt lake area (m)')
+        else:
+            self.axis.set_xlabel('sqrt reach area (m)')
         super().finalize()
 
 
@@ -136,24 +150,30 @@ class HeightPlot(ReachPlot):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total[self.msk])
         buff = 100
+        legnd = ['BSM for $A>(250m)^2$', 'BSM for $A>1 km^2$',
+             'TSM for $A>1 km^2$', 'data','outlier clipped']
+        goal_x =[250, 1000]
+        req_x = [1000, np.amax(true_area)+buff]
+        tsm_x = [1000, np.amax(true_area)+buff]
+        # same numbers for lake and rivers...
         i = 1
-        self.axis.plot([250, 1000], [i*25, i*25], '--y')
-        self.axis.plot([1000, np.amax(true_area)+buff], [i*10, i*10], '--y')
-        self.axis.plot([1000, np.amax(true_area)+buff], [i*11, i*11], '--r')
+        self.axis.plot(goal_x, [i*25, i*25], '--y')
+        self.axis.plot(req_x, [i*10, i*10], '--y')
+        self.axis.plot(tsm_x, [i*11, i*11], '--r')
         self.axis.set_xlim((0,np.amax(true_area)+buff))
         #self.axis.set_ylim((-50,50))
-        self.axis.legend(
-            ['BSM for $A>(250m)^2$', 'BSM for $A>1 km^2$',
-             'TSM for $A>1 km^2$', 'data','outlier clipped'],
-            loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
+        self.axis.legend(legnd,loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
         i = -1
-        self.axis.plot([250, 1000], [i*25, i*25], '--y')
-        self.axis.plot([1000, np.amax(true_area)+buff], [i*10, i*10], '--y')
-        self.axis.plot([1000, np.amax(true_area)+buff], [i*11, i*11], '--r')
+        self.axis.plot(goal_x, [i*25, i*25], '--y')
+        self.axis.plot(req_x, [i*10, i*10], '--y')
+        self.axis.plot(tsm_x, [i*11, i*11], '--r')
 
     def finalize(self):
         self.axis.set_ylabel('wse error (cm)')
-        self.axis.set_xlabel('sqrt reach area (m)')
+        if self.is_lake:
+            self.axis.set_xlabel('sqrt lake area (m)')
+        else:
+            self.axis.set_xlabel('sqrt reach area (m)')
         super().finalize()
 
 
