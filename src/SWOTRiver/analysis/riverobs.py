@@ -80,7 +80,7 @@ class ReachPlot():
 
 class HeightVsAreaPlot(ReachPlot):
     def plot(self):
-        super().plot(self.metrics['area'], self.metrics['height'], 'xtrk_dist',
+        super().plot(self.metrics['area_total'], self.metrics['wse'], 'xtrk_dist',
                      outlierlim=(-50,50,-50,50))
 
     def plot_requirements(self):
@@ -98,7 +98,7 @@ class AreaPlot(ReachPlot):
     def plot(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total)
-        super().plot(true_area, self.metrics['area'], 'xtrk_dist', outlierlim=(-50,50))
+        super().plot(true_area, self.metrics['area_total'], 'xtrk_dist', outlierlim=(-50,50))
 
     def plot_requirements(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
@@ -144,7 +144,7 @@ class HeightPlot(ReachPlot):
     def plot(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total)
-        super().plot(true_area, self.metrics['height'], 'xtrk_dist', outlierlim=(-50,50))
+        super().plot(true_area, self.metrics['wse'], 'xtrk_dist', outlierlim=(-50,50))
 
     def plot_requirements(self):
         #true_area = np.sqrt(self.truth.reaches.area_detct)
@@ -252,11 +252,11 @@ def match_nodes(truth, data):
 
 def get_metrics(truth, data, with_slope=True, with_width=True):
     metrics = {
-        'area': (
+        'area_total': (
             (data.area_total - truth.area_total) / truth.area_total) * 100.0,
         'area_detct':(
             (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
-        'height': (data.wse - truth.wse) * 1e2,#convert m to cm
+        'wse': (data.wse - truth.wse) * 1e2,#convert m to cm
     }
     if with_slope:
         metrics['slope'] = (data.slope - truth.slope) * 1e5#convert from m/m to cm/km
@@ -299,21 +299,26 @@ def mask_for_sci_req(metrics, truth, data, scene):
 
 def print_errors(metrics, msk=True, with_slope=True):
     # get statistics of area error
-    area_68 = np.nanpercentile(abs(metrics['area'][msk]), 68)
-    area_50 = np.nanpercentile(metrics['area'][msk], 50)
-    area_mean = np.nanmean(metrics['area'][msk])
-    area_num = np.count_nonzero(~np.isnan(metrics['area'][msk]))
+    area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)
+    area_50 = np.nanpercentile(metrics['area_total'][msk], 50)
+    area_mean = np.nanmean(metrics['area_total'][msk])
+    area_num = np.count_nonzero(~np.isnan(metrics['area_total'][msk]))
+    # get statistics of area_detct error
+    area_d_68 = np.nanpercentile(abs(metrics['area_detct'][msk]), 68)
+    area_d_50 = np.nanpercentile(metrics['area_detct'][msk], 50)
+    area_d_mean = np.nanmean(metrics['area_detct'][msk])
+    area_d_num = np.count_nonzero(~np.isnan(metrics['area_detct'][msk]))
     # get statistics of height error
-    height_68 = np.nanpercentile(abs(metrics['height'][msk]), 68)
-    height_50 = np.nanpercentile(metrics['height'][msk], 50)
-    height_mean = np.nanmean(metrics['height'][msk])
-    height_num = np.count_nonzero(~np.isnan(metrics['height'][msk]))
+    height_68 = np.nanpercentile(abs(metrics['wse'][msk]), 68)
+    height_50 = np.nanpercentile(metrics['wse'][msk], 50)
+    height_mean = np.nanmean(metrics['wse'][msk])
+    height_num = np.count_nonzero(~np.isnan(metrics['wse'][msk]))
     table = {
-        'metric': ['area (%)', 'height (cm)'],
-        '|68%ile|': [area_68, height_68],
-        '50%ile': [area_50, height_50],
-        'mean': [area_mean, height_mean],
-        'count': [area_num, height_num],
+        'metric': ['area_total (%)','area_detct (%)', 'wse (cm)'],
+        '|68%ile|': [area_68, area_d_68, height_68],
+        '50%ile': [area_50, area_d_50, height_50],
+        'mean': [area_mean, area_d_mean, height_mean],
+        'count': [area_num, area_d_num, height_num],
     }
     if with_slope:
         # get statistics of slope error
@@ -331,21 +336,26 @@ def print_errors(metrics, msk=True, with_slope=True):
     SWOTRiver.analysis.tabley.print_table(table, precision=8)
 
 
-def print_metrics(metrics, truth, scene=None, msk=None, fit_error=None, dark_frac=None, with_slope=True, with_width=True):
+def print_metrics(
+        metrics, truth, scene=None, msk=None, fit_error=None,
+        dark_frac=None, with_slope=True, with_width=True):
     table = {}
     if msk is None:
-        msk = np.ones(np.shape(metrics['height']),dtype = bool)
-    table['hgt e (cm)'] = metrics['height'][msk]
+        msk = np.ones(np.shape(metrics['wse']),dtype = bool)
+    table['wse e (cm)'] = metrics['wse'][msk]
     if with_slope:
         print(metrics)
         print(metrics['slope'])
         print(metrics['slope'][msk])
         print(msk)
         table['slp e (cm/km)'] = metrics['slope'][msk]
-    table['area e (%)'] = metrics['area'][msk]
+    table['area_tot e (%)'] = metrics['area_total'][msk]
+    table['area_det e (%)'] = metrics['area_detct'][msk]
     if with_width:
-        table['wid e (m)'] = metrics['width'][msk]
+        table['width e (m)'] = metrics['width'][msk]
         table['width (m)'] = truth.reaches['width'][msk]
+    else:
+        table['sqrt(area) (m)'] = np.sqrt(truth['area_total'][msk])
     try:
         table['reach'] = truth.reaches['reach_id'][msk]
         table['xtrk (km)'] = truth.reaches['xtrk_dist'][msk]/1e3

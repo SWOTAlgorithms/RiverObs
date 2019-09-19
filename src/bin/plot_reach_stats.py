@@ -150,11 +150,11 @@ def main():
     SWOTRiver.analysis.riverobs.print_errors(metrics, msk)
 
     # plot the fit error histogram
-    plt.figure()
-    plt.scatter(fit_error[msk], metrics['height'][msk], c=dark_frac[msk])
-    plt.colorbar()
-    plt.xlabel('fit_error')
-    plt.ylabel('metrics')
+    #plt.figure()
+    #plt.scatter(fit_error[msk], metrics['height'][msk], c=dark_frac[msk])
+    #plt.colorbar()
+    #plt.xlabel('fit_error')
+    #plt.ylabel('metrics')
     
     if args.print:
         filenames = ['reach-area.png', 'reach-wse.png',
@@ -163,10 +163,14 @@ def main():
             filenames = [args.title + '-' + name for name in filenames]
     else:
         filenames = [None, None, None, None]
-    SWOTRiver.analysis.riverobs.AreaPlot(truth.reaches, data.reaches, metrics, args.title, filenames[0], msk=msk)
-    SWOTRiver.analysis.riverobs.HeightPlot(truth.reaches, data.reaches, metrics, args.title, filenames[1], msk=msk)
-    SWOTRiver.analysis.riverobs.SlopePlot(truth.reaches, data.reaches, metrics, args.title, filenames[2], msk=msk)
-    SWOTRiver.analysis.riverobs.HeightVsAreaPlot(truth.reaches, data.reaches, metrics, args.title, filenames[3], msk=msk)
+    SWOTRiver.analysis.riverobs.AreaPlot(
+        truth.reaches, data.reaches, metrics, args.title, filenames[0], msk=msk)
+    SWOTRiver.analysis.riverobs.HeightPlot(
+        truth.reaches, data.reaches, metrics, args.title, filenames[1], msk=msk)
+    SWOTRiver.analysis.riverobs.SlopePlot(
+        truth.reaches, data.reaches, metrics, args.title, filenames[2], msk=msk)
+    SWOTRiver.analysis.riverobs.HeightVsAreaPlot(
+        truth.reaches, data.reaches, metrics, args.title, filenames[3], msk=msk)
     if not args.print:
         print('show')
         plt.show()
