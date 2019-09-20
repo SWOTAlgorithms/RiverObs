@@ -306,8 +306,8 @@ def get_scene_from_fnamedir(fnamedir):
     if len(cycle_pass_tile_flavor)<5:
         scene='unknown'
     else:
-        scene1 = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
-        scene = [scene1 for item in data_tmp.reaches.reach_id]
+        scene = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
+        #scene = [scene1 for item in data_tmp.reaches.reach_id]
     return scene
 #
 def print_errors(metrics, msk=True, with_slope=True):

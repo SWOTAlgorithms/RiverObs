@@ -79,7 +79,8 @@ def load_and_accumulate(
     tmp = SWOTRiver.analysis.riverobs.get_metrics(
         truth_tmp.reaches, data_tmp.reaches)
     # get the scene
-    scene_tmp = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
+    scene1 = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
+    scene_tmp = [scene1 for item in data_tmp.reaches.reach_id]
     # accumulate if needed
     if metrics is None:
         metrics = tmp
