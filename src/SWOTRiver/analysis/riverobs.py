@@ -9,6 +9,7 @@ Author(s): Dustin Lagoy
 import warnings
 
 import numpy as np
+import os.path
 
 import SWOTWater.products.product
 import SWOTRiver.analysis.tabley
@@ -296,7 +297,19 @@ def mask_for_sci_req(metrics, truth, data, scene):
           np.logical_and((truth.reaches['area_total']>1e6),
           np.logical_and(fit_error < 150.0, data.reaches['dark_frac'] < 0.35)))))
     return msk, fit_error, data.reaches['dark_frac']
-
+#
+def get_scene_from_fnamedir(fnamedir):
+    path_parts = os.path.abspath(fnamedir).split('/')
+    scene0 = path_parts[-4] # assumes particular directory structure...
+    # put in the pass and tile too
+    cycle_pass_tile_flavor = path_parts[-3].split('_')
+    if len(cycle_pass_tile_flavor)<5:
+        scene='unknown'
+    else:
+        scene1 = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
+        scene = [scene1 for item in data_tmp.reaches.reach_id]
+    return scene
+#
 def print_errors(metrics, msk=True, with_slope=True):
     # get statistics of area error
     area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)

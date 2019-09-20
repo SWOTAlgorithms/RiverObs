@@ -79,14 +79,7 @@ def load_and_accumulate(
     tmp = SWOTRiver.analysis.riverobs.get_metrics(
         truth_tmp.reaches, data_tmp.reaches)
     # get the scene
-    path_parts = os.path.abspath(pixc_rivertile).split('/')
-    scene0 = path_parts[-4] # assumes particular directory structure...
-    # put in the pass and tile too
-    cycle_pass_tile_flavor = path_parts[-3].split('_')
-    scene1 = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
-    scene_tmp = [scene1 for item in data_tmp.reaches.reach_id] 
-    #for k in range(len(data_tmp.reaches.reach_id)):
-    #    scene_tmp.append(scene0)
+    scene_tmp = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
     # accumulate if needed
     if metrics is None:
         metrics = tmp
