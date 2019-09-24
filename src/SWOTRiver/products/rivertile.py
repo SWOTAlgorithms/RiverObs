@@ -143,7 +143,10 @@ class ShapeWriterMixIn(object):
             ofp.write("<?xml version='1.0' encoding='UTF-8'?>\n")
             ofp.write('<swot_product>\n')
             ofp.write('  <attributes>\n')
-            for key, value in self.attributes.items():
+            for key in self.ATTRIBUTES:
+                value = self[key]
+                if value is None or value is 'None':
+                    value = ''
                 ofp.write('    <{}>{}</{}>\n'.format(key, value, key))
             ofp.write('  </attributes>\n')
             ofp.write('  <datasets>\n')
