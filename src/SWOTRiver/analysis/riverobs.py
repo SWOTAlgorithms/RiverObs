@@ -295,8 +295,8 @@ def mask_for_sci_req(metrics, truth, data, scene):
           np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
           np.logical_and((truth.reaches['width']>100),
           np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and(fit_error < 150.0, data.reaches['dark_frac'] < 0.35)))))
-    return msk, fit_error, data.reaches['dark_frac']
+          np.logical_and(fit_error < 150.0, truth.reaches['dark_frac'] < 0.35)))))
+    return msk, fit_error, truth.reaches['dark_frac']
 #
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
