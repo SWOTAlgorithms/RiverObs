@@ -256,7 +256,8 @@ def get_metrics(truth, data, with_slope=True, with_width=True):
         'area_total': (
             (data.area_total - truth.area_total) / truth.area_total) * 100.0,
         'area_detct':(
-            (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
+            #(data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
+            (data.area_detct - truth.area_total) / truth.area_total) * 100.0,
         'wse': (data.wse - truth.wse) * 1e2,#convert m to cm
     }
     if with_slope:
