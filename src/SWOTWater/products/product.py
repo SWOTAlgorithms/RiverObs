@@ -577,11 +577,11 @@ class Product(object):
             self[group].cast()
         for key in self.variables:
             self[key] = self._casted_variable(key)
-    
+
     def reset_valid_minmax(self):
         """open up valid data range to whole range of datatype"""
         print ('resetting valid min/max range')
-        # handle variables not in a group 
+        # handle variables not in a group
         for key, variable in self.VARIABLES.items():
             if variable is not None:
                 print ('variable: ', key)
@@ -591,7 +591,7 @@ class Product(object):
                     info = np.finfo(variable['dtype'])
                 variable['valid_min'] = info.min
                 variable['valid_max'] = info.max
-        # handle variables in groups 
+        # handle variables in groups
         for groupkey, group in self._groups.items():
             print('group: ', groupkey)
             for key, variable in group.VARIABLES.items():
@@ -603,7 +603,6 @@ class Product(object):
                         info = np.finfo(variable['dtype'])
                     variable['valid_min'] = info.min
                     variable['valid_max'] = info.max
-                    
 
 class MutableProduct(Product):
     """A product with forms as instance attributes, not class attributes

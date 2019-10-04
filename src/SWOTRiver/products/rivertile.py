@@ -151,6 +151,11 @@ class ShapeWriterMixIn(object):
             ofp.write('  </attributes>\n')
             ofp.write('  <datasets>\n')
             for dset, attr_dict in self.VARIABLES.items():
+                # Skip the geometry datasets
+                if dset in ['lat_prior', 'lon_prior', 'centerline_lat',
+                            'centerline_lon']:
+                    continue
+
                 ofp.write('    <{}>\n'.format(dset))
                 for attrname, attrvalue in attr_dict.items():
                     # skip these ones
@@ -166,8 +171,12 @@ class ShapeWriterMixIn(object):
 
         properties = odict()
         for key, var in self.VARIABLES.items():
-            properties[key] = self.get_schema(
-                var['dtype'], var['valid_max'], var['valid_min'])
+            if key in ['rdr_pol',]:
+                schema = 'str'
+            else:
+                schema = self.get_schema(
+                    var['dtype'], var['valid_max'], var['valid_min'])
+            properties[key] = schema
 
         try:
             # these are for the geometry part of schema
@@ -214,6 +223,10 @@ class ShapeWriterMixIn(object):
                             strings.append(thisstr)
 
                         this_property[key] = ' '.join(strings)
+
+                    elif key in ['rdr_pol',]:
+                        this_property[key] = this_item[ii].decode()
+
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
 
@@ -337,7 +350,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database.
-                    The format of the identifier is CBBBBBBRRRNNNT, where
+                    The format of the identifier is CBBBBBRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
                 ])],
         ['time',
@@ -763,6 +776,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     uncertainty term, which can be added to or subtracted from
                     rdr_sig0.""")],
                 ])],
+        ['rdr_pol',
+         odict([['dtype', 'S1'],
+                ['long_name', 'polarization of sigma0'],
+                ['tag_basic_expert', 'Expert'],
+                ['comment', textjoin("""
+                    Flag indicating whether the node is observed with a
+                    horizontal (H) or vertical (V) signal polarization.""")],
+                ])],
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
@@ -1170,7 +1191,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique reach identifier from the prior river database.
-                    The format of the identifier is CBBBBBBRRRT, where
+                    The format of the identifier is CBBBBBRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
