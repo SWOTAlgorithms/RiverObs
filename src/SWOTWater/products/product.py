@@ -43,9 +43,8 @@ def sort_variable_attribute_odict(in_odict):
                    'leap_second']
     # Then put in non-standard ones, and finally these ones in this order
     LAST_ATTRS = [
-        'units', 'add_offset', 'scale_factor', 'coordinates',
-        'quality_flag', 'flag_meanings', 'flag_values', 'valid_min',
-        'valid_max', 'comment']
+        'units', 'add_offset', 'scale_factor', 'quality_flag', 'flag_meanings',
+        'flag_values', 'valid_min', 'valid_max', 'coordinates', 'comment']
 
     attr_list = []
     for key in FIRST_ATTRS:
