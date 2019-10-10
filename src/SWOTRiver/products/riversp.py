@@ -5,15 +5,32 @@ All rights reserved.
 
 Author (s): Alex Fore
 '''
+import copy
 import numpy as np
+from collections import OrderedDict as odict
 
-from SWOTRiver.products.rivertile import L2HRRiverTile
+from SWOTRiver.products.rivertile import \
+    L2HRRiverTile, RiverTileNodes, RiverTileReaches, RIVERTILE_ATTRIBUTES
+
+RIVERSP_ATTRIBUTES = copy.deepcopy(RIVERTILE_ATTRIBUTES)
+RIVERSP_ATTRIBUTES['short_name']['docstr'] = 'L2_HR_RiverSP'
+RIVERSP_ATTRIBUTES['title']['docstr'] = \
+        'Level 2 KaRIn High Rate River Single Pass Vector Product'
+for key in ['Conventions', 'title', 'mission_name', 'short_name']:
+    RIVERSP_ATTRIBUTES[key]['value'] = RIVERSP_ATTRIBUTES[key]['docstr']
+
 
 class L2HRRiverSP(L2HRRiverTile):
     """
     Class for River SP data product
     """
     UID = "l2_hr_riversp"
+    ATTRIBUTES = odict()
+    GROUPS = odict([
+        ['nodes', 'RiverSPNodes'],
+        ['reaches', 'RiverSPReaches'],
+    ])
+
     @classmethod
     def from_rivertiles(cls, rivertiles):
         """
@@ -45,3 +62,10 @@ class L2HRRiverSP(L2HRRiverTile):
         klass.nodes = self.nodes + other.nodes
         klass.reaches = self.reaches + other.reaches
         return klass
+
+class RiverSPNodes(RiverTileNodes):
+    ATTRIBUTES = RIVERSP_ATTRIBUTES
+
+class RiverSPReaches(RiverTileReaches):
+    ATTRIBUTES = RIVERSP_ATTRIBUTES
+
