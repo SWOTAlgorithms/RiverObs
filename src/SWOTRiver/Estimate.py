@@ -31,6 +31,7 @@ class L2PixcToRiverTile(object):
         self.pixc_file = l2pixc_file
         self.index_file = index_file
         self.is_new_pixc = is_new_pixc
+        self.node_outputs, self.reach_outputs = None, None
 
         # if is_new_pixc is not supplied, test pixc file to see if it is true
         if self.is_new_pixc is None:
