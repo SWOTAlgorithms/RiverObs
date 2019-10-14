@@ -227,7 +227,11 @@ def main():
     gdem_x, gdem_y = llbox.proj(lon, lat)
 
     # Extract Reaches
-    reaches = RiverObs.ReachDatabase.ReachExtractor(args.reachdb_path, llbox)
+    try:
+        reaches = RiverObs.ReachDatabase.ReachExtractor(args.reachdb_path, llbox)
+    except Exception as exception:
+        LOGGER.error('Unable to extract reaches: {}'.format(exception))
+        reaches = []
 
     # Optionally erode before segmentation
     if args.erosion_iter > 0:

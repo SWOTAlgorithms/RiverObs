@@ -141,10 +141,7 @@ class ReachExtractor(object):
                 warnings.simplefilter("ignore")
                 reach_db = ReachDatabase.from_ncfile(reach_db_path)
 
-        if reach_db is not None:
-            try_reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
-        else:
-            try_reach_idx = []
+        try_reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
 
         self.reach = []
         self.reach_idx = []
