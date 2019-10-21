@@ -42,10 +42,10 @@ will be overwritten in SDS env with "prior_rivers" in current
 working directory by SDS pre-processor).
 
 For using with GDEMs change to these key/value pairs:
-class_list                (-) = [1,]
-use_fractional_inundation (-) = [False,]
-use_segmentation          (-) = [True,]
-use_heights               (-) = [True,]
+class_list                (-) = [4,24]
+use_fractional_inundation (-) = [False, False]
+use_segmentation          (-) = [True, True]
+use_heights               (-) = [True, False]
 preseg_dilation_iter      (-) = 1
 
 Author (s): Alex Fore

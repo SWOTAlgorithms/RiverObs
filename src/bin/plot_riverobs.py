@@ -20,9 +20,12 @@ DPI = 200
 CMAP = 'plasma'
 
 class NodePlots():
-    def __init__(self, truth, data, title=None, tofile=False):
-        self.truth = truth
-        self.data = data
+    def __init__(self, truth, data, title=None, tofile=False, reach_fits=False):
+        self.truth = truth.nodes
+        self.data = data.nodes
+        self.reach_fits = reach_fits
+        self.truth_reaches = truth.reaches
+        self.data_reaches = data.reaches
         self.title = title
         self.tofile = tofile
         self.figures = []
@@ -41,7 +44,7 @@ class NodePlots():
             i_truth = (self.truth['reach_id'] == reach)
             i_data = (self.data['reach_id'] == reach)
             reach_id = self.data['reach_id'][i_data][0]
-            self.plot_reach(reach, reach_id, i_truth, i_data)
+            self.plot_reach(reach, reach_id, i_truth, i_data, self.reach_fits)
         self.finalize()
 
     def finalize(self):
@@ -61,21 +64,23 @@ class NodePlots():
 class ParamPlots(NodePlots):
     def __init__(
             self, truth, data, fields=['area_total'], truth_field='area_total',
-            percent=False, **kwargs):
+            percent=False, reach_fits=False, **kwargs):
         self.fields = fields
         self.truth_field = truth_field
         self.percent = percent
-        super().__init__(truth, data, **kwargs)
+        super().__init__(truth, data, reach_fits=reach_fits, **kwargs)
 
-    def plot_reach(self, reach, reach_id, i_truth, i_data):
+    def plot_reach(self, reach, reach_id, i_truth, i_data, reach_fits=False):
         figure, axes = self.add_figure()
         axes[0].set_title('reach %s %s' % (reach, reach_id))
         #self.plot_data(i_truth, i_data, axes[0])
-        self.plot_data(i_truth, i_data, axes[0], style='o-')
+        self.plot_data(i_truth, i_data, axes[0], style='o-',
+                       reach_fits=reach_fits, reach=reach)
         self.plot_error(i_truth, i_data, axes[1], style='.-')
         # TODO: compute the bulk errors for each reach
 
-    def plot_data(self, i_truth, i_data, axis, style='.'):
+    def plot_data(self, i_truth, i_data, axis, style='.',
+                  reach_fits=False, reach=None):
         lgnd = []
         for field in self.fields:
             if not field.endswith('_u'):
@@ -89,6 +94,33 @@ class ParamPlots(NodePlots):
             self.truth[self.truth_field][i_truth], style, markersize=10,
             marker='+', color='g')
         axis.set_ylabel(self.truth_field)
+        if reach_fits:
+            # make the fit arrays
+            nodes = self.data['node_id'][i_data]
+            nodes_t = self.truth['node_id'][i_truth]
+            mid_node = nodes[int(len(nodes)/2)]
+            mid_node_t = nodes_t[int(len(nodes_t)/2)]
+            node_spacing = 200 #hard code for now
+            hgt = self.data_reaches['wse'][
+                self.data_reaches['reach_id']==reach]
+            hgt_t = self.truth_reaches['wse'][
+                self.truth_reaches['reach_id']==reach]
+            slp = self.data_reaches['slope'][
+                    self.data_reaches['reach_id']==reach]
+            slp_t = self.truth_reaches['slope'][
+                    self.truth_reaches['reach_id']==reach]
+            data_fit = hgt - slp*(nodes-mid_node)*node_spacing
+            truth_fit = hgt_t - slp_t *(nodes_t-mid_node_t)*node_spacing
+            # plot
+            axis.plot(
+                self.data['node_id'][i_data],
+                data_fit, '--', markersize=10,
+                color='b')
+            axis.plot(
+                self.truth['node_id'][i_truth],
+                truth_fit, '--', markersize=10,
+                color='g')
+            
         axis.legend(
             lgnd + ['truth ' + self.truth_field], loc='best')
 
@@ -217,10 +249,10 @@ def main():
         args.gdem_rivertile, args.pixc_rivertile)
     SWOTRiver.analysis.riverobs.match_rivertiles(truth, data)
     HeightPlots(
-        truth.nodes, data.nodes, ['wse', 'wse_r_u', 'wse_u'], 'wse',#['height', 'height_u', 'height2_u'], 'height',
-        title=args.title+'-height', tofile=args.print)
+        truth, data, ['wse', 'wse_r_u', 'wse_u'], 'wse',#['height', 'height_u', 'height2_u'], 'height',
+        title=args.title+'-height', tofile=args.print, reach_fits=True)
     ParamPlots(
-        truth.nodes, data.nodes, ['area_total', 'area_tot_u'], 'area_total',#truth.nodes, data.nodes, ['area_detct', 'area_det_u'], 'area_detct',
+        truth, data, ['area_total', 'area_tot_u'], 'area_total',#truth.nodes, data.nodes, ['area_detct', 'area_det_u'], 'area_detct',
         percent=True, title=args.title+'-area', tofile=args.print)
     plot_locations(
         truth.nodes, data.nodes, title=args.title+'-locations',

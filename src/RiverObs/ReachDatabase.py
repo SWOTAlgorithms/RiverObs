@@ -142,6 +142,7 @@ class ReachExtractor(object):
                 reach_db = ReachDatabase.from_ncfile(reach_db_path)
 
         try_reach_idx = reach_db.reaches.extract(lat_lon_region.bounding_box)
+
         self.reach = []
         self.reach_idx = []
         for ii, reach_idx in enumerate(try_reach_idx):

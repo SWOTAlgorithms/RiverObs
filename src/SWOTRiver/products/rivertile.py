@@ -12,6 +12,7 @@ import fiona
 import netCDF4
 import datetime
 import warnings
+
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
@@ -23,6 +24,74 @@ from RiverObs.RiverObs import \
 
 ATTRS_2COPY_FROM_PIXC = [
     'start_time', 'stop_time', 'cycle_number', 'pass_number']
+
+RIVERTILE_ATTRIBUTES = odict([
+    ['Conventions', {'dtype': 'str' ,
+        'docstr': textjoin("""
+            Esri conventions as given in 'ESRI Shapefile Technical
+            Description, an ESRI White Paper, July 1998'
+            http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
+    ['title', {'dtype': 'str',
+        'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product'}],
+    ['short_name', {'dtype': 'str', 'docstr': 'L2_HR_RiverTile'}],
+    ['institution', {'dtype': 'str', 'value': 'JPL',
+         'docstr': 'Name of producing agency.'}],
+    ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
+        'docstr': textjoin("""
+            The method of production of the original data.
+            If it was model-generated, source should name the model and its
+            version, as specifically as could be useful. If it is observational,
+            source should characterize it (e.g., 'Ka-band radar interferometer').""")}],
+    ['history', {'dtype': 'str',
+        'docstr': textjoin("""
+            UTC time when file generated. Format is:
+            'YYYY-MM-DD hh:mm:ss : Creation'""")}],
+    ['mission_name', {'dtype': 'str' , 'docstr': 'SWOT'}],
+    ['references', {'dtype': 'str',
+        'docstr': textjoin("""
+            Published or web-based references that describe
+            the data or methods used to product it. Provides version number of
+            software generating product.""")}],
+    ['reference_document', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name and version of Product Description Document
+            to use as reference for product.""")}],
+    ['contact', {'dtype': 'str',
+        'docstr': textjoin("""
+            Contact information for producer of product.
+            (e.g., 'ops@jpl.nasa.gov').""")}],
+    ['cycle_number', {'dtype': 'i2',
+        'docstr': 'Cycle number of the product granule.'}],
+    ['pass_number', {'dtype': 'i2',
+        'docstr': 'Pass number of the product granule.'}],
+    ['continent', {'dtype': 'str',
+        'docstr': 'Continent the product belongs to.'}],
+    ['start_time', {'dtype': 'str',
+        'docstr': textjoin("""
+            UTC time of first tvp measurement within the data group.
+            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
+    ['stop_time', {'dtype': 'str',
+        'docstr': textjoin("""
+            UTC time of last tvp measurement within the data group.
+            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
+    ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
+        'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
+    ['xref_input_l2_hr_rivertile_files', {'dtype': 'str',
+        'docstr': 'List of RiverTile products used to generate data in product'}],
+    ['xref_static_river_db_file', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name of static river a-priori database file used to generate data
+            in product""")}],
+    ['xref_l2_hr_river_sp_param_file', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name of PGE_L2_HR_RiverSP parameter file used to generate data in
+            product""")}],
+    ])
+
+
+for key in ['Conventions', 'title', 'mission_name', 'short_name']:
+    RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
+
 
 class L2HRRiverTile(Product):
     UID = "l2_hr_rivertile"
@@ -142,12 +211,20 @@ class ShapeWriterMixIn(object):
         with open(filename, 'w') as ofp:
             ofp.write("<?xml version='1.0' encoding='UTF-8'?>\n")
             ofp.write('<swot_product>\n')
-            ofp.write('  <attributes>\n')
-            for key, value in self.attributes.items():
+            ofp.write('  <global_attributes>\n')
+            for key in self.ATTRIBUTES:
+                value = self[key]
+                if value is None or value is 'None':
+                    value = ''
                 ofp.write('    <{}>{}</{}>\n'.format(key, value, key))
-            ofp.write('  </attributes>\n')
-            ofp.write('  <datasets>\n')
+            ofp.write('  </global_attributes>\n')
+            ofp.write('  <attributes>\n')
             for dset, attr_dict in self.VARIABLES.items():
+                # Skip the geometry datasets
+                if dset in ['lat_prior', 'lon_prior', 'centerline_lat',
+                            'centerline_lon']:
+                    continue
+
                 ofp.write('    <{}>\n'.format(dset))
                 for attrname, attrvalue in attr_dict.items():
                     # skip these ones
@@ -155,7 +232,7 @@ class ShapeWriterMixIn(object):
                         ofp.write('      <{}>{}</{}>\n'.format(
                             attrname, attrvalue, attrname))
                 ofp.write('    </{}>\n'.format(dset))
-            ofp.write('  </datasets>\n')
+            ofp.write('  </attributes>\n')
             ofp.write('</swot_product>\n')
 
     def write_shapes(self, shp_fname):
@@ -163,8 +240,12 @@ class ShapeWriterMixIn(object):
 
         properties = odict()
         for key, var in self.VARIABLES.items():
-            properties[key] = self.get_schema(
-                var['dtype'], var['valid_max'], var['valid_min'])
+            if key in ['rdr_pol',]:
+                schema = 'str'
+            else:
+                schema = self.get_schema(
+                    var['dtype'], var['valid_max'], var['valid_min'])
+            properties[key] = schema
 
         try:
             # these are for the geometry part of schema
@@ -211,6 +292,10 @@ class ShapeWriterMixIn(object):
                             strings.append(thisstr)
 
                         this_property[key] = ' '.join(strings)
+
+                    elif key in ['rdr_pol',]:
+                        this_property[key] = this_item[ii].decode()
+
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
 
@@ -244,70 +329,8 @@ class ShapeWriterMixIn(object):
 
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
-    ATTRIBUTES = odict([
-    ['Conventions', {'dtype': 'str' ,
-        'docstr': textjoin("""
-            Esri conventions as given in 'ESRI Shapefile Technical
-            Description, an ESRI White Paper, July 1998'
-            http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
-    ['title', {'dtype': 'str',
-        'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
-    ['institution', {'dtype': 'str', 'value': 'JPL',
-         'docstr': 'Name of producing agency.'}],
-    ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
-        'docstr': textjoin("""
-            The method of production of the original data.
-            If it was model-generated, source should name the model and its
-            version, as specifically as could be useful. If it is observational,
-            source should characterize it (e.g., 'Ka-band radar interferometer').""")}],
-    ['history', {'dtype': 'str',
-        'docstr': textjoin("""
-            UTC time when file generated. Format is:
-            'YYYY-MM-DD hh:mm:ss : Creation'""")}],
-    ['mission_name', {'dtype': 'str' , 'docstr': 'SWOT'}],
-    ['references', {'dtype': 'str',
-        'docstr': textjoin("""
-            Published or web-based references that describe
-            the data or methods used to product it. Provides version number of
-            software generating product.""")}],
-    ['reference_document', {'dtype': 'str',
-        'docstr': textjoin("""
-            Name and version of Product Description Document
-            to use as reference for product.""")}],
-    ['contact', {'dtype': 'str',
-        'docstr': textjoin("""
-            Contact information for producer of product.
-            (e.g., 'ops@jpl.nasa.gov').""")}],
-    ['cycle_number', {'dtype': 'i2',
-        'docstr': 'Cycle number of the product granule.'}],
-    ['pass_number', {'dtype': 'i2',
-        'docstr': 'Pass number of the product granule.'}],
-    ['continent', {'dtype': 'str',
-        'docstr': 'Continent the product belongs to.'}],
-    ['start_time', {'dtype': 'str',
-        'docstr': textjoin("""
-            UTC time of first tvp measurement within the data group.
-            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
-    ['stop_time', {'dtype': 'str',
-        'docstr': textjoin("""
-            UTC time of last tvp measurement within the data group.
-            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
-    ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
-        'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
-    ['xref_input_l2_hr_rivertile_files', {'dtype': 'str',
-        'docstr': 'List of RiverTile products used to generate data in product'}],
-    ['xref_static_river_db_file', {'dtype': 'str',
-        'docstr': textjoin("""
-            Name of static river a-priori database file used to generate data
-            in product""")}],
-    ['xref_l2_hr_river_sp_param_file', {'dtype': 'str',
-        'docstr': textjoin("""
-            Name of PGE_L2_HR_RiverSP parameter file used to generate data in
-            product""")}],
-    ])
-    for key in ['Conventions', 'title', 'mission_name']:
-        ATTRIBUTES[key]['value'] = ATTRIBUTES[key]['docstr']
 
+    ATTRIBUTES = RIVERTILE_ATTRIBUTES
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
         ['reach_id',
@@ -334,7 +357,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database.
-                    The format of the identifier is CBBBBBBRRRNNNT, where
+                    The format of the identifier is CBBBBBRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
                 ])],
         ['time',
@@ -760,6 +783,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     uncertainty term, which can be added to or subtracted from
                     rdr_sig0.""")],
                 ])],
+        ['rdr_pol',
+         odict([['dtype', 'S1'],
+                ['long_name', 'polarization of sigma0'],
+                ['tag_basic_expert', 'Expert'],
+                ['comment', textjoin("""
+                    Flag indicating whether the node is observed with a
+                    horizontal (H) or vertical (V) signal polarization.""")],
+                ])],
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
@@ -1150,8 +1181,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         return klass
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
-    ATTRIBUTES = RiverTileNodes.ATTRIBUTES
 
+    ATTRIBUTES = RIVERTILE_ATTRIBUTES
     DIMENSIONS = odict([
         ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
@@ -1167,7 +1198,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique reach identifier from the prior river database.
-                    The format of the identifier is CBBBBBBRRRT, where
+                    The format of the identifier is CBBBBBRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
