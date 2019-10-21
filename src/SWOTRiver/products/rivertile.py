@@ -469,8 +469,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'Longitude of prior node in database'],
                 ['standard_name', 'longitude'],
                 ['units', 'degrees_east'],
-                ['valid_min', 0],
-                ['valid_max', 360],
+                ['valid_min', -180],
+                ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
