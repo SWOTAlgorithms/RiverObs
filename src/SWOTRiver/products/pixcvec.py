@@ -193,21 +193,21 @@ class L2PIXCVector(Product):
                  'Improved height of the pixel above the reference ellipsoid.'],
                 ])],
         ['reach_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name', 'identifier of the associated prior river reach'],
                 ['valid_min', 0],
-                ['valid_max', 2147483647],
+                ['valid_max', 9223372036854775807],
                 ['comment', textjoin("""
                     Unique reach identifier from the prior river database.
                     The format of the identifier is CBBBBBRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
         ['node_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name',
                  "identifier of the associated prior river node"],
                 ['valid_min', 0],
-                ['valid_max', 2147483647],
+                ['valid_max', 9223372036854775807],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database. The
                     format of the identifier is CBBBBBRRRNNNT, where

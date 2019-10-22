@@ -1034,8 +1034,8 @@ class SWOTRiverEstimator(SWOTL2):
             'y_prior': y_prior.astype('float64'),
             'lon_prior': lon_prior.astype('float64'),
             'lat_prior': lat_prior.astype('float64'),
-            'node_indx': node_indx.astype('int32'),
-            'reach_indx': reach_index.astype('int32'),
+            'node_indx': node_indx.astype('int64'),
+            'reach_indx': reach_index.astype('int64'),
             'rdr_sig0': rdr_sig0.astype('float64'),
             'rdr_sig0_u': rdr_sig0_u.astype('float64'),
             'latitude_u': latitude_u.astype('float64'),
@@ -1231,17 +1231,17 @@ class SWOTRiverEstimator(SWOTL2):
         if reach_stats['width_prior'] < 0:
             reach_stats['width_prior'] = MISSING_VALUE_FLT
 
-        reach_stats['length_prior'] = reach.metadata['length'][0]
+        reach_stats['length_prior'] = reach.metadata['reach_length']
         if reach_stats['length_prior'] < 0:
             reach_stats['length_prior'] = MISSING_VALUE_FLT
 
         reach_stats['rch_id_up'] = np.array([
-            item[0] for item in reach.metadata['rch_id_up']], dtype='i4')
+            item[0] for item in reach.metadata['rch_id_up']], dtype='i8')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
             MISSING_VALUE_INT9
 
         reach_stats['rch_id_dn'] = np.array([
-            item[0] for item in reach.metadata['rch_id_dn']], dtype='i4')
+            item[0] for item in reach.metadata['rch_id_dn']], dtype='i8')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
 
@@ -1263,9 +1263,9 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.createVariable(
                 'azimuth_index', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'node_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+                'node_id', 'i8', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'reach_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+                'reach_id', 'i8', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
                 'segmentation_label', 'i4', 'points',
                 fill_value=FILL_VALUES['i4'])

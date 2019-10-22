@@ -195,6 +195,8 @@ class ShapeWriterMixIn(object):
             schema = 'int:4'
         elif dtype in ['i4', 'u4']:
             schema = 'int:9'
+        elif dtype in ['i8', 'u8']:
+            schema = 'int:14'
         elif dtype in ['f4', 'f8']:
             num_digits_left = 1+np.log10(
                 np.max([np.abs(valid_max), np.abs(valid_min)]))
@@ -334,10 +336,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
         ['reach_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name', 'Reach with which node is associated'],
                 ['valid_min', 0],
-                ['valid_max', 2147483647],
+                ['valid_max', 9223372036854775807],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -348,11 +350,11 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     current definition with all items as numbers.""")],
                 ])],
         ['node_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name',
                  "reach ID of the node in the prior river database"],
                 ['valid_min', 0],
-                ['valid_max', 2147483647],
+                ['valid_max', 9223372036854775807],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1190,10 +1192,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     DIMENSIONS_REACH_NEIGHBORS = odict([['reaches', 0], ['reach_neighbors', 4]])
     VARIABLES = odict([
         ['reach_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name', 'reach Id from prior database'],
                 ['valid_min', 0],
-                ['valid_max', 2147483647],
+                ['valid_max', 9223372036854775807],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""

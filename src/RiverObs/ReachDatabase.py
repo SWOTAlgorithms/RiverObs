@@ -177,27 +177,41 @@ class ReachExtractor(object):
 
             blocking_widths = get_blocking_widths(x, y)
 
-            # TODO add stuff from DB here
-            metadata = {
+            reach_metadata = {
                 'lakeFlag': this_reach['reaches']['lakeflag'][0],
                 'lon': this_reach['reaches']['x'][0],
                 'lat': this_reach['reaches']['y'][0],
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
-                'area_fits': this_reach['reaches']['area_fits'],
-                'discharge_models': this_reach['reaches']['discharge_models'],
-                'rch_id_up': this_reach['reaches']['rch_id_up'],
-                'rch_id_dn': this_reach['reaches']['rch_id_dn'],
-                'length': this_reach['reaches']['reach_length'],
                 }
+
+            reach_metadata_keys = [
+                'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
+                'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
+                'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
+                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag']
+
+            for key in reach_metadata_keys:
+                if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
+                           'discharge_models']:
+                    reach_metadata[key] = this_reach['reaches'][key]
+                else:
+                    reach_metadata[key] = this_reach['reaches'][key][0]
+
+            node_metadata_keys = [
+                'node_length', 'wse', 'wse_var', 'width', 'width_var',
+                'n_chan_max', 'n_chan_mod', 'grod_id', 'ghost_node', 'dist_out',
+                'wth_coef']
+
+            node_metadata = {
+                key: this_reach['nodes'][key] for key in node_metadata_keys}
 
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
-                lon=lon, lat=lat, x=x, y=y, metadata=metadata,
+                lon=lon, lat=lat, x=x, y=y, metadata=reach_metadata,
                 reach_index=ii, node_indx=node_indx,
                 blocking_widths=blocking_widths,
-                width=this_reach['nodes']['width'],
-                length=this_reach['nodes']['node_length']))
+                **node_metadata))
 
         self.idx = 0
         self.nreaches = len(self.reach)
