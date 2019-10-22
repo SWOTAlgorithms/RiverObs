@@ -23,7 +23,7 @@ def main():
     rivertile = L2HRRiverTile.from_ncfile(args.rivertile)
     pixc_vector = L2PIXCVector.from_ncfile(args.pixcvec)
 
-    scatter_colors = ['k', 'r', 'b', 'g']
+    scatter_colors = ['k', 'r', 'g', 'b', 'y', 'c']
     figure, axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
     for ii, node_id in enumerate(rivertile.nodes.node_id):
 
@@ -35,6 +35,11 @@ def main():
             s=50, c=this_color, edgecolor='none')
 
     is_bad_width = rivertile.nodes.quality_f & 0x1 > 0
+
+    axis.scatter(
+        rivertile.nodes.lon,
+        rivertile.nodes.lat,
+        marker='d', c='m')
 
     axis.scatter(
         rivertile.nodes.lon_prior[is_bad_width],
