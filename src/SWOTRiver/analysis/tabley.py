@@ -30,7 +30,7 @@ class Table():
     printed.
     """
     def __init__(
-            self, data, headers=None, style=None, precision=4, width=0):
+            self, data, headers=None, style=None, precision=4, width=0, passfail={}):
         if isinstance(data, dict):
             headers = list(data.keys())
             # data = np.column_stack(data.values())
@@ -47,6 +47,7 @@ class Table():
         self.fixed_width = width
         self.widths = None
         self.formats = None
+        self.passfail = passfail
         self.fit_widths()
         if style == 'pipe':
             self.border = '|'
@@ -79,8 +80,23 @@ class Table():
             if isinstance(self.data[0][i], str):
                 self.formats[i] = '{{:>{0}}}'.format(self.widths[i])
             else:
+                # check if this data has a pass/fail condition to set colors
                 self.formats[i] = '{{:#{0}.{1}g}}'.format(
-                    self.widths[i], self.precision)
+                            self.widths[i], self.precision)
+                #if self.headers[i] in self.passfail:
+                #    passes, fails = self.passfail[self.headers[i]]
+                #    if np.abs(self.data[0][i]) > fails:
+                #        print("\n\nRED\n\n")
+                #        # print in red
+                #        self.formats[i] = '\033[91m {{:#{0}.{1}g}}\033[00m'.format#(
+                #            self.widths[i], self.precision)
+                #    elif np.abs(self.data[0][i]) < passes:
+                #        print("\n\nGREEN\n\n")
+                #        # print in green
+                #        self.formats[i] = '\033[92m{{:#{0}.{1}g}}\033[00m'.format(
+                #            self.widths[i], self.precision)
+                #    print("\n\nBLACK\n\n")
+
             logging.debug('%d %d %s', i, self.widths[i], self.formats[i])
 
     def _header_line(self):
@@ -106,8 +122,16 @@ class Table():
         string = ''
         for row in self.data:
             string = string + self.border
-            for this_format, item in zip(self.formats, row):
-                string = string + this_format.format(item) + self.separator
+            for i, (this_format, item) in enumerate(zip(self.formats, row)):
+                my_format = this_format
+                if self.headers[i] in self.passfail:
+                    passes, fails = self.passfail[self.headers[i]]
+                    if not(isinstance(item, str)):
+                        if np.abs(item) > fails:
+                            my_format = '\033[91m'+this_format+'\033[00m'
+                        elif np.abs(item) < passes:
+                            my_format = '\033[92m'+this_format+'\033[00m'
+                string = string + my_format.format(item) + self.separator
             string = string[:-1] + self.border + '\n'
         return string
         return string
