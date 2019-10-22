@@ -1049,6 +1049,16 @@ class SWOTRiverEstimator(SWOTL2):
             'node_blocked': is_blocked.astype('uint8'),
             'width_prior': width_prior,
             'dark_frac': dark_frac,
+            'p_wse': reach.wse[self.river_obs.populated_nodes],
+            'p_wse_var': reach.wse_var[self.river_obs.populated_nodes],
+            'p_width': reach.width[self.river_obs.populated_nodes],
+            'p_wid_var': reach.width_var[self.river_obs.populated_nodes],
+            'p_dist_out': reach.dist_out[self.river_obs.populated_nodes],
+            'p_length': reach.node_length[self.river_obs.populated_nodes],
+            'grand_id': reach.grod_id[self.river_obs.populated_nodes],
+            'n_chan_max': reach.n_chan_max[self.river_obs.populated_nodes],
+            'n_chan_mod': reach.n_chan_mod[self.river_obs.populated_nodes],
+            'ghost_node': reach.ghost_node[self.river_obs.populated_nodes],
         }
 
         if xtrack_median is not None:
@@ -1110,9 +1120,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.sum(ds)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
-        reach_stats['prior_lon'] = reach.metadata['lon']
-        reach_stats['prior_lat'] = reach.metadata['lat']
-        reach_stats['prior_n_nodes'] = len(reach.x)
 
         reach_stats['node_dist'] = np.mean(np.sqrt(
                 (river_reach.x-river_reach.x_prior)**2 +
@@ -1227,14 +1234,6 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['height'] + reach_stats['slope'] * ss)
 
         # copy things from the prior DB into reach outputs
-        reach_stats['width_prior'] = np.mean(river_reach.width_prior)
-        if reach_stats['width_prior'] < 0:
-            reach_stats['width_prior'] = MISSING_VALUE_FLT
-
-        reach_stats['length_prior'] = reach.metadata['reach_length']
-        if reach_stats['length_prior'] < 0:
-            reach_stats['length_prior'] = MISSING_VALUE_FLT
-
         reach_stats['rch_id_up'] = np.array([
             item[0] for item in reach.metadata['rch_id_up']], dtype='i8')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
@@ -1250,6 +1249,19 @@ class SWOTRiverEstimator(SWOTL2):
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
+
+        reach_stats['p_lon'] = reach.metadata['lon']
+        reach_stats['p_lat'] = reach.metadata['lat']
+        reach_stats['p_wse'] = reach.metadata['wse']
+        reach_stats['p_wse_var'] = reach.metadata['wse_var']
+        reach_stats['p_width'] = reach.metadata['width']
+        reach_stats['p_wid_var'] = reach.metadata['width_var']
+        reach_stats['p_n_nodes'] = reach.metadata['n_nodes']
+        reach_stats['p_dist_out'] = reach.metadata['dist_out']
+        reach_stats['p_length'] = reach.metadata['reach_length']
+        reach_stats['grand_id'] = reach.metadata['grod_id']
+        reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
+        reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
 
         river_reach.metadata = reach_stats
         return river_reach

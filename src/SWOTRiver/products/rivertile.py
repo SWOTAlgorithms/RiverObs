@@ -1084,11 +1084,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
                 (node_outputs['y']-node_outputs['y_prior'])**2)
-
-            klass['lat_prior'] = node_outputs['lat_prior']
-            klass['lon_prior'] = node_outputs['lon_prior']
-            klass['p_width'] = node_outputs['width_prior']
             klass['dark_frac'] = node_outputs['dark_frac']
+
+            for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
+                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
+                        'grand_id', 'n_chan_max', 'n_chan_mod']:
+                klass[key] = node_outputs[key]
 
             # set quality flag
             klass['quality_f'] = np.zeros(node_outputs['nobs'].shape).astype(
@@ -2210,11 +2211,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['loc_offset'] = reach_outputs['loc_offset']
             klass['geoid_hght'] = reach_outputs['geoid_hght']
             klass['geoid_slop'] = reach_outputs['geoid_slop']
-            klass['p_n_nodes'] = reach_outputs['prior_n_nodes']
-            klass['p_lat'] = reach_outputs['prior_lat']
-            klass['p_lon'] = reach_outputs['prior_lon']
-            klass['p_width'] = reach_outputs['width_prior']
-            klass['p_length'] = reach_outputs['length_prior']
             klass['rch_id_up'] = reach_outputs['rch_id_up']
             klass['rch_id_dn'] = reach_outputs['rch_id_dn']
             klass['n_reach_up'] = reach_outputs['n_reach_up']
@@ -2222,6 +2218,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['d_x_area'] = reach_outputs['d_x_area']
             klass['d_x_area_u'] = reach_outputs['d_x_area_u']
             klass['dark_frac'] = reach_outputs['dark_frac']
+
+            for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
+                        'p_dist_out', 'p_length', 'grand_id', 'n_chan_max',
+                        'n_chan_mod', 'p_n_nodes', 'p_lat', 'p_lon']:
+                klass[key] = reach_outputs[key]
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]
