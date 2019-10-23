@@ -4,7 +4,7 @@ Copyright (c) 2017-, California Institute of Technology ("Caltech"). U.S.
 Government sponsorship acknowledged.
 All rights reserved.
 
-Author(s):
+Author(s): Brent Williams
 
 '''
 import argparse
@@ -61,7 +61,8 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     return truth_tmp, data_tmp
     
 def load_and_accumulate(
-    pixc_rivertile, gdem_rivertile, metrics=None, truth=None, data=None, scene=None):
+        pixc_rivertile, gdem_rivertile, metrics=None,
+        truth=None, data=None, scene=None, sig0=None, bad_scenes=[]):
     '''
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
@@ -71,13 +72,14 @@ def load_and_accumulate(
     if (len(truth_tmp.reaches.reach_id)<=0) or (
        len(data_tmp.reaches.reach_id)<=0):
         # do nothing if truth or data file have no reach data
-        return metrics, truth, data, scene
+        return metrics, truth, data, scene, sig0
     # handle masked arrays here
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp)
     #
     SWOTRiver.analysis.riverobs.match_reaches(truth_tmp, data_tmp)
+    wse_node_avg, sig0_avg = SWOTRiver.analysis.riverobs.compute_average_node_error(data_tmp, truth_tmp)
     tmp = SWOTRiver.analysis.riverobs.get_metrics(
-        truth_tmp.reaches, data_tmp.reaches)
+        truth_tmp.reaches, data_tmp.reaches, wse_node_avg=wse_node_avg)
     # get the scene
     scene1 = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
     scene_tmp = [scene1 for item in data_tmp.reaches.reach_id]
@@ -87,13 +89,19 @@ def load_and_accumulate(
         truth = truth_tmp
         data = data_tmp
         scene = scene_tmp
+        sig0 = sig0_avg
     else:
+        # don't accumulate scenes designated as bad
+        scene2 = scene1.split('_')[0]
+        if scene2 in bad_scenes:
+            return metrics, truth, data, scene, sig0
         for name, value in tmp.items():
             metrics[name] = np.append(metrics[name], value)
         truth = truth.append(truth_tmp)
         data = data.append(data_tmp)
         scene = np.append(scene, scene_tmp)
-    return metrics, truth, data, scene
+        sig0 = np.append(sig0, sig0_avg)
+    return metrics, truth, data, scene, sig0
 
 def main():
     parser = argparse.ArgumentParser()
@@ -111,6 +119,8 @@ def main():
     truth = None
     data = None
     scene = None
+    sig0 = None
+    bad_scenes = []#['3356',]# these scenes will be excluded from analysis
     print("args.dir: ",args.dir)
     if args.dir is not None:
         # TODO: rethink this glob call to be more general
@@ -124,25 +134,55 @@ def main():
             print (gdem_rivertile)
             if os.path.isfile(gdem_rivertile):
                 # check if the gdem and the pixc are the same
-                metrics, truth, data, scene = load_and_accumulate(
-                    pixc_rivertile, gdem_rivertile, metrics, truth, data, scene)
+                metrics, truth, data, scene, sig0 = load_and_accumulate(
+                    pixc_rivertile, gdem_rivertile,
+                    metrics, truth, data, scene, sig0, bad_scenes)
                 
     else:
-        metrics, truth, data, scene = load_and_accumulate(
+        metrics, truth, data, scene, sig0 = load_and_accumulate(
             args.pixc_rivertile, args.gdem_rivertile)
 
    
     #SWOTRiver.analysis.tabley.print_table(metrics)
-    SWOTRiver.analysis.riverobs.print_metrics(metrics, truth, scene)
+    passfail = SWOTRiver.analysis.riverobs.get_passfail()
+    msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+        metrics, truth, data, scene, sig0=sig0)
+    SWOTRiver.analysis.riverobs.print_metrics(
+        metrics, truth, scene, with_node_avg=True,
+        passfail=passfail, dark_frac=dark_frac, reach_len=reach_len)
     print("\nFor All Data")
-    SWOTRiver.analysis.riverobs.print_errors(metrics)
-    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2")
-    msk, fit_error, dark_frac = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene)
-    SWOTRiver.analysis.riverobs.print_metrics(metrics, truth, scene, msk, fit_error, dark_frac)
-    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2")
-    SWOTRiver.analysis.riverobs.print_errors(metrics, msk)
+    SWOTRiver.analysis.riverobs.print_errors(metrics, with_node_avg=True)
+    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+    SWOTRiver.analysis.riverobs.print_metrics(
+        metrics, truth, scene, msk, fit_error,
+        dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+    SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
 
+    # plot slope error vs reach length
+    plt.figure()
+    plt.scatter(metrics['slope_t'][msk], metrics['slope'][msk], c=reach_len[msk]/1e3)
+    plt.colorbar()
+    plt.xlabel('slope (cm/km)')
+    plt.ylabel('slope error (cm/km)')
+    plt.title('reach length (km)')
+    plt.grid()
+    #
+    plt.figure()
+    plt.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk], c=metrics['slope'][msk])
+    plt.colorbar()
+    plt.title('slope (cm/km)')
+    plt.ylabel('slope error (cm/km)')
+    plt.xlabel('reach length (km)')
+    plt.grid()
+    #
+    plt.figure()
+    plt.scatter(metrics['slope'][msk], metrics['wse'][msk], c=reach_len[msk]/1e3)
+    plt.colorbar()
+    plt.ylabel('height error (cm)')
+    plt.xlabel('slope error (cm/km)')
+    plt.title('reach length (km)')
+    plt.grid()
     # plot the fit error histogram
     #plt.figure()
     #plt.scatter(fit_error[msk], metrics['height'][msk], c=dark_frac[msk])

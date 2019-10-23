@@ -3,7 +3,7 @@ Copyright (c) 2017-, California Institute of Technology ("Caltech"). U.S.
 Government sponsorship acknowledged.
 All rights reserved.
 
-Author(s): Dustin Lagoy
+Author(s): Dustin Lagoy, Brent Williams
 
 """
 import warnings
@@ -250,21 +250,71 @@ def match_nodes(truth, data):
         new_nodes[name] = truth.nodes[name][true_mapping]
     truth.nodes = new_nodes
 
+def compute_average_node_error(data, truth):
+    err_out = np.zeros(np.shape(data.reaches['reach_id']))+np.nan
+    sig0_out = np.zeros(np.shape(data.reaches['reach_id']))+np.nan
+    for reach in data.reaches['reach_id']:
+        inds = (data.nodes['reach_id'] == reach)
+        inds_t = (truth.nodes['reach_id'] == reach)
+        ind = (data.reaches['reach_id'] == reach)
+        diff_wse = []
+        weight = []
+        sig0 = []
+        nodes = data.nodes['node_id'][inds]
+        nodes_t = truth.nodes['node_id'][inds_t]
+        wse = data.nodes['wse'][inds]
+        s0 = data.nodes['rdr_sig0'][inds].filled(fill_value=-10)
+        #print(s0)
+        wgt = data.nodes['wse_u'][inds]**2
+        wse_t = truth.nodes['wse'][inds_t]
+        for node in nodes:
+            if (node in nodes and node in nodes_t):
+                t_wse = wse_t[nodes_t==node]
+                d_wse = wse[nodes==node]
+                w = 1.0 / wgt[nodes==node]
+                w[wgt[nodes==node]<0.00001] = 10000000
+                diff_wse.append((d_wse - t_wse))
+                weight.append(w)
+                #print("wse: ",wse[nodes==node])
+                #print("s0: ",s0[nodes==node])
+                sig0.append(s0[nodes==node])
+        # exclude outliers
+        p_68 = np.nanpercentile(np.abs(diff_wse),68)
+        outlier_msk = np.abs(diff_wse) > p_68 * 3 # 3-sigma is outlier
+        diff_wse = np.array(diff_wse)
+        weight = np.array(weight) 
+        diff_wse[outlier_msk] = np.nan
+        weight[outlier_msk] = np.nan
+        err_out[ind] = np.nanmedian(diff_wse)#np.nanmean((diff_wse * weight)) / np.nanmean(weight)
+        sig0_out[ind] = np.nanmean(np.array(sig0))
+    return err_out, sig0_out
 
-def get_metrics(truth, data, with_slope=True, with_width=True):
+def get_metrics(truth, data,
+                with_slope=True, with_width=True, wse_node_avg=None):
     metrics = {
         'area_total': (
             (data.area_total - truth.area_total) / truth.area_total) * 100.0,
         'area_detct':(
-            #(data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
-            (data.area_detct - truth.area_total) / truth.area_total) * 100.0,
+            (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
+            #(data.area_detct - truth.area_total) / truth.area_total) * 100.0,
         'wse': (data.wse - truth.wse) * 1e2,#convert m to cm
     }
+    if wse_node_avg is not None:
+        metrics['wse_node_avg'] = wse_node_avg * 1e2#convert m to cm
     if with_slope:
         metrics['slope'] = (data.slope - truth.slope) * 1e5#convert from m/m to cm/km
+        metrics['slope_t'] = (truth.slope) * 1e5#convert from m/m to cm/km
     if with_width:
         metrics['width'] = data.width - truth.width
     return metrics
+
+def get_passfail():
+    passfail = {
+        'area_tot e (%)': [15, 30],
+        'wse e (cm)': [10, 20],
+        'slp e (cm/km)':[1.7, 3.4],
+    }
+    return passfail
 
 def compute_reach_fit_error(truth):
     fit_error = []
@@ -286,20 +336,22 @@ def compute_reach_fit_error(truth):
         fit_error.append(err)
     return np.array(fit_error)
         
-def mask_for_sci_req(metrics, truth, data, scene):
+def mask_for_sci_req(metrics, truth, data, scene, sig0=None):
     # find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
     fit_error = compute_reach_fit_error(truth)
-    
+    #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
+    #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0])
     # now make the mask
     msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),
           np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
           np.logical_and((truth.reaches['width']>100),
           np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and(fit_error < 150.0, 
+          np.logical_and((truth.reaches['p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
+          np.logical_and(fit_error < 150.0,
           np.logical_and(truth.reaches['obs_frac_n'] > 0.5,
-              truth.reaches['dark_frac'] < 0.35))))))
-    return msk, fit_error, truth.reaches['dark_frac']
+              truth.reaches['dark_frac'] < 0.35)))))))
+    return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
@@ -313,7 +365,7 @@ def get_scene_from_fnamedir(fnamedir):
         #scene = [scene1 for item in data_tmp.reaches.reach_id]
     return scene
 #
-def print_errors(metrics, msk=True, with_slope=True):
+def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
     # get statistics of area error
     area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)
     area_50 = np.nanpercentile(metrics['area_total'][msk], 50)
@@ -336,6 +388,18 @@ def print_errors(metrics, msk=True, with_slope=True):
         'mean': [area_mean, area_d_mean, height_mean],
         'count': [area_num, area_d_num, height_num],
     }
+    if with_node_avg:
+        # get statistics of slope error
+        wse_n_68 = np.nanpercentile(abs(metrics['wse_node_avg'][msk]), 68)
+        wse_n_50 = np.nanpercentile(metrics['wse_node_avg'][msk], 50)
+        wse_n_mean = np.nanmean(metrics['wse_node_avg'][msk])
+        wse_n_num = np.count_nonzero(~np.isnan(metrics['wse_node_avg'][msk]))
+
+        table['metric'].append('wse_node_avg (cm)')
+        table['|68%ile|'].append(wse_n_68)
+        table['50%ile'].append(wse_n_50)
+        table['mean'].append(wse_n_mean)
+        table['count'].append(wse_n_num)
     if with_slope:
         # get statistics of slope error
         slope_68 = np.nanpercentile(abs(metrics['slope'][msk]), 68)
@@ -354,17 +418,17 @@ def print_errors(metrics, msk=True, with_slope=True):
 
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, with_slope=True, with_width=True):
+        dark_frac=None, with_slope=True, with_width=True,
+        with_node_avg=False, reach_len=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse']),dtype = bool)
     table['wse e (cm)'] = metrics['wse'][msk]
+    if with_node_avg:
+        table['wse node e (cm)'] = metrics['wse_node_avg'][msk]
     if with_slope:
-        print(metrics)
-        print(metrics['slope'])
-        print(metrics['slope'][msk])
-        print(msk)
         table['slp e (cm/km)'] = metrics['slope'][msk]
+        table['slope (cm/km)'] = metrics['slope_t'][msk]
     table['area_tot e (%)'] = metrics['area_total'][msk]
     table['area_det e (%)'] = metrics['area_detct'][msk]
     if with_width:
@@ -384,5 +448,7 @@ def print_metrics(
         table['fit_error (cm)'] = np.array(fit_error)[msk]
     if dark_frac is not None:
         table['dark_frac'] = np.array(dark_frac)[msk]
+    if reach_len is not None:
+        table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
     
-    SWOTRiver.analysis.tabley.print_table(table, precision=5)
+    SWOTRiver.analysis.tabley.print_table(table, precision=5, passfail=passfail)
