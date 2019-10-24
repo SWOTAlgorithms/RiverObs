@@ -942,7 +942,6 @@ class SWOTRiverEstimator(SWOTL2):
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('mean', 'pole_tide'))
 
-        
         # get the aggregated heights and widths with their corrosponding 
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
@@ -1004,7 +1003,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
-        width_prior = reach.width[self.river_obs.populated_nodes]
 
         dark_frac = 1-area_det/area
 
@@ -1030,10 +1028,6 @@ class SWOTRiverEstimator(SWOTL2):
             'wse_std': wse_std.astype('float64'),
             'wse_u': wse_u.astype('float64'),
             'nobs_h': nobs_h.astype('int32'),
-            'x_prior': x_prior.astype('float64'),
-            'y_prior': y_prior.astype('float64'),
-            'lon_prior': lon_prior.astype('float64'),
-            'lat_prior': lat_prior.astype('float64'),
             'node_indx': node_indx.astype('int64'),
             'reach_indx': reach_index.astype('int64'),
             'rdr_sig0': rdr_sig0.astype('float64'),
@@ -1047,8 +1041,11 @@ class SWOTRiverEstimator(SWOTL2):
             'load_tide2': load_tide2.astype('float64'),
             'pole_tide': pole_tide.astype('float64'),
             'node_blocked': is_blocked.astype('uint8'),
-            'width_prior': width_prior,
             'dark_frac': dark_frac,
+            'x_prior': x_prior.astype('float64'),
+            'y_prior': y_prior.astype('float64'),
+            'lon_prior': lon_prior.astype('float64'),
+            'lat_prior': lat_prior.astype('float64'),
             'p_wse': reach.wse[self.river_obs.populated_nodes],
             'p_wse_var': reach.wse_var[self.river_obs.populated_nodes],
             'p_width': reach.width[self.river_obs.populated_nodes],
