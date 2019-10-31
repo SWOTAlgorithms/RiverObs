@@ -688,8 +688,6 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.add_obs('yo', river_obs.yobs)
             river_obs.load_nodes(['xo', 'yo'])
 
-        from IPython import embed; embed()
-
         # Iterate through and only return reaches with no pixels in them.
         # (don't iterate and modify!)
         river_obs_list_out = []
