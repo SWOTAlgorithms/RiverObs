@@ -449,7 +449,7 @@ class Product(object):
                     things.append('%s="%f" ' % (key, value))
                 elif key in ['flag_values', ]:
                     things.append('{}="{}"'.format(
-                        key, ', '.join(['{}'.format(item) for item in value])))
+                        key, ' '.join(['{}'.format(item) for item in value])))
                 else:
                     things.append('{}="{}"'.format(key, value))
             annotations = ' '.join(things)
