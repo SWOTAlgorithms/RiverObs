@@ -1055,7 +1055,6 @@ class SWOTRiverEstimator(SWOTL2):
             'grand_id': reach.grod_id[self.river_obs.populated_nodes],
             'n_chan_max': reach.n_chan_max[self.river_obs.populated_nodes],
             'n_chan_mod': reach.n_chan_mod[self.river_obs.populated_nodes],
-            'ghost_node': reach.ghost_node[self.river_obs.populated_nodes],
         }
 
         if xtrack_median is not None:

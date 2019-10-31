@@ -200,8 +200,7 @@ class ReachExtractor(object):
 
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
-                'n_chan_max', 'n_chan_mod', 'grod_id', 'ghost_node', 'dist_out',
-                'wth_coef']
+                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef']
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}
@@ -341,8 +340,6 @@ class ReachDatabaseNodes(Product):
         ['n_chan_mod',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['grod_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
-        ['ghost_node',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['dist_out',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
