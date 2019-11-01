@@ -457,13 +457,15 @@ class ReachDatabaseReaches(Product):
 
         bounding_box = [lonmin, latmin, lonmax, latmax]
         """
+        BUFFER = 0.25
         lonmin, latmin, lonmax, latmax = bounding_box
         if lonmax < lonmin:
             lonmax += 360
 
         # iterate over reaches in self.reaches
         reach_zips = zip(
-            self.x_min, self.y_min, self.x_max, self.y_max, self.reach_id)
+            self.x_min-BUFFER, self.y_min-BUFFER, self.x_max+BUFFER,
+            self.y_max+BUFFER, self.reach_id)
 
         overlapping_reach_ids = []
         for reach_zip in reach_zips:

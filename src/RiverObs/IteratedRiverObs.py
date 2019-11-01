@@ -385,6 +385,8 @@ class IteratedRiverObs(RiverObs):
             reach.metadata = self.metadata
             max_width = self.max_width
 
+        reach.node_length = self.reach.node_length
+
         # Initialize the base class
         RiverObs.__init__(
             self,

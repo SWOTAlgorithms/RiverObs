@@ -127,10 +127,15 @@ class Centerline:
         if smooth is not None:
             smooth *= len(self.x)
 
-        self.xtck = scipy.interpolate.splrep(
-            self.s, self.x, k=k, w=wx, s=smooth, **kwds)
-        self.ytck = scipy.interpolate.splrep(
-            self.s, self.y, k=k, w=wy, s=smooth, **kwds)
+        try:
+            self.xtck = scipy.interpolate.splrep(
+                self.s, self.x, k=k, w=wx, s=smooth, **kwds)
+            self.ytck = scipy.interpolate.splrep(
+                self.s, self.y, k=k, w=wy, s=smooth, **kwds)
+        except TypeError:
+            self.xtck = None
+            self.ytck = None
+
         if obs is not None:
             if sobs is not None:
                 sobs *= len(self.x)
@@ -150,7 +155,8 @@ class Centerline:
             self.y = scipy.interpolate.splev(self.s, self.ytck)
             if obs is not None:
                 for name in self.obs_names:
-                    setattr(self, name, scipy.interpolate.splev(self.s, self.obs_tck[name]))
+                    setattr(self, name,
+                        scipy.interpolate.splev(self.s, self.obs_tck[name]))
 
         # Initialize the cKDtree
         self.xy = np.zeros((len(self.x), 2), dtype=np.float64)
@@ -160,8 +166,13 @@ class Centerline:
         self.kdtree = scipy.spatial.cKDTree(self.xy)
 
         # Calculate the tangent and normal vectors at each point
-        self.dx_ds = scipy.interpolate.splev(self.s, self.xtck, der=1)
-        self.dy_ds = scipy.interpolate.splev(self.s, self.ytck, der=1)
+        if self.xtck is None or self.ytck is None:
+            self.dx_ds = 1
+            self.dy_ds = 0
+
+        else:
+            self.dx_ds = scipy.interpolate.splev(self.s, self.xtck, der=1)
+            self.dy_ds = scipy.interpolate.splev(self.s, self.ytck, der=1)
 
         self.tangent = np.zeros((len(self.x), 2), dtype=np.float64)
         self.tangent[:, 0] = self.dx_ds
@@ -224,5 +235,8 @@ class Centerline:
         self.obs_tck = {}
         for name in self.obs_names:
             x = getattr(self, name)
-            self.obs_tck[name] = scipy.interpolate.splrep(
-                scoord, x, k=k, s=s, w=w, **kwds)
+            try:
+                self.obs_tck[name] = scipy.interpolate.splrep(
+                    scoord, x, k=k, s=s, w=w, **kwds)
+            except TypeError:
+                self.obs_tck[name] = None
