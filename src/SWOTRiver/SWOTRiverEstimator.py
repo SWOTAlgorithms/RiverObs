@@ -603,12 +603,6 @@ class SWOTRiverEstimator(SWOTL2):
         ireach_list = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
-            if len(self.reaches[i_reach].x) <= 3:
-                LOGGER.warn(
-                    "reach does not have enough points {}".format(
-                    len(self.reaches[i_reach].x)))
-                continue
-
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
 
@@ -1109,11 +1103,6 @@ class SWOTRiverEstimator(SWOTL2):
         # Check to see if there are sufficient number of points for fit
         ngood = len(river_reach.s)
         LOGGER.debug(('number of fit points: %d' % ngood))
-
-        if ngood < min_fit_points:
-            LOGGER.warning('not enough good points for fit')
-            nresults = None
-            return None
 
         ds = np.divide(river_reach.area, river_reach.w_area)
 
