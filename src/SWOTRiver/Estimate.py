@@ -238,8 +238,15 @@ class L2PixcToRiverTile(object):
                 ofp.variables['azimuth_index'][:] * int(nr_pixels) +
                 ofp.variables['range_index'][:])
 
-            ofp.variables['pixc_index'][:] = np.array(np.where(
-                np.in1d(pixc_idx, pixcvec_idx))).astype('int32')[0]
+            indx, indx_pv, indx_pixc = np.intersect1d(
+                pixcvec_idx, pixc_idx, return_indices=True)
+
+            # re-order PIXCVecRiver datasets to ordering of pixc_index.
+            for dset in ofp.variables.keys():
+                data = ofp.variables[dset][:]
+                ofp.variables[dset][:] = data[indx_pv]
+
+            ofp.variables['pixc_index'][:] = indx_pixc.astype('int32')
 
     def flag_lakes_pixc(self):
         """
