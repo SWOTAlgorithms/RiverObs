@@ -308,12 +308,18 @@ def get_metrics(truth, data,
         metrics['width'] = data.width - truth.width
     return metrics
 
-def get_passfail():
-    passfail = {
-        'area_tot e (%)': [15, 30],
-        'wse e (cm)': [10, 20],
-        'slp e (cm/km)':[1.7, 3.4],
-    }
+def get_passfail(is_lake = False):
+    if not is_lake:
+        passfail = {
+            'area_tot e (%)': [15, 30],
+            'wse e (cm)': [10, 20],
+            'slp e (cm/km)':[1.7, 3.4],
+        }
+    else:
+        passfail = {
+            'area_tot e (%)': [15, 30],
+            'wse e (cm)': [10, 20],
+        }
     return passfail
 
 def compute_reach_fit_error(truth):
