@@ -294,7 +294,8 @@ class ShapeWriterMixIn(object):
                         this_property[key] = ' '.join(strings)
 
                     elif key in ['rdr_pol',]:
-                        this_property[key] = this_item[ii].decode()
+                        this_property[key] = this_item[ii].astype(
+                            '|S1').decode()
 
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
