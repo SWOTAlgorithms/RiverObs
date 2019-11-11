@@ -80,7 +80,10 @@ def fake_pixc_from_gdem(
         longitude = ifp_gdem.variables['longitude'][:][::subsample_factor]
         longitude[longitude>180] -= 360
         elevation = ifp_gdem.variables['elevation'][:][::subsample_factor]
-        media_attenuation = ifp_gdem['media_attenuation'][:][::subsample_factor]
+        try:
+            media_attenuation = ifp_gdem['media_attenuation'][:][::subsample_factor]
+        except IndexError:
+            media_attenuation = np.zeros_like(elevation) + dark_water_thresh + 1
         cross_track_ = ifp_gdem.variables['cross_track'][:]
         range_spacing = ifp_gdem.ground_spacing
         azimuth_spacing = ifp_gdem.azimuth_spacing
