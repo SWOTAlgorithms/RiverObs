@@ -294,7 +294,8 @@ class ShapeWriterMixIn(object):
                         this_property[key] = ' '.join(strings)
 
                     elif key in ['rdr_pol',]:
-                        this_property[key] = this_item[ii].decode()
+                        this_property[key] = this_item[ii].astype(
+                            '|S1').decode()
 
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
@@ -1130,7 +1131,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
-            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',
+            '/pixel_cloud/height_cor_xover': 'xovr_cal_c',
             '/tvp/time': 'time',
             '/tvp/time_tai': 'time_tai'}
 
