@@ -17,6 +17,8 @@ import RiverObs.ReachDatabase
 
 LOGGER = logging.getLogger(__name__)
 
+LAKE_CLASS = 10
+
 def wrap_label_for_plots(arr_in, wrap_value=20):
     # set 0 values to nan and wrap every
     arr_out=np.zeros(np.shape(arr_in)) + np.nan
@@ -252,7 +254,7 @@ def main():
         type_label != land_label)
 
     out_type = type.copy()
-    out_type[water_not_main_label] = 0
+    out_type[water_not_main_label] = LAKE_CLASS
 
     if args.plot:
         import matplotlib.pyplot as plt
