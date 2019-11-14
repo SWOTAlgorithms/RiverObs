@@ -1132,6 +1132,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
             '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
             '/pixel_cloud/height_cor_xover': 'xovr_cal_c',
+            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',# old format
             '/tvp/time': 'time',
             '/tvp/time_tai': 'time_tai'}
 
@@ -1139,8 +1140,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         with netCDF4.Dataset(pixc_file, 'r') as ifp:
             for key in pixc2rivertile_map:
                 group, dset = key.split('/')[1::]
-                pixc_data[key] = ifp.groups[group][dset][:]
-
+                try:
+                    pixc_data[key] = ifp.groups[group][dset][:]
+                except IndexError:
+                    pass
             for attr in ATTRS_2COPY_FROM_PIXC:
                 try:
                     value = getattr(ifp, attr)
@@ -1154,7 +1157,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 # silly hack
                 subdata = pixc_data[inkey][pixc_vec.azimuth_index]
             else:
-                subdata = pixc_data[inkey][pixc_vec.pixc_index]
+                try:
+                    subdata = pixc_data[inkey][pixc_vec.pixc_index]
+                except KeyError:
+                    pass
 
             # index into pixcvec shaped data
             outdata = np.ones(self[outkey].shape)

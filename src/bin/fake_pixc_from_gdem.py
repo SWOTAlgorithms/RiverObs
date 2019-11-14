@@ -97,7 +97,7 @@ def fake_pixc_from_gdem(
         ofp.groups['pixel_cloud'].interferogram_size_azimuth = gdem_shape[0]
         ofp.groups['pixel_cloud'].interferogram_size_range = gdem_shape[1]
 
-        mask = landtype == 1
+        mask = np.logical_or(landtype == 1, landtype == 10)
         pixc_shape = range_index[mask].shape
         pixel_area = subsample_factor * range_spacing * azimuth_spacing
 
@@ -105,6 +105,7 @@ def fake_pixc_from_gdem(
 
         # set landtypes to pixc classes
         landtype[landtype==1] = PIXC_CLASSES['open_water']
+        landtype[landtype==10] = 10 #PIXC_CLASSES['open_water']
         dark_water_mask = media_attenuation < dark_water_thresh
         landtype[dark_water_mask] = PIXC_CLASSES['dark_water']
 
