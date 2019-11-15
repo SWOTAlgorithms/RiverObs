@@ -118,7 +118,7 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['latitude'] = latitude[mask]
         out_pixc_dsets['longitude'] = longitude[mask]
         out_pixc_dsets['height'] = elevation[mask]
-        out_pixc_dsets['cross_track'] = cross_track[mask]
+        out_pixc_dsets['cross_track'] = np.abs(cross_track[mask])
         out_pixc_dsets['illumination_time'] = tvp_time[azimuth_index[mask]]
         out_pixc_dsets['num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
