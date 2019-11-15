@@ -14,10 +14,9 @@ import numpy as np
 import scipy.ndimage.morphology
 
 import RiverObs.ReachDatabase
+from SWOTWater.constants import GDEM_PIXC_CLASSES
 
 LOGGER = logging.getLogger(__name__)
-
-LAKE_CLASS = 10
 
 def wrap_label_for_plots(arr_in, wrap_value=20):
     # set 0 values to nan and wrap every
@@ -254,7 +253,7 @@ def main():
         type_label != land_label)
 
     out_type = type.copy()
-    out_type[water_not_main_label] = LAKE_CLASS
+    out_type[water_not_main_label] = GDEM_PIXC_CLASSES['open_water_lake']
 
     if args.plot:
         import matplotlib.pyplot as plt
