@@ -178,6 +178,9 @@ class L2PixcToRiverTile(object):
         pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.to_ncfile(self.index_file)
 
+        # save for use later to fill in missing nodes/reaches
+        self.prd_reaches = river_estimator.reaches
+
     def do_improved_geolocation(self):
         """
         Uses output of river processing (nodes) and rare sensor data to
@@ -292,7 +295,8 @@ class L2PixcToRiverTile(object):
                     self.node_outputs['area_det_u'][mask] = MISSING_VALUE_FLT
 
             self.rivertile_product = L2HRRiverTile.from_riverobs(
-                self.node_outputs, self.reach_outputs, self.reach_collection)
+                self.node_outputs, self.reach_outputs, self.reach_collection,
+                self.prd_reaches)
 
         except TypeError:
             LOGGER.warn('Output products are empty')

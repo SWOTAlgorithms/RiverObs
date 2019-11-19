@@ -33,7 +33,7 @@ import argparse
 import os
 import netCDF4
 import numpy as np
-from SWOTWater.constants import PIXC_CLASSES
+from SWOTWater.constants import GDEM_PIXC_CLASSES
 
 def fake_pixc_from_gdem(
     gdem_file, pixc_file, fake_pixc_file, subsample_factor=2, dark_water_thresh=1):
@@ -97,17 +97,25 @@ def fake_pixc_from_gdem(
         ofp.groups['pixel_cloud'].interferogram_size_azimuth = gdem_shape[0]
         ofp.groups['pixel_cloud'].interferogram_size_range = gdem_shape[1]
 
-        mask = np.logical_or(landtype == 1, landtype == 10)
+        mask = np.logical_or(landtype == 1,
+                             landtype == GDEM_PIXC_CLASSES['open_water_lake'])
         pixc_shape = range_index[mask].shape
         pixel_area = subsample_factor * range_spacing * azimuth_spacing
 
         tvp_time = ifp_pixc.groups['tvp'].variables['time'][:]
 
-        # set landtypes to pixc classes
-        landtype[landtype==1] = PIXC_CLASSES['open_water']
-        landtype[landtype==10] = 10 #PIXC_CLASSES['open_water']
+        # set landtypes to gdem pixc classes
+        landtype[landtype == 1] = GDEM_PIXC_CLASSES['open_water']
+        landtype[landtype == GDEM_PIXC_CLASSES['open_water_lake']] = \
+            GDEM_PIXC_CLASSES['open_water_lake']
+
         dark_water_mask = media_attenuation < dark_water_thresh
-        landtype[dark_water_mask] = PIXC_CLASSES['dark_water']
+        dark_water_mask_river = np.logical_and(landtype == 1, dark_water_mask)
+        dark_water_mask_lake = np.logical_and(
+            landtype == GDEM_PIXC_CLASSES['open_water_lake'], dark_water_mask)
+
+        landtype[dark_water_mask_river] = GDEM_PIXC_CLASSES['dark_water']
+        landtype[dark_water_mask_lake] = GDEM_PIXC_CLASSES['dark_water_lake']
 
         out_pixc_dsets = {}
         out_pixc_dsets['range_index'] = range_index[mask]
@@ -118,7 +126,7 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['latitude'] = latitude[mask]
         out_pixc_dsets['longitude'] = longitude[mask]
         out_pixc_dsets['height'] = elevation[mask]
-        out_pixc_dsets['cross_track'] = cross_track[mask]
+        out_pixc_dsets['cross_track'] = np.abs(cross_track[mask])
         out_pixc_dsets['illumination_time'] = tvp_time[azimuth_index[mask]]
         out_pixc_dsets['num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
