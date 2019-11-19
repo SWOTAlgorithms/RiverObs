@@ -123,7 +123,7 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
+        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1):
 
         lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
         # check for wraps
