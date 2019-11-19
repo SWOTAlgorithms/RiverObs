@@ -432,7 +432,7 @@ class SWOTRiverEstimator(SWOTL2):
         # create the segmentation label variable
         self.seg_label = lbl_out[self.img_y, self.img_x]
 
-    def get_reaches(self, reach_db_path, clip=True, clip_buffer=0.1):
+    def get_reaches(self, reach_db_path, clip=False, clip_buffer=0.1):
         """Get all of the reaches using a ReachExtractor."""
         self.clip = clip
         self.clip_buffer = clip_buffer

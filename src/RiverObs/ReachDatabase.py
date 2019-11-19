@@ -123,7 +123,7 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
+        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1):
 
         lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
         # check for wraps
@@ -352,6 +352,8 @@ class ReachDatabaseNodes(Product):
     def __call__(self, reach_id):
         """Returns dict-o-stuff for reach_id"""
         mask = self.reach_id == reach_id
+        if reach_id % 10 != 6:
+            mask = np.logical_and(mask, self.width > 1)
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
         return outputs
