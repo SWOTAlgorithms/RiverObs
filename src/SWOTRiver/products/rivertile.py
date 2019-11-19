@@ -777,7 +777,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['units', 1],
                 ['valid_min', 0],
                 ['valid_max', 1],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Fraction of node area_total covered by dark water.""")],
