@@ -133,14 +133,6 @@ def fake_pixc_from_gdem(
 
         out_shape = out_pixc_dsets['range_index'].shape
 
-        for varname in ifp_pixc.groups['pixel_cloud'].variables:
-            if varname not in out_pixc_dsets:
-                if varname == 'interferogram':
-                    value = np.zeros(list(out_shape)+[2,])
-                else:
-                    value = np.zeros(out_shape)
-                out_pixc_dsets[varname] = value
-
         for varname, varvalue in out_pixc_dsets.items():
             if varname == 'interferogram':
                 var = ofp.createVariable(
