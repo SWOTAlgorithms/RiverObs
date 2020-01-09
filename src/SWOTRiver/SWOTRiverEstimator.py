@@ -1104,10 +1104,8 @@ class SWOTRiverEstimator(SWOTL2):
         ngood = len(river_reach.s)
         LOGGER.debug(('number of fit points: %d' % ngood))
 
-        ds = np.divide(river_reach.area, river_reach.w_area)
-
         reach_stats = collections.OrderedDict()
-        reach_stats['length'] = np.sum(ds)
+        reach_stats['length'] = np.sum(river_reach.p_length)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
 
