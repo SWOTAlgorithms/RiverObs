@@ -13,6 +13,7 @@ Author (s): Brent Williams
 '''
 
 import numpy as np
+import scipy.stats
 
 def simple(in_var, metric='mean'):
     """
@@ -32,6 +33,8 @@ def simple(in_var, metric='mean'):
         out_var = np.std(in_var)
     elif metric == 'count':
         out_var = np.sum(np.ones(np.shape(in_var)))
+    elif metric == 'mode':
+        out_var,_ = scipy.stats.mode(in_var)
     return out_var
 
 def height_only(height, good, height_std=1.0, method='weight'):
@@ -343,7 +346,7 @@ def area_uncert(
         # use detected water prob for bias??
         Bdwf = Bdw * Ptf + Pw * Bf
 
-        Bdwf_bar = simple(pixel_area[good] * Bdwf * I[good], metric='sum')
+        Bdwf_bar = simple(pixel_area[good] * Bdwf[good] * I[good], metric='sum')
         Bdwf2_bar = simple(
             pixel_area[good]**2 * Bdwf[good]**2 * I[good], metric='sum')
         B_term_dw = Bdwf_bar**2 - Bdwf2_bar #
