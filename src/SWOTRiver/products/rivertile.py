@@ -459,7 +459,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['node_id',
          odict([['dtype', 'i4'],
                 ['long_name',
-                 "reach ID of the node in the prior river database"],
+                 "node ID of the node in the prior river database"],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -787,11 +787,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'climatological ice cover flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover
-                    not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 255],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -808,11 +807,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'dynamical ice cover flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover
-                    not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 255],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -875,8 +873,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Median of the sigma0 from the pixel cloud points assigned
                     to the node in determining the node WSE.  The value is
-                    provided as a linear power ratio, not a value in
-                    decibels.""")],
+                    provided as a linear power ratio, not a value in decibels. 
+                    A decibel value may be obtained from: rdr_sig0_in_dB =
+                    10*log10(rdr_sig0).""")],
                 ])],
         ['rdr_sig0_u',
          odict([['dtype', 'f8'],
@@ -904,7 +903,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
                 ['standard_name','geoid_height_above_reference_ellipsoid'],
-                ['source', 'EGM2008'],
+                ['source', 'EGM2008 (Pavlis et al., 2012)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -150],
@@ -912,30 +911,29 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
-                    Geoid model height above the reference ellipsoid.  The
-                    value is computed from the EGM2008 geoid model with a
+                    Geoid height above the reference ellipsoid with a
                     correction to refer the value to the mean tide system
-                    (i.e., includes the zero-frequency permanent tide).""")],
+                    i.e., includes the permanent tide (zero frequency).""")],
                 ])],
         ['solid_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'solid Earth tide height'],
                 ['source', textjoin("""
-                    Cartwright and Edden [1973] Corrected tables of tidal
-                    harmonics - J. Geophys. J. R. Astr. Soc., 33, 253-264""")],
+                    Cartwright and Taylor (1971) and Cartwright and Edden
+                    (1973)""")],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Solid-Earth (Body) tide height. The zero-frequency
-                    permanent tide component is not included. The value is
-                    computed from the Cartwright/Taylor model.""")],
+                    Solid-Earth (body) tide height. The zero-frequency
+                    permanent tide component is not included.""")],
                 ])],
         ['pole_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
+                ['source', 'Wahr (1985) and Desai et al. (2015)'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
                 ['valid_max', 0.2],
@@ -949,8 +947,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['load_tide1',
          odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height'],
-                ['source', 'FES2014'],
+                ['long_name', 'geocentric load tide height from model 1'],
+                ['source', 'FES2014b (Carrere et al., 2016)'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -959,14 +957,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust. This value is used to compute
-                    wse. The value is computed from the FES2014 ocean tide
-                    model.""")],
+                    loading of the Earth’s crust. This value is used to
+                    compute wse.""")],
                 ])],
         ['load_tide2',
          odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height'],
-                ['source', 'GOT4.10c'],
+                ['long_name', 'geocentric load tide height from model 2'],
+                ['source', 'GOT4.10c (Ray, 2013)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -975,13 +972,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust. The value is computed from
-                    the GOT4.10c ocean tide model.""")],
+                    loading of the Earth’s crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'dry tropospheric vertical correction to WSE'],
+                ['long_name', 'dry troposphere vertical correction'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
+                ['institution', 'ECMWF'],
                 ['units', 'm'],
                 ['valid_min', -3.0],
                 ['valid_max', -1.5],
@@ -990,14 +987,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Equivalent vertical correction due to dry troposphere
                     delay.  Adding the reported correction to the reported
-                    reach WSE results in the uncorrected reach WSE. The value
-                    is computed from the European Center for Medium-Range
-                    Weather Forecasts (ECMWF) model.""")],
+                    reach WSE results in the uncorrected reach WSE.""")],
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'model wet tropospheric correction to WSE'],
+                ['long_name', 'model wet tropospheric correction'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
+                ['institution', 'ECMWF'],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 0],
@@ -1006,12 +1002,11 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Equivalent vertical correction due to wet troposphere
                     delay.  Adding the reported correction to the reported
-                    reach WSE results in the uncorrected reach WSE.
-                    The value is computed from the ECMWF model.""")],
+                    reach WSE results in the uncorrected reach WSE.""")],
                 ])],
         ['iono_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'ionospheric vertical correction to WSE'],
+                ['long_name', 'ionospheric vertical correction'],
                 ['source', 'Global Ionosphere Maps'],
                 ['institution', 'JPL'],
                 ['units', 'm'],
@@ -1020,26 +1015,22 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Equivalent vertical correction due to ionosphere delay.
+                    Equivalent vertical correction due to ionosphere delay. 
                     Adding the reported correction to the reported reach WSE
-                    results in the uncorrected reach WSE. The value is computed
-                    from the JPL Global Ionosphere Maps (GIM).""")],
+                    results in the uncorrected reach WSE.""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'crossover calibration WSE correction'],
+                ['long_name', 'WSE correction from KaRIn crossovers'],
                 ['units', 'm'],
                 ['valid_min', -10],
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Equivalent height correction estimated from KaRIn crossover
-                    calibration.  The correction is applied during processing
-                    before geolocation in terms of roll, baseline dilation,
-                    etc., but reported as an equivalent height correction.
-                    The correction term should be subtracted from the reported
-                    WSE to obtain the uncorrected WSE.""")],
+                    Height correction from KaRIn crossover calibration. 
+                    The correction is applied before geolocation but reported
+                    as an equivalent height correction.""")],
                 ])],
         ['p_wse',
          odict([['dtype', 'f8'],
@@ -1309,14 +1300,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i4'],
-                ['long_name', 'reach Id from prior database'],
+                ['long_name', 'reach ID from prior database'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique reach identifier from the prior river database.
-                    The format of the identifier is CBBBBBRRRT, where
+                    The format of the identifier is CBBBBBRRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
@@ -1354,7 +1345,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Geodetic latitude of the reach center from the prior river
-                    database. Positive values increase northward of the
+                    database.  Positive values increase northward of the
                     equator.""")],
                 ])],
         ['p_lon',
@@ -1425,11 +1416,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
-                    Fitted water surface slope relative to the geoid, and with
-                    the same corrections and geophysical fields applied as wse.
-                    The units are m/m.  The upstream or downstream direction
-                    is defined by the prior river database.  A positive slope
-                    means that the downstream WSE is lower.""")],
+                    Fitted water surface slope relative to the geoid, and
+                    with the same corrections and geophysical fields applied
+                    as wse. The units are m/m.  The upstream or downstream
+                    direction is defined by the prior river database.  A
+                    positive slope means that the downstream WSE is lower.""")],
                 ])],
         ['slope_u',
          odict([['dtype', 'f8'],
@@ -1467,7 +1458,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
                     Enhanced water surface slope relative to the geoid,
-                    produced using a smoothing of the node wse . The upstream
+                    produced using a smoothing of the node wse. The upstream
                     or downstream direction is defined by the prior river
                     database.  A positive slope means that the downstream WSE
                     is lower.""")],
@@ -1769,9 +1760,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
-                    Summary quality indicator for the reach measurement.
-                    Values of 0 and 1 indicate nominal and off-nominal
-                    measurements.""")],
+                    Summary quality indicator for the reach measurement. 
+                    Values of 0 and 1 indicate nominal (good) and off-nominal
+                    (suspect) measurements.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -1789,11 +1780,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'climatological ice cover flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover
-                    not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 255],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1810,11 +1800,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'dynamical ice cover flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover
-                    not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 255],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1884,7 +1873,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
                 ['standard_name','geoid_height_above_reference_ellipsoid'],
-                ['source', 'EGM2008'],
+                ['source', 'EGM2008 (Pavlis et al., 2012)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -150],
@@ -1892,15 +1881,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
-                    Geoid model height above the reference ellipsoid.  The
-                    value is computed from the EGM2008 geoid model with a
+                    Geoid height above the reference ellipsoid with a
                     correction to refer the value to the mean tide system
-                    (i.e., includes the zero-frequency permanent tide).""")],
+                    i.e., includes the permanent tide (zero frequency).""")],
                 ])],
         ['geoid_slop',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid slope'],
-                ['source', 'EGM2008'],
+                ['source', 'EGM2008 (Pavlis et al., 2012)'],
                 ['institution', 'GSFC'],
                 ['units', 'm/m'],
                 ['valid_min', -0.001],
@@ -1908,17 +1896,16 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Geoid model slope in the along-stream direction, based
-                    upon a least-square linear fit along the reach.  A positive
-                    slope means that the downstream geoid model height is
-                    lower.""")],
+                    Geoid slope in the along-stream direction, based upon a
+                    least-square linear fit along the reach.  A positive slope
+                    means that the downstream geoid model height is lower.""")],
                 ])],
         ['solid_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'solid Earth tide height'],
                 ['source', textjoin("""
-                    Cartwright and Edden [1973] Corrected tables of tidal
-                    harmonics - J. Geophys. J. R. Astr. Soc., 33, 253-264""")],
+                    Cartwright and Taylor (1971) and Cartwright and Edden
+                    (1973)""")],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 1],
@@ -1932,6 +1919,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['pole_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
+                ['source', 'Wahr (1985) and Desai et al. (2015)'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
                 ['valid_max', 0.2],
@@ -1945,8 +1933,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['load_tide1',
          odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height'],
-                ['source', 'FES2014'],
+                ['long_name', 'geocentric load tide height from model 1'],
+                ['source', 'FES2014b (Carrere et al., 2016)'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -1955,14 +1943,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust. This value is used to compute
-                    wse. The value is computed from the FES2014 ocean tide
-                    model.""")],
+                    loading of the Earth’s crust. This value is used to
+                    compute wse.""")],
                 ])],
         ['load_tide2',
          odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height'],
-                ['source', 'GOT4.10c'],
+                ['long_name', 'geocentric load tide height from model 2'],
+                ['source', 'GOT4.10c (Ray, 2013)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -1971,13 +1958,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust. The value is computed from
-                    the GOT4.10c ocean tide model.""")],
+                    loading of the Earth’s crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'dry tropospheric vertical correction to WSE'],
+                ['long_name', 'dry troposphere vertical correction'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
+                ['institution', 'ECMWF'],
                 ['units', 'm'],
                 ['valid_min', -3.0],
                 ['valid_max', -1.5],
@@ -1986,14 +1973,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Equivalent vertical correction due to dry troposphere
                     delay.  Adding the reported correction to the reported
-                    reach WSE results in the uncorrected reach WSE. The value
-                    is computed from the European Center for Medium-Range
-                    Weather Forecasts (ECMWF) model.""")],
+                    reach WSE results in the uncorrected reach WSE.""")],
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'model wet tropospheric correction to WSE'],
+                ['long_name', 'wet troposphere vertical correction'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
+                ['institution', 'ECMWF'],
                 ['units', 'm'],
                 ['valid_min', -1],
                 ['valid_max', 0],
@@ -2002,12 +1988,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Equivalent vertical correction due to wet troposphere
                     delay.  Adding the reported correction to the reported
-                    reach WSE results in the uncorrected reach WSE.
-                    The value is computed from the ECMWF model.""")],
+                    reach WSE results in the uncorrected reach WSE.""")],
                 ])],
         ['iono_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'ionospheric vertical correction to WSE'],
+                ['long_name', 'ionospheric vertical correction'],
                 ['source', 'Global Ionosphere Maps'],
                 ['institution', 'JPL'],
                 ['units', 'm'],
@@ -2016,26 +2001,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Equivalent vertical correction due to ionosphere delay.
+                    Equivalent vertical correction due to ionosphere delay. 
                     Adding the reported correction to the reported reach WSE
-                    results in the uncorrected reach WSE. The value is computed
-                    the JPL Global Ionosphere Maps (GIM).""")],
+                    results in the uncorrected reach WSE.""")],
                 ])],
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'crossover calibration WSE correction'],
+                ['long_name', 'WSE correction from KaRIn crossovers'],
                 ['units', 'm'],
                 ['valid_min', -10],
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
-                    Equivalent height correction estimated from KaRIn crossover
-                    calibration.  The correction is applied during processing
-                    before geolocation in terms of roll, baseline dilation,
-                    etc., but reported as an equivalent height correction.
-                    The correction term should be subtracted from the reported
-                    WSE to obtain the uncorrected WSE.""")],
+                    Height correction from KaRIn crossover calibration. 
+                    The correction is applied before geolocation but reported
+                    as an equivalent height correction.""")],
                 ])],
         ['n_reach_up',
          odict([['dtype', 'i2'],
@@ -2233,7 +2214,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Coefficient 1 for discharge model 1 from the PRD""")],
+                    Coefficient 1 for discharge model 1 from the prior
+                    river database.""")],
                 ])],
         ['dischg1_c2',
          odict([['dtype', 'f8'],
@@ -2244,7 +2226,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Coefficient 2 for discharge model 1 from the PRD""")],
+                    Coefficient 2 for discharge model 1 from the prior
+                    river database.""")],
                 ])],
         ['dischg2_c1',
          odict([['dtype', 'f8'],
@@ -2255,7 +2238,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Coefficient 1 for discharge model 2 from the PRD""")],
+                    Coefficient 1 for discharge model 2 from the prior
+                    river database.""")],
                 ])],
         ['dischg2_c2',
          odict([['dtype', 'f8'],
@@ -2266,7 +2250,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Coefficient 2 for discharge model 2 from the PRD""")],
+                    Coefficient 2 for discharge model 2 from the prior
+                    river database.""")],
                 ])],
         ['dischg3_c1',
          odict([['dtype', 'f8'],
@@ -2277,7 +2262,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Coefficient 1 for discharge model 3 from the PRD""")],
+                    Coefficient 1 for discharge model 3 from the prior
+                    river database.""")],
                 ])],
         ['dischg3_c2',
          odict([['dtype', 'f8'],
@@ -2288,7 +2274,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
-                    Coefficient 2 for discharge model 3 from the PRD""")],
+                    Coefficient 2 for discharge model 3 from the prior
+                    river database.""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
