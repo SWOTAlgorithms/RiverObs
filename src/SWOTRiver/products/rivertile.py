@@ -797,10 +797,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Climatological ice cover flag indicating whether the node
                     is ice-covered on the day of the observation based on
                     external climatological information (not the SWOT
-                    measurement).  Values of 0, 1, and 2 indicate that the
-                    node is not ice covered, partially ice covered, and fully
-                    ice covered, respectively. A value of 255 indicates that
-                    this flag is not available.""")],
+                    measurement).  Values of 0, 1, and 2 indicate that the node
+                    is likely not ice covered, likely partially ice covered,
+                    and likely fully ice covered, respectively""")],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
@@ -819,7 +818,6 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     analysis of external satellite optical data.  Values of
                     0, 1, and 2 indicate that the node is not ice covered,
                     partially ice covered, and fully ice covered, respectively.
-                    A value of 255 indicates that this flag is not available.
                     """)],
                 ])],
         ['partial_f',
@@ -1791,9 +1789,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     is ice-covered on the day of the observation based on
                     external climatological information (not the SWOT
                     measurement).  Values of 0, 1, and 2 indicate that the
-                    reach is not ice covered, partially ice covered, and fully
-                    ice covered, respectively. A value of 255 indicates that
-                    this flag is not available.""")],
+                    reach is likely not ice covered, likely partially ice
+                    covered, and likely fully ice covered, respectively.""")],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
@@ -1812,7 +1809,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     analysis of external satellite optical data.  Values of
                     0, 1, and 2 indicate that the reach is not ice covered,
                     partially ice covered, and fully ice covered, respectively.
-                    A value of 255 indicates that this flag is not available.
                     """)],
                 ])],
         ['partial_f',
