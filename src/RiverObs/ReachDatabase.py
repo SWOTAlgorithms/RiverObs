@@ -345,8 +345,6 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['wth_coef',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
-#         ['segment_id',
-#          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def __call__(self, reach_id):
@@ -360,8 +358,7 @@ class ReachDatabaseNodes(Product):
 
     def __add__(self, other):
         klass = ReachDatabaseNodes()
-        for dset in ['x', 'y', 'node_id', 'reach_id', 'width', 'segment_id',
-                     'node_length']:
+        for dset in ['x', 'y', 'node_id', 'reach_id', 'width', 'node_length']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -441,7 +438,7 @@ class ReachDatabaseReaches(Product):
     def __add__(self, other):
         klass = ReachDatabaseReaches()
         for dset in ['x', 'x_min', 'x_max', 'y', 'y_min', 'y_max',
-                     'reach_id', 'reach_length', 'lakeflag', 'segment_id']:
+                     'reach_id', 'reach_length', 'lakeflag']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
