@@ -308,12 +308,18 @@ def get_metrics(truth, data,
         metrics['width'] = data.width - truth.width
     return metrics
 
-def get_passfail():
-    passfail = {
-        'area_tot e (%)': [15, 30],
-        'wse e (cm)': [10, 20],
-        'slp e (cm/km)':[1.7, 3.4],
-    }
+def get_passfail(is_lake = False):
+    if not is_lake:
+        passfail = {
+            'area_tot e (%)': [15, 30],
+            'wse e (cm)': [10, 20],
+            'slp e (cm/km)':[1.7, 3.4],
+        }
+    else:
+        passfail = {
+            'area_tot e (%)': [15, 30],
+            'wse e (cm)': [10, 20],
+        }
     return passfail
 
 def compute_reach_fit_error(truth):
@@ -329,7 +335,8 @@ def compute_reach_fit_error(truth):
             x = x0[np.isfinite(y0)]
             z = np.polyfit( x, y, 1)
             p = np.poly1d(z)
-            err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
+            #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
+            err = np.nanmax(np.sqrt((y - p(x))**2))*100 #in cm
         except np.linalg.LinAlgError:
             err = 1000000000
             print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
@@ -440,7 +447,7 @@ def print_metrics(
         table['reach'] = truth.reaches['reach_id'][msk]
         table['xtrk (km)'] = truth.reaches['xtrk_dist'][msk]/1e3
     except AttributeError as e:
-        table['lake_id'] = truth['lakeobs_id'][msk]
+        table['lake_id'] = truth['obs_id'][msk]
         table['xtrk (km)'] = truth['xtrk_dist'][msk]/1e3
     if scene is not None:
         table['scene_pass_tile'] = np.array(scene)[msk]

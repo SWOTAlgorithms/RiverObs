@@ -123,7 +123,7 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db_path, lat_lon_region, clip=True, clip_buffer=0.1):
+        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1):
 
         lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
         # check for wraps
@@ -177,27 +177,40 @@ class ReachExtractor(object):
 
             blocking_widths = get_blocking_widths(x, y)
 
-            # TODO add stuff from DB here
-            metadata = {
+            reach_metadata = {
                 'lakeFlag': this_reach['reaches']['lakeflag'][0],
                 'lon': this_reach['reaches']['x'][0],
                 'lat': this_reach['reaches']['y'][0],
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
-                'area_fits': this_reach['reaches']['area_fits'],
-                'discharge_models': this_reach['reaches']['discharge_models'],
-                'rch_id_up': this_reach['reaches']['rch_id_up'],
-                'rch_id_dn': this_reach['reaches']['rch_id_dn'],
-                'length': this_reach['reaches']['reach_length'],
                 }
+
+            reach_metadata_keys = [
+                'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
+                'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
+                'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
+                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag']
+
+            for key in reach_metadata_keys:
+                if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
+                           'discharge_models']:
+                    reach_metadata[key] = this_reach['reaches'][key]
+                else:
+                    reach_metadata[key] = this_reach['reaches'][key][0]
+
+            node_metadata_keys = [
+                'node_length', 'wse', 'wse_var', 'width', 'width_var',
+                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef']
+
+            node_metadata = {
+                key: this_reach['nodes'][key] for key in node_metadata_keys}
 
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
-                lon=lon, lat=lat, x=x, y=y, metadata=metadata,
+                lon=lon, lat=lat, x=x, y=y, metadata=reach_metadata,
                 reach_index=ii, node_indx=node_indx,
                 blocking_widths=blocking_widths,
-                width=this_reach['nodes']['width'],
-                length=this_reach['nodes']['node_length']))
+                **node_metadata))
 
         self.idx = 0
         self.nreaches = len(self.reach)
@@ -303,34 +316,49 @@ class ReachDatabaseNodes(Product):
     DIMENSIONS_NODES = odict([['nodes', 0]])
     VARIABLES = odict([
         ['x',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['y',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['node_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_NODES]])],
         ['reach_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
-        ['width',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
-        ['segment_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_NODES]])],
         ['cl_ids',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS]])],
         ['node_length',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_NODES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['wse',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['wse_var',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['width',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['width_var',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['n_chan_max',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+        ['n_chan_mod',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+        ['grod_id',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+        ['dist_out',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['wth_coef',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def __call__(self, reach_id):
         """Returns dict-o-stuff for reach_id"""
         mask = self.reach_id == reach_id
+        if reach_id % 10 != 6:
+            mask = np.logical_and(mask, self.width > 1)
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
         return outputs
 
     def __add__(self, other):
         klass = ReachDatabaseNodes()
-        for dset in ['x', 'y', 'node_id', 'reach_id', 'width', 'segment_id',
-                     'node_length']:
+        for dset in ['x', 'y', 'node_id', 'reach_id', 'width', 'node_length']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -349,31 +377,53 @@ class ReachDatabaseReaches(Product):
     DIMENSIONS_REACHES = odict([['reaches', 0]])
     VARIABLES = odict([
         ['x',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['x_min',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['x_max',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['y',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['y_min',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['y_max',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['reach_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['reach_length',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['n_nodes',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['wse',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['wse_var',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['width',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['width_var',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['n_chan_max',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['n_chan_mod',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['grod_id',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['slope',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['dist_out',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['n_rch_up',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['n_rch_down',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['rch_id_up',
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
+        ['rch_id_dn',
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
         ['lakeflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
-        ['segment_id',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['cl_ids',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_CLIDS]])],
-        ['rch_id_up',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
-        ['rch_id_dn',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_CLIDS]])],
         ])
 
     def __call__(self, reach_id):
@@ -388,7 +438,7 @@ class ReachDatabaseReaches(Product):
     def __add__(self, other):
         klass = ReachDatabaseReaches()
         for dset in ['x', 'x_min', 'x_max', 'y', 'y_min', 'y_max',
-                     'reach_id', 'reach_length', 'lakeflag', 'segment_id']:
+                     'reach_id', 'reach_length', 'lakeflag']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
@@ -406,13 +456,15 @@ class ReachDatabaseReaches(Product):
 
         bounding_box = [lonmin, latmin, lonmax, latmax]
         """
+        BUFFER = 0.25
         lonmin, latmin, lonmax, latmax = bounding_box
         if lonmax < lonmin:
             lonmax += 360
 
         # iterate over reaches in self.reaches
         reach_zips = zip(
-            self.x_min, self.y_min, self.x_max, self.y_max, self.reach_id)
+            self.x_min-BUFFER, self.y_min-BUFFER, self.x_max+BUFFER,
+            self.y_max+BUFFER, self.reach_id)
 
         overlapping_reach_ids = []
         for reach_zip in reach_zips:
@@ -437,6 +489,8 @@ class ReachDatabaseReachDischargeModels(Product):
         ['MetroMan_Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['MetroMan_na', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['MetroMan_nb', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['BAM_Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['BAM_n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
 
     def __call__(self, mask):
@@ -516,15 +570,15 @@ class ReachDatabaseCenterlines(Product):
     DIMENSIONS_POINTS = odict([['points', 0]])
     VARIABLES = odict([
         ['x',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_POINTS]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_POINTS]])],
         ['y',
-         odict([['dtype', 'f4'], ['dimensions', DIMENSIONS_POINTS]])],
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_POINTS]])],
         ['reach_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS]])],
         ['node_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS]])],
         ['cl_id',
-         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_POINTS]])],
+         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_POINTS]])],
         ])
 
     def __call__(self, reach_id):

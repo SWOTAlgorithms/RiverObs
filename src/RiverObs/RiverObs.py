@@ -98,12 +98,7 @@ class RiverObs:
             self.ds = ds * np.ones(
                 len(self.centerline.s), dtype=self.centerline.s.dtype)
         else:
-            self.ds = np.ones(
-                len(self.centerline.s), dtype=self.centerline.s.dtype)
-            self.ds[1:-1] = (
-                self.centerline.s[2:] - self.centerline.s[0:-2]) / 2.
-            self.ds[0] = self.ds[1]
-            self.ds[-1] = self.ds[-2]
+            self.ds = reach.node_length
 
         # Calculate the local coordinates for each observation point
         # index: the index of the nearest point

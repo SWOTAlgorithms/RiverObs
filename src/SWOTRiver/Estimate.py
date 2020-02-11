@@ -178,6 +178,9 @@ class L2PixcToRiverTile(object):
         pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.to_ncfile(self.index_file)
 
+        # save for use later to fill in missing nodes/reaches
+        self.prd_reaches = river_estimator.reaches
+
     def do_improved_geolocation(self):
         """
         Uses output of river processing (nodes) and rare sensor data to
@@ -238,8 +241,15 @@ class L2PixcToRiverTile(object):
                 ofp.variables['azimuth_index'][:] * int(nr_pixels) +
                 ofp.variables['range_index'][:])
 
-            ofp.variables['pixc_index'][:] = np.array(np.where(
-                np.in1d(pixc_idx, pixcvec_idx))).astype('int32')[0]
+            indx, indx_pv, indx_pixc = np.intersect1d(
+                pixcvec_idx, pixc_idx, return_indices=True)
+
+            # re-order PIXCVecRiver datasets to ordering of pixc_index.
+            for dset in ofp.variables.keys():
+                data = ofp.variables[dset][:]
+                ofp.variables[dset][:] = data[indx_pv]
+
+            ofp.variables['pixc_index'][:] = indx_pixc.astype('int32')
 
     def flag_lakes_pixc(self):
         """
@@ -285,7 +295,8 @@ class L2PixcToRiverTile(object):
                     self.node_outputs['area_det_u'][mask] = MISSING_VALUE_FLT
 
             self.rivertile_product = L2HRRiverTile.from_riverobs(
-                self.node_outputs, self.reach_outputs, self.reach_collection)
+                self.node_outputs, self.reach_outputs, self.reach_collection,
+                self.prd_reaches)
 
         except TypeError:
             LOGGER.warn('Output products are empty')

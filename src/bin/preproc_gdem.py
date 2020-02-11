@@ -14,6 +14,7 @@ import numpy as np
 import scipy.ndimage.morphology
 
 import RiverObs.ReachDatabase
+from SWOTWater.constants import GDEM_PIXC_CLASSES
 
 LOGGER = logging.getLogger(__name__)
 
@@ -252,7 +253,7 @@ def main():
         type_label != land_label)
 
     out_type = type.copy()
-    out_type[water_not_main_label] = 0
+    out_type[water_not_main_label] = GDEM_PIXC_CLASSES['open_water_lake']
 
     if args.plot:
         import matplotlib.pyplot as plt
