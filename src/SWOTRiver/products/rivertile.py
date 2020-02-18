@@ -995,7 +995,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to
+                    loading of the Earth's crust. This value is used to
                     compute wse.""")],
                 ])],
         ['load_tide2',
@@ -1010,7 +1010,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust.""")],
+                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -1980,7 +1980,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to
+                    loading of the Earth's crust. This value is used to
                     compute wse.""")],
                 ])],
         ['load_tide2',
@@ -1995,7 +1995,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust.""")],
+                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
