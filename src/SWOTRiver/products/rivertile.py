@@ -385,7 +385,7 @@ class ShapeWriterMixIn(object):
 
         properties = odict()
         for key, var in self.VARIABLES.items():
-            if key in ['rdr_pol',]:
+            if key in ['rdr_pol', 'reach_id', 'node_id']:
                 schema = 'str'
             else:
                 schema = self.get_schema(
@@ -438,6 +438,12 @@ class ShapeWriterMixIn(object):
 
                         this_property[key] = ' '.join(strings)
 
+                    elif key in ['reach_id', 'node_id']:
+                        if this_item[ii] == self.VARIABLES[key]['_FillValue']:
+                            this_item[ii] = 'no_data'
+                        else:
+                            this_property[key] = str(this_item[ii])
+
                     elif key in ['rdr_pol',]:
                         this_property[key] = this_item[ii].astype(
                             '|S1').decode()
@@ -485,9 +491,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['reach_id',
          odict([['dtype', 'i8'],
                 ['long_name', 'Reach with which node is associated'],
-                ['valid_min', 0],
-                ['valid_max', 9223372036854775807],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
@@ -500,9 +504,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i8'],
                 ['long_name',
                  "node ID of the node in the prior river database"],
-                ['valid_min', 0],
-                ['valid_max', 9223372036854775807],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database.
@@ -995,7 +997,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to
+                    loading of the Earth's crust. This value is used to
                     compute wse.""")],
                 ])],
         ['load_tide2',
@@ -1010,7 +1012,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust.""")],
+                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -1250,6 +1252,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 data[key] = np.array([
                     record['properties'][key] for record in records])
         for key, value in data.items():
+            if key in ['reach_id', 'node_id']:
+                value = value.astype('int')
             setattr(klass, key, value)
         return klass
 
@@ -1340,8 +1344,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['reach_id',
          odict([['dtype', 'i8'],
                 ['long_name', 'reach ID from prior database'],
-                ['valid_min', 0],
-                ['valid_max', 9223372036854775807],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1980,7 +1982,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to
+                    loading of the Earth's crust. This value is used to
                     compute wse.""")],
                 ])],
         ['load_tide2',
@@ -1995,7 +1997,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust.""")],
+                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -2421,6 +2423,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     record['properties'][key] for record in records])
 
         for key, value in data.items():
+            if key in ['reach_id', 'node_id']:
+                value = value.astype('int')
             setattr(klass, key, value)
         return klass
 
