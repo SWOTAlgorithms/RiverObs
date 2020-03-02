@@ -123,51 +123,75 @@ class L2HRRiverTile(Product):
             missing_node_ids = np.setdiff1d(
                 reach.node_indx, node_outputs['node_indx'][mask_nodes])
 
-            intersects = np.intersect1d(
-                reach.node_indx, missing_node_ids, return_indices=True)
-            rch_msk = intersects[1]
+            if len(missing_node_ids) > 0:
+                intersects = np.intersect1d(
+                    reach.node_indx, missing_node_ids, return_indices=True)
+                rch_msk = intersects[1]
 
-            try:
-                insert_idx = np.where(mask_nodes)[0][-1]
-            except IndexError:
                 try:
-                    insert_idx = np.where(
-                        reach_id > node_outputs['reach_indx'])[0][-1]
+                    insert_idx = np.where(mask_nodes)[0][-1]
                 except IndexError:
-                    insert_idx = 0
+                    try:
+                        insert_idx = np.where(
+                            reach_id > node_outputs['reach_indx'])[0][-1]
+                    except IndexError:
+                        insert_idx = 0
 
-            node_outputs['node_indx'] = np.insert(
-                node_outputs['node_indx'], insert_idx, missing_node_ids)
-            node_outputs['reach_indx'] = np.insert(
-                node_outputs['reach_indx'], insert_idx,
-                np.ones(missing_node_ids.shape) * reach_id)
-            node_outputs['x_prior'] = np.insert(
-                node_outputs['x_prior'], insert_idx, reach.x[rch_msk])
-            node_outputs['y_prior'] = np.insert(
-                node_outputs['y_prior'], insert_idx, reach.y[rch_msk])
-            node_outputs['lon_prior'] = np.insert(
-                node_outputs['lon_prior'], insert_idx, reach.lon[rch_msk])
-            node_outputs['lat_prior'] = np.insert(
-                node_outputs['lat_prior'], insert_idx, reach.lat[rch_msk])
-            node_outputs['width_prior'] = np.insert(
-                node_outputs['width_prior'], insert_idx,
-                reach.width[rch_msk])
+                node_outputs['x_prior'] = np.insert(
+                    node_outputs['x_prior'], insert_idx, reach.x[rch_msk])
+                node_outputs['y_prior'] = np.insert(
+                    node_outputs['y_prior'], insert_idx, reach.y[rch_msk])
+                node_outputs['lon_prior'] = np.insert(
+                    node_outputs['lon_prior'], insert_idx, reach.lon[rch_msk])
+                node_outputs['lat_prior'] = np.insert(
+                    node_outputs['lat_prior'], insert_idx, reach.lat[rch_msk])
+                node_outputs['p_wse'] = np.insert(
+                    node_outputs['p_wse'], insert_idx, reach.wse[rch_msk])
+                node_outputs['p_wse_var'] = np.insert(
+                    node_outputs['p_wse_var'], insert_idx,
+                    reach.wse_var[rch_msk])
+                node_outputs['p_width'] = np.insert(
+                    node_outputs['p_width'], insert_idx,
+                    reach.width[rch_msk])
+                node_outputs['p_wid_var'] = np.insert(
+                    node_outputs['p_wid_var'], insert_idx,
+                    reach.width_var[rch_msk])
+                node_outputs['p_dist_out'] = np.insert(
+                    node_outputs['p_dist_out'], insert_idx,
+                    reach.dist_out[rch_msk])
+                node_outputs['p_length'] = np.insert(
+                    node_outputs['p_length'], insert_idx,
+                    reach.node_length[rch_msk])
+                node_outputs['grand_id'] = np.insert(
+                    node_outputs['grand_id'], insert_idx,
+                    reach.grod_id[rch_msk])
+                node_outputs['n_chan_max'] = np.insert(
+                    node_outputs['n_chan_max'], insert_idx,
+                    reach.n_chan_max[rch_msk])
+                node_outputs['n_chan_mod'] = np.insert(
+                    node_outputs['n_chan_mod'], insert_idx,
+                    reach.n_chan_mod[rch_msk])
+                node_outputs['node_indx'] = np.insert(
+                    node_outputs['node_indx'], insert_idx, missing_node_ids)
+                node_outputs['reach_indx'] = np.insert(
+                    node_outputs['reach_indx'], insert_idx,
+                    np.ones(missing_node_ids.shape) * reach_id)
 
-            for key in ['nobs', 'nobs_h', 'node_blocked']:
-                node_outputs[key] = np.insert(
-                    node_outputs[key], insert_idx,
-                    np.ones(missing_node_ids.shape) * MISSING_VALUE_INT4)
+                for key in ['nobs', 'nobs_h', 'node_blocked']:
+                    node_outputs[key] = np.insert(
+                        node_outputs[key], insert_idx,
+                        np.ones(missing_node_ids.shape) * MISSING_VALUE_INT4)
 
-            for key in ['lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std',
-                        'w_area', 'w_db', 'area', 'area_u', 'area_det',
-                        'area_det_u', 'area_of_ht', 'wse', 'wse_std',
-                        'wse_u', 'rdr_sig0', 'rdr_sig0_u', 'latitude_u',
-                        'longitud_u', 'width_u', 'geoid_hght', 'solid_tide',
-                        'load_tide1', 'load_tide2', 'pole_tide',
-                        'dark_frac', 'xtrack', 'h_n_ave', 'fit_height']:
-                node_outputs[key] = np.insert(
-                    node_outputs[key], insert_idx,
-                    np.ones(missing_node_ids.shape) * MISSING_VALUE_FLT)
+                for key in ['lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std',
+                            'w_area', 'w_db', 'area', 'area_u', 'area_det',
+                            'area_det_u', 'area_of_ht', 'wse', 'wse_std',
+                            'wse_u', 'rdr_sig0', 'rdr_sig0_u', 'latitude_u',
+                            'longitud_u', 'width_u', 'geoid_hght', 'solid_tide',
+                            'load_tide1', 'load_tide2', 'pole_tide',
+                            'dark_frac', 'xtrack', 'h_n_ave', 'fit_height']:
+                    node_outputs[key] = np.insert(
+                        node_outputs[key], insert_idx,
+                        np.ones(missing_node_ids.shape) * MISSING_VALUE_FLT)
 
             # for missing reaches
             if reach_id not in reach_outputs['reach_idx']:
@@ -188,22 +212,36 @@ class L2HRRiverTile(Product):
 
                 reach_outputs['reach_idx'] = np.append(
                         reach_outputs['reach_idx'], reach_id)
-                reach_outputs['prior_lon'] = np.append(
-                        reach_outputs['prior_lon'], reach.metadata['lon'])
-                reach_outputs['prior_lat'] = np.append(
-                        reach_outputs['prior_lat'], reach.metadata['lat'])
-                reach_outputs['prior_n_nodes'] = np.append(
-                        reach_outputs['prior_n_nodes'], len(reach.x))
+                reach_outputs['p_lon'] = np.append(
+                        reach_outputs['p_lon'], reach.metadata['lon'])
+                reach_outputs['p_lat'] = np.append(
+                        reach_outputs['p_lat'], reach.metadata['lat'])
+                reach_outputs['p_wse'] = np.append(
+                        reach_outputs['p_wse'], reach.metadata['wse'])
+                reach_outputs['p_wse_var'] = np.append(
+                        reach_outputs['p_wse_var'], reach.metadata['wse_var'])
+                reach_outputs['p_width'] = np.append(
+                    reach_outputs['p_width'], reach.metadata['width'])
+                reach_outputs['p_wid_var'] = np.append(
+                    reach_outputs['p_wid_var'], reach.metadata['width_var'])
+                reach_outputs['p_n_nodes'] = np.append(
+                        reach_outputs['p_n_nodes'], len(reach.x))
+                reach_outputs['p_dist_out'] = np.append(
+                        reach_outputs['p_dist_out'], reach.metadata['dist_out'])
+                reach_outputs['p_length'] = np.append(
+                    reach_outputs['p_length'], reach.metadata['reach_length'])
+                reach_outputs['grand_id'] = np.append(
+                    reach_outputs['grand_id'], reach.metadata['grod_id'])
+                reach_outputs['n_chan_max'] = np.append(
+                    reach_outputs['n_chan_max'], reach.metadata['n_chan_max'])
+                reach_outputs['n_chan_mod'] = np.append(
+                    reach_outputs['n_chan_mod'], reach.metadata['n_chan_mod'])
                 reach_outputs['reach_id'] = np.append(
                     reach_outputs['reach_id'], MISSING_VALUE_INT9)
                 reach_outputs['n_good_nod'] = np.append(
                     reach_outputs['n_good_nod'], MISSING_VALUE_INT4)
                 reach_outputs['lake_flag'] = np.append(
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
-                reach_outputs['length_prior'] = np.append(
-                    reach_outputs['length_prior'], reach.metadata['length'])
-                reach_outputs['width_prior'] = np.append(
-                    reach_outputs['width_prior'], MISSING_VALUE_FLT)
 
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
@@ -294,21 +332,26 @@ class L2HRRiverTile(Product):
 class ShapeWriterMixIn(object):
     """MixIn to support shapefile output"""
     @staticmethod
-    def get_schema(dtype, valid_max, valid_min):
+    def get_schema(dtype, valid_max=None, valid_min=None):
         """Returns the float:13.XX schema so valid max fits"""
         if dtype in ['i1', 'i2', 'u1', 'u2']:
             schema = 'int:4'
         elif dtype in ['i4', 'u4']:
             schema = 'int:9'
+        elif dtype in ['i8', 'u8']:
+            schema = 'int:14'
         elif dtype in ['f4', 'f8']:
-            num_digits_left = 1+np.log10(
-                np.max([np.abs(valid_max), np.abs(valid_min)]))
-            if valid_min < 0:
-                num_digits_left += 1
-            if num_digits_left >= 13:
-                schema = 'float:13'
+            if valid_max is None or valid_min is None:
+                schema = 'float:13.3'
             else:
-                schema = 'float:13.%d'%(13-num_digits_left-1)
+                num_digits_left = 1+np.log10(
+                    np.max([np.abs(valid_max), np.abs(valid_min)]))
+                if valid_min < 0:
+                    num_digits_left += 1
+                if num_digits_left >= 13:
+                    schema = 'float:13'
+                else:
+                    schema = 'float:13.%d'%(13-num_digits_left-1)
         return schema
 
     def write_shape_xml(self, filename):
@@ -324,12 +367,31 @@ class ShapeWriterMixIn(object):
                 ofp.write('    <{}>{}</{}>\n'.format(key, value, key))
             ofp.write('  </global_attributes>\n')
             ofp.write('  <attributes>\n')
-            for dset, attr_dict in self.VARIABLES.items():
+
+            my_vars = odict()
+            for key, value in self.VARIABLES.items():
                 # Skip the geometry datasets
-                if dset in ['lat_prior', 'lon_prior', 'centerline_lat',
+                if key in ['lat_prior', 'lon_prior', 'centerline_lat',
                             'centerline_lon']:
                     continue
 
+                try:
+                    value['fill_value'] = value['_FillValue']
+                except KeyError:
+                    pass
+
+                my_vars[key] = value.copy()
+                if key == 'time_tai':
+                    this_value = self.VARIABLES['time'].copy()
+                    this_value.pop('units')
+                    this_value['fill_value'] = 'no_data'
+                    this_value['comment'] = textjoin("""
+                        Time string giving UTC time.  The format is
+                        YYYY-MM-DDThh:mm:ss.ssssssZ, where the Z suffix
+                        indicates UTC time.""")
+                    my_vars['time_str'] = this_value
+
+            for dset, attr_dict in my_vars.items():
                 ofp.write('    <{}>\n'.format(dset))
                 for attrname, attrvalue in attr_dict.items():
                     # skip these ones
@@ -337,6 +399,7 @@ class ShapeWriterMixIn(object):
                         ofp.write('      <{}>{}</{}>\n'.format(
                             attrname, attrvalue, attrname))
                 ofp.write('    </{}>\n'.format(dset))
+
             ofp.write('  </attributes>\n')
             ofp.write('</swot_product>\n')
 
@@ -345,11 +408,11 @@ class ShapeWriterMixIn(object):
 
         properties = odict()
         for key, var in self.VARIABLES.items():
-            if key in ['rdr_pol',]:
+            if key in ['rdr_pol', 'reach_id', 'node_id']:
                 schema = 'str'
             else:
                 schema = self.get_schema(
-                    var['dtype'], var['valid_max'], var['valid_min'])
+                    var['dtype'], var.get('valid_max'), var.get('valid_min'))
             properties[key] = schema
 
         try:
@@ -367,7 +430,6 @@ class ShapeWriterMixIn(object):
         properties_ = properties.copy()
         properties['time_str'] = 'str'
 
-
         # mash up the schema
         schema = {'geometry': 'Point', 'properties': properties}
 
@@ -378,7 +440,7 @@ class ShapeWriterMixIn(object):
             schema['geometry'] = 'LineString'
 
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
-            for ii in range(self.reach_id.shape[0]):
+            for ii in range(self.time.shape[0]):
 
                 this_property = odict()
                 for key in properties_:
@@ -397,6 +459,12 @@ class ShapeWriterMixIn(object):
                             strings.append(thisstr)
 
                         this_property[key] = ' '.join(strings)
+
+                    elif key in ['reach_id', 'node_id']:
+                        if this_item[ii] == self.VARIABLES[key]['_FillValue']:
+                            this_item[ii] = 'no_data'
+                        else:
+                            this_property[key] = str(this_item[ii])
 
                     elif key in ['rdr_pol',]:
                         this_property[key] = this_item[ii].astype(
@@ -442,27 +510,23 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = RIVERTILE_ATTRIBUTES
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
-        ['reach_id',
-         odict([['dtype', 'i4'],
-                ['long_name', 'Reach with which node is associated'],
-                ['valid_min', 0],
-                ['valid_max', 2147483647],
-                ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert', 'Basic'],
-                ['comment', textjoin("""
-                    Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
-                    C=continent, B=basin,R=reach,N=node, T=type. See PDD for
-                    continent,type code details. Nodes number sequentially in
-                    reach. Implementation note: Could be 4B integer with
-                    current definition with all items as numbers.""")],
-                ])],
+#         ['reach_id',
+#          odict([['dtype', 'i8'],
+#                 ['long_name', 'Reach with which node is associated'],
+#                 ['_FillValue', MISSING_VALUE_INT9],
+#                 ['tag_basic_expert', 'Basic'],
+#                 ['comment', textjoin("""
+#                     Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
+#                     C=continent, B=basin,R=reach,N=node, T=type. See PDD for
+#                     continent,type code details. Nodes number sequentially in
+#                     reach. Implementation note: Could be 4B integer with
+#                     current definition with all items as numbers.""")],
+#                 ])],
         ['node_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name',
                  "node ID of the node in the prior river database"],
-                ['valid_min', 0],
-                ['valid_max', 2147483647],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database.
@@ -478,8 +542,6 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                  '[value of TAI-UTC at time of first record]'],
                 ['leap_second', 'YYYY-MM-DD hh:mm:ss'],
                 ['units', 'seconds since 2000-01-01 00:00:00.000'],
-                ['valid_min', 0],
-                ['valid_max', 1e10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -496,8 +558,6 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['standard_name', 'time'],
                 ['calander', 'gregorian'],
                 ['units', 'seconds since 2000-01-01 00:00:00.000'],
-                ['valid_min', 0],
-                ['valid_max', 1e10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -839,7 +899,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'number of pixels that have a valid WSE'],
                 ['units', 1],
-                ['valid_min', 1],
+                ['valid_min', 0],
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
@@ -864,8 +924,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'sigma0'],
                 ['units', '1'],
-                ['valid_min', -1],
-                ['valid_max', 1000],
+                ['valid_min', -1000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
@@ -955,7 +1015,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to
+                    loading of the Earth's crust. This value is used to
                     compute wse.""")],
                 ])],
         ['load_tide2',
@@ -970,7 +1030,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust.""")],
+                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -1152,7 +1212,6 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         """
         klass = cls()
         if node_outputs is not None:
-            klass['reach_id'] = node_outputs['reach_indx']
             klass['node_id'] = node_outputs['node_indx']
             klass['lat'] = node_outputs['lat']
             klass['lon'] = node_outputs['lon']
@@ -1180,11 +1239,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
                 (node_outputs['y']-node_outputs['y_prior'])**2)
-
-            klass['lat_prior'] = node_outputs['lat_prior']
-            klass['lon_prior'] = node_outputs['lon_prior']
-            klass['p_width'] = node_outputs['width_prior']
             klass['dark_frac'] = node_outputs['dark_frac']
+
+            for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
+                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
+                        'grand_id', 'n_chan_max', 'n_chan_mod']:
+                klass[key] = node_outputs[key]
 
             # set quality flag
             klass['quality_f'] = np.zeros(node_outputs['nobs'].shape).astype(
@@ -1209,6 +1269,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 data[key] = np.array([
                     record['properties'][key] for record in records])
         for key, value in data.items():
+            if key in ['reach_id', 'node_id']:
+                value = value.astype('int')
             setattr(klass, key, value)
         return klass
 
@@ -1261,17 +1323,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
             # index into pixcvec shaped data
             outdata = np.ones(self[outkey].shape)
-            for reach_id in np.unique(self.reach_id):
-                for node_id in self.node_id[self.reach_id == reach_id]:
-                    pixc_mask = np.logical_and(
-                        pixc_vec.reach_id == reach_id,
-                        pixc_vec.node_id == node_id)
+            for node_id in self.node_id:
+                pixc_mask = pixc_vec.node_id == node_id
+                out_mask = self.node_id == node_id
 
-                    out_mask = np.logical_and(
-                        self.reach_id == reach_id, self.node_id == node_id)
-
-                    # TBD some other operation than mean (median?)
-                    outdata[out_mask] = np.mean(subdata[pixc_mask])
+                # TBD some other operation than mean (median?)
+                outdata[out_mask] = np.mean(subdata[pixc_mask])
 
             # replace NaNs with _FillValue
             outdata[np.isnan(outdata)] = self.VARIABLES[outkey]['_FillValue']
@@ -1297,10 +1354,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     DIMENSIONS_REACH_NEIGHBORS = odict([['reaches', 0], ['reach_neighbors', 4]])
     VARIABLES = odict([
         ['reach_id',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name', 'reach ID from prior database'],
-                ['valid_min', 0],
-                ['valid_max', 2147483647],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1399,7 +1454,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', 0],
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Basic'],
+                ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Random-only component of the uncertainty in the reach WSE,
                     including uncertainties of corrections, and variation about
@@ -1440,7 +1495,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', 0],
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Basic'],
+                ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Random-only component of the uncertainty in the water
                     surface slope.""")],
@@ -1768,7 +1823,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', 1],
                 ['valid_min', 0],
                 ['valid_max', 1],
-                ['_FillValue', MISSING_VALUE_INT4],
+                ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Fraction of reach area_total covered by dark water.""")],
@@ -1909,8 +1964,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
                     Solid-Earth (Body) tide height. The zero-frequency
-                    permanent tide component is not included. The value is
-                    computed from the Cartwright/Taylor model.""")],
+                    permanent tide component is not included.""")],
                 ])],
         ['pole_tide',
          odict([['dtype', 'f8'],
@@ -1939,7 +1993,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust. This value is used to
+                    loading of the Earth's crust. This value is used to
                     compute wse.""")],
                 ])],
         ['load_tide2',
@@ -1954,7 +2008,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth’s crust.""")],
+                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -2039,11 +2093,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     reaches.""")],
                 ])],
         ['rch_id_up',
-         odict([['dtype', 'i4'],
-                ['long_name', 'Ids of upstream reaches'],
+         odict([['dtype', 'i8'],
+                ['long_name', 'reach_id  of upstream reaches'],
                 ['units', '1'],
-                ['valid_min', 0],
-                ['valid_max', 2147483647],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -2053,11 +2105,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     corresponding to the upstream reaches.""")],
                 ])],
         ['rch_id_dn',
-         odict([['dtype', 'i4'],
-                ['long_name', 'Ids of downstream reaches'],
+         odict([['dtype', 'i8'],
+                ['long_name', 'reach_id  of downstream reaches'],
                 ['units', '1'],
-                ['valid_min', 0],
-                ['valid_max', 2147483647],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -2069,7 +2119,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_wse',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach water surface elevation'],
-                ['units', '1'],
+                ['units', 'm'],
                 ['valid_min', -1000],
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
@@ -2093,8 +2143,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'reach width'],
                 ['units', 'm'],
-                ['valid_min', 50],
-                ['valid_max', 10000],
+                ['valid_min', 10],
+                ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -2104,8 +2154,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'reach width variability'],
                 ['units', 'm'],
-                ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_min', 10],
+                ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -2140,7 +2190,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'length of reach'],
                 ['units', 'm'],
-                ['valid_min', 200],
+                ['valid_min', 100],
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
@@ -2163,9 +2213,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['grand_id',
          odict([['dtype', 'i2'],
                 ['long_name', 'dam ID from GRanD database'],
+                ['source', 'https://doi.org/10.1890/100125'],
                 ['units', '1'],
                 ['valid_min', 0],
-                ['valid_max', 65535],
+                ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Expert'],
                 ['comment', textjoin("""
@@ -2309,11 +2360,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['loc_offset'] = reach_outputs['loc_offset']
             klass['geoid_hght'] = reach_outputs['geoid_hght']
             klass['geoid_slop'] = reach_outputs['geoid_slop']
-            klass['p_n_nodes'] = reach_outputs['prior_n_nodes']
-            klass['p_lat'] = reach_outputs['prior_lat']
-            klass['p_lon'] = reach_outputs['prior_lon']
-            klass['p_width'] = reach_outputs['width_prior']
-            klass['p_length'] = reach_outputs['length_prior']
             klass['rch_id_up'] = reach_outputs['rch_id_up']
             klass['rch_id_dn'] = reach_outputs['rch_id_dn']
             klass['n_reach_up'] = reach_outputs['n_reach_up']
@@ -2321,6 +2367,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['d_x_area'] = reach_outputs['d_x_area']
             klass['d_x_area_u'] = reach_outputs['d_x_area_u']
             klass['dark_frac'] = reach_outputs['dark_frac']
+
+            for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
+                        'p_dist_out', 'p_length', 'grand_id', 'n_chan_max',
+                        'n_chan_mod', 'p_n_nodes', 'p_lat', 'p_lon']:
+                klass[key] = reach_outputs[key]
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]
@@ -2380,6 +2431,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     record['properties'][key] for record in records])
 
         for key, value in data.items():
+            if key in ['reach_id', 'node_id']:
+                value = value.astype('int')
             setattr(klass, key, value)
         return klass
 
@@ -2407,12 +2460,16 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 'pole_tide', 'load_tide1', 'load_tide2', 'dry_trop_c',
                 'wet_trop_c', 'iono_c', 'xovr_cal_c']
 
+        node_reach_type = nodes.node_id % 10
+        node_reach_ids = (
+            np.floor(nodes.node_id / 10000).astype('int'))*10 + node_reach_type
+
         for key in keys:
             node_value = getattr(nodes, key)
             reach_value = getattr(self, key)
             for ii, reach_id in enumerate(self.reach_id):
                 reach_value[ii] = np.mean(
-                    node_value[nodes.reach_id == reach_id])
+                    node_value[node_reach_ids == reach_id])
             self[key] = reach_value
 
     def __add__(self, other):

@@ -98,12 +98,7 @@ class RiverObs:
             self.ds = ds * np.ones(
                 len(self.centerline.s), dtype=self.centerline.s.dtype)
         else:
-            self.ds = np.ones(
-                len(self.centerline.s), dtype=self.centerline.s.dtype)
-            self.ds[1:-1] = (
-                self.centerline.s[2:] - self.centerline.s[0:-2]) / 2.
-            self.ds[0] = self.ds[1]
-            self.ds[-1] = self.ds[-2]
+            self.ds = reach.node_length
 
         # Calculate the local coordinates for each observation point
         # index: the index of the nearest point
@@ -150,6 +145,7 @@ class RiverObs:
         # Brent Williams, May 2017: added this function to handle
         # segmentation/exclude unconnected-to-river pixels.
         # get dominant label & map centerline observalble to measurements
+        self.dominant_label = None
         if np.iterable(max_width):
             max_distance = max_width[self.index] / 2.
         else:
@@ -168,6 +164,8 @@ class RiverObs:
             class_mask = np.logical_and(self.in_channel, seg_label > 0)
             if class_mask.any():
                 dominant_label = scipy.stats.mode(seg_label[class_mask])[0][0]
+                self.dominant_label = dominant_label
+
                 # keep things already in channel as well as things in dominant
                 # segmentation label up to the extreme distance
                 # (along and cross river)

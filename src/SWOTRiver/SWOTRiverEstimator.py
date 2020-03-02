@@ -597,20 +597,55 @@ class SWOTRiverEstimator(SWOTL2):
         """
         Assigns pixels to nodes for every reach.
         """
+        # First extract the segmentation lables to keep
+        all_dominant_labels = []
+        all_ids = []
+        all_up_ids = []
+        all_dn_ids = []
+        for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
+            if len(self.reaches[i_reach].x) <= 3:
+                continue
+            try:
+                river_obs = IteratedRiverObs(
+                    self.reaches[i_reach], self.x, self.y, ds=ds,
+                    seg_label=self.seg_label, max_width=scalar_max_width,
+                    minobs=minobs)
+            except CenterLineException as e:
+                print("CenterLineException: ", e)
+                continue
+
+            if river_obs.dominant_label is not None:
+                all_dominant_labels.append(river_obs.dominant_label)
+                all_ids.append(reach_idx)
+                all_up_ids.append(
+                    self.reaches[i_reach].metadata['rch_id_up'][:,0])
+                all_dn_ids.append(
+                    self.reaches[i_reach].metadata['rch_id_dn'][:,0])
+
         # Iterate over reaches, assign pixels to nodes
         river_obs_list = []
         reach_idx_list = []
         ireach_list = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
-            if len(self.reaches[i_reach].x) <= 3:
-                LOGGER.warn(
-                    "reach does not have enough points {}".format(
-                    len(self.reaches[i_reach].x)))
-                continue
-
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
+
+            seg_label = self.seg_label.copy()
+
+            try:
+                this_idx = np.where(reach_idx == all_ids)[0][0]
+                adjacent_ids = np.concatenate([
+                    all_up_ids[this_idx], all_dn_ids[this_idx]])
+                adjacent_ids = adjacent_ids[adjacent_ids != 0]
+
+                this_label = all_dominant_labels[this_idx]
+                for that_label, that_id in zip(all_dominant_labels, all_ids):
+                    if that_id in adjacent_ids:
+                        seg_label[self.seg_label == that_label] = this_label
+
+            except IndexError:
+                pass
 
             try:
                 river_obs = IteratedRiverObs(
@@ -618,7 +653,7 @@ class SWOTRiverEstimator(SWOTL2):
                     self.x,
                     self.y,
                     ds=ds,
-                    seg_label=self.seg_label,
+                    seg_label=seg_label,
                     max_width=scalar_max_width,
                     minobs=minobs)
 
@@ -695,6 +730,11 @@ class SWOTRiverEstimator(SWOTL2):
         ireach_list_out = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
+
+            # Filter out ghost reaches
+            if reach_idx % 10 == 6:
+                continue
+
             if len(river_obs.populated_nodes) > 0:
                 river_obs_list_out.append(river_obs)
                 reach_idx_list_out.append(reach_idx)
@@ -942,7 +982,6 @@ class SWOTRiverEstimator(SWOTL2):
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('mean', 'pole_tide'))
 
-        
         # get the aggregated heights and widths with their corrosponding 
         # uncertainty estimates all in one shot
         if ((self.height_agg_method is not 'orig') or 
@@ -1004,7 +1043,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
-        width_prior = reach.width[self.river_obs.populated_nodes]
 
         dark_frac = 1-area_det/area
 
@@ -1030,12 +1068,8 @@ class SWOTRiverEstimator(SWOTL2):
             'wse_std': wse_std.astype('float64'),
             'wse_u': wse_u.astype('float64'),
             'nobs_h': nobs_h.astype('int32'),
-            'x_prior': x_prior.astype('float64'),
-            'y_prior': y_prior.astype('float64'),
-            'lon_prior': lon_prior.astype('float64'),
-            'lat_prior': lat_prior.astype('float64'),
-            'node_indx': node_indx.astype('int32'),
-            'reach_indx': reach_index.astype('int32'),
+            'node_indx': node_indx.astype('int64'),
+            'reach_indx': reach_index.astype('int64'),
             'rdr_sig0': rdr_sig0.astype('float64'),
             'rdr_sig0_u': rdr_sig0_u.astype('float64'),
             'latitude_u': latitude_u.astype('float64'),
@@ -1047,8 +1081,20 @@ class SWOTRiverEstimator(SWOTL2):
             'load_tide2': load_tide2.astype('float64'),
             'pole_tide': pole_tide.astype('float64'),
             'node_blocked': is_blocked.astype('uint8'),
-            'width_prior': width_prior,
             'dark_frac': dark_frac,
+            'x_prior': x_prior.astype('float64'),
+            'y_prior': y_prior.astype('float64'),
+            'lon_prior': lon_prior.astype('float64'),
+            'lat_prior': lat_prior.astype('float64'),
+            'p_wse': reach.wse[self.river_obs.populated_nodes],
+            'p_wse_var': reach.wse_var[self.river_obs.populated_nodes],
+            'p_width': reach.width[self.river_obs.populated_nodes],
+            'p_wid_var': reach.width_var[self.river_obs.populated_nodes],
+            'p_dist_out': reach.dist_out[self.river_obs.populated_nodes],
+            'p_length': reach.node_length[self.river_obs.populated_nodes],
+            'grand_id': reach.grod_id[self.river_obs.populated_nodes],
+            'n_chan_max': reach.n_chan_max[self.river_obs.populated_nodes],
+            'n_chan_mod': reach.n_chan_mod[self.river_obs.populated_nodes],
         }
 
         if xtrack_median is not None:
@@ -1099,20 +1145,10 @@ class SWOTRiverEstimator(SWOTL2):
         ngood = len(river_reach.s)
         LOGGER.debug(('number of fit points: %d' % ngood))
 
-        if ngood < min_fit_points:
-            LOGGER.warning('not enough good points for fit')
-            nresults = None
-            return None
-
-        ds = np.divide(river_reach.area, river_reach.w_area)
-
         reach_stats = collections.OrderedDict()
-        reach_stats['length'] = np.sum(ds)
+        reach_stats['length'] = np.sum(river_reach.p_length)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
-        reach_stats['prior_lon'] = reach.metadata['lon']
-        reach_stats['prior_lat'] = reach.metadata['lat']
-        reach_stats['prior_n_nodes'] = len(reach.x)
 
         reach_stats['node_dist'] = np.mean(np.sqrt(
                 (river_reach.x-river_reach.x_prior)**2 +
@@ -1227,21 +1263,13 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['height'] + reach_stats['slope'] * ss)
 
         # copy things from the prior DB into reach outputs
-        reach_stats['width_prior'] = np.mean(river_reach.width_prior)
-        if reach_stats['width_prior'] < 0:
-            reach_stats['width_prior'] = MISSING_VALUE_FLT
-
-        reach_stats['length_prior'] = reach.metadata['length'][0]
-        if reach_stats['length_prior'] < 0:
-            reach_stats['length_prior'] = MISSING_VALUE_FLT
-
         reach_stats['rch_id_up'] = np.array([
-            item[0] for item in reach.metadata['rch_id_up']], dtype='i4')
+            item[0] for item in reach.metadata['rch_id_up']], dtype='i8')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
             MISSING_VALUE_INT9
 
         reach_stats['rch_id_dn'] = np.array([
-            item[0] for item in reach.metadata['rch_id_dn']], dtype='i4')
+            item[0] for item in reach.metadata['rch_id_dn']], dtype='i8')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
 
@@ -1250,6 +1278,19 @@ class SWOTRiverEstimator(SWOTL2):
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
+
+        reach_stats['p_lon'] = reach.metadata['lon']
+        reach_stats['p_lat'] = reach.metadata['lat']
+        reach_stats['p_wse'] = reach.metadata['wse']
+        reach_stats['p_wse_var'] = reach.metadata['wse_var']
+        reach_stats['p_width'] = reach.metadata['width']
+        reach_stats['p_wid_var'] = reach.metadata['width_var']
+        reach_stats['p_n_nodes'] = reach.metadata['n_nodes']
+        reach_stats['p_dist_out'] = reach.metadata['dist_out']
+        reach_stats['p_length'] = reach.metadata['reach_length']
+        reach_stats['grand_id'] = reach.metadata['grod_id']
+        reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
+        reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
 
         river_reach.metadata = reach_stats
         return river_reach
@@ -1263,9 +1304,9 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.createVariable(
                 'azimuth_index', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'node_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+                'node_id', 'i8', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
-                'reach_id', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+                'reach_id', 'i8', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
                 'segmentation_label', 'i4', 'points',
                 fill_value=FILL_VALUES['i4'])
