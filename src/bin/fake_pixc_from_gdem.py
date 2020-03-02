@@ -36,7 +36,8 @@ import numpy as np
 from SWOTWater.constants import GDEM_PIXC_CLASSES
 
 def fake_pixc_from_gdem(
-    gdem_file, pixc_file, fake_pixc_file, subsample_factor=2, dark_water_thresh=1):
+    gdem_file, pixc_file, fake_pixc_file,
+        subsample_factor=2, dark_water_thresh=1.0):
     """Fakes a pixel cloud file from a gdem file"""
     with netCDF4.Dataset(gdem_file, 'r') as ifp_gdem,\
          netCDF4.Dataset(pixc_file, 'r') as ifp_pixc,\
@@ -80,10 +81,15 @@ def fake_pixc_from_gdem(
         longitude = ifp_gdem.variables['longitude'][:][::subsample_factor]
         longitude[longitude>180] -= 360
         elevation = ifp_gdem.variables['elevation'][:][::subsample_factor]
+        make_sig0 = False
         try:
             media_attenuation = ifp_gdem['media_attenuation'][:][::subsample_factor]
+            make_sig0 = True
         except IndexError:
-            media_attenuation = np.zeros_like(elevation) + dark_water_thresh + 1
+            # set media attenuation to something always bigger than dark thresh
+            # so that the fake flagging below always gives non-dark water
+            media_attenuation = np.zeros_like(elevation) + np.sqrt(
+                dark_water_thresh + 1)
         cross_track_ = ifp_gdem.variables['cross_track'][:]
         range_spacing = ifp_gdem.ground_spacing
         azimuth_spacing = ifp_gdem.azimuth_spacing
@@ -105,31 +111,34 @@ def fake_pixc_from_gdem(
         tvp_time = ifp_pixc.groups['tvp'].variables['time'][:]
 
         # set landtypes to gdem pixc classes
-        landtype[landtype == 1] = GDEM_PIXC_CLASSES['open_water']
-        landtype[landtype == GDEM_PIXC_CLASSES['open_water_lake']] = \
+        landtype_out = landtype.copy()
+        landtype_out[landtype == 1] = GDEM_PIXC_CLASSES['open_water']
+        landtype_out[landtype == GDEM_PIXC_CLASSES['open_water_lake']] = \
             GDEM_PIXC_CLASSES['open_water_lake']
 
-        dark_water_mask = media_attenuation < dark_water_thresh
+        dark_water_mask = media_attenuation**2 < dark_water_thresh
         dark_water_mask_river = np.logical_and(landtype == 1, dark_water_mask)
         dark_water_mask_lake = np.logical_and(
             landtype == GDEM_PIXC_CLASSES['open_water_lake'], dark_water_mask)
 
-        landtype[dark_water_mask_river] = GDEM_PIXC_CLASSES['dark_water']
-        landtype[dark_water_mask_lake] = GDEM_PIXC_CLASSES['dark_water_lake']
+        landtype_out[dark_water_mask_river] = GDEM_PIXC_CLASSES['dark_water']
+        landtype_out[dark_water_mask_lake] = GDEM_PIXC_CLASSES['dark_water_lake']
 
         out_pixc_dsets = {}
         out_pixc_dsets['range_index'] = range_index[mask]
         out_pixc_dsets['azimuth_index'] = azimuth_index[mask]
-        out_pixc_dsets['classification'] = landtype[mask]
+        out_pixc_dsets['classification'] = landtype_out[mask]
         out_pixc_dsets['water_frac'] = out_pixc_dsets[
             'classification'].copy()*0 + 1.0
         out_pixc_dsets['latitude'] = latitude[mask]
         out_pixc_dsets['longitude'] = longitude[mask]
         out_pixc_dsets['height'] = elevation[mask]
-        out_pixc_dsets['cross_track'] = np.abs(cross_track[mask])
+        out_pixc_dsets['cross_track'] = cross_track[mask]
         out_pixc_dsets['illumination_time'] = tvp_time[azimuth_index[mask]]
         out_pixc_dsets['num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
+        if make_sig0:
+            out_pixc_dsets['sig0'] =  media_attenuation[mask]**2
 
         out_shape = out_pixc_dsets['range_index'].shape
 
