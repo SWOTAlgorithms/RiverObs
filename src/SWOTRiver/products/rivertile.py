@@ -490,7 +490,7 @@ class ShapeWriterMixIn(object):
                         datetime.datetime(2000, 1, 1) + datetime.timedelta(
                             seconds=this_property['time'])
                         ).strftime('%Y-%m-%dT%H:%M%S.%fZ')
-                except OverflowError:
+                except (OverflowError, ValueError):
                     this_property['time_str'] = 'no_data'
 
                 ofp.write({'geometry': mapping(this_geo), 'id': ii,
