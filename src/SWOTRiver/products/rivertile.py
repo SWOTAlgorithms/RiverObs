@@ -129,7 +129,7 @@ RIVERTILE_ATTRIBUTES = odict([
     ])
 
 
-for key in ['Conventions', 'title', 'mission_name', 'short_name']:
+for key in ['Conventions', 'title', 'platform', 'short_name']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
