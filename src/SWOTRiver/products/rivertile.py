@@ -229,7 +229,7 @@ class L2HRRiverTile(Product):
                             'area_det_u', 'area_of_ht', 'wse', 'wse_std',
                             'wse_u', 'rdr_sig0', 'rdr_sig0_u', 'latitude_u',
                             'longitud_u', 'width_u', 'geoid_hght', 'solid_tide',
-                            'load_tide1', 'load_tide2', 'pole_tide',
+                            'load_tide1', 'load_tide2', 'pole_tide', 'flow_dir',
                             'dark_frac', 'xtrack', 'h_n_ave', 'fit_height']:
                     node_outputs[key] = np.insert(
                         node_outputs[key], insert_idx,
@@ -876,6 +876,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     the swath, relative to the spacecraft velocity vector.  A
                     positive value indicates the right side of the swath.""")],
                 ])],
+        ['flow_dir',
+         odict([['dtype', 'f8'],
+                ['long_name', 'flow direction relative to along-track'],
+                ['units', 'm'],
+                ['valid_min', 0],
+                ['valid_max', 360],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Flow direction relative to along-track direction""")],
+                ])],
         ['quality_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the node'],
@@ -1327,6 +1339,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['load_tide1'] = node_outputs['load_tide1']
             klass['load_tide2'] = node_outputs['load_tide2']
             klass['pole_tide'] = node_outputs['pole_tide']
+            klass['flow_dir'] = node_outputs['flow_dir']
             # compute node distance from prior
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
