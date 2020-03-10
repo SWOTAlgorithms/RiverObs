@@ -32,8 +32,9 @@ RIVERTILE_ATTRIBUTES = odict([
             attribute should be set to CF-1.7 to indicate that the group is
             compliant with the Climate and Forecast NetCDF conventions.""") }],
     # title gets overridden for SLC product
-    ['title', {'dtype': 'str', 'value':'Level 2 Pixel Clould Data Product',
-        'docstr': 'A descriptive title for the data product'}],
+    ['title', {'dtype': 'str',
+        'value': 'Level 2 KaRIn High Rate River Single Pass Vector Product',
+        'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
     ['institution', {'dtype': 'str', 'value': 'JPL',
          'docstr': 'Name of producing agency.'}],
     ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
