@@ -573,7 +573,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database.
-                    The format of the identifier is CBBBBBRRRNNNT, where
+                    The format of the identifier is CBBBBBRRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
                 ])],
         ['time',
