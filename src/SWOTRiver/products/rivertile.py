@@ -23,30 +23,31 @@ from RiverObs.RiverObs import \
 
 
 ATTRS_2COPY_FROM_PIXC = [
-    'start_time', 'stop_time', 'cycle_number', 'pass_number']
+    'time_coverage_start', 'time_coverage_end', 'cycle_number', 'pass_number']
 
 RIVERTILE_ATTRIBUTES = odict([
-    ['Conventions', {'dtype': 'str' ,
+    ['Conventions',{'dtype': 'str' ,'value': 'CF-1.7',
         'docstr': textjoin("""
-            Esri conventions as given in 'ESRI Shapefile Technical
-            Description, an ESRI White Paper, July 1998'
-            http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
-    ['title', {'dtype': 'str',
-        'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product'}],
-    ['short_name', {'dtype': 'str', 'docstr': 'L2_HR_RiverTile'}],
+            NetCDF-4 conventions adopted in this group. This
+            attribute should be set to CF-1.7 to indicate that the group is
+            compliant with the Climate and Forecast NetCDF conventions.""") }],
+    # title gets overridden for SLC product
+    ['title', {'dtype': 'str', 'value':'Level 2 Pixel Clould Data Product',
+        'docstr': 'A descriptive title for the data product'}],
     ['institution', {'dtype': 'str', 'value': 'JPL',
          'docstr': 'Name of producing agency.'}],
     ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
         'docstr': textjoin("""
             The method of production of the original data.
             If it was model-generated, source should name the model and its
-            version, as specifically as could be useful. If it is observational,
-            source should characterize it (e.g., 'Ka-band radar interferometer').""")}],
+            version, as specifically as could be useful. If it is
+            observational, source should characterize it (e.g., 'Ka-band radar
+            interferometer').""")}],
     ['history', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time when file generated. Format is:
             'YYYY-MM-DD hh:mm:ss : Creation'""")}],
-    ['platform', {'dtype': 'str' , 'docstr': 'SWOT'}],
+    ['platform', {'dtype': 'str' ,'value':'SWOT','docstr': 'SWOT'}],
     ['references', {'dtype': 'str',
         'docstr': textjoin("""
             Published or web-based references that describe
@@ -70,17 +71,17 @@ RIVERTILE_ATTRIBUTES = odict([
         'docstr': textjoin("""
             UTC time of first tvp measurement within the data group.
             Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
-    ['time_coverage_stop', {'dtype': 'str',
+    ['time_coverage_end', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time of last tvp measurement within the data group.
             Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
-    ['geospatial_lon_min',  {'dtype': 'float',
+    ['geospatial_lon_min',  {'dtype': 'f8',
         'docstr': "Westernmost longitude (deg) of granule bounding box"}],
-    ['geospatial_lon_max',  {'dtype': 'float',
+    ['geospatial_lon_max',  {'dtype': 'f8',
         'docstr': "Easternmost longitude (deg) of granule bounding box"}],
-    ['geospatial_lat_min',  {'dtype': 'float',
+    ['geospatial_lat_min',  {'dtype': 'f8',
         'docstr': "Southernmost latitude (deg) of granule bounding box"}],
-    ['geospatial_lat_max',  {'dtype': 'float',
+    ['geospatial_lat_max',  {'dtype': 'f8',
         'docstr': "Northernmost latitude (deg) of granule bounding box"}],
     ['left_first_longitude',  {'dtype': 'float',
         'docstr': textjoin("""
@@ -129,7 +130,7 @@ RIVERTILE_ATTRIBUTES = odict([
     ])
 
 
-for key in ['Conventions', 'title', 'platform', 'short_name']:
+for key in ['Conventions', 'title', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
