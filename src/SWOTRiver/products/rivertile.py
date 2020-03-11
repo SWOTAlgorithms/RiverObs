@@ -417,10 +417,11 @@ class ShapeWriterMixIn(object):
                             'centerline_lon']:
                     continue
 
-                try:
-                    value['fill_value'] = value['_FillValue']
-                except KeyError:
-                    pass
+                if key not in ['node_id', 'reach_id']:
+                    try:
+                        value['fill_value'] = value['_FillValue']
+                    except KeyError:
+                        pass
 
                 my_vars[key] = value.copy()
                 if key == 'time_tai':
