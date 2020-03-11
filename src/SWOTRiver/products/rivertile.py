@@ -146,9 +146,9 @@ class L2HRRiverTile(Product):
     @staticmethod
     def dump_xmls(node_xml_file, reach_xml_file):
         with open(node_xml_file, 'w') as ofp:
-            RiverTileNodes.print_xml(ofp=ofp)
+            RiverTileNodes.print_xml(ofp=ofp, is_shapefile=True)
         with open(reach_xml_file, 'w') as ofp:
-            RiverTileReaches.print_xml(ofp=ofp)
+            RiverTileReaches.print_xml(ofp=ofp, is_shapefile=True)
 
     @classmethod
     def from_riverobs(

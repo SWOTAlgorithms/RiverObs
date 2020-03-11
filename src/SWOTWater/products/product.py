@@ -382,8 +382,11 @@ class Product(object):
 
     @classmethod
     def print_xml(cls, prefix=None, ofp=sys.stdout, shape_names=[],
-                  shape_dims={}):
+                  shape_dims={}, is_shapefile=False):
         """Prints the XML for this data product"""
+        def remap_type(dtype):
+            return
+
         klass = cls()
 
         INDENT = 2*' '
@@ -405,7 +408,7 @@ class Product(object):
 
             klass.get_product(klass.GROUPS[group]).print_xml(
                     prefix=next_prefix, ofp=ofp, shape_names=shape_names,
-                    shape_dims=shape_dims)
+                    shape_dims=shape_dims, is_shapefile=is_shapefile)
 
         for dset in klass.VARIABLES:
             attrs = copy.deepcopy(klass.VARIABLES[dset])
@@ -414,6 +417,32 @@ class Product(object):
                 type_str = np.dtype(attrs.pop('dtype')).str
             except KeyError:
                 type_str = '<f4'
+
+            # _FillValue special handling
+            attrs["_FillValue"] = klass._getfill(dset)
+            attrs.move_to_end("_FillValue", last=False)
+
+            if is_shapefile:
+                if dset in ['reach_id', 'node_id']:
+                    attrs.pop("_FillValue", None)
+                    attrs['type'] = 'text'
+                else:
+                    attrs["fill_value"] = klass._getfill(dset)
+                    attrs.move_to_end("fill_value", last=False)
+                    attrs.pop("_FillValue", None)
+
+                    # decide if 'text', 'float', 'int4', or 'int9'
+                    if type_str[1] == 'f':
+                        attrs['type'] = 'float'
+                    elif (type_str[1] == 'i' or type_str[1] == 'u'):
+                        # hack based on fill value!
+                        if attrs['fill_value'] == -999:
+                            attrs['type'] = 'int4'
+                        else:
+                            attrs['type'] = 'int9'
+                    else:
+                        attrs['type'] = 'text'
+                attrs.move_to_end('type', last=False)
 
             if type_str[1] == 'c':
                 type_str = type_str[0] + 'f{}'.format(int(int(type_str[2:])/2))
@@ -430,10 +459,6 @@ class Product(object):
 
             # Don't write out dimensions
             attrs.pop('dimensions', None)
-
-            # _FillValue special handling
-            attrs["_FillValue"] = klass._getfill(dset)
-            attrs.move_to_end("_FillValue", last=False)# put fill value in front
 
             # XML node name
             dset_name = '/'+dset if prefix is None else '/%s/%s' % (prefix, dset)
