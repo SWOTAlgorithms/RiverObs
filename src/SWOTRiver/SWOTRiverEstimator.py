@@ -1057,9 +1057,7 @@ class SWOTRiverEstimator(SWOTL2):
         xt_angle = np.arctan2(dxt_dy, dxt_dx)
         at_angle = xt_angle-np.pi/2
         tangent_angle = np.arctan2(tangent[:, 1], tangent[:, 0])
-        flow_dir = np.rad2deg(tangent_angle - at_angle)
-        flow_dir[flow_dir>=180] -= 360
-        flow_dir[flow_dir<-180] += 360
+        flow_dir = np.rad2deg(tangent_angle - at_angle) % 360
 
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
