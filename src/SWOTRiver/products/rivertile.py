@@ -229,7 +229,7 @@ class L2HRRiverTile(Product):
                             'area_det_u', 'area_of_ht', 'wse', 'wse_std',
                             'wse_u', 'rdr_sig0', 'rdr_sig0_u', 'latitude_u',
                             'longitud_u', 'width_u', 'geoid_hght', 'solid_tide',
-                            'load_tide1', 'load_tide2', 'pole_tide',
+                            'load_tide1', 'load_tide2', 'pole_tide', 'flow_dir',
                             'dark_frac', 'xtrack', 'h_n_ave', 'fit_height']:
                     node_outputs[key] = np.insert(
                         node_outputs[key], insert_idx,
@@ -1361,6 +1361,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['load_tide1'] = node_outputs['load_tide1']
             klass['load_tide2'] = node_outputs['load_tide2']
             klass['pole_tide'] = node_outputs['pole_tide']
+            klass['flow_angle'] = node_outputs['flow_dir']
             # compute node distance from prior
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
