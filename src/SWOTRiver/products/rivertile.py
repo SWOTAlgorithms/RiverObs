@@ -70,11 +70,11 @@ RIVERTILE_ATTRIBUTES = odict([
         'docstr': 'Continent the product belongs to.'}],
     ['time_coverage_start', {'dtype': 'str',
         'docstr': textjoin("""
-            UTC time of first tvp measurement within the data group.
+            UTC time of first measurement.
             Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
     ['time_coverage_end', {'dtype': 'str',
         'docstr': textjoin("""
-            UTC time of last tvp measurement within the data group.
+            UTC time of last measurement.
             Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
     ['geospatial_lon_min',  {'dtype': 'f8',
         'docstr': "Westernmost longitude (deg) of granule bounding box"}],
@@ -533,7 +533,7 @@ class ShapeWriterMixIn(object):
                     this_property['time_str'] = (
                         datetime.datetime(2000, 1, 1) + datetime.timedelta(
                             seconds=this_property['time'])
-                        ).strftime('%Y-%m-%dT%H:%M%S.%fZ')
+                        ).strftime('%Y-%m-%dT%H:%M%S.%fZ')[:-4]
                 except (OverflowError, ValueError):
                     this_property['time_str'] = 'no_data'
 
@@ -554,18 +554,17 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = RIVERTILE_ATTRIBUTES
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
-#         ['reach_id',
-#          odict([['dtype', 'i8'],
-#                 ['long_name', 'Reach with which node is associated'],
-#                 ['_FillValue', MISSING_VALUE_INT9],
-#                 ['tag_basic_expert', 'Basic'],
-#                 ['comment', textjoin("""
-#                     Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
-#                     C=continent, B=basin,R=reach,N=node, T=type. See PDD for
-#                     continent,type code details. Nodes number sequentially in
-#                     reach. Implementation note: Could be 4B integer with
-#                     current definition with all items as numbers.""")],
-#                 ])],
+        ['reach_id',
+         odict([['dtype', 'i8'],
+                ['long_name', 'Reach with which node is associated'],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Unique reach identifier from the prior river database. The
+                    format of the identifier is CBBBBBRRRRT, where C=continent,
+                    B=basin, R=reach, T=type.""")],
+                ])],
         ['node_id',
          odict([['dtype', 'i8'],
                 ['long_name',
@@ -623,7 +622,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Time string giving UTC time.  The format is
-                    YYYY-MM-DDThh:mm:ss.ssssssZ, where the Z suffix indicates
+                    YYYY-MM-DDThh:mm:ss.ssZ, where the Z suffix indicates
                     UTC time.""")],
                 ])],
         ['lat',
@@ -892,6 +891,24 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     nadir track.  A negative value indicates the left side of
                     the swath, relative to the spacecraft velocity vector.  A
                     positive value indicates the right side of the swath.""")],
+                ])],
+        ['flow_angle',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'river flow direction relative to the satellite ground track'],
+                ['units', 'degrees'],
+                ['valid_min', 0],
+                ['valid_max', 360],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    River flow direction for the node relative to the direction
+                    of the spacecraft nadir track based on prior data (not the
+                    SWOT observation).  A value of zero indicates that the flow
+                    is in the same direction as the spacecraft velocity
+                    direction.  A value of 90 degrees indicates that the flow
+                    is toward the right side of the SWOT swath.""")],
                 ])],
         ['quality_f',
          odict([['dtype', 'i2'],
