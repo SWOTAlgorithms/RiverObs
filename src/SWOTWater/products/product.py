@@ -422,10 +422,23 @@ class Product(object):
             attrs["_FillValue"] = klass._getfill(dset)
             attrs.move_to_end("_FillValue", last=False)
 
+            # hacks for river sp shapefile XMLs
             if is_shapefile:
-                if dset in ['reach_id', 'node_id']:
-                    attrs.pop("_FillValue", None)
+
+                # skip these ones
+                if dset in ['centerline_lon', 'centerline_lat', 'lat_prior',
+                            'lon_prior']:
+                    continue
+
+                if dset in ['reach_id', 'node_id', 'rch_id_dn',
+                            'rch_id_up', 'time_str']:
                     attrs['type'] = 'text'
+                    if dset in ['reach_id', 'node_id']:
+                        attrs.pop("_FillValue", None)
+                    else:
+                        attrs["fill_value"] = "no_data"
+                        attrs.move_to_end("fill_value", last=False)
+                        attrs.pop("_FillValue", None)
                 else:
                     attrs["fill_value"] = klass._getfill(dset)
                     attrs.move_to_end("fill_value", last=False)
