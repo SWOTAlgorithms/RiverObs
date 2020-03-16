@@ -411,7 +411,6 @@ class ShapeWriterMixIn(object):
             ofp.write('  <attributes>\n')
 
             my_vars = odict()
-            self.VARIABLES.pop('time_str')
             for key, value in self.VARIABLES.items():
                 # Skip the geometry datasets
                 if key in ['lat_prior', 'lon_prior', 'centerline_lat',
@@ -425,15 +424,8 @@ class ShapeWriterMixIn(object):
                         pass
 
                 my_vars[key] = value.copy()
-                if key == 'time_tai':
-                    this_value = self.VARIABLES['time'].copy()
-                    this_value.pop('units')
-                    this_value['fill_value'] = 'no_data'
-                    this_value['comment'] = textjoin("""
-                        Time string giving UTC time.  The format is
-                        YYYY-MM-DDThh:mm:ss.ssssssZ, where the Z suffix
-                        indicates UTC time.""")
-                    my_vars['time_str'] = this_value
+                if key == 'time_str':
+                    my_vars['time_str']['fill_value'] = 'no_data'
 
             for dset, attr_dict in my_vars.items():
                 ofp.write('    <{}>\n'.format(dset))
@@ -533,7 +525,7 @@ class ShapeWriterMixIn(object):
                     this_property['time_str'] = (
                         datetime.datetime(2000, 1, 1) + datetime.timedelta(
                             seconds=this_property['time'])
-                        ).strftime('%Y-%m-%dT%H:%M%S.%fZ')[:-4]
+                        ).strftime('%Y-%m-%dT%H:%M%SZ')
                 except (OverflowError, ValueError):
                     this_property['time_str'] = 'no_data'
 
@@ -622,7 +614,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Time string giving UTC time.  The format is
-                    YYYY-MM-DDThh:mm:ss.ssZ, where the Z suffix indicates
+                    YYYY-MM-DDThh:mm:ssZ, where the Z suffix indicates
                     UTC time.""")],
                 ])],
         ['lat',
