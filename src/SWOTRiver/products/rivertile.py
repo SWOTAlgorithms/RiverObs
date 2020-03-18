@@ -1330,6 +1330,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         """
         klass = cls()
         if node_outputs is not None:
+            klass['reach_id'] = node_outputs['reach_indx']
             klass['node_id'] = node_outputs['node_indx']
             klass['lat'] = node_outputs['lat']
             klass['lon'] = node_outputs['lon']
