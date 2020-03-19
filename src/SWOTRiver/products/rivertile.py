@@ -28,8 +28,8 @@ ATTRS_2COPY_FROM_PIXC = [
 RIVERTILE_ATTRIBUTES = odict([
     ['Conventions',{'dtype': 'str' ,'value': 'CF-1.7',
         'docstr': textjoin("""
-            Esri conventions as given in "ESRI Shapefile Technical Description,
-            an ESRI White Paper, July 1998"
+            Esri conventions as given in 'ESRI Shapefile Technical Description,
+            an ESRI White Paper, July 1998'
             http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
     # title gets overridden for SLC product
     ['title', {'dtype': 'str',
