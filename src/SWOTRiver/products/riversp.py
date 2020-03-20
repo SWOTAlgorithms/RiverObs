@@ -13,12 +13,12 @@ from SWOTRiver.products.rivertile import \
     L2HRRiverTile, RiverTileNodes, RiverTileReaches, RIVERTILE_ATTRIBUTES
 
 RIVERSP_ATTRIBUTES = copy.deepcopy(RIVERTILE_ATTRIBUTES)
-RIVERSP_ATTRIBUTES['short_name']['docstr'] = 'L2_HR_RiverSP'
-RIVERSP_ATTRIBUTES['title']['docstr'] = \
-        'Level 2 KaRIn High Rate River Single Pass Vector Product'
-for key in ['Conventions', 'title', 'mission_name', 'short_name']:
-    RIVERSP_ATTRIBUTES[key]['value'] = RIVERSP_ATTRIBUTES[key]['docstr']
+RIVERSP_ATTRIBUTES['title'] = {'dtype': 'str', 
+        'value': 'Level 2 KaRIn High Rate River Single Pass Vector Product',
+        'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}
 
+for key in ['Conventions', 'title', 'platform']:
+    RIVERSP_ATTRIBUTES[key]['value'] = RIVERSP_ATTRIBUTES[key]['docstr']
 
 class L2HRRiverSP(L2HRRiverTile):
     """

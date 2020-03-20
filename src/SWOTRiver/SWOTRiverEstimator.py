@@ -1046,6 +1046,19 @@ class SWOTRiverEstimator(SWOTL2):
 
         dark_frac = 1-area_det/area
 
+        # Compute flow direction relative to along-track
+        tangent = self.river_obs.centerline.tangent[
+            self.river_obs.populated_nodes]
+
+        fit_xx = np.array([np.ones(x_median.shape), x_median, y_median]).T
+        fit = statsmodels.api.OLS(xtrack_median, fit_xx).fit()
+        dxt_dx = fit.params[1]
+        dxt_dy = fit.params[2]
+        xt_angle = np.arctan2(dxt_dy, dxt_dx)
+        at_angle = xt_angle-np.pi/2
+        tangent_angle = np.arctan2(tangent[:, 1], tangent[:, 0])
+        flow_dir = np.rad2deg(tangent_angle - at_angle) % 360
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
@@ -1095,6 +1108,7 @@ class SWOTRiverEstimator(SWOTL2):
             'grand_id': reach.grod_id[self.river_obs.populated_nodes],
             'n_chan_max': reach.n_chan_max[self.river_obs.populated_nodes],
             'n_chan_mod': reach.n_chan_mod[self.river_obs.populated_nodes],
+            'flow_dir': flow_dir.astype('float64'),
         }
 
         if xtrack_median is not None:

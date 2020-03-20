@@ -23,30 +23,32 @@ from RiverObs.RiverObs import \
 
 
 ATTRS_2COPY_FROM_PIXC = [
-    'start_time', 'stop_time', 'cycle_number', 'pass_number']
+    'time_coverage_start', 'time_coverage_end', 'cycle_number', 'pass_number']
 
 RIVERTILE_ATTRIBUTES = odict([
-    ['Conventions', {'dtype': 'str' ,
+    ['Conventions',{'dtype': 'str' ,'value': 'CF-1.7',
         'docstr': textjoin("""
-            Esri conventions as given in 'ESRI Shapefile Technical
-            Description, an ESRI White Paper, July 1998'
+            Esri conventions as given in 'ESRI Shapefile Technical Description,
+            an ESRI White Paper, July 1998'
             http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
+    # title gets overridden for SLC product
     ['title', {'dtype': 'str',
-        'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product'}],
-    ['short_name', {'dtype': 'str', 'docstr': 'L2_HR_RiverTile'}],
+        'value': 'Level 2 KaRIn High Rate River Single Pass Vector Product',
+        'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
     ['institution', {'dtype': 'str', 'value': 'JPL',
          'docstr': 'Name of producing agency.'}],
     ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
         'docstr': textjoin("""
             The method of production of the original data.
             If it was model-generated, source should name the model and its
-            version, as specifically as could be useful. If it is observational,
-            source should characterize it (e.g., 'Ka-band radar interferometer').""")}],
+            version, as specifically as could be useful. If it is
+            observational, source should characterize it (e.g., 'Ka-band radar
+            interferometer').""")}],
     ['history', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time when file generated. Format is:
             'YYYY-MM-DD hh:mm:ss : Creation'""")}],
-    ['mission_name', {'dtype': 'str' , 'docstr': 'SWOT'}],
+    ['platform', {'dtype': 'str' ,'value':'SWOT','docstr': 'SWOT'}],
     ['references', {'dtype': 'str',
         'docstr': textjoin("""
             Published or web-based references that describe
@@ -66,14 +68,54 @@ RIVERTILE_ATTRIBUTES = odict([
         'docstr': 'Pass number of the product granule.'}],
     ['continent', {'dtype': 'str',
         'docstr': 'Continent the product belongs to.'}],
-    ['start_time', {'dtype': 'str',
+    ['time_coverage_start', {'dtype': 'str',
         'docstr': textjoin("""
-            UTC time of first tvp measurement within the data group.
-            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
-    ['stop_time', {'dtype': 'str',
+            UTC time of first measurement.
+            Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
+    ['time_coverage_end', {'dtype': 'str',
         'docstr': textjoin("""
-            UTC time of last tvp measurement within the data group.
-            Format is: YYYY-MM-DD HH:MM:SS.SSSSSSZ""")}],
+            UTC time of last measurement.
+            Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
+    ['geospatial_lon_min',  {'dtype': 'f8',
+        'docstr': "Westernmost longitude (deg) of granule bounding box"}],
+    ['geospatial_lon_max',  {'dtype': 'f8',
+        'docstr': "Easternmost longitude (deg) of granule bounding box"}],
+    ['geospatial_lat_min',  {'dtype': 'f8',
+        'docstr': "Southernmost latitude (deg) of granule bounding box"}],
+    ['geospatial_lat_max',  {'dtype': 'f8',
+        'docstr': "Northernmost latitude (deg) of granule bounding box"}],
+    ['left_first_longitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the first range line and left
+            edge of the swath (degrees_east)""")}],
+    ['left_first_latitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the first range line and left
+            edge of the swath (degrees_north)""")}],
+    ['left_last_longitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the last range line and left
+            edge of the swath (degrees_east)""")}],
+    ['left_last_latitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the last range line and left
+            edge of the swath (degrees_north)""")}],
+    ['right_first_longitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the first range line and right
+            edge of the swath (degrees_east)""")}],
+    ['right_first_latitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the first range line and right
+            edge of the swath (degrees_north)""")}],
+    ['right_last_longitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the last range line and right
+            edge of the swath (degrees_east)""")}],
+    ['right_last_latitude',  {'dtype': 'float',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the last range line and right
+            edge of the swath (degrees_north)""")}],
     ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
         'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
     ['xref_input_l2_hr_rivertile_files', {'dtype': 'str',
@@ -89,7 +131,7 @@ RIVERTILE_ATTRIBUTES = odict([
     ])
 
 
-for key in ['Conventions', 'title', 'mission_name', 'short_name']:
+for key in ['Conventions', 'title', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
@@ -104,9 +146,9 @@ class L2HRRiverTile(Product):
     @staticmethod
     def dump_xmls(node_xml_file, reach_xml_file):
         with open(node_xml_file, 'w') as ofp:
-            RiverTileNodes.print_xml(ofp=ofp)
+            RiverTileNodes.print_xml(ofp=ofp, is_shapefile=True)
         with open(reach_xml_file, 'w') as ofp:
-            RiverTileReaches.print_xml(ofp=ofp)
+            RiverTileReaches.print_xml(ofp=ofp, is_shapefile=True)
 
     @classmethod
     def from_riverobs(
@@ -187,7 +229,7 @@ class L2HRRiverTile(Product):
                             'area_det_u', 'area_of_ht', 'wse', 'wse_std',
                             'wse_u', 'rdr_sig0', 'rdr_sig0_u', 'latitude_u',
                             'longitud_u', 'width_u', 'geoid_hght', 'solid_tide',
-                            'load_tide1', 'load_tide2', 'pole_tide',
+                            'load_tide1', 'load_tide2', 'pole_tide', 'flow_dir',
                             'dark_frac', 'xtrack', 'h_n_ave', 'fit_height']:
                     node_outputs[key] = np.insert(
                         node_outputs[key], insert_idx,
@@ -375,21 +417,15 @@ class ShapeWriterMixIn(object):
                             'centerline_lon']:
                     continue
 
-                try:
-                    value['fill_value'] = value['_FillValue']
-                except KeyError:
-                    pass
+                if key not in ['node_id', 'reach_id']:
+                    try:
+                        value['fill_value'] = value['_FillValue']
+                    except KeyError:
+                        pass
 
                 my_vars[key] = value.copy()
-                if key == 'time_tai':
-                    this_value = self.VARIABLES['time'].copy()
-                    this_value.pop('units')
-                    this_value['fill_value'] = 'no_data'
-                    this_value['comment'] = textjoin("""
-                        Time string giving UTC time.  The format is
-                        YYYY-MM-DDThh:mm:ss.ssssssZ, where the Z suffix
-                        indicates UTC time.""")
-                    my_vars['time_str'] = this_value
+                if key == 'time_str':
+                    my_vars['time_str']['fill_value'] = 'no_data'
 
             for dset, attr_dict in my_vars.items():
                 ofp.write('    <{}>\n'.format(dset))
@@ -489,8 +525,8 @@ class ShapeWriterMixIn(object):
                     this_property['time_str'] = (
                         datetime.datetime(2000, 1, 1) + datetime.timedelta(
                             seconds=this_property['time'])
-                        ).strftime('%Y-%m-%dT%H:%M%S.%fZ')
-                except OverflowError:
+                        ).strftime('%Y-%m-%dT%H:%M%SZ')
+                except (OverflowError, ValueError):
                     this_property['time_str'] = 'no_data'
 
                 ofp.write({'geometry': mapping(this_geo), 'id': ii,
@@ -510,34 +546,34 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     ATTRIBUTES = RIVERTILE_ATTRIBUTES
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
-#         ['reach_id',
-#          odict([['dtype', 'i8'],
-#                 ['long_name', 'Reach with which node is associated'],
-#                 ['_FillValue', MISSING_VALUE_INT9],
-#                 ['tag_basic_expert', 'Basic'],
-#                 ['comment', textjoin("""
-#                     Mandatory. In Prior. Format:  CBBBBBRRRNNNT, where
-#                     C=continent, B=basin,R=reach,N=node, T=type. See PDD for
-#                     continent,type code details. Nodes number sequentially in
-#                     reach. Implementation note: Could be 4B integer with
-#                     current definition with all items as numbers.""")],
-#                 ])],
+        ['reach_id',
+         odict([['dtype', 'i8'],
+                ['long_name', 'Reach with which node is associated'],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Unique reach identifier from the prior river database. The
+                    format of the identifier is CBBBBBRRRRT, where C=continent,
+                    B=basin, R=reach, T=type.""")],
+                ])],
         ['node_id',
          odict([['dtype', 'i8'],
                 ['long_name',
                  "node ID of the node in the prior river database"],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Unique node identifier from the prior river database.
-                    The format of the identifier is CBBBBBRRRNNNT, where
+                    The format of the identifier is CBBBBBRRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
                 ])],
         ['time',
          odict([['dtype', 'f8'],
                 ['long_name', "time (UTC)"],
                 ['standard_name', 'time'],
-                ['calander', 'gregorian'],
+                ['calendar', 'gregorian'],
                 ['tai_utc_difference',
                  '[value of TAI-UTC at time of first record]'],
                 ['leap_second', 'YYYY-MM-DD hh:mm:ss'],
@@ -556,7 +592,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', "time (TAI)"],
                 ['standard_name', 'time'],
-                ['calander', 'gregorian'],
+                ['calendar', 'gregorian'],
                 ['units', 'seconds since 2000-01-01 00:00:00.000'],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
@@ -565,6 +601,21 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     1 Jan 2000 00:00:00 TAI. This time scale contains no leap
                     seconds. The difference (in seconds) with time in UTC is
                     given by the metadata [time:tai_utc_difference].""")],
+                ])],
+        ['time_str',
+         odict([['dtype', 'f8'],
+                ['long_name', "time (UTC)"],
+                ['standard_name', 'time'],
+                ['calendar', 'gregorian'],
+                ['tai_utc_difference',
+                 '[value of TAI-UTC at time of first record]'],
+                ['leap_second', 'YYYY-MM-DD hh:mm:ss'],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Basic'],
+                ['comment', textjoin("""
+                    Time string giving UTC time.  The format is
+                    YYYY-MM-DDThh:mm:ssZ, where the Z suffix indicates
+                    UTC time.""")],
                 ])],
         ['lat',
          odict([['dtype', 'f8'],
@@ -603,6 +654,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty in the latitude of the centroid
                     of water-detected pixels assigned to the node.""")],
@@ -615,6 +667,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty in the longitude of the
                     centroid of water-detected pixels assigned to the node.
@@ -629,6 +682,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 78],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     TBD[Average latitude, not necessarily along stream]. 13
                     digits adequate for microdeg gives sub-meter location.""")],
@@ -642,6 +696,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     East longitude is convention for all products.
                     TBD[Average longitude, not necessarily along stream]. 13
@@ -656,12 +711,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Fitted node water surface elevation, relative to the
                     provided model of the geoid (geoid_hght), with all
                     corrections for media delays (wet and dry troposphere,
-                    and ionosphere) and tidal effects (solid_tide, load_tide1,
-                    and pole_tide) applied.""")],
+                    and ionosphere), crossover correction, and tidal effects
+                    (solid_tide, load_tide1, and pole_tide) applied.""")],
                 ])],
         ['wse_u',
          odict([['dtype', 'f8'],
@@ -672,6 +728,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100.0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in the
                     node WSE, including uncertainties of corrections, and
@@ -686,6 +743,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100.0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Random-only uncertainty component in the node WSE,
                     including uncertainties of corrections, and variation about
@@ -699,6 +757,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""Node width.""")],
                 ])],
         ['width_u',
@@ -709,34 +768,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in
                     the node width.""")],
-                ])],
-        ['area_detct',
-         odict([['dtype', 'f8'],
-                ['long_name', 'surface area of detected water pixels'],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 2000000000],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert', 'Expert'],
-                ['comment', textjoin("""
-                    Surface area of node that was detected as water by the
-                    SWOT observation.""")],
-                ])],
-        ['area_det_u',
-         odict([['dtype', 'f8'],
-                ['long_name', textjoin("""
-                    uncertainty in the surface area of detected water""")],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 2000000000],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert', 'Expert'],
-                ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
-                    the surface area of the detected water pixels.""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f8'],
@@ -746,6 +781,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total estimated water surface area, including dark water
                     that was not detected as water in the SWOT observation but
@@ -760,9 +796,37 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in the
                     total estimated water surface area area_total.""")],
+                ])],
+        ['area_detct',
+         odict([['dtype', 'f8'],
+                ['long_name', 'surface area of detected water pixels'],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 2000000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Surface area of node that was detected as water by the
+                    SWOT observation.""")],
+                ])],
+        ['area_det_u',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    uncertainty in the surface area of detected water""")],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 2000000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Total one-sigma uncertainty (random and systematic) in
+                    the surface area of the detected water pixels.""")],
                 ])],
         ['area_wse',
          odict([['dtype', 'f8'],
@@ -772,6 +836,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Surface area of the node that contributed to the
                     computation of the WSE.""")],
@@ -781,12 +846,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'metric of layover effect'],
                 ['units', 'TBD'],
                 ['valid_min', 0],
-                ['valid_max', 5000],
+                ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Value indicating an estimate of the height error due to
-                    layover.""")],
+                    layover (TBD).""")],
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],
@@ -798,8 +864,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    TDistance between the observed node location and the node
+                    Distance between the observed node location and the node
                     location in the prior river database. """)],
                 ])],
         ['xtrk_dist',
@@ -810,15 +877,35 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 75000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Distance of the observed node location from the spacecraft
                     nadir track.  A negative value indicates the left side of
                     the swath, relative to the spacecraft velocity vector.  A
                     positive value indicates the right side of the swath.""")],
                 ])],
+        ['flow_angle',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'river flow direction relative to the satellite ground track'],
+                ['units', 'degrees'],
+                ['valid_min', 0],
+                ['valid_max', 360],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    River flow direction for the node relative to the direction
+                    of the spacecraft nadir track based on prior data (not the
+                    SWOT observation).  A value of zero indicates that the flow
+                    is in the same direction as the spacecraft velocity
+                    direction.  A value of 90 degrees indicates that the flow
+                    is toward the right side of the SWOT swath.""")],
+                ])],
         ['quality_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the node'],
+                ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""good bad""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1]).astype('i2')],
@@ -826,6 +913,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the node measurement.
                     Values of 0 and 1 indicate nominal and off-nominal
@@ -839,12 +927,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Fraction of node area_total covered by dark water.""")],
                 ])],
         ['ice_clim_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'climatological ice cover flag'],
+                ['standard_name', 'status_flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
@@ -853,6 +943,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Climatological ice cover flag indicating whether the node
                     is ice-covered on the day of the observation based on
@@ -864,6 +955,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'dynamical ice cover flag'],
+                ['standard_name', 'status_flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
@@ -872,6 +964,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Dynamic ice cover flag indicating whether the surface is
                     ice-covered on the day of the observation based on
@@ -883,12 +976,14 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['partial_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'partial node coverage flag'],
+                ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""covered not_covered""")],
                 ['flag_values', np.array([0, 1]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Flag that indicates only partial node coverage.  The
                     flag is 0 if at least 10 pixels have a valid WSE
@@ -903,6 +998,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Number of pixels assigned to the node that have a valid
                     node WSE.""")],
@@ -917,6 +1013,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Quality of the cross-over calibration.""")],
                 ])],
@@ -928,6 +1025,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Median of the sigma0 from the pixel cloud points assigned
                     to the node in determining the node WSE.  The value is
@@ -943,6 +1041,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Uncertainty of sig0. The value is provided in linear units.
                     This value is a one-sigma additive (not multiplicative)
@@ -953,6 +1052,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'S1'],
                 ['long_name', 'polarization of sigma0'],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Flag indicating whether the node is observed with a
                     horizontal (H) or vertical (V) signal polarization.""")],
@@ -968,6 +1068,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 150],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Geoid height above the reference ellipsoid with a
                     correction to refer the value to the mean tide system
@@ -984,6 +1085,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Solid-Earth (body) tide height. The zero-frequency
                     permanent tide component is not included.""")],
@@ -997,6 +1099,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Geocentric pole tide height.  The sum total of the
                     contribution from the solid-Earth (body) pole tide height
@@ -1013,6 +1116,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
                     loading of the Earth's crust. This value is used to
@@ -1028,6 +1132,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
                     loading of the Earth's crust.""")],
@@ -1042,6 +1147,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', -1.5],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Equivalent vertical correction due to dry troposphere
                     delay.  Adding the reported correction to the reported
@@ -1049,7 +1155,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['wet_trop_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'model wet tropospheric correction'],
+                ['long_name', 'wet troposphere vertical correction'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['institution', 'ECMWF'],
                 ['units', 'm'],
@@ -1057,6 +1163,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Equivalent vertical correction due to wet troposphere
                     delay.  Adding the reported correction to the reported
@@ -1064,7 +1171,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['iono_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'ionospheric vertical correction'],
+                ['long_name', 'ionosphere vertical correction'],
                 ['source', 'Global Ionosphere Maps'],
                 ['institution', 'JPL'],
                 ['units', 'm'],
@@ -1072,6 +1179,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Equivalent vertical correction due to ionosphere delay. 
                     Adding the reported correction to the reported reach WSE
@@ -1085,6 +1193,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Height correction from KaRIn crossover calibration. 
                     The correction is applied before geolocation but reported
@@ -1098,6 +1207,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Node WSE from the prior river database.""")],
                 ])],
@@ -1109,6 +1219,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Node WSE spatial variability from the prior river
                     database.""")],
@@ -1121,8 +1232,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Node width from prior database.""")],
+                    Node width from prior river database.""")],
                 ])],
         ['p_wid_var',
          odict([['dtype', 'f8'],
@@ -1132,6 +1244,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Node width spatial variability from the prior river
                     database.""")],
@@ -1141,9 +1254,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'distance from the node to the outlet'],
                 ['units', 'm'],
                 ['valid_min', -10000],
-                ['valid_max', 100000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Along-stream distance from the node to the outlet, from
                     the prior river database.""")],
@@ -1156,6 +1270,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 1000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Length of the node from the prior river database.
                     This value is used to compute the node width from the
@@ -1169,6 +1284,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Dam ID from the Global Reservoir and Dam (GRanD) database.
                     The value is 0 if there is no influence of dams at the
@@ -1185,6 +1301,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Maximum number of channels at the node, from the prior
                     river database.""")],
@@ -1197,6 +1314,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Mode of the number of channels at the node, from the prior
                     river database.""")],
@@ -1212,6 +1330,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         """
         klass = cls()
         if node_outputs is not None:
+            klass['reach_id'] = node_outputs['reach_indx']
             klass['node_id'] = node_outputs['node_indx']
             klass['lat'] = node_outputs['lat']
             klass['lon'] = node_outputs['lon']
@@ -1235,6 +1354,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['load_tide1'] = node_outputs['load_tide1']
             klass['load_tide2'] = node_outputs['load_tide2']
             klass['pole_tide'] = node_outputs['pole_tide']
+            klass['flow_angle'] = node_outputs['flow_dir']
             # compute node distance from prior
             klass['node_dist'] = np.sqrt(
                 (node_outputs['x']-node_outputs['x_prior'])**2 +
@@ -1355,9 +1475,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i8'],
-                ['long_name', 'reach ID from prior database'],
+                ['long_name', 'reach ID from prior river database'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Unique reach identifier from the prior river database.
                     The format of the identifier is CBBBBBRRRRT, where
@@ -1365,6 +1486,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
+        ['time_str', RiverTileNodes.VARIABLES['time_str'].copy()],
         ['centerline_lat',
          odict([['dtype', 'f8'],
                 ['long_name',
@@ -1425,12 +1547,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fitted reach water surface elevation, relative to the
                     provided model of the geoid (geoid_hght), with corrections
-                    for media delays (wet and dry troposphere, and ionosphere)
-                    and tidal effects (solid_tide, load_tide1, and pole_tide)
-                    applied.""")],
+                    for media delays (wet and dry troposphere, and ionosphere),
+                    crossover correction, and tidal effects (solid_tide,
+                    load_tide1, and pole_tide) applied.""")],
                 ])],
         ['wse_u',
          odict([['dtype', 'f8'],
@@ -1441,6 +1564,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in
                     the reach WSE, including uncertainties of corrections,
@@ -1455,6 +1579,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Random-only component of the uncertainty in the reach WSE,
                     including uncertainties of corrections, and variation about
@@ -1468,6 +1593,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fitted water surface slope relative to the geoid, and
                     with the same corrections and geophysical fields applied
@@ -1483,6 +1609,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in the
                     water surface slope, including uncertainties of corrections
@@ -1496,6 +1623,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Random-only component of the uncertainty in the water
                     surface slope.""")],
@@ -1509,6 +1637,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Enhanced water surface slope relative to the geoid,
                     produced using a smoothing of the node wse. The upstream
@@ -1524,6 +1653,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in
                     the enhanced water surface slope, including uncertainties
@@ -1537,7 +1667,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', 0],
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Basic'],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Random-only component of the uncertainty in the enhanced
                     water surface slope.""")],
@@ -1550,6 +1681,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""Reach width.""")],
                 ])],
         ['width_u',
@@ -1560,34 +1692,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in
                     the reach width.""")],
-                ])],
-        ['area_detct',
-         odict([['dtype', 'f8'],
-                ['long_name', 'surface area of detected water pixels'],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 2000000000],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['comment', textjoin("""
-                    Surface area of reach that was detected as water by the
-                    SWOT observation.""")],
-                ])],
-        ['area_det_u',
-         odict([['dtype', 'f8'],
-                ['long_name', textjoin("""
-                    uncertainty in the surface area of detected water""")],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 2000000000],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
-                    the surface area of the detected water pixels.""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f8'],
@@ -1597,6 +1705,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total estimated water surface area, including dark water
                     that was not detected as water in the SWOT observation but
@@ -1612,9 +1721,37 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000*200],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in the
                     total estimated water surface area area_total.""")],
+                ])],
+        ['area_detct',
+         odict([['dtype', 'f8'],
+                ['long_name', 'surface area of detected water pixels'],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 2000000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Surface area of reach that was detected as water by the
+                    SWOT observation.""")],
+                ])],
+        ['area_det_u',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    uncertainty in the surface area of detected water""")],
+                ['units', 'm^2'],
+                ['valid_min', 0],
+                ['valid_max', 2000000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Total one-sigma uncertainty (random and systematic) in
+                    the surface area of the detected water pixels.""")],
                 ])],
         ['area_wse',
          odict([['dtype', 'f8'],
@@ -1625,6 +1762,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Surface area of the reach that contributed to the
                     computation of the WSE.""")],
@@ -1637,6 +1775,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Change in channel cross sectional area from the value
                     reported in the prior river database.""")],
@@ -1651,6 +1790,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in the
                     change in the cross-sectional area.""")],
@@ -1663,9 +1803,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Value indicating an estimate of the height error due to
-                    layover. """)],
+                    layover (TBD). """)],
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],
@@ -1677,6 +1818,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Mean distance between the observed node locations and the
                     node locations in the prior river database.""")],
@@ -1691,6 +1833,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 20000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Location offset between the observed and prior reach
                     locations.  This is defined as the mean of the along-stream
@@ -1707,6 +1850,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 75000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Average distance of the observed node locations in the
                     reach from the spacecraft nadir track.  A negative value
@@ -1718,10 +1862,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'consensus discharge'],
                 ['units', 'm^3/s'],
-                ['valid_min', 0],
+                ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the consensus discharge algorithm.""")],
                 ])],
@@ -1729,10 +1874,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in consensus discharge'],
                 ['units', 'm^3/s'],
-                ['valid_min', 0],
+                ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Uncertainty in consensus discharge algorithm.""")],
                 ])],
@@ -1740,10 +1886,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'discharge from model 1'],
                 ['units', 'm^3/s'],
-                ['valid_min', 0],
+                ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from model 1.""")],
                 ])],
@@ -1755,6 +1902,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Uncertainty in model 1 discharge.""")],
                 ])],
@@ -1762,10 +1910,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'Discharge from model 2'],
                 ['units', 'm^3/s'],
-                ['valid_min', 0],
+                ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from model 2""")],
                 ])],
@@ -1777,6 +1926,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Uncertainty in model 2 discharge.""")],
                 ])],
@@ -1784,10 +1934,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'discharge from model 3'],
                 ['units', 'm^3/s'],
-                ['valid_min', 0],
+                ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from model 3.""")],
                 ])],
@@ -1799,12 +1950,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Uncertainty in model 3 discharge.""")],
                 ])],
         ['quality_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the reach'],
+                ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""good bad""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1]).astype('i2')],
@@ -1812,6 +1965,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the reach measurement. 
                     Values of 0 and 1 indicate nominal (good) and off-nominal
@@ -1825,12 +1979,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fraction of reach area_total covered by dark water.""")],
                 ])],
         ['ice_clim_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'climatological ice cover flag'],
+                ['standard_name', 'status_flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
@@ -1839,6 +1995,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Climatological ice cover flag indicating whether the reach
                     is ice-covered on the day of the observation based on
@@ -1850,6 +2007,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'dynamical ice cover flag'],
+                ['standard_name', 'status_flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
@@ -1858,6 +2016,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Dynamic ice cover flag indicating whether the surface is
                     ice-covered on the day of the observation based on
@@ -1869,12 +2028,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['partial_f',
          odict([['dtype', 'i2'],
                 ['long_name', 'partial reach coverage flag'],
+                ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""covered not_covered""")],
                 ['flag_values', np.array([0, 1]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Flag that indicates only partial reach coverage.  The flag
                     is 0 if at least half the nodes of the reach have valid WSE
@@ -1890,6 +2051,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Number of nodes in the reach that have a valid node WSE.
                     Note that the total number of nodes from the prior river
@@ -1903,6 +2065,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fraction of nodes (n_good_nod/p_n_nodes) in the reach that
                     have a valid node WSE.  The value is between 0 and 1.""")],
@@ -1917,6 +2080,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Quality of the cross-over calibration.""")],
                 ])],
@@ -1931,6 +2095,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 150],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Geoid height above the reference ellipsoid with a
                     correction to refer the value to the mean tide system
@@ -1946,6 +2111,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.01],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Geoid slope in the along-stream direction, based upon a
                     least-square linear fit along the reach.  A positive slope
@@ -1962,8 +2128,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Solid-Earth (Body) tide height. The zero-frequency
+                    Solid-Earth (body) tide height. The zero-frequency
                     permanent tide component is not included.""")],
                 ])],
         ['pole_tide',
@@ -1975,6 +2142,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Geocentric pole tide height.  The sum total of the
                     contribution from the solid-Earth (body) pole tide height
@@ -1991,6 +2159,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
                     loading of the Earth's crust. This value is used to
@@ -2006,6 +2175,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0.2],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Geocentric load tide height. The effect of the ocean tide
                     loading of the Earth's crust.""")],
@@ -2020,6 +2190,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', -1.5],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Equivalent vertical correction due to dry troposphere
                     delay.  Adding the reported correction to the reported
@@ -2035,6 +2206,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Equivalent vertical correction due to wet troposphere
                     delay.  Adding the reported correction to the reported
@@ -2042,7 +2214,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['iono_c',
          odict([['dtype', 'f8'],
-                ['long_name', 'ionospheric vertical correction'],
+                ['long_name', 'ionosphere vertical correction'],
                 ['source', 'Global Ionosphere Maps'],
                 ['institution', 'JPL'],
                 ['units', 'm'],
@@ -2050,6 +2222,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 0],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Equivalent vertical correction due to ionosphere delay. 
                     Adding the reported correction to the reported reach WSE
@@ -2063,6 +2236,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Height correction from KaRIn crossover calibration. 
                     The correction is applied before geolocation but reported
@@ -2075,6 +2249,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_min', 0],
                 ['valid_max', 4],
                 ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Number of upstream reaches, from the prior river database.
                     A value of 4 indicates 4 or more upstream reaches.""")],
@@ -2087,6 +2263,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 4],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Number of downstream reaches, from the prior river
                     database.  A value of 4 indicates 4 or more downstream
@@ -2098,6 +2275,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Values of reach_id for the upstream reaches, from the
                     prior river database.  The values are strings of
@@ -2110,6 +2288,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['units', '1'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Values of reach_id for the downstream reaches, from the
                     prior river database.  The values are strings of
@@ -2124,6 +2303,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Reach WSE from the prior river database.""")],
                 ])],
@@ -2135,6 +2315,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 9999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Reach WSE spatial variability from the prior river
                     database.""")],
@@ -2147,6 +2328,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Reach width from the prior river database.""")],
                 ])],
@@ -2158,18 +2340,20 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Reach width spatial variability from the prior river
                     database.""")],
                 ])],
         ['p_n_nodes',
          odict([['dtype', 'i2'],
-                ['long_name', 'Prior number of nodes'],
+                ['long_name', 'number of nodes in the reach'],
                 ['units', '1'],
-                ['valid_min', 0],
+                ['valid_min', 1],
                 ['valid_max', 500],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Number of nodes in the reach from the prior river
                     database.""")],
@@ -2179,9 +2363,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'distance from the reach to the outlet '],
                 ['units', 'm'],
                 ['valid_min', -10000],
-                ['valid_max', 100000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Along-stream distance from the reach center to the outlet,
                     from the prior river database.""")],
@@ -2194,6 +2379,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Length of the reach from the prior river database.  This
                     value is used to compute the reach width from the water
@@ -2207,6 +2393,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Mean annual flow from the prior river datavase.""")],
                 ])],
@@ -2219,6 +2406,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Dam ID from the Global Reservoir and Dam (GRanD) database.
                     The value is 0 if there is no influence of dams along the
@@ -2236,6 +2424,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Maximum number of channels in the reach from the prior
                     river database.""")],
@@ -2248,6 +2437,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 100],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Mode of the number of channels in the reach from the
                     prior river database.""")],
@@ -2255,11 +2445,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg1_c1',
          odict([['dtype', 'f8'],
                 ['long_name', 'coefficient 1 for discharge model 1'],
-                ['units', 's/m^1/3'],
+                ['source', 'TBD'],
+                ['units', 's/m^(1/3)'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Coefficient 1 for discharge model 1 from the prior
                     river database.""")],
@@ -2267,11 +2459,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg1_c2',
          odict([['dtype', 'f8'],
                 ['long_name', 'coefficient 1 for discharge model 1'],
+                ['source', 'TBD'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Coefficient 2 for discharge model 1 from the prior
                     river database.""")],
@@ -2279,11 +2473,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg2_c1',
          odict([['dtype', 'f8'],
                 ['long_name', 'coefficient 1 for discharge model 2'],
-                ['units', 's/m^1/3'],
+                ['source', 'TBD'],
+                ['units', 's/m^(1/3)'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Coefficient 1 for discharge model 2 from the prior
                     river database.""")],
@@ -2291,11 +2487,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg2_c2',
          odict([['dtype', 'f8'],
                 ['long_name', 'coefficient 1 for discharge model 2'],
+                ['source', 'TBD'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Coefficient 2 for discharge model 2 from the prior
                     river database.""")],
@@ -2303,11 +2501,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg3_c1',
          odict([['dtype', 'f8'],
                 ['long_name', 'coefficient 1 for discharge model 3'],
-                ['units', 's/m^1/3'],
+                ['source', 'TBD'],
+                ['units', 's/m^(1/3)'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Coefficient 1 for discharge model 3 from the prior
                     river database.""")],
@@ -2315,11 +2515,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dischg3_c2',
          odict([['dtype', 'f8'],
                 ['long_name', 'coefficient 1 for discharge model 3'],
+                ['source', 'TBD'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Coefficient 2 for discharge model 3 from the prior
                     river database.""")],
