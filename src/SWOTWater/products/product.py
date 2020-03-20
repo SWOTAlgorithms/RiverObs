@@ -220,7 +220,8 @@ class Product(object):
             dtype = self.VARIABLES[key].get('dtype', np.float32)
             quantized_fill = self._getfill(key)
             value = np.ones(shape, dtype=dtype)
-            value[:] = quantized_fill
+            if not value.shape==():
+                value[:] = quantized_fill
             return np.ma.masked_array(
                 data=value, dtype=dtype, fill_value=quantized_fill,
                 mask=np.ones(shape))
