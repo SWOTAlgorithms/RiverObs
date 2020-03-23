@@ -14,6 +14,7 @@ Author (s): Brent Williams
 
 import numpy as np
 import scipy.stats
+from scipy import interpolate
 
 def simple(in_var, metric='mean'):
     """
