@@ -81,6 +81,8 @@ def get_variable(dataset, key):
     of 'complex_depth' or 'depth' with length 2.
     '''
     variable = dataset[key]
+    if len(variable.dimensions) == 0:
+        return variable[0]
     if variable.dimensions[0] in DEPTH_DIMNAMES and variable.shape[0] == 2:
         tmp = np.ma.MaskedArray(variable[0] + 1j*variable[1])
         return tmp
