@@ -2579,8 +2579,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             cl_lat = klass['centerline_lat'][:]
             for ii in range(klass.dimensions['reaches']):
                 this_len = len(reach_outputs['centerline_lon'][ii])
-                tmp_lon = reach_outputs['centerline_lon'][ii]
-                cl_lon[ii, 0:this_len] = tmp_lon
+                cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
                 cl_lat[ii, 0:this_len] = reach_outputs['centerline_lat'][ii]
 
             klass['centerline_lon'] = cl_lon
