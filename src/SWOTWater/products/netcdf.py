@@ -127,6 +127,8 @@ def get_variable_dimensions(dataset, key):
     of 'depth' with length 2. This dimension is removed from the returned list.
     '''
     variable = dataset[key]
+    if len(variable.dimensions) == 0:
+        return variable.dimensions
     if variable.dimensions[0] in DEPTH_DIMNAMES and variable.shape[0] == 2:
         return variable.dimensions[1:]
     if variable.dimensions[-1] in DEPTH_DIMNAMES and variable.shape[-1] == 2:
