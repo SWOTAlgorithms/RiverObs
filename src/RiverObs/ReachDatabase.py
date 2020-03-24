@@ -175,6 +175,27 @@ class ReachExtractor(object):
 
             x, y = lat_lon_region.proj(lon, lat)
 
+            # Remove centerline vertices that joint adjacent reaches and are
+            # not close to nodes.
+            if np.any(this_reach['centerlines']['is_extra_vertex']):
+                extra_vertex_mask = this_reach['centerlines']['is_extra_vertex']
+                idx = extra_vertex_mask.nonzero()[0]
+                remove_mask = np.zeros(idx.shape).astype(bool)
+                cl_x, cl_y = lat_lon_region.proj(
+                    this_reach['centerlines']['x'][extra_vertex_mask],
+                    this_reach['centerlines']['y'][extra_vertex_mask])
+
+                for ii, (this_cl_x, this_cl_y) in enumerate(zip(cl_x, cl_y)):
+                    dx = this_cl_x-x
+                    dy = this_cl_y-y
+                    min_dist = np.min(np.sqrt(dx**2 + dy**2))
+                    if min_dist > 200:
+                        remove_mask[ii] = True
+                this_reach['centerlines']['x'] = np.delete(
+                    this_reach['centerlines']['x'], idx[remove_mask])
+                this_reach['centerlines']['y'] = np.delete(
+                    this_reach['centerlines']['y'], idx[remove_mask])
+
             blocking_widths = get_blocking_widths(x, y)
 
             reach_metadata = {
@@ -588,9 +609,12 @@ class ReachDatabaseCenterlines(Product):
 
     def __call__(self, reach_id):
         """Returns dict of reach attributes for reach_id"""
-        mask = np.any(self.reach_id == reach_id, axis=0)
+        mask_all = self.reach_id == reach_id
+        mask = np.any(mask_all, axis=0)
+        mask_extra = np.any(mask_all[1:, mask], axis=0)
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        outputs['is_extra_vertex'] = mask_extra
         return outputs
 
     def __add__(self, other):
