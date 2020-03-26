@@ -10,6 +10,7 @@ import numpy as np
 import netCDF4 as nc
 import collections
 import scipy.stats
+import scipy.ndimage
 import statsmodels.api
 import logging
 
@@ -381,7 +382,56 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs_collection = collections.OrderedDict()
         self.river_reach_collection = collections.OrderedDict()
         self.fit_collection = collections.OrderedDict()
+
+        self.flatten_interferogram()
         self.nc.close()
+
+    def flatten_interferogram(self):
+        """Flattens the pixel cloud interferogram"""
+        # range index is self.img_x, azi is self.img_y
+        try:
+            import cnes.modules.geoloc.lib.geoloc as geoloc
+            from cnes.common.lib.my_variables import \
+                GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE
+
+        except ImportError:
+            print("Can't flatten interferogram as swotCNES not found.")
+            return
+
+        try:
+            tvp_plus_y_antenna_xyz = (
+                self.nc['tvp']['plus_y_antenna_x'][:][self.img_y],
+                self.nc['tvp']['plus_y_antenna_y'][:][self.img_y],
+                self.nc['tvp']['plus_y_antenna_z'][:][self.img_y])
+            tvp_minus_y_antenna_xyz = (
+                self.nc['tvp']['minus_y_antenna_x'][:][self.img_y],
+                self.nc['tvp']['minus_y_antenna_y'][:][self.img_y],
+                self.nc['tvp']['minus_y_antenna_z'][:][self.img_y])
+            pixc = {'tvp': {'time': self.nc['tvp']['time'][:]},
+                    'pixel_cloud': {'illumination_time': 
+                     self.nc['pixel_cloud']['illumination_time'][:]}}
+        except KeyError:
+            print("Can't flatten interferogram as TVP not in pixel cloud.")
+            return
+
+        hgt_2d = np.nan*np.ones((np.max(self.img_y)+1, np.max(self.img_x)+1))
+        hgt_2d[self.img_y, self.img_x] = self.h_noise
+
+        # do a 2d median filter on the heights
+        hgt_filt = scipy.ndimage.generic_filter(hgt_2d, np.nanmedian, size=11)
+
+        target_xyz = geoloc.convert_llh2ecef(
+            self.lat, self.lon, hgt_filt[self.img_y, self.img_x],
+            GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE)
+
+
+        pixc_tvp_index = SWOTWater.aggregate.get_sensor_index(pixc)
+        pixc_wavelength = self.nc.wavelength
+        flat_ifgram = SWOTWater.aggregate.flatten_interferogram(
+            self.ifgram, tvp_plus_y_antenna_xyz, tvp_minus_y_antenna_xyz,
+            target_xyz, pixc_tvp_index[self.img_y], pixc_wavelength)
+
+        self.ifgram = flat_ifgram
 
     def segment_water_class(self, preseg_dilation_iter=0):
         """
