@@ -711,11 +711,14 @@ class SWOTRiverEstimator(SWOTL2):
                 print("CenterLineException: ", e)
                 continue
 
-            # Add width per node to centerline and re-init IteratedRiverObs
-            # to use the per node max widths (max width == 2x prior DB width)
+            # Add width per node to centerline and re-init IteratedRiverObs.
+            # Search width is the width it uses to always include (1/2 on
+            # each side of centerline).
+            search_width = 2 * (
+                self.reaches[i_reach].width * self.reaches[i_reach].wth_coef)
             river_obs.add_centerline_obs(
                 self.reaches[i_reach].x, self.reaches[i_reach].y,
-                self.reaches[i_reach].width*2, 'max_width')
+                search_width, 'max_width')
             river_obs.reinitialize()
 
             if len(river_obs.x) == 0:
