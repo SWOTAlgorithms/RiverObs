@@ -266,12 +266,26 @@ class ReachDatabase(Product):
         ['x_max', {'dtype': 'f8' , 'value': None}],
         ['y_min', {'dtype': 'f8' , 'value': None}],
         ['y_max', {'dtype': 'f8' , 'value': None}],
+        ['Name', {}], ['production_date', {}],
         ])
     GROUPS = odict([
         ['nodes', 'ReachDatabaseNodes'],
         ['reaches', 'ReachDatabaseReaches'],
         ['centerlines', 'ReachDatabaseCenterlines']
     ])
+
+    def subset(self, reach_ids):
+        """Subsets the PRD by reach_ids"""
+        klass = ReachDatabase()
+        klass.nodes = self.nodes.subset(reach_ids)
+        klass.reaches = self.reaches.subset(reach_ids)
+        klass.centerlines = self.centerlines.subset(reach_ids)
+        klass.x_min = np.min(self.centerlines.x)
+        klass.x_max = np.max(self.centerlines.x)
+        klass.y_min = np.min(self.centerlines.y)
+        klass.y_max = np.max(self.centerlines.y)
+        return klass
+
 
     def __call__(self, reach_id):
         """Returns dict-o-stuff for reach_id"""
@@ -368,6 +382,18 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
+    def subset(self, reach_ids):
+        """Subsets the PRD nodes by reach_ids"""
+        klass = ReachDatabaseNodes()
+        mask = self.reach_id == reach_ids[0]
+        for reach_id in reach_ids[1:]:
+            mask = np.logical_or(mask, self.reach_id == reach_id)
+        outputs = {
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
     def __call__(self, reach_id):
         """Returns dict-o-stuff for reach_id"""
         mask = self.reach_id == reach_id
@@ -395,10 +421,13 @@ class ReachDatabaseReaches(Product):
         ['area_fits', 'ReachDatabaseReachAreaFits'],
         ['discharge_models', 'ReachDatabaseReachDischargeModels']])
 
-    DIMENSIONS = odict([['centerlines', 2], ['reach_neighbors', 4], ['reaches', 0]])
+    DIMENSIONS = odict([
+        ['centerlines', 2], ['reach_neighbors', 4], ['julian_day', 0],
+        ['reaches', 0]])
     DIMENSIONS_CLIDS = odict([['centerlines', 2], ['reaches', 0]])
     DIMENSIONS_REACH_UPDOWN = odict([['reach_neighbors', 4], ['reaches', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
+    DIMENSIONS_ICEFLAG = odict([['julian_day', 0], ['reaches', 0]])
     VARIABLES = odict([
         ['x',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
@@ -446,9 +475,25 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
         ['lakeflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['iceflag',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ICEFLAG]])],
         ['cl_ids',
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_CLIDS]])],
         ])
+
+    def subset(self, reach_ids):
+        """Subsets the PRD reaches by reach_ids"""
+        klass = ReachDatabaseReaches()
+        mask = self.reach_id == reach_ids[0]
+        for reach_id in reach_ids[1:]:
+            mask = np.logical_or(mask, self.reach_id == reach_id)
+        outputs = {
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        outputs['area_fits'] = self.area_fits.subset(mask)
+        outputs['discharge_models'] = self.discharge_models.subset(mask)
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
 
     def __call__(self, reach_id):
         """Returns dict of reach attributes for reach_id"""
@@ -519,6 +564,15 @@ class ReachDatabaseReachDischargeModels(Product):
         ['BAM_n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
 
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachDischargeModels by reach_ids"""
+        klass = ReachDatabaseReachDischargeModels()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
     def __call__(self, mask):
         """Returns dict of reach attributes for reach_id"""
         # HACK alert, mask is injected by ReachDatabaseReaches class
@@ -566,6 +620,15 @@ class ReachDatabaseReachAreaFits(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_FIT]])],
         ])
 
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachAreaFits by reach_ids"""
+        klass = ReachDatabaseReachAreaFits()
+        outputs = {
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
     def __call__(self, mask):
         """Returns dict of reach attributes for reach_id"""
         # HACK alert, mask is injected by ReachDatabaseReaches class
@@ -606,6 +669,19 @@ class ReachDatabaseCenterlines(Product):
         ['cl_id',
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_POINTS]])],
         ])
+
+    def subset(self, reach_ids):
+        """Subsets the PRD ReachDatabaseCenterlines by reach_ids"""
+        klass = ReachDatabaseCenterlines()
+        mask = np.any(self.reach_id == reach_ids[0], axis=0)
+        for reach_id in reach_ids[1:]:
+            mask = np.logical_or(
+                mask, np.any(self.reach_id == reach_id, axis=0))
+        outputs = {
+            key: self[key][..., mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
 
     def __call__(self, reach_id):
         """Returns dict of reach attributes for reach_id"""
