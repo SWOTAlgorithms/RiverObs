@@ -159,6 +159,10 @@ class L2HRRiverTile(Product):
         # add missing reaches and nodes
         for reach, reach_id in zip(prd_reaches, prd_reaches.reach_idx):
 
+            # skip ghost reaches
+            if reach_id % 10 == 6:
+                continue
+
             # check for missing nodes
             mask_nodes = node_outputs['reach_indx'] == reach_id
 
