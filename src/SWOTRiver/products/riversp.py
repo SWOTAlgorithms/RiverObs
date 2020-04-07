@@ -45,17 +45,6 @@ class L2HRRiverSP(L2HRRiverTile):
         klass.sort()
         return klass
 
-    def sort(self):
-        """sorts self according to the PDD"""
-        # sort first by reach_id, then by node_id
-        node_sort_idx = np.argsort(self.nodes.node_id)
-        for key, values in self.nodes.variables.items():
-            self.nodes[key] = values[node_sort_idx]
-
-        reach_sort_idx = np.argsort(self.reaches.reach_id)
-        for key, values in self.reaches.variables.items():
-            self.reaches[key] = values[reach_sort_idx]
-
     def __add__(self, other):
         """Adds other to self"""
         klass = L2HRRiverSP()

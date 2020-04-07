@@ -143,6 +143,17 @@ class L2HRRiverTile(Product):
         ['reaches', 'RiverTileReaches'],
     ])
 
+    def sort(self):
+        """sorts self according to the PDD"""
+        # sort first by reach_id, then by node_id
+        node_sort_idx = np.argsort(self.nodes.node_id)
+        for key, values in self.nodes.variables.items():
+            self.nodes[key] = values[node_sort_idx]
+
+        reach_sort_idx = np.argsort(self.reaches.reach_id)
+        for key, values in self.reaches.variables.items():
+            self.reaches[key] = values[reach_sort_idx]
+
     @staticmethod
     def dump_xmls(node_xml_file, reach_xml_file):
         with open(node_xml_file, 'w') as ofp:
@@ -170,74 +181,70 @@ class L2HRRiverTile(Product):
                 reach.node_indx, node_outputs['node_indx'][mask_nodes])
 
             if len(missing_node_ids) > 0:
-                intersects = np.intersect1d(
-                    reach.node_indx, missing_node_ids, return_indices=True)
-                rch_msk = intersects[1]
+                for missing_node_id in np.sort(missing_node_ids):
 
-                try:
-                    insert_idx = np.where(mask_nodes)[0][-1]
-                except IndexError:
+                    rch_idx = np.argwhere(
+                        reach.node_indx == missing_node_id)[0][0]
+
                     try:
                         insert_idx = np.where(
-                            reach_id > node_outputs['reach_indx'])[0][-1]
+                            missing_node_id > node_outputs['node_indx'])[0][-1]
                     except IndexError:
                         insert_idx = 0
 
-                node_outputs['x_prior'] = np.insert(
-                    node_outputs['x_prior'], insert_idx, reach.x[rch_msk])
-                node_outputs['y_prior'] = np.insert(
-                    node_outputs['y_prior'], insert_idx, reach.y[rch_msk])
-                node_outputs['lon_prior'] = np.insert(
-                    node_outputs['lon_prior'], insert_idx, reach.lon[rch_msk])
-                node_outputs['lat_prior'] = np.insert(
-                    node_outputs['lat_prior'], insert_idx, reach.lat[rch_msk])
-                node_outputs['p_wse'] = np.insert(
-                    node_outputs['p_wse'], insert_idx, reach.wse[rch_msk])
-                node_outputs['p_wse_var'] = np.insert(
-                    node_outputs['p_wse_var'], insert_idx,
-                    reach.wse_var[rch_msk])
-                node_outputs['p_width'] = np.insert(
-                    node_outputs['p_width'], insert_idx,
-                    reach.width[rch_msk])
-                node_outputs['p_wid_var'] = np.insert(
-                    node_outputs['p_wid_var'], insert_idx,
-                    reach.width_var[rch_msk])
-                node_outputs['p_dist_out'] = np.insert(
-                    node_outputs['p_dist_out'], insert_idx,
-                    reach.dist_out[rch_msk])
-                node_outputs['p_length'] = np.insert(
-                    node_outputs['p_length'], insert_idx,
-                    reach.node_length[rch_msk])
-                node_outputs['grand_id'] = np.insert(
-                    node_outputs['grand_id'], insert_idx,
-                    reach.grod_id[rch_msk])
-                node_outputs['n_chan_max'] = np.insert(
-                    node_outputs['n_chan_max'], insert_idx,
-                    reach.n_chan_max[rch_msk])
-                node_outputs['n_chan_mod'] = np.insert(
-                    node_outputs['n_chan_mod'], insert_idx,
-                    reach.n_chan_mod[rch_msk])
-                node_outputs['node_indx'] = np.insert(
-                    node_outputs['node_indx'], insert_idx, missing_node_ids)
-                node_outputs['reach_indx'] = np.insert(
-                    node_outputs['reach_indx'], insert_idx,
-                    np.ones(missing_node_ids.shape) * reach_id)
+                    node_outputs['x_prior'] = np.insert(
+                        node_outputs['x_prior'], insert_idx, reach.x[rch_idx])
+                    node_outputs['y_prior'] = np.insert(
+                        node_outputs['y_prior'], insert_idx, reach.y[rch_idx])
+                    node_outputs['lon_prior'] = np.insert(
+                        node_outputs['lon_prior'], insert_idx, reach.lon[rch_idx])
+                    node_outputs['lat_prior'] = np.insert(
+                        node_outputs['lat_prior'], insert_idx, reach.lat[rch_idx])
+                    node_outputs['p_wse'] = np.insert(
+                        node_outputs['p_wse'], insert_idx, reach.wse[rch_idx])
+                    node_outputs['p_wse_var'] = np.insert(
+                        node_outputs['p_wse_var'], insert_idx,
+                        reach.wse_var[rch_idx])
+                    node_outputs['p_width'] = np.insert(
+                        node_outputs['p_width'], insert_idx,
+                        reach.width[rch_idx])
+                    node_outputs['p_wid_var'] = np.insert(
+                        node_outputs['p_wid_var'], insert_idx,
+                        reach.width_var[rch_idx])
+                    node_outputs['p_dist_out'] = np.insert(
+                        node_outputs['p_dist_out'], insert_idx,
+                        reach.dist_out[rch_idx])
+                    node_outputs['p_length'] = np.insert(
+                        node_outputs['p_length'], insert_idx,
+                        reach.node_length[rch_idx])
+                    node_outputs['grand_id'] = np.insert(
+                        node_outputs['grand_id'], insert_idx,
+                        reach.grod_id[rch_idx])
+                    node_outputs['n_chan_max'] = np.insert(
+                        node_outputs['n_chan_max'], insert_idx,
+                        reach.n_chan_max[rch_idx])
+                    node_outputs['n_chan_mod'] = np.insert(
+                        node_outputs['n_chan_mod'], insert_idx,
+                        reach.n_chan_mod[rch_idx])
+                    node_outputs['node_indx'] = np.insert(
+                        node_outputs['node_indx'], insert_idx, missing_node_id)
+                    node_outputs['reach_indx'] = np.insert(
+                        node_outputs['reach_indx'], insert_idx, reach_id)
 
-                for key in ['nobs', 'nobs_h', 'node_blocked']:
-                    node_outputs[key] = np.insert(
-                        node_outputs[key], insert_idx,
-                        np.ones(missing_node_ids.shape) * MISSING_VALUE_INT4)
+                    for key in ['nobs', 'nobs_h', 'node_blocked']:
+                        node_outputs[key] = np.insert(
+                            node_outputs[key], insert_idx, MISSING_VALUE_INT4)
 
-                for key in ['lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std',
-                            'w_area', 'w_db', 'area', 'area_u', 'area_det',
-                            'area_det_u', 'area_of_ht', 'wse', 'wse_std',
-                            'wse_u', 'rdr_sig0', 'rdr_sig0_u', 'latitude_u',
-                            'longitud_u', 'width_u', 'geoid_hght', 'solid_tide',
-                            'load_tide1', 'load_tide2', 'pole_tide', 'flow_dir',
-                            'dark_frac', 'xtrack', 'h_n_ave', 'fit_height']:
-                    node_outputs[key] = np.insert(
-                        node_outputs[key], insert_idx,
-                        np.ones(missing_node_ids.shape) * MISSING_VALUE_FLT)
+                    for key in [
+                        'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
+                         'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
+                         'area_of_ht', 'wse', 'wse_std', 'wse_u', 'rdr_sig0',
+                         'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
+                         'geoid_hght', 'solid_tide', 'load_tide1', 'load_tide2',
+                         'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
+                         'h_n_ave', 'fit_height']:
+                        node_outputs[key] = np.insert(
+                            node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
             # for missing reaches
             if reach_id not in reach_outputs['reach_idx']:
@@ -299,11 +306,11 @@ class L2HRRiverTile(Product):
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
 
-        # Resort by reach_id
-
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
             reach_outputs, reach_collection)
+        # sort them by increasing reach id
+        klass.sort()
         return klass
 
     @classmethod
