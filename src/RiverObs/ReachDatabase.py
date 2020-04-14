@@ -691,6 +691,12 @@ class ReachDatabaseCenterlines(Product):
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
         outputs['is_extra_vertex'] = mask_extra
+
+        # sort by cl_id
+        idx = np.argsort(outputs['cl_id'])
+        for key, value in outputs.items():
+            outputs[key] = value[..., idx]
+
         return outputs
 
     def __add__(self, other):
