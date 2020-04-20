@@ -48,7 +48,7 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                 UTC time when file generated. Format is:
                 'YYYY-MM-DD hh:mm:ss : Creation' """)}],
-        ['mission_name', {'dtype': 'str' ,'value':'SWOT','docstr': 'SWOT'}],
+        ['platform', {'dtype': 'str' ,'value':'SWOT','docstr': 'SWOT'}],
         ['references', {'dtype': 'str',
             'docstr': textjoin("""
                 Published or web-based references that describe
@@ -84,14 +84,22 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                 The range spacing (m) corresponding to the 200 MHz
                 sampling frequency""")}],
-        ['start_time', {'dtype': 'str',
+        ['time_coverage_start', {'dtype': 'str',
             'docstr': textjoin("""
-                UTC time of first measurement. Format is: YYYY-MM-DD
-                hh:mm:ss.ssssssZ""")}],
-        ['stop_time', {'dtype': 'str',
+                UTC time of first measurement.
+                Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
+        ['time_coverage_end', {'dtype': 'str',
             'docstr': textjoin("""
-                UTC time of last measurement. Format is: YYYY-MM-DD
-                hh:mm:ss.ssssssZ""")}],
+                UTC time of last measurement.
+                Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
+        ['geospatial_lon_min',  {'dtype': 'f8',
+            'docstr': "Westernmost longitude (deg) of granule bounding box"}],
+        ['geospatial_lon_max',  {'dtype': 'f8',
+            'docstr': "Easternmost longitude (deg) of granule bounding box"}],
+        ['geospatial_lat_min',  {'dtype': 'f8',
+            'docstr': "Southernmost latitude (deg) of granule bounding box"}],
+        ['geospatial_lat_max',  {'dtype': 'f8',
+            'docstr': "Northernmost latitude (deg) of granule bounding box"}],
         ['inner_first_latitude', {'dtype': 'str',
             'docstr': textjoin("""
                  Nominal swath corner latitude (degrees_north) for the first
@@ -262,25 +270,6 @@ class L2PIXCVector(Product):
                     Index of the data in the pixel_cloud group of the
                     L2_HR_PIXC file that is associated with the pixel. This
                     index starts counting from zero.""")],
-                ])],
-        ['lake_flag',
-         odict([['dtype', 'u1'],
-                ['long_name', 'lake flag'],
-                ['flag_meanings', textjoin("""
-                    river lake river_under_tide canal no_hydrosheds dam""")],
-                ['flag_values', np.array([0, 1, 2, 3, 4, 5]).astype('u1')],
-                ['valid_min', 0],
-                ['valid_max', 5],
-                ['comment', textjoin("""
-                    Flag indicating the reach from the PRD.  0= Reach was
-                    flagged as belonging to a river. 1= Reach was flagged as
-                    belonging to a lake. 2= Reach was flagged as a river under
-                    the influence of tides.  3= Reach was flagged as being
-                    under the influence of a canal.  4= Unable to connect reach
-                    with HydroSHEDS topology.  5= Reach was flagged as being
-                    under the influence of a dam.  A value of 1 can occur for
-                    pixels that are associated with a connected lake type (T=3)
-                    in the reach_id and node_id.""")],
                 ])],
         ['segmentation_label',
          odict([['dtype', 'i4'],

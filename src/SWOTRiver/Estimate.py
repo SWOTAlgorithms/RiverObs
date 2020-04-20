@@ -251,21 +251,6 @@ class L2PixcToRiverTile(object):
 
             ofp.variables['pixc_index'][:] = indx_pixc.astype('int32')
 
-    def flag_lakes_pixc(self):
-        """
-        Adds a lake/river flag from prior database to pixcvector
-        """
-        LOGGER.info('flag_lakes_pixc')
-        with netCDF4.Dataset(self.index_file, 'a') as ofp:
-            pixc_reach = ofp.variables['reach_id'][:]
-
-            # make lake_flag dataset and fill with 255
-            ofp.variables['lake_flag'][:] = 255*np.ones(pixc_reach.shape)
-            if self.reach_outputs is not None:
-                for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
-                                            self.reach_outputs['lake_flag']):
-                    ofp.variables['lake_flag'][pixc_reach == reach] = lake_flag
-
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
@@ -317,11 +302,11 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.nodes.title = \
             "Level 2 KaRIn High Rate River Tile Node Data Product"
         self.rivertile_product.nodes.history = history_string
-        self.rivertile_product.nodes.xref_input_l2_hr_pixc_file = \
+        self.rivertile_product.nodes.xref_input_l2_hr_pixc_files = \
             self.pixc_file
 
         self.rivertile_product.reaches.title = \
             "Level 2 KaRIn High Rate River Tile Reach Data Product"
         self.rivertile_product.reaches.history = history_string
-        self.rivertile_product.reaches.xref_input_l2_hr_pixc_file = \
+        self.rivertile_product.reaches.xref_input_l2_hr_pixc_files = \
             self.pixc_file

@@ -259,10 +259,10 @@ class L2HRRiverTile(Product):
                 this_rch_id_dn = reach.metadata['rch_id_dn'].T
                 reach_outputs['rch_id_dn'] = np.concatenate(
                     (reach_outputs['rch_id_dn'], this_rch_id_up))
-
-                reach_outputs['n_reach_up'] = (this_rch_id_up>0).sum()
-                reach_outputs['n_reach_dn'] = (this_rch_id_dn>0).sum()
-
+                reach_outputs['n_reach_up'] = np.append(
+                    reach_outputs['n_reach_up'], (this_rch_id_up>0).sum())
+                reach_outputs['n_reach_dn'] = np.append(
+                    reach_outputs['n_reach_dn'], (this_rch_id_dn>0).sum())
                 reach_outputs['reach_idx'] = np.append(
                         reach_outputs['reach_idx'], reach_id)
                 reach_outputs['p_lon'] = np.append(
