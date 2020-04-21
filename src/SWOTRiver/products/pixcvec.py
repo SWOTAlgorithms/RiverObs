@@ -227,38 +227,33 @@ class L2PIXCVector(Product):
                 ['long_name', 'climatological ice cover flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover
-                    not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('i2')],
+                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 255],
+                ['valid_max', 2],
                 ['comment', textjoin("""
-                    Climatological ice cover flag indicating whether the node
+                    Climatological ice cover flag indicating whether the reach
                     is ice-covered on the day of the observation based on
-                    external climatological information (not the SWOT
-                    measurement).  Values of 0, 1, and 2 indicate that the
-                    node is not ice covered, partially ice covered, and fully
-                    ice covered, respectively. A value of 255 indicates that
-                    this flag is not available.""")],
+                    external climatological information (not the
+                    SWOT measurement).  Values of 0, 1, and 2 indicate that the
+                    reach is likely not ice covered, likely partially ice
+                    covered, and likely fully ice covered, respectively.""")],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'u1'],
                 ['long_name', 'dynamical ice cover flag'],
                 ['source', 'UNC'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover
-                    not_available""")],
-                ['flag_values', np.array([0, 1, 2, 255]).astype('u1')],
+                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                ['flag_values', np.array([0, 1, 2]).astype('u1')],
                 ['valid_min', 0],
-                ['valid_max', 255],
+                ['valid_max', 2],
                 ['comment', textjoin("""
                     Dynamic ice cover flag indicating whether the surface is
-                    ice-covered on the day of the observation based on
-                    analysis of external satellite optical data.  Values of
-                    0, 1, and 2 indicate that the node is not ice covered,
-                    partially ice covered, and fully ice covered, respectively.
-                    A value of 255 indicates that this flag is not available.
-                    """)],
+                    ice-covered on the day of the observation based on analysis
+                    of external satellite optical data.  Values of 0, 1, and 2
+                    indicate that the reach is not ice covered, partially ice
+                    covered, and fully ice covered, respectively.""")],
                 ])],
         ['pixc_index',
          odict([['dtype', 'i4'],
