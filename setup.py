@@ -68,7 +68,7 @@ setup(name='GeometryDataBase',
      )
 
 exec(open('src/SWOTRiver/version.py').read())
-script_dir = 'src/bin/'
+script_dir = 'src/SWOTRiver/scripts/'
 setup(name='SWOTRiver',
       version=__version__,
       description='Extract hydrology observables from SWOT data.',
