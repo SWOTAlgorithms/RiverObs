@@ -555,18 +555,58 @@ class ReachDatabaseReaches(Product):
 class ReachDatabaseReachDischargeModels(Product):
     """class for prior reach database reach discharge_models datagroup"""
     ATTRIBUTES = odict()
-    DIMENSIONS = odict([['reaches', 0]])
-    VARIABLES = odict([
-        ['MetroMan_Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
-        ['MetroMan_na', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
-        ['MetroMan_nb', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
-        ['BAM_Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
-        ['BAM_n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
-        ])
+    DIMENSIONS = odict()
+    VARIABLES = odict()
+    GROUPS = odict([
+        ['MetroMan', 'ReachDatabaseReachMetroMan'],
+        ['BAM', 'ReachDatabaseReachBAM'],
+        ['HiDVI', 'ReachDatabaseReachHiDVI'],
+        ['MOMMA', 'ReachDatabaseReachMOMMA'],
+        ['SADS', 'ReachDatabaseReachSADS'],
+    ])
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachDischargeModels by reach_ids"""
         klass = ReachDatabaseReachDischargeModels()
+        for group in self.GROUPS:
+            klass[group] = self[group].subset(mask)
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {}
+        for group in self.GROUPS:
+            outputs[group] = self[group](mask)
+        return outputs
+
+    def __add__(self, other):
+        klass = ReachDatabaseReaches()
+        for group in self.GROUPS:
+            klass[group] = self[group] + other[group]
+        return klass
+
+class ReachDatabaseReachMetroMan(Product):
+    """class for PRD reach MetroMan discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['Abar_stdev', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['ninf', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['ninf_stdev', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['p', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['p_stdev', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['ninf_p_cor', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['p_Abar_cor', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['ninf_Abar_cor', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachMetroMan by reach_ids"""
+        klass = ReachDatabaseReachMetroMan()
         outputs = {
             key: self[key][mask] for key in self.VARIABLES.keys()}
         for key, value in outputs.items():
@@ -583,11 +623,156 @@ class ReachDatabaseReachDischargeModels(Product):
 
     def __add__(self, other):
         """Adds other to self"""
-        klass = ReachDatabaseReachDischargeModels()
+        klass = ReachDatabaseReachMetroMan()
         for dset in self.VARIABLES.keys():
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
+
+
+class ReachDatabaseReachBAM(Product):
+    """class for PRD reach BAM discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachBAM by reach_ids"""
+        klass = ReachDatabaseReachBAM()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachBAM()
+        for dset in self.VARIABLES.keys():
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        return klass
+
+class ReachDatabaseReachHiDVI(Product):
+    """class for PRD reach HiDVI discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['alpha', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['beta', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachHiDVI by reach_ids"""
+        klass = ReachDatabaseReachHiDVI()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachHiDVI()
+        for dset in self.VARIABLES.keys():
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        return klass
+
+class ReachDatabaseReachMOMMA(Product):
+    """class for PRD reach MOMMA discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['B', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['H', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['Save', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachMOMMA by reach_ids"""
+        klass = ReachDatabaseReachMOMMA()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachMOMMA()
+        for dset in self.VARIABLES.keys():
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        return klass
+
+class ReachDatabaseReachSADS(Product):
+    """class for PRD reach SADS discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachSADS by reach_ids"""
+        klass = ReachDatabaseReachSADS()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachSADS()
+        for dset in self.VARIABLES.keys():
+            setattr(klass, dset, np.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        return klass
+
+
 
 class ReachDatabaseReachAreaFits(Product):
     """class for prior reach database reach area_fits datagroup"""
