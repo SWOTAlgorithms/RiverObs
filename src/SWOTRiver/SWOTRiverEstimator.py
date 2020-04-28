@@ -1297,33 +1297,9 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['prior_node_s'] = self.river_obs.centerline.s
 
         # Compute discharge
-        # 1: compuate cross-sectional area of channel
-        area_fit_outputs = SWOTRiver.discharge.area(
-            reach_stats['height'], reach_stats['width'],
-            reach.metadata['area_fits'])
-
-        reach_stats['d_x_area'] = area_fit_outputs[0]
-        if reach_stats['d_x_area'] < -10000000:
-            reach_stats['d_x_area'] = MISSING_VALUE_FLT
-
-        reach_stats['d_x_area_u'] = area_fit_outputs[3]
-        if reach_stats['d_x_area_u'] < 0:
-            reach_stats['d_x_area_u'] = MISSING_VALUE_FLT
-
-        # 2: Compute MetroMan model
-        cross_sectional_area = (
-            reach_stats['d_x_area'] +
-            reach.metadata['area_fits']['med_flow_area'])
-
-        metro_man_n = reach.metadata['discharge_models']['MetroMan_na'] * (
-            cross_sectional_area/reach_stats['width'])**(
-            reach.metadata['discharge_models']['MetroMan_nb'])
-
-        reach_stats['discharge'] = (
-            cross_sectional_area**(5/3) * reach_stats['width']**(-2/3) *
-            (reach_stats['slope'])**(1/2)) / metro_man_n
-
-        reach_stats['dischg_u'] = MISSING_VALUE_FLT
+        discharge_model_values = SWOTRiver.discharge.compute(
+            reach, reach_stats['height'], reach_stats['width'],
+            reach_stats['slope'])
 
         # add fit_height for improved geolocation
         river_reach.fit_height = (
@@ -1358,6 +1334,13 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['grand_id'] = reach.metadata['grod_id']
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
+
+        # TODO put in discharge_model_values into reach_stats for output
+        reach_stats['d_x_area'] = discharge_model_values['d_x_area']
+        reach_stats['d_x_area_u'] = discharge_model_values['d_x_area_u']
+        reach_stats['discharge'] = MISSING_VALUE_FLT
+        reach_stats['dischg_u'] = MISSING_VALUE_FLT
+        #...etc
 
         river_reach.metadata = reach_stats
         return river_reach

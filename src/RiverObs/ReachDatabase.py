@@ -582,7 +582,7 @@ class ReachDatabaseReachDischargeModels(Product):
         return outputs
 
     def __add__(self, other):
-        klass = ReachDatabaseReaches()
+        klass = ReachDatabaseReachDischargeModels()
         for group in self.GROUPS:
             klass[group] = self[group] + other[group]
         return klass

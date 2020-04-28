@@ -3,6 +3,88 @@ Module for computing discharge for river reaches
 """
 import numpy as np
 
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
+
+def compute(reach, reach_height, reach_width, reach_slope):
+    """Computes the discharge models"""
+
+    area_fit_outputs = area(
+        reach_height, reach_width, reach.metadata['area_fits'])
+
+    d_x_area = area_fit_outputs[0]
+    if d_x_area < -10000000:
+        d_x_area = MISSING_VALUE_FLT
+
+    d_x_area_u = area_fit_outputs[3]
+    if d_x_area_u < 0:
+        d_x_area_u = MISSING_VALUE_FLT
+
+    metro_ninf = reach.metadata['discharge_models']['MetroMan']['ninf']
+    metro_Abar = reach.metadata['discharge_models']['MetroMan']['Abar']
+    metro_p = reach.metadata['discharge_models']['MetroMan']['p']
+
+    metro_n = metro_ninf * (
+        (d_x_area+metro_Abar) / reach_width)**metro_p
+    metro_q = (
+        (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
+        (reach_slope)**(1/2)) / metro_n
+
+    # 3: Compute BAM model
+    bam_n = reach.metadata['discharge_models']['BAM']['n']
+    bam_Abar = reach.metadata['discharge_models']['BAM']['Abar']
+
+    bam_q = (
+        (d_x_area+bam_Abar)**(5/3) * reach_width**(-2/3) *
+        (reach_slope)**(1/2)) / bam_n
+
+    # 4: Compute HiDVI model
+    hidvi_Abar = reach.metadata['discharge_models']['HiDVI']['Abar']
+    hidvi_alpha = reach.metadata['discharge_models']['HiDVI']['alpha']
+    hidvi_beta = reach.metadata['discharge_models']['HiDVI']['beta']
+
+    hidvi_n = reach_width / (
+        (d_x_area+hidvi_Abar)*hidvi_alpha*hidvi_beta)
+    hidvi_q = (
+        (d_x_area+hidvi_Abar)**(5/3) * reach_width**(-2/3) *
+        (reach_slope)**(1/2)) / hidvi_n
+
+    # 5: Compute MOMMA model
+    momma_B = reach.metadata['discharge_models']['MOMMA']['B']
+    momma_H = reach.metadata['discharge_models']['MOMMA']['H']
+    momma_Save = reach.metadata['discharge_models']['MOMMA']['Save']
+    momma_r = 2
+
+    momma_nb = 0.11 * momma_Save**0.18
+    log_factor = np.log((momma_H-momma_B)/(reach_height-momma_B))
+    if reach_height <= momma_H:
+        momma_n = momma_nb*(1+log_factor)
+    else:
+        momma_n = momma_nb*(1-log_factor)
+
+    momma_q = MISSING_VALUE_FLT
+    momma_q = (
+        ((reach_height - momma_B)*(momma_r/(1+momma_r)))**(5/3) *
+        reach_width * reach_slope**(1/2))
+
+    # 6: Compute SADS model
+    sads_Abar = reach.metadata['discharge_models']['SADS']['Abar']
+    sads_n = reach.metadata['discharge_models']['SADS']['n']
+
+    sads_q = (
+        (d_x_area+sads_Abar)**(5/3) * reach_width**(-2/3) *
+        (reach_slope)**(1/2)) / sads_n
+
+    outputs = {
+        'd_x_area': d_x_area,
+        'd_x_area_u': d_x_area_u,
+        'metro_q': metro_q,
+        'bam_q': bam_q,
+        'hidvi_q': hidvi_q,
+        'momma_q': momma_q,
+        'sads_q': sads_q}
+    return outputs
+
 def area(observed_height, observed_width, area_fits):
     """
     Provides a nicer interface for _area wrapping up the unpacking of prior
