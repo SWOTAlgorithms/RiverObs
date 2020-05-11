@@ -45,7 +45,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
 
     hidvi_n = reach_width / (
         (d_x_area+hidvi_Abar)*hidvi_alpha*hidvi_beta)
-    hidvi_q = (
+    hivdi_q = (
         (d_x_area+hidvi_Abar)**(5/3) * reach_width**(-2/3) *
         (reach_slope)**(1/2)) / hidvi_n
 
@@ -80,7 +80,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
         'd_x_area_u': d_x_area_u,
         'metro_q': metro_q,
         'bam_q': bam_q,
-        'hidvi_q': hidvi_q,
+        'hivdi_q': hivdi_q,
         'momma_q': momma_q,
         'sads_q': sads_q}
     return outputs
