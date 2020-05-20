@@ -435,8 +435,12 @@ class ShapeWriterMixIn(object):
                         pass
 
                 my_vars[key] = value.copy()
-                if key == 'time_str':
-                    my_vars['time_str']['fill_value'] = 'no_data'
+                if key in ['time_str',]:
+                    my_vars[key]['fill_value'] = 'no_data'
+
+                # remove these fill values
+                if key in ['rdr_pol',]:
+                    my_vars[key].pop('fill_value')
 
             for dset, attr_dict in my_vars.items():
                 ofp.write('    <{}>\n'.format(dset))
@@ -514,8 +518,12 @@ class ShapeWriterMixIn(object):
                             this_property[key] = str(this_item[ii])
 
                     elif key in ['rdr_pol',]:
-                        this_property[key] = this_item[ii].astype(
-                            '|S1').decode()
+                        if (this_item[ii].decode() ==
+                            self.VARIABLES[key]['_FillValue']):
+                            this_property[key] = 'no_data'
+                        else:
+                            this_property[key] = this_item[ii].astype(
+                                '|S1').decode()
 
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
@@ -1062,6 +1070,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['rdr_pol',
          odict([['dtype', 'S1'],
                 ['long_name', 'polarization of sigma0'],
+                ['_FillValue', '*'],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
