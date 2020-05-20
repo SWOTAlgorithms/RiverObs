@@ -310,3 +310,11 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.reaches.history = history_string
         self.rivertile_product.reaches.xref_input_l2_hr_pixc_files = \
             self.pixc_file
+
+        # Fixup some other things
+        with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
+            pol = ifp.polarization
+
+        self.rivertile_product.nodes.rdr_pol = \
+            np.ones(self.rivertile_product.nodes.rdr_pol.shape, dtype='S1')
+        self.rivertile_product.nodes.rdr_pol[:] = pol[0]
