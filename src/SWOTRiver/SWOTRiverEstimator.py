@@ -1302,8 +1302,11 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['slope'])
 
         # add fit_height for improved geolocation
-        river_reach.fit_height = (
-            reach_stats['height'] + reach_stats['slope'] * ss)
+        if reach_stats['slope'] != MISSING_VALUE_FLT:
+            river_reach.fit_height = (
+                reach_stats['height'] + reach_stats['slope'] * ss)
+        else:
+            river_reach.fit_height = MISSING_VALUE_FLT * np.ones(ss.shape)
 
         # copy things from the prior DB into reach outputs
         reach_stats['rch_id_up'] = np.array([
