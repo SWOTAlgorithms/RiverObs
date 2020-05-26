@@ -43,11 +43,11 @@ def compute(reach, reach_height, reach_width, reach_slope):
     hidvi_alpha = reach.metadata['discharge_models']['HiDVI']['alpha']
     hidvi_beta = reach.metadata['discharge_models']['HiDVI']['beta']
 
-    hidvi_n = reach_width / (
-        (d_x_area+hidvi_Abar)*hidvi_alpha*hidvi_beta)
+    hidvi_n_inv = hidvi_alpha * (
+        (d_x_area+hidvi_Abar)/reach_width)**hidvi_beta
     hivdi_q = (
         (d_x_area+hidvi_Abar)**(5/3) * reach_width**(-2/3) *
-        (reach_slope)**(1/2)) / hidvi_n
+        (reach_slope)**(1/2)) * hidvi_n_inv
 
     # 5: Compute MOMMA model
     momma_B = reach.metadata['discharge_models']['MOMMA']['B']
@@ -56,7 +56,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
     momma_r = 2
 
     momma_nb = 0.11 * momma_Save**0.18
-    log_factor = np.log((momma_H-momma_B)/(reach_height-momma_B))
+    log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
     if reach_height <= momma_H:
         momma_n = momma_nb*(1+log_factor)
     else:
@@ -65,7 +65,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
     momma_q = MISSING_VALUE_FLT
     momma_q = (
         ((reach_height - momma_B)*(momma_r/(1+momma_r)))**(5/3) *
-        reach_width * reach_slope**(1/2))
+        reach_width * reach_slope**(1/2)) / momma_n
 
     # 6: Compute SADS model
     sads_Abar = reach.metadata['discharge_models']['SADS']['Abar']
