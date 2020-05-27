@@ -139,7 +139,7 @@ class L2PixcToRiverTile(object):
             smooth=self.config['smooth'],
             alpha=self.config['alpha'],
             max_iter=self.config['max_iter'],
-            enhanced=False)
+            enhanced=True)
 
         if len(self.reach_collection) > 0:
             reach_variables = list(self.reach_collection[0].metadata.keys())
