@@ -24,7 +24,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
     metro_Abar = reach.metadata['discharge_models']['MetroMan']['Abar']
     metro_p = reach.metadata['discharge_models']['MetroMan']['p']
 
-    if (reach_width > 0 and reach_slope > 0 and d_x_area >= 0 and
+    if (reach_width > 0 and reach_slope > 0 and metro_Abar+d_x_area >= 0 and
         metro_Abar > 0 and metro_ninf > 0):
 
         metro_n = metro_ninf * (
@@ -39,7 +39,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
     bam_n = reach.metadata['discharge_models']['BAM']['n']
     bam_Abar = reach.metadata['discharge_models']['BAM']['Abar']
 
-    if (reach_width > 0 and reach_slope > 0 and d_x_area >= 0 and
+    if (reach_width > 0 and reach_slope > 0 and bam_Abar+d_x_area >= 0 and
         bam_Abar > 0 and bam_n > 0):
 
         bam_q = (
@@ -53,7 +53,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
     hivdi_alpha = reach.metadata['discharge_models']['HiDVI']['alpha']
     hivdi_beta = reach.metadata['discharge_models']['HiDVI']['beta']
 
-    if (reach_width > 0 and reach_slope > 0 and d_x_area >= 0 and
+    if (reach_width > 0 and reach_slope > 0 and hivdi_Abar+d_x_area >= 0 and
         hivdi_Abar > 0 and hivdi_alpha > 0):
         hivdi_n_inv = hivdi_alpha * (
             (d_x_area+hivdi_Abar)/reach_width)**hivdi_beta
@@ -91,7 +91,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
     sads_Abar = reach.metadata['discharge_models']['SADS']['Abar']
     sads_n = reach.metadata['discharge_models']['SADS']['n']
 
-    if (reach_width > 0 and reach_slope > 0 and d_x_area >= 0 and
+    if (reach_width > 0 and reach_slope > 0 and sads_Abar+d_x_area >= 0 and
         sads_Abar > 0 and sads_n > 0):
         sads_q = (
             (d_x_area+sads_Abar)**(5/3) * reach_width**(-2/3) *
