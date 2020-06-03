@@ -280,10 +280,10 @@ class ReachDatabase(Product):
         klass.nodes = self.nodes.subset(reach_ids)
         klass.reaches = self.reaches.subset(reach_ids)
         klass.centerlines = self.centerlines.subset(reach_ids)
-        klass.x_min = np.min(self.centerlines.x)
-        klass.x_max = np.max(self.centerlines.x)
-        klass.y_min = np.min(self.centerlines.y)
-        klass.y_max = np.max(self.centerlines.y)
+        klass.x_min = np.min(klass.centerlines.x)
+        klass.x_max = np.max(klass.centerlines.x)
+        klass.y_min = np.min(klass.centerlines.y)
+        klass.y_max = np.max(klass.centerlines.y)
         return klass
 
 
