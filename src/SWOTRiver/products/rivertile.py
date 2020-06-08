@@ -240,7 +240,7 @@ class L2HRRiverTile(Product):
                          'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
                          'area_of_ht', 'wse', 'wse_std', 'wse_u', 'rdr_sig0',
                          'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
-                         'geoid_hght', 'solid_tide', 'load_tide1', 'load_tide2',
+                         'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
                          'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
                          'h_n_ave', 'fit_height']:
                         node_outputs[key] = np.insert(
@@ -301,10 +301,12 @@ class L2HRRiverTile(Product):
                             'loc_offset', 'xtrk_dist', 'frac_obs',
                             'slope', 'height', 'slope_u', 'height_u',
                             'geoid_slop', 'geoid_hght', 'prior_node_s',
-                            'd_x_area', 'd_x_area_u', 'discharge', 'dischg_u',
-                            'dark_frac', 'slope2']:
+                            'd_x_area', 'd_x_area_u', 'dark_frac', 'slope2',
+                            'metro_q', 'bam_q', 'hivdi_q', 'momma_q', 'sads_q']:
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
+
+                # TODO: set discharge flags based on ???
 
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
@@ -567,7 +569,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     VARIABLES = odict([
         ['reach_id',
          odict([['dtype', 'i8'],
-                ['long_name', 'Reach with which node is associated'],
+                ['long_name', 'Reach ID with which node is associated'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -736,7 +738,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     provided model of the geoid (geoid_hght), with all
                     corrections for media delays (wet and dry troposphere,
                     and ionosphere), crossover correction, and tidal effects
-                    (solid_tide, load_tide1, and pole_tide) applied.""")],
+                    (solid_tide, load_tidef, and pole_tide) applied.""")],
                 ])],
         ['wse_u',
          odict([['dtype', 'f8'],
@@ -744,7 +746,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                  'total uncertainty in the water surface elevation'],
                 ['units', 'm'],
                 ['valid_min', 0.0],
-                ['valid_max', 100.0],
+                ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -759,7 +761,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                  'random-only uncertainty in the water surface elevation'],
                 ['units', 'm'],
                 ['valid_min', 0.0],
-                ['valid_max', 100.0],
+                ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -921,7 +923,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     direction.  A value of 90 degrees indicates that the flow
                     is toward the right side of the SWOT swath.""")],
                 ])],
-        ['quality_f',
+        ['node_q',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the node'],
                 ['standard_name', 'status_flag'],
@@ -1070,7 +1072,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['rdr_pol',
          odict([['dtype', 'S1'],
                 ['long_name', 'polarization of sigma0'],
-                ['_FillValue', '*'],
+                ['_FillValue', 'no_data'],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
@@ -1110,6 +1112,37 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Solid-Earth (body) tide height. The zero-frequency
                     permanent tide component is not included.""")],
                 ])],
+        ['load_tidef',
+         odict([['dtype', 'f8'],
+                ['long_name', 'geocentric load tide height (FES)'],
+                ['source', 'FES2014b (Carrere et al., 2016)'],
+                ['institution', 'LEGOS/CNES'],
+                ['units', 'm'],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Geocentric load tide height. The effect of the ocean tide
+                    loading of the Earth's crust. This value is used to
+                    compute wse.""")],
+                ])],
+        ['load_tideg',
+         odict([['dtype', 'f8'],
+                ['long_name', 'geocentric load tide height (GOT)'],
+                ['source', 'GOT4.10c (Ray, 2013)'],
+                ['institution', 'GSFC'],
+                ['units', 'm'],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Geocentric load tide height. The effect of the ocean tide
+                    loading of the Earth's crust.""")],
+                ])],
         ['pole_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
@@ -1125,37 +1158,6 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     contribution from the solid-Earth (body) pole tide height
                     and the load pole tide height (i.e., the effect of the
                     ocean pole tide loading of the Earth's crust).""")],
-                ])],
-        ['load_tide1',
-         odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height from model 1'],
-                ['source', 'FES2014b (Carrere et al., 2016)'],
-                ['institution', 'LEGOS/CNES'],
-                ['units', 'm'],
-                ['valid_min', -0.2],
-                ['valid_max', 0.2],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'lon lat'],
-                ['comment', textjoin("""
-                    Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust. This value is used to
-                    compute wse.""")],
-                ])],
-        ['load_tide2',
-         odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height from model 2'],
-                ['source', 'GOT4.10c (Ray, 2013)'],
-                ['institution', 'GSFC'],
-                ['units', 'm'],
-                ['valid_min', -0.2],
-                ['valid_max', 0.2],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'lon lat'],
-                ['comment', textjoin("""
-                    Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -1296,7 +1298,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     This value is used to compute the node width from the
                     water surface area.""")],
                 ])],
-        ['grand_id',
+        ['p_dam_id',
          odict([['dtype', 'i2'],
                 ['long_name', 'dam ID from GRanD database'],
                 ['source', 'https://doi.org/10.1890/100125'],
@@ -1313,7 +1315,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     dam ID in the GRanD database.  Nodes influenced by dams
                     are indicated by the type code in node_id.  """)],
                 ])],
-        ['n_chan_max',
+        ['p_n_ch_max',
          odict([['dtype', 'i2'],
                 ['long_name', 'maximum number of channels detected in node'],
                 ['units', '1'],
@@ -1326,7 +1328,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Maximum number of channels at the node, from the prior
                     river database.""")],
                 ])],
-        ['n_chan_mod',
+        ['p_n_ch_mod',
          odict([['dtype', 'i2'],
                 ['long_name', 'mode of the number of channels at the node'],
                 ['units', '1'],
@@ -1371,8 +1373,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['rdr_sig0_u'] = node_outputs['rdr_sig0_u']
             klass['geoid_hght'] = node_outputs['geoid_hght']
             klass['solid_tide'] = node_outputs['solid_tide']
-            klass['load_tide1'] = node_outputs['load_tide1']
-            klass['load_tide2'] = node_outputs['load_tide2']
+            klass['load_tidef'] = node_outputs['load_tidef']
+            klass['load_tideg'] = node_outputs['load_tideg']
             klass['pole_tide'] = node_outputs['pole_tide']
             klass['flow_angle'] = node_outputs['flow_dir']
             # compute node distance from prior
@@ -1387,9 +1389,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 klass[key] = node_outputs[key]
 
             # set quality flag
-            klass['quality_f'] = np.zeros(node_outputs['nobs'].shape).astype(
-                klass.VARIABLES['quality_f']['dtype'])
-            klass['quality_f'][node_outputs['node_blocked']==1] |= 1
+            klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
+                klass.VARIABLES['node_q']['dtype'])
+            klass['node_q'][node_outputs['node_blocked']==1] |= 1
 
         return klass
 
@@ -1420,7 +1422,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             self.geoid_hght > -200, self.geoid_hght < 200)
         self.wse[mask] += (
             self.geoid_hght[mask] + self.solid_tide[mask] +
-            self.load_tide1[mask] + self.pole_tide[mask])
+            self.load_tidef[mask] + self.pole_tide[mask])
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
@@ -1573,7 +1575,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     provided model of the geoid (geoid_hght), with corrections
                     for media delays (wet and dry troposphere, and ionosphere),
                     crossover correction, and tidal effects (solid_tide,
-                    load_tide1, and pole_tide) applied.""")],
+                    load_tidef, and pole_tide) applied.""")],
                 ])],
         ['wse_u',
          odict([['dtype', 'f8'],
@@ -1581,7 +1583,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                  'total uncertainty in the water surface elevation'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 100],
+                ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
@@ -1596,7 +1598,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                  'random-only uncertainty in the water surface elevation'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 100],
+                ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -1878,19 +1880,19 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     spacecraft velocity vector.  A positive value indicates
                     the right side of the swath.""")],
                 ])],
-        ['discharge',
+        ['dschg_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'consensus discharge'],
                 ['units', 'm^3/s'],
-                ['valid_min', -999999999998],
-                ['valid_max', 9999999999999],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the consensus discharge algorithm.""")],
                 ])],
-        ['dischg_u',
+        ['dschg_c_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in consensus discharge'],
                 ['units', 'm^3/s'],
@@ -1902,9 +1904,84 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Uncertainty in consensus discharge algorithm.""")],
                 ])],
-        ['discharge1',
+        ['dschg_c_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'consensus discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the consensus discharge.
+                    Values of 0, 1, and 2 indicate that the consensus discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_gc',
          odict([['dtype', 'f8'],
-                ['long_name', 'discharge from model 1'],
+                ['long_name', 'gauge-constrained consensus discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the gauge-constrained consensus discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gc_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in gauge-constrained consensus discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in gauge-constrained consensus discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gc_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained consensus discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    consensus discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained consensus discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_m',
+         odict([['dtype', 'f8'],
+                ['long_name', 'MetroMan discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the MetroMan discharge algorithm.""")],
+                ])],
+        ['dschg_m_u',
+         odict([['dtype', 'f8'],
+                ['long_name', 'uncertainty in MetroMan discharge'],
                 ['units', 'm^3/s'],
                 ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
@@ -1912,23 +1989,42 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Discharge from model 1.""")],
+                    Uncertainty in MetroMan discharge algorithm.""")],
                 ])],
-        ['dischg1_u',
-         odict([['dtype', 'f8'],
-                ['long_name', 'uncertainty in model 1 discharge'],
-                ['units', 'm^3/s'],
+        ['dschg_m_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'MetroMan discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 9999999999999],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the MetroMan discharge.
+                    Values of 0, 1, and 2 indicate that the MetroMan discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_gm',
+         odict([['dtype', 'f8'],
+                ['long_name', 'gauge-constrained MetroMan discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in model 1 discharge.""")],
+                    Discharge from the gauge-constrained MetroMan discharge
+                    algorithm.""")],
                 ])],
-        ['discharge2',
+        ['dschg_gm_u',
          odict([['dtype', 'f8'],
-                ['long_name', 'Discharge from model 2'],
+                ['long_name',
+                 'uncertainty in gauge-constrained MetroMan discharge'],
                 ['units', 'm^3/s'],
                 ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
@@ -1936,23 +2032,43 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Discharge from model 2""")],
+                    Uncertainty in gauge-constrained MetroMan discharge
+                    algorithm.""")],
                 ])],
-        ['dischg2_u',
-         odict([['dtype', 'f8'],
-                ['long_name', 'model 2 discharge uncertainty'],
-                ['units', 'm^3/s'],
+        ['dschg_gm_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained MetroMan discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 9999999999999],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    MetroMan discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained MetroMan discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_b',
+         odict([['dtype', 'f8'],
+                ['long_name', 'BAM discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in model 2 discharge.""")],
+                    Discharge from the BAM discharge algorithm.""")],
                 ])],
-        ['discharge3',
+        ['dschg_b_u',
          odict([['dtype', 'f8'],
-                ['long_name', 'discharge from model 3'],
+                ['long_name', 'uncertainty in BAM discharge'],
                 ['units', 'm^3/s'],
                 ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
@@ -1960,21 +2076,333 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Discharge from model 3.""")],
+                    Uncertainty in BAM discharge algorithm.""")],
                 ])],
-        ['dischg3_u',
-         odict([['dtype', 'f8'],
-                ['long_name', 'model 3 discharge uncertainty'],
-                ['units', 'm^3/s'],
+        ['dschg_b_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'BAM discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the BAM discharge.
+                    Values of 0, 1, and 2 indicate that the BAM discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_gb',
+         odict([['dtype', 'f8'],
+                ['long_name', 'gauge-constrained BAM discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the gauge-constrained BAM discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gb_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in gauge-constrained BAM discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
                 ['valid_max', 9999999999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in model 3 discharge.""")],
+                    Uncertainty in gauge-constrained BAM discharge
+                    algorithm.""")],
                 ])],
-        ['quality_f',
+        ['dschg_gb_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained BAM discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    BAM discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained BAM discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_h',
+         odict([['dtype', 'f8'],
+                ['long_name', 'HiVDI discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the HiVDI discharge algorithm.""")],
+                ])],
+        ['dschg_h_u',
+         odict([['dtype', 'f8'],
+                ['long_name', 'uncertainty in HiVDI discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in HiVDI discharge algorithm.""")],
+                ])],
+        ['dschg_h_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'HiVDI discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the HiVDI discharge.
+                    Values of 0, 1, and 2 indicate that the HiVDI discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_gh',
+         odict([['dtype', 'f8'],
+                ['long_name', 'gauge-constrained HiVDI discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the gauge-constrained HiVDI discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gh_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in gauge-constrained HiVDI discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in gauge-constrained HiVDI discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gh_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained HiVDI discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    HiVDI discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained HiVDI discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_o',
+         odict([['dtype', 'f8'],
+                ['long_name', 'MOMMA discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the MOMMA discharge algorithm.""")],
+                ])],
+        ['dschg_o_u',
+         odict([['dtype', 'f8'],
+                ['long_name', 'uncertainty in MOMMA discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in MOMMA discharge algorithm.""")],
+                ])],
+        ['dschg_o_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'MOMMA discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the MOMMA discharge.
+                    Values of 0, 1, and 2 indicate that the MOMMA discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_go',
+         odict([['dtype', 'f8'],
+                ['long_name', 'gauge-constrained MOMMA discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the gauge-constrained MOMMA discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_go_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in gauge-constrained MOMMA discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in gauge-constrained MOMMA discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_go_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained MOMMA discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    MOMMA discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained MOMMA discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_s',
+         odict([['dtype', 'f8'],
+                ['long_name', 'SADS discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the SADS discharge algorithm.""")],
+                ])],
+        ['dschg_s_u',
+         odict([['dtype', 'f8'],
+                ['long_name', 'uncertainty in SADS discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in SADS discharge algorithm.""")],
+                ])],
+        ['dschg_s_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'SADS discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the SADS discharge.
+                    Values of 0, 1, and 2 indicate that the SADS discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_gs',
+         odict([['dtype', 'f8'],
+                ['long_name', 'gauge-constrained SADS discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the gauge-constrained SADS discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gs_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in gauge-constrained SADS discharge'],
+                ['units', 'm^3/s'],
+                ['valid_min', -999999999998],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Uncertainty in gauge-constrained SADS discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gs_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained SADS discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    SADS discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained SADS discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
+        ['reach_q',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the reach'],
                 ['standard_name', 'status_flag'],
@@ -1995,8 +2423,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
                 ['units', 1],
-                ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -2153,6 +2581,37 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Solid-Earth (body) tide height. The zero-frequency
                     permanent tide component is not included.""")],
                 ])],
+        ['load_tidef',
+         odict([['dtype', 'f8'],
+                ['long_name', 'geocentric load tide height (FES)'],
+                ['source', 'FES2014b (Carrere et al., 2016)'],
+                ['institution', 'LEGOS/CNES'],
+                ['units', 'm'],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Geocentric load tide height. The effect of the ocean tide
+                    loading of the Earth's crust. This value is used to
+                    compute wse.""")],
+                ])],
+        ['load_tideg',
+         odict([['dtype', 'f8'],
+                ['long_name', 'geocentric load tide height (GOT)'],
+                ['source', 'GOT4.10c (Ray, 2013)'],
+                ['institution', 'GSFC'],
+                ['units', 'm'],
+                ['valid_min', -0.2],
+                ['valid_max', 0.2],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Geocentric load tide height. The effect of the ocean tide
+                    loading of the Earth's crust.""")],
+                ])],
         ['pole_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
@@ -2168,37 +2627,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     contribution from the solid-Earth (body) pole tide height
                     and the load pole tide height (i.e., the effect of the
                     ocean pole tide loading of the Earth's crust).""")],
-                ])],
-        ['load_tide1',
-         odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height from model 1'],
-                ['source', 'FES2014b (Carrere et al., 2016)'],
-                ['institution', 'LEGOS/CNES'],
-                ['units', 'm'],
-                ['valid_min', -0.2],
-                ['valid_max', 0.2],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust. This value is used to
-                    compute wse.""")],
-                ])],
-        ['load_tide2',
-         odict([['dtype', 'f8'],
-                ['long_name', 'geocentric load tide height from model 2'],
-                ['source', 'GOT4.10c (Ray, 2013)'],
-                ['institution', 'GSFC'],
-                ['units', 'm'],
-                ['valid_min', -0.2],
-                ['valid_max', 0.2],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Geocentric load tide height. The effect of the ocean tide
-                    loading of the Earth's crust.""")],
                 ])],
         ['dry_trop_c',
          odict([['dtype', 'f8'],
@@ -2405,7 +2833,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     value is used to compute the reach width from the water
                     surface area.""")],
                 ])],
-        ['mean_flow',
+        ['p_maf',
          odict([['dtype', 'f8'],
                 ['long_name', 'mean annual flow'],
                 ['units', 'm^3/s'],
@@ -2417,7 +2845,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Mean annual flow from the prior river datavase.""")],
                 ])],
-        ['grand_id',
+        ['p_dam_id',
          odict([['dtype', 'i2'],
                 ['long_name', 'dam ID from GRanD database'],
                 ['source', 'https://doi.org/10.1890/100125'],
@@ -2435,7 +2863,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     the dam ID in the GRanD database.  Reaches influenced by
                     dams are indicated by the type code in reach_id.""")],
                 ])],
-        ['n_chan_max',
+        ['p_n_ch_max',
          odict([['dtype', 'i2'],
                 ['long_name',
                  'maximum number of channels detected in the reach'],
@@ -2449,7 +2877,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Maximum number of channels in the reach from the prior
                     river database.""")],
                 ])],
-        ['n_chan_mod',
+        ['p_n_ch_mod',
          odict([['dtype', 'i2'],
                 ['long_name', 'mode of the number of channels in the reach'],
                 ['units', '1'],
@@ -2461,90 +2889,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Mode of the number of channels in the reach from the
                     prior river database.""")],
-                ])],
-        ['dischg1_c1',
-         odict([['dtype', 'f8'],
-                ['long_name', 'coefficient 1 for discharge model 1'],
-                ['source', 'TBD'],
-                ['units', 's/m^(1/3)'],
-                ['valid_min', 0],
-                ['valid_max', 9999999999999],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Coefficient 1 for discharge model 1 from the prior
-                    river database.""")],
-                ])],
-        ['dischg1_c2',
-         odict([['dtype', 'f8'],
-                ['long_name', 'coefficient 1 for discharge model 1'],
-                ['source', 'TBD'],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 9999999999999],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Coefficient 2 for discharge model 1 from the prior
-                    river database.""")],
-                ])],
-        ['dischg2_c1',
-         odict([['dtype', 'f8'],
-                ['long_name', 'coefficient 1 for discharge model 2'],
-                ['source', 'TBD'],
-                ['units', 's/m^(1/3)'],
-                ['valid_min', 0],
-                ['valid_max', 9999999999999],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Coefficient 1 for discharge model 2 from the prior
-                    river database.""")],
-                ])],
-        ['dischg2_c2',
-         odict([['dtype', 'f8'],
-                ['long_name', 'coefficient 1 for discharge model 2'],
-                ['source', 'TBD'],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 9999999999999],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Coefficient 2 for discharge model 2 from the prior
-                    river database.""")],
-                ])],
-        ['dischg3_c1',
-         odict([['dtype', 'f8'],
-                ['long_name', 'coefficient 1 for discharge model 3'],
-                ['source', 'TBD'],
-                ['units', 's/m^(1/3)'],
-                ['valid_min', 0],
-                ['valid_max', 9999999999999],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Coefficient 1 for discharge model 3 from the prior
-                    river database.""")],
-                ])],
-        ['dischg3_c2',
-         odict([['dtype', 'f8'],
-                ['long_name', 'coefficient 1 for discharge model 3'],
-                ['source', 'TBD'],
-                ['units', 'm^2'],
-                ['valid_min', 0],
-                ['valid_max', 9999999999999],
-                ['_FillValue', MISSING_VALUE_FLT],
-                ['tag_basic_expert','Expert'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Coefficient 2 for discharge model 3 from the prior
-                    river database.""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
@@ -2589,10 +2933,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['d_x_area'] = reach_outputs['d_x_area']
             klass['d_x_area_u'] = reach_outputs['d_x_area_u']
             klass['dark_frac'] = reach_outputs['dark_frac']
+            klass['p_n_ch_max'] = reach_outputs['n_chan_max']
+            klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
-                        'p_dist_out', 'p_length', 'grand_id', 'n_chan_max',
-                        'n_chan_mod', 'p_n_nodes', 'p_lat', 'p_lon']:
+                        'p_dist_out', 'p_length', 'grand_id', 'p_n_nodes',
+                        'p_lat', 'p_lon']:
                 klass[key] = reach_outputs[key]
 
             cl_lon = klass['centerline_lon'][:]
@@ -2610,7 +2956,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
             # set quality bad if partial flag is set
-            klass['quality_f'] = klass['partial_f']
+            klass['reach_q'] = klass['partial_f']
 
         return klass
 
@@ -2663,7 +3009,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             self.geoid_hght > -200, self.geoid_hght < 200)
         self.wse[mask] += (
             self.geoid_hght[mask] + self.solid_tide[mask] +
-            self.load_tide1[mask] + self.pole_tide[mask])
+            self.load_tidef[mask] + self.pole_tide[mask])
 
     def update_from_pixc(self, pixc_file, index_file):
         """Copies some attributes from input PIXC file"""
@@ -2678,7 +3024,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     def update_from_nodes(self, nodes):
         """Averages node things to reach things and populates self"""
         keys = ['time', 'time_tai', 'geoid_hght', 'solid_tide',
-                'pole_tide', 'load_tide1', 'load_tide2', 'dry_trop_c',
+                'pole_tide', 'load_tidef', 'load_tideg', 'dry_trop_c',
                 'wet_trop_c', 'iono_c', 'xovr_cal_c']
 
         node_reach_type = nodes.node_id % 10
