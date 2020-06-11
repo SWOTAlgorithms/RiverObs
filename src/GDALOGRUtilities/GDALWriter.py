@@ -8,7 +8,10 @@ from os.path import join
 import numpy as np
 from numpy.ma import masked_array, is_masked
 from osgeo import gdal
-import osr
+try:
+    import osr
+except ImportError:
+    from osgeo import osr
 
 
 def get_gdal_type(dtype):

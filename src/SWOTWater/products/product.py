@@ -383,7 +383,7 @@ class Product(object):
 
     @classmethod
     def print_xml(cls, prefix=None, ofp=sys.stdout, shape_names=[],
-                  shape_dims={}, is_shapefile=False):
+                  shape_dims={}, is_shapefile=False, keys_to_drop=[]):
         """Prints the XML for this data product"""
         def remap_type(dtype):
             return
@@ -409,9 +409,13 @@ class Product(object):
 
             klass.get_product(klass.GROUPS[group]).print_xml(
                     prefix=next_prefix, ofp=ofp, shape_names=shape_names,
-                    shape_dims=shape_dims, is_shapefile=is_shapefile)
+                    shape_dims=shape_dims, is_shapefile=is_shapefile,
+                    keys_to_drop=keys_to_drop)
 
         for dset in klass.VARIABLES:
+            if dset in keys_to_drop:
+                continue
+
             attrs = copy.deepcopy(klass.VARIABLES[dset])
             # get dtype str representation from instance of number
             try:
@@ -533,6 +537,9 @@ class Product(object):
 
         # add attributes
         for attr, attr_value in klass.ATTRIBUTES.items():
+            if attr in keys_to_drop:
+                continue
+
             attr_node = (
                 '/@'+attr if prefix is None else '/%s/@%s' % (prefix, attr))
 

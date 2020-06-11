@@ -183,8 +183,8 @@ class SWOTRiverEstimator(SWOTL2):
                  darea_dheight_kwd = 'darea_dheight',
                  geoid_kwd='geoid',
                  solid_earth_tide_kwd='solid_earth_tide',
-                 load_tide_sol1_kwd='load_tide_sol1',
-                 load_tide_sol2_kwd='load_tide_sol2',
+                 load_tide_fes_kwd='load_tide_sol1',
+                 load_tide_got_kwd='load_tide_sol2',
                  pole_tide_kwd='pole_tide',
                  proj='laea',
                  x_0=0,
@@ -267,8 +267,8 @@ class SWOTRiverEstimator(SWOTL2):
             ['missed_detection_rate', missed_detection_rate_kwd],
             ['darea_dheight', darea_dheight_kwd],
             ['geoid', geoid_kwd], ['solid_earth_tide', solid_earth_tide_kwd],
-            ['load_tide_sol1', load_tide_sol1_kwd],
-            ['load_tide_sol2', load_tide_sol2_kwd],
+            ['load_tide_fes', load_tide_fes_kwd],
+            ['load_tide_got', load_tide_got_kwd],
             ['pole_tide', pole_tide_kwd]]
 
         for dset_name, keyword in datasets2load:
@@ -297,8 +297,8 @@ class SWOTRiverEstimator(SWOTL2):
             'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
             'water_frac', 'water_frac_uncert', 'img_x',
-            'img_y', 'geoid', 'solid_earth_tide', 'load_tide_sol1',
-            'load_tide_sol2', 'pole_tide']:
+            'img_y', 'geoid', 'solid_earth_tide', 'load_tide_fes',
+            'load_tide_got', 'pole_tide']:
 
             try:
                 setattr(self, key, getattr(self, key)[good])
@@ -939,8 +939,8 @@ class SWOTRiverEstimator(SWOTL2):
             'power1', 'power2', 'phase_noise_std', 'dh_dphi',
             'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
-            'looks_to_efflooks', 'geoid', 'solid_earth_tide', 'load_tide_sol1',
-            'load_tide_sol2', 'pole_tide']
+            'looks_to_efflooks', 'geoid', 'solid_earth_tide', 'load_tide_fes',
+            'load_tide_got', 'pole_tide']
 
         for name in other_obs_keys:
             value = getattr(self, name)
@@ -976,7 +976,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.h_noise[mask] -= (
             self.river_obs.geoid[mask] +
             self.river_obs.solid_earth_tide[mask] +
-            self.river_obs.load_tide_sol1[mask] +
+            self.river_obs.load_tide_fes[mask] +
             self.river_obs.pole_tide[mask])
 
         self.river_obs.load_nodes(dsets_to_load)
@@ -1028,10 +1028,10 @@ class SWOTRiverEstimator(SWOTL2):
         geoid_hght = np.asarray(self.river_obs.get_node_stat('mean', 'geoid'))
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('mean', 'solid_earth_tide'))
-        load_tide1 = np.asarray(
-            self.river_obs.get_node_stat('mean', 'load_tide_sol1'))
-        load_tide2 = np.asarray(
-            self.river_obs.get_node_stat('mean', 'load_tide_sol2'))
+        load_tidef = np.asarray(
+            self.river_obs.get_node_stat('mean', 'load_tide_fes'))
+        load_tideg = np.asarray(
+            self.river_obs.get_node_stat('mean', 'load_tide_got'))
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('mean', 'pole_tide'))
 
@@ -1143,8 +1143,8 @@ class SWOTRiverEstimator(SWOTL2):
             'width_u': width_u.astype('float64'),
             'geoid_hght': geoid_hght.astype('float64'),
             'solid_tide': solid_tide.astype('float64'),
-            'load_tide1': load_tide1.astype('float64'),
-            'load_tide2': load_tide2.astype('float64'),
+            'load_tidef': load_tidef.astype('float64'),
+            'load_tideg': load_tideg.astype('float64'),
             'pole_tide': pole_tide.astype('float64'),
             'node_blocked': is_blocked.astype('uint8'),
             'dark_frac': dark_frac,
@@ -1297,37 +1297,16 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['prior_node_s'] = self.river_obs.centerline.s
 
         # Compute discharge
-        # 1: compuate cross-sectional area of channel
-        area_fit_outputs = SWOTRiver.discharge.area(
-            reach_stats['height'], reach_stats['width'],
-            reach.metadata['area_fits'])
-
-        reach_stats['d_x_area'] = area_fit_outputs[0]
-        if reach_stats['d_x_area'] < -10000000:
-            reach_stats['d_x_area'] = MISSING_VALUE_FLT
-
-        reach_stats['d_x_area_u'] = area_fit_outputs[3]
-        if reach_stats['d_x_area_u'] < 0:
-            reach_stats['d_x_area_u'] = MISSING_VALUE_FLT
-
-        # 2: Compute MetroMan model
-        cross_sectional_area = (
-            reach_stats['d_x_area'] +
-            reach.metadata['area_fits']['med_flow_area'])
-
-        metro_man_n = reach.metadata['discharge_models']['MetroMan_na'] * (
-            cross_sectional_area/reach_stats['width'])**(
-            reach.metadata['discharge_models']['MetroMan_nb'])
-
-        reach_stats['discharge'] = (
-            cross_sectional_area**(5/3) * reach_stats['width']**(-2/3) *
-            (reach_stats['slope'])**(1/2)) / metro_man_n
-
-        reach_stats['dischg_u'] = MISSING_VALUE_FLT
+        discharge_model_values = SWOTRiver.discharge.compute(
+            reach, reach_stats['height'], reach_stats['width'],
+            reach_stats['slope'])
 
         # add fit_height for improved geolocation
-        river_reach.fit_height = (
-            reach_stats['height'] + reach_stats['slope'] * ss)
+        if reach_stats['slope'] != MISSING_VALUE_FLT:
+            river_reach.fit_height = (
+                reach_stats['height'] + reach_stats['slope'] * ss)
+        else:
+            river_reach.fit_height = MISSING_VALUE_FLT * np.ones(ss.shape)
 
         # copy things from the prior DB into reach outputs
         reach_stats['rch_id_up'] = np.array([
@@ -1358,6 +1337,9 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['grand_id'] = reach.metadata['grod_id']
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
+
+        # Put in discharge_model_values into reach_stats for output
+        reach_stats.update(discharge_model_values)
 
         river_reach.metadata = reach_stats
         return river_reach
