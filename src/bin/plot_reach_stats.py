@@ -11,20 +11,19 @@ import argparse
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import pdb
+
 
 import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
 
 
-
-
 def handle_bad_reaches(truth_tmp, data_tmp):
     """
-    only keep reaches that all the pertinent data is good for both truth and meaured 
+    only keep reaches that all the pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
-    #main_keys = ['area_detct','height','slope','width']
     main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire 
@@ -159,30 +158,71 @@ def main():
     print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
     SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
 
+    #SWOTRiver.analysis.tabley.print_table(metrics)
+    passfail = SWOTRiver.analysis.riverobs.get_passfail()
+    msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+        metrics, truth, data, scene, sig0=sig0)
+    SWOTRiver.analysis.riverobs.print_metrics(
+        metrics, truth, scene, with_node_avg=True,
+        passfail=passfail, dark_frac=dark_frac, reach_len=reach_len)
+    print("\nFor All Data")
+    SWOTRiver.analysis.riverobs.print_errors(metrics, with_node_avg=True)
+    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+    SWOTRiver.analysis.riverobs.print_metrics(
+        metrics, truth, scene, msk, fit_error,
+        dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+    SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
+
     # plot slope error vs reach length
-    plt.figure()
-    plt.scatter(metrics['slope_t'][msk], metrics['slope'][msk], c=reach_len[msk]/1e3)
-    plt.colorbar()
-    plt.xlabel('slope (cm/km)')
-    plt.ylabel('slope error (cm/km)')
-    plt.title('reach length (km)')
-    plt.grid()
-    #
-    plt.figure()
-    plt.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk], c=metrics['slope'][msk])
-    plt.colorbar()
-    plt.title('slope (cm/km)')
-    plt.ylabel('slope error (cm/km)')
-    plt.xlabel('reach length (km)')
-    plt.grid()
-    #
-    plt.figure()
-    plt.scatter(metrics['slope'][msk], metrics['wse'][msk], c=reach_len[msk]/1e3)
-    plt.colorbar()
-    plt.ylabel('height error (cm)')
-    plt.xlabel('slope error (cm/km)')
-    plt.title('reach length (km)')
-    plt.grid()
+    fig, (ax1, ax2, ax3) = plt.subplots(1,3)
+    ax1.scatter(metrics['slope_t'][msk], metrics['slope'][msk], c=reach_len[msk]/1e3)
+    c = reach_len[msk]/1e3
+    ax1.set(xlabel='slope (cm/km)', ylabel='slope error (cm/km)')
+    ax1.set_title('reach length (km)')
+    #ax1.colorbar()
+    #fig.colorbar(reach_len[msk]/1e3, ax=ax1)
+    ax1.grid()
+
+    ax2.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk], c=metrics['slope'][msk])
+    ax2.set(xlabel='reach length (km)', ylabel='slope error (cm/km)')
+    c = metrics['slope'][msk]
+    ax2.set_title('slope (cm/km)')
+    #fig.colorbar(metrics['slope'][msk], ax=ax2)
+    #ax2.colorbar()
+    ax2.grid()
+
+    ax3.scatter(metrics['slope'][msk], metrics['wse'][msk], c=reach_len[msk]/1e3)
+    ax3.set(xlabel='slope error (cm/km)', ylabel='height error (cm)')
+    ax3.set_title('reach length (km)')
+    c = reach_len[msk]/1e3
+    #fig.colorbar(c, ax=ax3)
+    ax3.grid()
+
+    # plot slope error vs reach length
+    # plt.figure()
+    # plt.scatter(metrics['slope_t'][msk], metrics['slope'][msk], c=reach_len[msk]/1e3)
+    # plt.colorbar()
+    # plt.xlabel('slope (cm/km)')
+    # plt.ylabel('slope error (cm/km)')
+    # plt.title('reach length (km)')
+    # plt.grid()
+    # #
+    # plt.figure()
+    # plt.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk], c=metrics['slope'][msk])
+    # plt.colorbar()
+    # plt.title('slope (cm/km)')
+    # plt.ylabel('slope error (cm/km)')
+    # plt.xlabel('reach length (km)')
+    # plt.grid()
+    # #
+    # plt.figure()
+    # plt.scatter(metrics['slope'][msk], metrics['wse'][msk], c=reach_len[msk]/1e3)
+    # plt.colorbar()
+    # plt.ylabel('height error (cm)')
+    # plt.xlabel('slope error (cm/km)')
+    # plt.title('reach length (km)')
+    # plt.grid()
     # plot the fit error histogram
     #plt.figure()
     #plt.scatter(fit_error[msk], metrics['height'][msk], c=dark_frac[msk])

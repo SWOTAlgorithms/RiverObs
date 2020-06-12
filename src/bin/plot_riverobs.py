@@ -10,7 +10,9 @@ import warnings
 import argparse
 import os
 import numpy as np
-import matplotlib.axes
+# import matplotlib
+# import matplotlib.axes
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 
 import SWOTRiver.analysis.riverobs

@@ -62,7 +62,6 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
         try:
             metrics, truth, data, scene, sig0 = load_and_accumulate(pixc_list, gdem_list)
         except FileNotFoundError:
-            pdb.set_trace()
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
         try:
@@ -100,36 +99,37 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                     scene_error_list.append(table)
                     reach_error_list.append(metrics_table)
                     good_pixc_list.append(pixc_list[index])
-                except:
+                except AttributeError as exception:
                     print('No good reaches in scene')
-
-            # compare error max/min to collection (olympics)
-            if abs(table['mean'][0]) > worst_area:
-                worst_area = table['mean'][0]
-                worst_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][1]) > worst_detected_area:
-                worst_detected_area = table['mean'][1]
-                worst_d_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][2]) > worst_wse:
-                worst_wse = table['mean'][2]
-                worst_wse_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][3]) > worst_slope:
-                worst_slope = table['mean'][3]
-                worst_slope_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][0]) < best_area:
-                best_area = table['mean'][0]
-                best_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][1]) < best_detected_area:
-                best_detected_area = table['mean'][1]
-                best_d_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][2]) < best_wse:
-                best_wse = table['mean'][2]
-                best_wse_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if abs(table['mean'][3]) < best_slope:
-                best_slope = table['mean'][3]
-                best_slope_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
-            if test:
-                test_count += 1
+                    table=None
+            if table:
+                # compare error max/min to collection (olympics)
+                if abs(table['mean'][0]) > worst_area:
+                    worst_area = table['mean'][0]
+                    worst_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][1]) > worst_detected_area:
+                    worst_detected_area = table['mean'][1]
+                    worst_d_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][2]) > worst_wse:
+                    worst_wse = table['mean'][2]
+                    worst_wse_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][3]) > worst_slope:
+                    worst_slope = table['mean'][3]
+                    worst_slope_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][0]) < best_area:
+                    best_area = table['mean'][0]
+                    best_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][1]) < best_detected_area:
+                    best_detected_area = table['mean'][1]
+                    best_d_area_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][2]) < best_wse:
+                    best_wse = table['mean'][2]
+                    best_wse_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if abs(table['mean'][3]) < best_slope:
+                    best_slope = table['mean'][3]
+                    best_slope_scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_list[index])
+                if test:
+                    test_count += 1
         # end file loop
 
     if verbose:
@@ -178,9 +178,13 @@ def sort_slope_errors(reach_error_list, pixc_list):
 def sort_scene_errors(scene_error_list, pixc_list, error_var):
     # error var is slope, wse, area detected, or area total error
     errors = []
+    index_dict = {'slope_error': 4,
+                  'wse_error': 2,
+                  'area_dtct_error': 1,
+                  'area_error': 0}
     for scene_index, scene in enumerate(scene_error_list):
-        error = scene_error_list[scene_index]['mean'][4]
-        errors.append([pixc_list[scene_index], error_var])
+        error = scene_error_list[scene_index]['mean'][index_dict[error_var]]
+        errors.append([pixc_list[scene_index], error])
     sorted_errors = errors.sort(key=takeSceneError, reverse=True)
     return sorted_errors
 
@@ -211,15 +215,14 @@ def main():
     print('input directory is', args.rivertile_dir)
     pixc_list, gdem_list = get_input_files(args.rivertile_dir)
     scene_errors, reach_errors, pixc_list = get_errors(pixc_list, gdem_list, args.test_boolean)
-    scene_slope_error = sort_scene_errors(scene_errors, pixc_list, slope_error)
-    scene_wse_error = sort_scene_errors(scene_errors, pixc_list, wse_error)
-    scene_area_error = sort_scene_errors(scene_errors, pixc_list, area_error)
-    scene_area_dtct_error = sort_scene_errors(scene_errors, pixc_list, area_dtct_error)
-    scene_wse_error = sort_scene_wse_errors(scene_errors, pixc_list)
-    print_best_worst_scenes(scene_slope_error, 'Slope')
-    print_best_worst_scenes(scene_wse_error, 'wse')
-    print_best_worst_scenes(scene_area_error, 'area total')
-    print_best_worst_scenes(scene_area_dtct_error, 'area detected')
+    scene_slope_error = sort_scene_errors(scene_errors, pixc_list, 'slope_error')
+    scene_wse_error = sort_scene_errors(scene_errors, pixc_list, 'wse_error')
+    scene_area_error = sort_scene_errors(scene_errors, pixc_list, 'area_error')
+    scene_area_dtct_error = sort_scene_errors(scene_errors, pixc_list, 'area_dtct_error')
+    # print_best_worst_scenes(scene_slope_error, 'Slope')
+    # print_best_worst_scenes(scene_wse_error, 'wse')
+    # print_best_worst_scenes(scene_area_error, 'area total')
+    # print_best_worst_scenes(scene_area_dtct_error, 'area detected')
 
     plot_worst_reaches(reach_errors, pixc_list)
 

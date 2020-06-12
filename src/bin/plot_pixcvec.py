@@ -32,27 +32,29 @@ def main():
         axis.scatter(
             pixc_vector.longitude_vectorproc[mask],
             pixc_vector.latitude_vectorproc[mask],
-            s=50, c=this_color, edgecolor='none')
+            s=1, c=this_color, edgecolor='none')
 
     is_bad_width = rivertile.nodes.quality_f & 0x1 > 0
 
     axis.scatter(
         rivertile.nodes.lon,
         rivertile.nodes.lat,
-        marker='d', c='m')
+        marker='d', c='m', s=3, label='Rivertile Nodes')
 
     axis.scatter(
         rivertile.nodes.lon_prior[is_bad_width],
         rivertile.nodes.lat_prior[is_bad_width],
-        marker='s', c='m')
+        marker='s', c='k', s=3, label='Prior nodes, bad width')
 
     axis.scatter(
         rivertile.nodes.lon_prior[~is_bad_width],
         rivertile.nodes.lat_prior[~is_bad_width],
-        marker='x', c='m')
+        marker='x', c='k', s=4, label='Prior nodes, good width')
 
     axis.set_xlabel('longitude')
     axis.set_ylabel('latitude')
+    axis.set_aspect('equal', adjustable='box')
+    axis.legend()
     plt.show()
 
 if __name__ == "__main__":
