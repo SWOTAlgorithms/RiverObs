@@ -264,7 +264,7 @@ def make_plots(rivertile_file, reach_id, gdem_dem_file, errors=None, scene=None)
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
-    mngr.window.setGeometry(0, 0, 1500, 500)
+    #mngr.window.setGeometry(0, 0, 1500, 500)
 
     return figure, axes
 
