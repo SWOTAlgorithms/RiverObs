@@ -134,7 +134,6 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     right = left + width
     top = bottom + height
     if errors:
-        pdb.set_trace()
         str1 = 'Area detect e=' + str(round(errors[3], 1)) + '%\n'
         str2 = 'Area total e=' + str(round(errors[2], 1)) + '%'
         str3 = 'Width e=' + str(round(errors[4], 1)) + ' m'
