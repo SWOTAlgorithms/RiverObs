@@ -88,7 +88,7 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
-                  color=get_passfail_color(errors[0], 'slp e (cm/km)'),
+                  color=get_passfail_color(errors[3], 'slp e (cm/km)'),
                   transform=axis.transAxes)
     summary_string = 'Lake proximity= ' + lake_proximity + ' m\n' + 'Reach Width= ' + reach_width + ' m\n' + 'Quadratic coeff=' + str(quad_coeff) + '\n' + 'Linear coeff=' + str(lin_coeff) + '\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
     #'Flow angle= \n ' + \
@@ -134,6 +134,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     right = left + width
     top = bottom + height
     if errors:
+        pdb.set_trace()
         str1 = 'Area detect e=' + str(round(errors[3], 1)) + '%\n'
         str2 = 'Area total e=' + str(round(errors[2], 1)) + '%'
         str3 = 'Width e=' + str(round(errors[4], 1)) + ' m'
@@ -281,7 +282,7 @@ def get_reach_error(errors, reach_id):
             scene = errors[0]['scene_pass_tile'][reach_index]
     if not scene:
         raise Exception('Reach ID is not found in this scene/pass/side')
-    reach_error = [0, scene, reach_id, slope_error, wse_error, area_error, area_dtct_error, width_error]
+    reach_error = [slope_error, wse_error, area_error, area_dtct_error, width_error]
     return reach_error
 
 def main():

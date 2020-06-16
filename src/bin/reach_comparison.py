@@ -64,7 +64,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
         except FileNotFoundError:
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
-        try:
+        if truth:
             msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                 metrics, truth, data, scene, sig0=sig0)
             print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
@@ -73,9 +73,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                 dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
             table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
             reach_error_list.append(metrics_table)
-        except:
-            print('No good reaches in scene')
-        return reach_error_list
+            return reach_error_list
 
     else: # function was called for a list of files
         for index, filename in enumerate(pixc_list):
@@ -88,20 +86,22 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                     print('Pixc rivertile has no matching gdem rivertile')
 
                 passfail = SWOTRiver.analysis.riverobs.get_passfail()
-                try:
+                if truth:
                     msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                         metrics, truth, data, scene, sig0=sig0)
-                    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
-                    metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
-                                        metrics, truth, scene, msk, fit_error,
-                                        dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
-                    table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
-                    scene_error_list.append(table)
-                    reach_error_list.append(metrics_table)
-                    good_pixc_list.append(pixc_list[index])
-                except AttributeError as exception:
-                    print('No good reaches in scene')
-                    table=None
+                    if not any(msk):
+                        print('No reaches in scene are within sci req bounds')
+                        table=None
+                    else:
+                        print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+                        table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
+                        metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
+                                            metrics, truth, scene, msk, fit_error,
+                                            dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+                        scene_error_list.append(table)
+                        reach_error_list.append(metrics_table)
+                        good_pixc_list.append(pixc_list[index])
+
             if table:
                 # compare error max/min to collection (olympics)
                 if abs(table['mean'][0]) > worst_area:
