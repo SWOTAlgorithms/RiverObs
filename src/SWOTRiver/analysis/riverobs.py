@@ -421,6 +421,7 @@ def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
         table['count'].append(slope_num)
     
     SWOTRiver.analysis.tabley.print_table(table, precision=8)
+    return table
 
 
 def print_metrics(
@@ -459,3 +460,5 @@ def print_metrics(
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
     
     SWOTRiver.analysis.tabley.print_table(table, precision=5, passfail=passfail)
+    
+    return table
