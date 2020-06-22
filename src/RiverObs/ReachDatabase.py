@@ -221,7 +221,8 @@ class ReachExtractor(object):
 
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
-                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef']
+                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef',
+                'ext_dist_coef']
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}
@@ -380,6 +381,8 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['wth_coef',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['ext_dist_coef',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def subset(self, reach_ids):
@@ -408,7 +411,7 @@ class ReachDatabaseNodes(Product):
         for dset in [
                 'x', 'y', 'node_id', 'reach_id', 'node_length', 'wse',
                 'wse_var', 'width', 'width_var', 'n_chan_max', 'n_chan_mod',
-                'grod_id', 'dist_out', 'wth_coef']:
+                'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -419,7 +422,7 @@ class ReachDatabaseReaches(Product):
     ATTRIBUTES = odict([])
     GROUPS = odict([
         ['area_fits', 'ReachDatabaseReachAreaFits'],
-        ['discharge_models', 'ReachDatabaseReachDischargeModels']])
+        ['discharge_models', 'ReachDatabaseReachDischargeModelsGroup']])
 
     DIMENSIONS = odict([
         ['centerlines', 2], ['reach_neighbors', 4], ['julian_day', 0],
@@ -552,6 +555,36 @@ class ReachDatabaseReaches(Product):
                 overlapping_reach_ids.append(reach_id)
         return overlapping_reach_ids
 
+class ReachDatabaseReachDischargeModelsGroup(Product):
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict()
+    VARIABLES = odict()
+    GROUPS = odict([
+        ['unconstrained', 'ReachDatabaseReachDischargeModels'],
+        ['constrained', 'ReachDatabaseReachDischargeModels']])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachDischargeModelsGroup by reach_ids"""
+        klass = ReachDatabaseReachDischargeModelsGroup()
+        for group in self.GROUPS:
+            klass[group] = self[group].subset(mask)
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {}
+        for group in self.GROUPS:
+            outputs[group] = self[group](mask)
+        return outputs
+
+    def __add__(self, other):
+        klass = ReachDatabaseReachDischargeModelsGroup()
+        for group in self.GROUPS:
+            klass[group] = self[group] + other[group]
+        return klass
+
 class ReachDatabaseReachDischargeModels(Product):
     """class for prior reach database reach discharge_models datagroup"""
     ATTRIBUTES = odict()
@@ -560,7 +593,7 @@ class ReachDatabaseReachDischargeModels(Product):
     GROUPS = odict([
         ['MetroMan', 'ReachDatabaseReachMetroMan'],
         ['BAM', 'ReachDatabaseReachBAM'],
-        ['HiDVI', 'ReachDatabaseReachHiDVI'],
+        ['HiVDI', 'ReachDatabaseReachHiVDI'],
         ['MOMMA', 'ReachDatabaseReachMOMMA'],
         ['SADS', 'ReachDatabaseReachSADS'],
     ])
@@ -665,8 +698,8 @@ class ReachDatabaseReachBAM(Product):
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
-class ReachDatabaseReachHiDVI(Product):
-    """class for PRD reach HiDVI discharge model"""
+class ReachDatabaseReachHiVDI(Product):
+    """class for PRD reach HiVDI discharge model"""
     ATTRIBUTES = odict()
     DIMENSIONS = odict([['reaches', 0]])
     VARIABLES = odict([
@@ -677,8 +710,8 @@ class ReachDatabaseReachHiDVI(Product):
     GROUPS = odict([])
 
     def subset(self, mask):
-        """Subsets ReachDatabaseReachHiDVI by reach_ids"""
-        klass = ReachDatabaseReachHiDVI()
+        """Subsets ReachDatabaseReachHiVDI by reach_ids"""
+        klass = ReachDatabaseReachHiVDI()
         outputs = {
             key: self[key][mask] for key in self.VARIABLES.keys()}
         for key, value in outputs.items():
@@ -695,7 +728,7 @@ class ReachDatabaseReachHiDVI(Product):
 
     def __add__(self, other):
         """Adds other to self"""
-        klass = ReachDatabaseReachHiDVI()
+        klass = ReachDatabaseReachHiVDI()
         for dset in self.VARIABLES.keys():
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))

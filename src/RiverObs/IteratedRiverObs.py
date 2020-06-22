@@ -386,6 +386,7 @@ class IteratedRiverObs(RiverObs):
             max_width = self.max_width
 
         reach.node_length = self.reach.node_length
+        reach.ext_dist_coef = self.reach.ext_dist_coef
 
         # Initialize the base class
         RiverObs.__init__(
