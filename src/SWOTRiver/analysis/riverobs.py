@@ -362,14 +362,19 @@ def mask_for_sci_req(metrics, truth, data, scene, sig0=None):
 #
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
-    scene0 = path_parts[-4] # assumes particular directory structure...
-    # put in the pass and tile too
-    cycle_pass_tile_flavor = path_parts[-3].split('_')
-    if len(cycle_pass_tile_flavor)<5:
+
+    # assumes particular directory structure
+    scene0 = path_parts[-7]
+    cycle_pass_tile = path_parts[-6].split('_')
+    if scene0.startswith('cycle'):
+        scene0 = path_parts[-8]
+        cycle_pass_tile = path_parts[-7].split('_')
+
+    if len(cycle_pass_tile) < 5:
         scene='unknown'
     else:
-        scene = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
-        #scene = [scene1 for item in data_tmp.reaches.reach_id]
+        scene = scene0 + "_" + cycle_pass_tile[3] + "_" \
+                + cycle_pass_tile[4]
     return scene
 #
 def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):

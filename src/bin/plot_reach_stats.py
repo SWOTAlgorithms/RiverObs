@@ -17,7 +17,7 @@ import pdb
 import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
-
+from pathlib import Path
 
 def handle_bad_reaches(truth_tmp, data_tmp):
     """
@@ -26,7 +26,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     bad_reaches = np.array([])
     main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
-        # if any of these are masked, throw out the entire 
+        # if any of these are masked, throw out the entire
         # reach by setting all elements to nan
         if (isinstance(truth_tmp.reaches[key], np.ma.MaskedArray)):
             bad = truth_tmp.reaches.reach_id[truth_tmp.reaches[key].mask]
@@ -46,7 +46,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
         if reach in bad_reaches:
             msk_d[i] = True
     for key in truth_tmp.reaches.variables:
-        # setting all variables to nans for bad reaches 
+        # setting all variables to nans for bad reaches
         # makes them be excluded when matching
         # reach ids later between the data and truth
         if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
@@ -58,7 +58,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
             tmp[msk_d]=np.nan
             data_tmp.reaches[key] = tmp
     return truth_tmp, data_tmp
-    
+
 def load_and_accumulate(
         pixc_rivertile, gdem_rivertile, metrics=None,
         truth=None, data=None, scene=None, sig0=None, bad_scenes=[]):
@@ -104,14 +104,20 @@ def load_and_accumulate(
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('pixc_rivertile', help='e.g., pixc/rivertile.nc')
-    parser.add_argument('gdem_rivertile', help='e.g., gdem/rivertile.nc')
+    parser.add_argument('proc_rivertile', type=str, default=None,
+                        help='processed rivertile file (or basename)')
+    parser.add_argument('truth_rivertile', type=str, default=None,
+                        help='truth rivertile file (or basename)')
+    parser.add_argument('--basedir', type=str, default=None,
+                        help='base directory of processing')
+    parser.add_argument('-sb', '--slc_basename', type=str, default=None,
+                        help='slc directory basename')
+    parser.add_argument('-pb', '--pixc_basename', type=str, default=None,
+                        help='pixc directory basename')
+    parser.add_argument('-eb','--pixc_errors_basename', type=str, default=None,
+                        help = "pixc systematic errors basename")
     parser.add_argument('-t', '--title')
     parser.add_argument('-p', '--print', action='store_true')
-    parser.add_argument('-d', '--dir',
-                        help='base directory to search for rivertile files')
-    parser.add_argument('-f', '--flavor',
-                        help='flavor of pixel cloud processing')
     args = parser.parse_args()
 
     metrics = None
@@ -120,28 +126,62 @@ def main():
     scene = None
     sig0 = None
     bad_scenes = []#['3356',]# these scenes will be excluded from analysis
-    print("args.dir: ",args.dir)
-    if args.dir is not None:
-        # TODO: rethink this glob call to be more general
-        #   i.e., not depend so much on assumed directory structure
-        pixc_rivertile_list = glob.glob(
-            args.dir+"/*/*"+args.flavor+'/'+args.pixc_rivertile)
-        for pixc_rivertile in pixc_rivertile_list:
-            basedir = pixc_rivertile[0:-len(args.pixc_rivertile)]
-            gdem_rivertile = basedir + args.gdem_rivertile
-            print (pixc_rivertile)
-            print (gdem_rivertile)
-            if os.path.isfile(gdem_rivertile):
-                # check if the gdem and the pixc are the same
-                metrics, truth, data, scene, sig0 = load_and_accumulate(
-                    pixc_rivertile, gdem_rivertile,
-                    metrics, truth, data, scene, sig0, bad_scenes)
-                
-    else:
-        metrics, truth, data, scene, sig0 = load_and_accumulate(
-            args.pixc_rivertile, args.gdem_rivertile)
+    print("args.basedir: ",args.basedir)
+    if args.basedir is not None:
+        if args.slc_basename is None or args.pixc_basename is None:
+            print('Must specify at least slc_basename and pixc_basename '
+                  + 'if aggregating stats')
+            return
 
-   
+        # TODO: Right now it's hardcoded that the truth data lives under the slc
+        # base directory, and the proc data lives under the pixc base directory
+        if args.pixc_errors_basename is not None:
+            proc_rivertile_list = glob.glob(os.path.join(
+                args.basedir, '*', '*', args.slc_basename, args.pixc_basename,
+                args.pixc_errors_basename, args.proc_rivertile))
+        else:
+            proc_rivertile_list = glob.glob(os.path.join(
+                args.basedir, '*', '*', args.slc_basename, args.pixc_basename,
+                args.proc_rivertile))
+
+        # If proc_rivertile input is a basename, get the actual rivertile
+        proc_rivertile_list = [os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
+                               if os.path.isdir(proc_rivertile) else proc_rivertile
+                               for proc_rivertile in proc_rivertile_list]
+
+        if args.pixc_errors_basename is not None:
+            truth_rivertile_list = \
+                [os.path.join(*Path(proc_rivertile).parts[:-5], args.truth_rivertile)
+                 for proc_rivertile in proc_rivertile_list]
+        else:
+            truth_rivertile_list = \
+                [os.path.join(*Path(proc_rivertile).parts[:-4], args.truth_rivertile)
+                 for proc_rivertile in proc_rivertile_list]
+
+        # If truth_rivertile input is a basename, get the actual rivertile
+        truth_rivertile_list = [os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
+                                if os.path.isdir(truth_rivertile) else truth_rivertile
+                                for truth_rivertile in truth_rivertile_list]
+
+        for proc_rivertile, truth_rivertile in zip(proc_rivertile_list, truth_rivertile_list):
+            if os.path.isfile(proc_rivertile) and os.path.isfile(truth_rivertile):
+                metrics, truth, data, scene, sig0 = load_and_accumulate(
+                    proc_rivertile, truth_rivertile,
+                    metrics, truth, data, scene, sig0, bad_scenes)
+
+    else:
+        # Inputs can be either rivertile files, or basenames
+        proc_rivertile = args.proc_rivertile
+        truth_rivertile = args.truth_rivertile
+        if os.path.isdir(proc_rivertile):
+            proc_rivertile = os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
+        if os.path.isdir(truth_rivertile):
+            truth_rivertile = os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
+
+        metrics, truth, data, scene, sig0 = load_and_accumulate(
+            proc_rivertile, truth_rivertile)
+
+
     #SWOTRiver.analysis.tabley.print_table(metrics)
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
     msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
