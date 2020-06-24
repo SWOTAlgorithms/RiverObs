@@ -13,6 +13,7 @@ import os.path
 
 import SWOTWater.products.product
 import SWOTRiver.analysis.tabley
+import pdb
 
 import matplotlib.pyplot as plt
 
@@ -324,23 +325,24 @@ def get_passfail(is_lake = False):
 
 def compute_reach_fit_error(truth):
     fit_error = []
-    for reach in truth.reaches['reach_id']:
-        inds = (truth.nodes['reach_id'] == reach)
-        ind = (truth.reaches['reach_id'] == reach)
-        try:
-            y0 = truth.nodes['wse'][inds]
-            x0 = truth.nodes['node_id'][inds]
-            # exclude nans and infs
-            y = y0[np.isfinite(y0)]
-            x = x0[np.isfinite(y0)]
-            z = np.polyfit( x, y, 1)
-            p = np.poly1d(z)
-            #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
-            err = np.nanmax(np.sqrt((y - p(x))**2))*100 #in cm
-        except np.linalg.LinAlgError:
-            err = 1000000000
-            print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
-        fit_error.append(err)
+    if truth:
+        for reach in truth.reaches['reach_id']:
+            inds = (truth.nodes['reach_id'] == reach)
+            ind = (truth.reaches['reach_id'] == reach)
+            try:
+                y0 = truth.nodes['wse'][inds]
+                x0 = truth.nodes['node_id'][inds]
+                # exclude nans and infs
+                y = y0[np.isfinite(y0)]
+                x = x0[np.isfinite(y0)]
+                z = np.polyfit( x, y, 1)
+                p = np.poly1d(z)
+                #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
+                err = np.nanmax(np.sqrt((y - p(x))**2))*100 #in cm
+            except np.linalg.LinAlgError:
+                err = 1000000000
+                print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
+            fit_error.append(err)
     return np.array(fit_error)
         
 def mask_for_sci_req(metrics, truth, data, scene, sig0=None):
@@ -426,6 +428,7 @@ def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
         table['count'].append(slope_num)
     
     SWOTRiver.analysis.tabley.print_table(table, precision=8)
+    return table
 
 
 def print_metrics(
@@ -464,3 +467,4 @@ def print_metrics(
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
     
     SWOTRiver.analysis.tabley.print_table(table, precision=5, passfail=passfail)
+    return table

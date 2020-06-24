@@ -25,7 +25,7 @@ from RiverObs.RiverObs import \
 ATTRS_2COPY_FROM_PIXC = [
     'time_coverage_start', 'time_coverage_end', 'cycle_number', 'pass_number']
 
-RIVERTILE_ATTRIBUTES = odict([
+RIVER_PRODUCT_ATTRIBUTES = odict([
     ['Conventions',{'dtype': 'str' ,'value': 'CF-1.7',
         'docstr': textjoin("""
             Esri conventions as given in 'ESRI Shapefile Technical Description,
@@ -84,6 +84,38 @@ RIVERTILE_ATTRIBUTES = odict([
         'docstr': "Southernmost latitude (deg) of granule bounding box"}],
     ['geospatial_lat_max',  {'dtype': 'f8',
         'docstr': "Northernmost latitude (deg) of granule bounding box"}],
+    ['inner_first_longitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the first range line and inner
+            part of the swath (degrees_east)""")}],
+    ['inner_first_latitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the first range
+            line and inner part of the swath (degrees_north)""")}],
+    ['inner_last_longitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the last range
+            line and inner part of the swath (degrees_east)""")}],
+    ['inner_last_latitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the last range
+            line and inner part of the swath (degrees_north)""")}],
+    ['outer_first_longitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the first range
+            line and outer part of the swath (degrees_east)""")}],
+    ['outer_first_latitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the first range
+            line and outer part of the swath (degrees_north)""")}],
+    ['outer_last_longitude',{'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner longitude for the last range
+            line and outer part of the swath (degrees_east)""")}],
+    ['outer_last_latitude', {'dtype': 'f8',
+        'docstr': textjoin("""
+            Nominal swath corner latitude for the last range
+            line and outer part of the swath (degrees_north)""")}],
     ['left_first_longitude',  {'dtype': 'float',
         'docstr': textjoin("""
             Nominal swath corner longitude for the first range line and left
@@ -118,18 +150,24 @@ RIVERTILE_ATTRIBUTES = odict([
             edge of the swath (degrees_north)""")}],
     ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
         'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
-    ['xref_input_l2_hr_rivertile_files', {'dtype': 'str',
-        'docstr': 'List of RiverTile products used to generate data in product'}],
     ['xref_static_river_db_file', {'dtype': 'str',
         'docstr': textjoin("""
             Name of static river a-priori database file used to generate data
             in product""")}],
-    ['xref_l2_hr_river_sp_param_file', {'dtype': 'str',
+    ['xref_l2_hr_river_tile_param_file', {'dtype': 'str',
         'docstr': textjoin("""
-            Name of PGE_L2_HR_RiverSP parameter file used to generate data in
-            product""")}],
+            Name of PGE_L2_HR_RiverTile parameter file used to generate data
+            in product""")}],
     ])
 
+ATTRIBUTE_KEYS2POP = [
+    "_".join([a, b, c]) for a in ['right', 'left'] for b in ['first', 'last']
+    for c in ['latitude', 'longitude']]
+
+RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
+
+for key in ATTRIBUTE_KEYS2POP:
+    RIVERTILE_ATTRIBUTES.pop(key, None)
 
 for key in ['Conventions', 'title', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
@@ -564,7 +602,12 @@ class ShapeWriterMixIn(object):
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
 
-    ATTRIBUTES = RIVERTILE_ATTRIBUTES
+    ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
+    ATTRIBUTES['title'] = {
+        'dtype': 'str',
+        'value': 'Level 2 KaRIn High Rate River Tile Vector Product - Node',
+        'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product - Node'}
+
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
         ['reach_id',
@@ -1489,7 +1532,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
 
-    ATTRIBUTES = RIVERTILE_ATTRIBUTES
+    ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
+    ATTRIBUTES['title'] = {
+        'dtype': 'str',
+        'value': 'Level 2 KaRIn High Rate River Tile Vector Product - Reach',
+        'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product - Reach'}
+
     DIMENSIONS = odict([
         ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
