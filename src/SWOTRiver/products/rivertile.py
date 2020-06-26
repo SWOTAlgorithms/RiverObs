@@ -558,12 +558,12 @@ class ShapeWriterMixIn(object):
                             this_property[key] = str(this_item[ii])
 
                     elif key in ['rdr_pol',]:
-                        if (this_item[ii].decode() ==
+                        this_value = this_item[ii].astype('|S1').decode()
+                        if (this_value ==
                             self.VARIABLES[key]['_FillValue']):
                             this_property[key] = 'no_data'
                         else:
-                            this_property[key] = this_item[ii].astype(
-                                '|S1').decode()
+                            this_property[key] = this_value
 
                     else:
                         this_property[key] = np.asscalar(this_item[ii])
@@ -3030,7 +3030,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         data['centerline_lat'] = np.ones([len(records), cl_len]) * cl_fill
 
         for irec, record in enumerate(records):
-            this_cl = np.array(records[0]['geometry']['coordinates'])
+            this_cl = np.array(record['geometry']['coordinates'])
             data['centerline_lon'][irec, :this_cl.shape[0]] = this_cl[:, 0]
             data['centerline_lat'][irec, :this_cl.shape[0]] = this_cl[:, 1]
 
