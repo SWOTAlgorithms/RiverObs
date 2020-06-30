@@ -36,7 +36,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
             bad = data_tmp.reaches.reach_id[data_tmp.reaches[key].mask]
             if len(bad)>0:
                 bad_reaches = np.concatenate((bad_reaches, bad.data))
-    print("bad_data_reaches",bad_reaches)
+    #print("bad_data_reaches",bad_reaches)
     msk_t = [False for reach in truth_tmp.reaches.reach_id]
     msk_d = [False for reach in data_tmp.reaches.reach_id]
     for i,reach in enumerate(truth_tmp.reaches.reach_id):
@@ -61,7 +61,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
 
 def load_and_accumulate(
         pixc_rivertile, gdem_rivertile, metrics=None,
-        truth=None, data=None, scene=None, sig0=None, bad_scenes=[]):
+        truth=None, data=None, scene=None, scene_nodes=None, sig0=None, bad_scenes=[]):
     '''
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
@@ -71,7 +71,7 @@ def load_and_accumulate(
     if (len(truth_tmp.reaches.reach_id)<=0) or (
        len(data_tmp.reaches.reach_id)<=0):
         # do nothing if truth or data file have no reach data
-        return metrics, truth, data, scene, sig0
+        return metrics, truth, data, scene, scene_nodes, sig0
     # handle masked arrays here
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp)
     #
@@ -82,25 +82,32 @@ def load_and_accumulate(
     # get the scene
     scene1 = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
     scene_tmp = [scene1 for item in data_tmp.reaches.reach_id]
+    #print("data_tmp:",data_tmp.nodes.reach_id)
+    scene_tmp2 = [scene1 for item in data_tmp.nodes.reach_id]
     # accumulate if needed
     if metrics is None:
         metrics = tmp
         truth = truth_tmp
         data = data_tmp
         scene = scene_tmp
+        scene_nodes = scene_tmp2
         sig0 = sig0_avg
     else:
         # don't accumulate scenes designated as bad
-        scene2 = scene1.split('_')[0]
+        scene_parts = scene1.split('_')
+        scene2 = scene_parts[0]
+        if len(scene_parts)>3:
+            scene2 = scene_parts[0]+'_'+scene_parts[1]+'_'+scene_parts[2]
         if scene2 in bad_scenes:
-            return metrics, truth, data, scene, sig0
+            return metrics, truth, data, scene, scene_nodes, sig0
         for name, value in tmp.items():
             metrics[name] = np.append(metrics[name], value)
         truth = truth.append(truth_tmp)
         data = data.append(data_tmp)
         scene = np.append(scene, scene_tmp)
+        scene_nodes = np.append(scene_nodes, scene_tmp2)
         sig0 = np.append(sig0, sig0_avg)
-    return metrics, truth, data, scene, sig0
+    return metrics, truth, data, scene, scene_nodes, sig0
 
 def main():
     parser = argparse.ArgumentParser()
@@ -124,8 +131,9 @@ def main():
     truth = None
     data = None
     scene = None
+    scene_nodes = None
     sig0 = None
-    bad_scenes = []#['3356',]# these scenes will be excluded from analysis
+    bad_scenes = ['sacramento_0314_0264',]#['3356',]# these scenes will be excluded from analysis
     print("args.basedir: ",args.basedir)
     if args.basedir is not None:
         if args.slc_basename is None or args.pixc_basename is None:
@@ -165,9 +173,9 @@ def main():
 
         for proc_rivertile, truth_rivertile in zip(proc_rivertile_list, truth_rivertile_list):
             if os.path.isfile(proc_rivertile) and os.path.isfile(truth_rivertile):
-                metrics, truth, data, scene, sig0 = load_and_accumulate(
+                metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
                     proc_rivertile, truth_rivertile,
-                    metrics, truth, data, scene, sig0, bad_scenes)
+                    metrics, truth, data, scene, scene_nodes, sig0, bad_scenes)
 
     else:
         # Inputs can be either rivertile files, or basenames
@@ -178,14 +186,14 @@ def main():
         if os.path.isdir(truth_rivertile):
             truth_rivertile = os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
 
-        metrics, truth, data, scene, sig0 = load_and_accumulate(
+        metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
             proc_rivertile, truth_rivertile)
 
 
     #SWOTRiver.analysis.tabley.print_table(metrics)
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
     msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene, sig0=sig0)
+        metrics, truth, data, scene, scene_nodes, sig0=sig0)
     SWOTRiver.analysis.riverobs.print_metrics(
         metrics, truth, scene, with_node_avg=True,
         passfail=passfail, dark_frac=dark_frac, reach_len=reach_len)
@@ -198,10 +206,11 @@ def main():
     print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
     SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
 
+    """ I think this is redundant...
     #SWOTRiver.analysis.tabley.print_table(metrics)
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
     msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene, sig0=sig0)
+        metrics, truth, data, scene, scene_nodes, sig0=sig0)
     SWOTRiver.analysis.riverobs.print_metrics(
         metrics, truth, scene, with_node_avg=True,
         passfail=passfail, dark_frac=dark_frac, reach_len=reach_len)
@@ -213,6 +222,7 @@ def main():
         dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
     print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
     SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
+    """
 
     # plot slope error vs reach length
     fig, (ax1, ax2, ax3) = plt.subplots(1,3)
