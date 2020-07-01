@@ -323,55 +323,75 @@ def get_passfail(is_lake = False):
         }
     return passfail
 
-def compute_reach_fit_error(truth):
+def compute_reach_fit_error(truth, scene, scene_nodes):
     fit_error = []
     if truth:
-        for reach in truth.reaches['reach_id']:
+        for reach, scene_id in zip(truth.reaches['reach_id'], np.array(scene)):
             inds = (truth.nodes['reach_id'] == reach)
+            inds = np.logical_and(truth.nodes['reach_id'] == reach, 
+                np.array(scene_nodes) == scene_id)
+            #print("scene_nodes",np.array(scene_nodes)[inds], reach, truth.nodes['reach_id'][inds])
+            #print("reach, wse, node_id", reach, truth.nodes['wse'][inds], truth.nodes['node_id'][inds])
             ind = (truth.reaches['reach_id'] == reach)
             try:
                 y0 = truth.nodes['wse'][inds]
                 x0 = truth.nodes['node_id'][inds]
+                # check masked array
+                x1 = x0[y0.mask == False]
+                y1 = y0[y0.mask == False]
+                # handle bad values set to large fill value or anomolously large wse
+                x2 = x1[np.abs(y1) < 1e11]
+                y2 = y1[np.abs(y1) < 1e11]
+                #print("reach, x1, y1",reach, x1, y1)
                 # exclude nans and infs
-                y = y0[np.isfinite(y0)]
-                x = x0[np.isfinite(y0)]
+                y = y2[np.isfinite(y2)]
+                x = x2[np.isfinite(y2)]
+                #print("reach, x, y",reach, x, y)
                 z = np.polyfit( x, y, 1)
                 p = np.poly1d(z)
                 #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
                 err = np.nanmax(np.sqrt((y - p(x))**2))*100 #in cm
+                #print("reach, z, err",reach, z, err)
+                #if reach == 73216000741:#81140200151:#81130400121:
+                #    print("reach,reach,x,y,z,err", reach, int(truth.reaches['reach_id'][ind][0]) ,x,y,z,err)
             except np.linalg.LinAlgError:
                 err = 1000000000
                 print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
             fit_error.append(err)
     return np.array(fit_error)
         
-def mask_for_sci_req(metrics, truth, data, scene, sig0=None):
+def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     # find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
-    fit_error = compute_reach_fit_error(truth)
+    fit_error = compute_reach_fit_error(truth, scene, scene_nodes)
     #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
-    #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0])
+    #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0]*200)
     # now make the mask
     msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),
           np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
           np.logical_and((truth.reaches['width']>100),
           np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and((truth.reaches['p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
-          np.logical_and(fit_error < 150.0,
+          np.logical_and((truth.reaches['p_length']>=1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
+          np.logical_and(np.abs(fit_error) < 150.0,
           np.logical_and(truth.reaches['obs_frac_n'] > 0.5,
               truth.reaches['dark_frac'] < 0.35)))))))
-    return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_n_nodes']*200.0
+    return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
-    scene0 = path_parts[-4] # assumes particular directory structure...
-    # put in the pass and tile too
-    cycle_pass_tile_flavor = path_parts[-3].split('_')
-    if len(cycle_pass_tile_flavor)<5:
+
+    # assumes particular directory structure
+    scene0 = path_parts[-7]
+    cycle_pass_tile = path_parts[-6].split('_')
+    if scene0.startswith('cycle'):
+        scene0 = path_parts[-8]
+        cycle_pass_tile = path_parts[-7].split('_')
+
+    if len(cycle_pass_tile) < 5:
         scene='unknown'
     else:
-        scene = scene0+"_"+cycle_pass_tile_flavor[3]+"_"+cycle_pass_tile_flavor[4]
-        #scene = [scene1 for item in data_tmp.reaches.reach_id]
+        scene = scene0 + "_" + cycle_pass_tile[3] + "_" \
+                + cycle_pass_tile[4]
     return scene
 #
 def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
@@ -447,7 +467,7 @@ def print_metrics(
     else:
         table['sqrt(area) (m)'] = np.sqrt(truth['area_total'][msk])
     try:
-        table['reach'] = truth.reaches['reach_id'][msk]
+        table['reach'] = [str(int(rid)) for rid in truth.reaches['reach_id'][msk]]
         table['xtrk (km)'] = truth.reaches['xtrk_dist'][msk]/1e3
     except AttributeError as e:
         table['lake_id'] = truth['obs_id'][msk]
