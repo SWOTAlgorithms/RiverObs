@@ -202,37 +202,29 @@ class ReachExtractor(object):
                         (try_yy-yy[-(found_stop+1):])**2)
 
                     if any(dist_start < 50):
-#                         if found_start == 1:
-#                             from IPython import embed; embed()
-
                         # put vertex before one it is closest to
-                        cut_idx = found_start-1+np.argmin(dist_start)
-                        lons = np.concatenate([
-                            lons[:cut_idx], [try_lon], lons[cut_idx:]])
-                        lats = np.concatenate([
-                            lats[:cut_idx], [try_lat], lats[cut_idx:]])
-                        xx = np.concatenate([
-                            xx[:cut_idx], [try_xx], xx[cut_idx:]])
-                        yy = np.concatenate([
-                            yy[:cut_idx], [try_yy], yy[cut_idx:]])
+                        cut_idx = np.argmin(dist_start)
                         found_start += 1
-                        print('extra vertex on start: ', found_start)
+                        print('extra vertex on start: ', found_start, cut_idx)
 
                     elif any(dist_stop < 50):
-#                         if found_stop == 1:
-#                             from IPython import embed; embed()
                         # put vertex after one it is closest to
                         cut_idx = len(xx)-found_stop+np.argmin(dist_stop)
-                        lons = np.concatenate([
-                            lons[:cut_idx], [try_lon], lons[cut_idx:]])
-                        lats = np.concatenate([
-                            lats[:cut_idx], [try_lat], lats[cut_idx:]])
-                        xx = np.concatenate([
-                            xx[:cut_idx], [try_xx], xx[cut_idx:]])
-                        yy = np.concatenate([
-                            yy[:cut_idx], [try_yy], yy[cut_idx:]])
                         found_stop += 1
-                        print('extra vertex on stop: ', found_stop)
+                        print('extra vertex on stop: ', found_stop, cut_idx)
+
+                    else:
+                        # skip this one
+                        continue
+
+                    lons = np.concatenate([
+                        lons[:cut_idx], [try_lon], lons[cut_idx:]])
+                    lats = np.concatenate([
+                        lats[:cut_idx], [try_lat], lats[cut_idx:]])
+                    xx = np.concatenate([
+                        xx[:cut_idx], [try_xx], xx[cut_idx:]])
+                    yy = np.concatenate([
+                        yy[:cut_idx], [try_yy], yy[cut_idx:]])
 
                 this_reach['centerlines']['x'] = lons
                 this_reach['centerlines']['y'] = lats
