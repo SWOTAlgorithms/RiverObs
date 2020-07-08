@@ -185,26 +185,54 @@ class ReachExtractor(object):
                 lats = this_reach['centerlines']['y'][not_extra_mask]
                 xx, yy = lat_lon_region.proj(lons, lats)
 
+                found_start = 0
+                found_stop = 0
                 extra_indicies = is_extra_mask.nonzero()[0]
                 for ii, extra_index in enumerate(extra_indicies):
                     try_lon = this_reach['centerlines']['x'][extra_index]
                     try_lat = this_reach['centerlines']['y'][extra_index]
                     try_xx, try_yy = lat_lon_region.proj(try_lon, try_lat)
 
-                    dist_start = np.sqrt((try_xx-xx[0])**2 + (try_yy-yy[0])**2)
-                    dist_stop = np.sqrt((try_xx-xx[-1])**2 + (try_yy-yy[-1])**2)
+                    dist_start = np.sqrt(
+                        (try_xx-xx[0:found_start+1])**2 +
+                        (try_yy-yy[0:found_start+1])**2)
 
-                    if dist_start < 50:
-                        lons = np.concatenate([[try_lon], lons])
-                        lats = np.concatenate([[try_lat], lats])
-                        xx = np.concatenate([[try_xx], xx])
-                        yy = np.concatenate([[try_yy], yy])
+                    dist_stop = np.sqrt(
+                        (try_xx-xx[-(found_stop+1):])**2 +
+                        (try_yy-yy[-(found_stop+1):])**2)
 
-                    elif dist_stop < 50:
-                        lons = np.concatenate([lons, [try_lon]])
-                        lats = np.concatenate([lats, [try_lat]])
-                        xx = np.concatenate([xx, [try_xx]])
-                        yy = np.concatenate([yy, [try_yy]])
+                    if any(dist_start < 50):
+#                         if found_start == 1:
+#                             from IPython import embed; embed()
+
+                        # put vertex before one it is closest to
+                        cut_idx = found_start-1+np.argmin(dist_start)
+                        lons = np.concatenate([
+                            lons[:cut_idx], [try_lon], lons[cut_idx:]])
+                        lats = np.concatenate([
+                            lats[:cut_idx], [try_lat], lats[cut_idx:]])
+                        xx = np.concatenate([
+                            xx[:cut_idx], [try_xx], xx[cut_idx:]])
+                        yy = np.concatenate([
+                            yy[:cut_idx], [try_yy], yy[cut_idx:]])
+                        found_start += 1
+                        print('extra vertex on start: ', found_start)
+
+                    elif any(dist_stop < 50):
+#                         if found_stop == 1:
+#                             from IPython import embed; embed()
+                        # put vertex after one it is closest to
+                        cut_idx = len(xx)-found_stop+np.argmin(dist_stop)
+                        lons = np.concatenate([
+                            lons[:cut_idx], [try_lon], lons[cut_idx:]])
+                        lats = np.concatenate([
+                            lats[:cut_idx], [try_lat], lats[cut_idx:]])
+                        xx = np.concatenate([
+                            xx[:cut_idx], [try_xx], xx[cut_idx:]])
+                        yy = np.concatenate([
+                            yy[:cut_idx], [try_yy], yy[cut_idx:]])
+                        found_stop += 1
+                        print('extra vertex on stop: ', found_stop)
 
                 this_reach['centerlines']['x'] = lons
                 this_reach['centerlines']['y'] = lats
