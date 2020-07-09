@@ -124,7 +124,7 @@ class RiverObs:
         # Flag out pixels not in the dominant segmentation label
         if self.max_width is not None:
             self.in_channel = self.flag_out_channel_and_label(
-                self.max_width, seg_label)
+                self.max_width, seg_label, ext_dist_coef=reach.ext_dist_coef)
 
         self.nedited_data = len(self.x)
         LOGGER.debug("num nodes in reach %d" % len(np.unique(self.index)))
@@ -136,7 +136,8 @@ class RiverObs:
         self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(
             self.index, self.minobs)
 
-    def flag_out_channel_and_label(self, max_width, seg_label):
+    def flag_out_channel_and_label(
+        self, max_width, seg_label, ext_dist_coef=None):
         """
         Gets the indexes of all of the points inside a channel of
         max_width, a segmentation label
@@ -153,7 +154,7 @@ class RiverObs:
 
         dst0 = abs(self.s - self.centerline.s[self.index])
 
-        extreme_dist = 20.0 * np.maximum(
+        extreme_dist = ext_dist_coef[self.index] * np.maximum(
             abs(self.ds[self.index]), max_distance)
         self.in_channel = np.logical_and(
             abs(self.n) <= max_distance,
