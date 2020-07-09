@@ -205,13 +205,11 @@ class ReachExtractor(object):
                         # put vertex before one it is closest to
                         cut_idx = np.argmin(dist_start)
                         found_start += 1
-                        print('extra vertex on start: ', found_start, cut_idx)
 
                     elif any(dist_stop < 50):
                         # put vertex after one it is closest to
                         cut_idx = len(xx)-found_stop+np.argmin(dist_stop)
                         found_stop += 1
-                        print('extra vertex on stop: ', found_stop, cut_idx)
 
                     else:
                         # skip this one
