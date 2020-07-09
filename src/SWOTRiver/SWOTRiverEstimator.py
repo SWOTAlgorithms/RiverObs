@@ -1242,8 +1242,9 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
         # Do weighted LS using height errors; flip sign to make
-        # downstream flow positive.
-        ss = -(river_reach.s - np.mean(self.river_obs.centerline.s))
+        # downstream flow positive. Get flow distance from the prior node
+        # lengths (which come from the high-res centerlines).
+        ss = -np.cumsum(river_reach.p_length)
         hh = river_reach.wse
         ww = 1/(river_reach.wse_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
