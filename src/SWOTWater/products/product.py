@@ -152,7 +152,7 @@ class Product(object):
         for key, value in self._attributes.items():
             new_product[key] = value
         for key, value in self._groups.items():
-            print('copy group', key)
+            #print('copy group', key)
             new_product[key] = value.copy(with_variables=with_variables)
         if with_variables:
             for key, variable in self._variables.items():

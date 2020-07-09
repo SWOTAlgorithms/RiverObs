@@ -73,6 +73,12 @@ class ParamPlots(NodePlots):
         super().__init__(truth, data, reach_fits=reach_fits, **kwargs)
 
     def plot_reach(self, reach, reach_id, i_truth, i_data, reach_fits=False):
+        # first check if there is no data, is so jus return
+        dat_t = self.truth[self.truth_field][i_truth]
+        if (dat_t.count() == 0):#np.count_nonzero(msk_finite) <= 0):
+            print ("no truth data to plot for reach ", reach,
+                " for field ", self.truth_field)
+            return
         figure, axes = self.add_figure()
         axes[0].set_title('reach %s %s' % (reach, reach_id))
         #self.plot_data(i_truth, i_data, axes[0])
@@ -95,6 +101,7 @@ class ParamPlots(NodePlots):
             self.truth['node_id'][i_truth],
             self.truth[self.truth_field][i_truth], style, markersize=10,
             marker='+', color='g')
+        print("plot_data", self.data['node_id'][i_data])   
         axis.set_ylabel(self.truth_field)
         if reach_fits:
             # make the fit arrays
@@ -102,7 +109,7 @@ class ParamPlots(NodePlots):
             nodes_t = self.truth['node_id'][i_truth]
             mid_node = nodes[int(len(nodes)/2)]
             mid_node_t = nodes_t[int(len(nodes_t)/2)]
-            node_spacing = 200 #hard code for now
+            node_spacing = np.median(self.truth['p_length'][i_truth])#200 #hard code for now
             hgt = self.data_reaches['wse'][
                 self.data_reaches['reach_id']==reach]
             hgt_t = self.truth_reaches['wse'][
@@ -153,23 +160,25 @@ class ParamPlots(NodePlots):
                     error = error / self.truth[self.truth_field][i_truth] * 100.0
                     label = self.truth_field + '% error'
             axis.plot(self.data['node_id'][i_data], error, label=label)
-            
+        print("plot_error", self.data['node_id'][i_data])    
         # axis.plot(
         #     self.truth['node_id'][i_truth], self.truth['height'][i_truth],
         #     marker='+')
         axis.set_xlabel('node_id')
         if self.percent:
             axis.set_ylabel(self.truth_field + '% error, data-truth')
+            minx = np.min(self.truth['node_id'][i_truth])#-9e9
+            maxx = np.max(self.truth['node_id'][i_truth])#9e9
             axis.plot(
-                [-9e9, 9e9], [15, 15], '--y', scalex=False,
+                [minx, maxx], [15, 15], '--y', scalex=False,
                 label='Req. w>100m')
             axis.plot(
-                [-9e9, 9e9], [25, 25], ':y', scalex=False,
+                [minx, maxx], [25, 25], ':y', scalex=False,
                 label='Goal, w>100m')
             axis.plot(
-                [-9e9, 9e9], [-15, -15], '--y', scalex=False)
+                [minx, maxx], [-15, -15], '--y', scalex=False)
             axis.plot(
-                [-9e9, 9e9], [-25, -25], ':y', scalex=False)
+                [minx, maxx], [-25, -25], ':y', scalex=False)
             axis.legend()
         else:
             axis.set_ylabel(self.truth_field + ' error, data-truth')
