@@ -562,48 +562,9 @@ class SWOTRiverEstimator(SWOTL2):
         bounding box.
         """
         # assign the reaches
-        river_obs_list1, reach_idx_list1, ireach_list1 = self.assign_reaches(
-            scalar_max_width, minobs, use_width_db, ds, second_pass=False)
-
-        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
-            scalar_max_width, minobs, use_width_db, ds, second_pass=True)
-
-        # iterate over reaches in second pass, only keep pixels that were
-        # also assigned to the same reach in first pass assignments
-        reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
-        for river_obs, reach_idx, ireach in reach_zips:
-
-            irch1 = np.argwhere(reach_idx_list1==reach_idx)[0][0]
-            river_obs1 = river_obs_list1[irch1]
-
-            if (river_obs1.in_channel != river_obs.in_channel).any():
-                # Make new in channel mask
-                new_in_channel = np.logical_and(
-                    river_obs.in_channel, river_obs1.in_channel)
-
-                # subset it to the previous subset of in_channel for mask
-                # of pixels to keep that were already kept.
-                mask_keep = new_in_channel[river_obs.in_channel]
-
-                # update river_obs in channel mask
-                river_obs.in_channel = new_in_channel
-
-                # Drop pixels that were double-assigned to reaches and
-                # recompute things set in RiverObs constructor
-                river_obs.index = river_obs.index[mask_keep]
-                river_obs.d = river_obs.d[mask_keep]
-                river_obs.x = river_obs.x[mask_keep]
-                river_obs.y = river_obs.y[mask_keep]
-                river_obs.s = river_obs.s[mask_keep]
-                river_obs.n = river_obs.n[mask_keep]
-                river_obs.nedited_data = len(river_obs.d)
-                river_obs.populated_nodes, river_obs.obs_to_node_map = \
-                    river_obs.get_obs_to_node_map(river_obs.index, river_obs.minobs)
-
-                # Recompute things set in IteratedRiverObs constructor
-                river_obs.add_obs('xo', river_obs.xobs)
-                river_obs.add_obs('yo', river_obs.yobs)
-                river_obs.load_nodes(['xo', 'yo'])
+        river_obs_list, reach_idx_list, ireach_list = \
+            self.assign_reaches_two_pass(
+                scalar_max_width, minobs, use_width_db, ds)
 
         river_reach_collection = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
@@ -836,6 +797,58 @@ class SWOTRiverEstimator(SWOTL2):
                 ireach_list_out.append(ireach)
 
         return river_obs_list_out, reach_idx_list_out, ireach_list_out
+
+    def assign_reaches_two_pass(
+        self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
+        """
+        Does the second pass of reach assignments using the results from the
+        first pass.
+        """
+        river_obs_list1, reach_idx_list1, ireach_list1 = self.assign_reaches(
+            scalar_max_width, minobs, use_width_db, ds)
+
+        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
+            scalar_max_width, minobs, use_width_db, ds, second_pass=True)
+
+        # iterate over reaches in second pass, only keep pixels that were
+        # also assigned to the same reach in first pass assignments
+        reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
+        for river_obs, reach_idx, ireach in reach_zips:
+
+            irch1 = np.argwhere(reach_idx_list1==reach_idx)[0][0]
+            river_obs1 = river_obs_list1[irch1]
+
+            if (river_obs1.in_channel != river_obs.in_channel).any():
+                # Make new in channel mask
+                new_in_channel = np.logical_and(
+                    river_obs.in_channel, river_obs1.in_channel)
+
+                # subset it to the previous subset of in_channel for mask
+                # of pixels to keep that were already kept.
+                mask_keep = new_in_channel[river_obs.in_channel]
+
+                # update river_obs in channel mask
+                river_obs.in_channel = new_in_channel
+
+                # Drop pixels that were double-assigned to reaches and
+                # recompute things set in RiverObs constructor
+                river_obs.index = river_obs.index[mask_keep]
+                river_obs.d = river_obs.d[mask_keep]
+                river_obs.x = river_obs.x[mask_keep]
+                river_obs.y = river_obs.y[mask_keep]
+                river_obs.s = river_obs.s[mask_keep]
+                river_obs.n = river_obs.n[mask_keep]
+                river_obs.nedited_data = len(river_obs.d)
+                river_obs.populated_nodes, river_obs.obs_to_node_map = \
+                    river_obs.get_obs_to_node_map(river_obs.index,
+                    river_obs.minobs)
+
+                # Recompute things set in IteratedRiverObs constructor
+                river_obs.add_obs('xo', river_obs.xobs)
+                river_obs.add_obs('yo', river_obs.yobs)
+                river_obs.load_nodes(['xo', 'yo'])
+
+        return river_obs_list, reach_idx_list, ireach_list
 
     def process_node(self,
                      reach,
