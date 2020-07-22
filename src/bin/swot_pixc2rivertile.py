@@ -36,6 +36,7 @@ geolocation_method        (-) = taylor
 height_agg_method         (-) = weight
 area_agg_method           (-) = composite
 preseg_dilation_iter      (-) = 0
+slope_method              (-) = weighted
 
 Config file just has processing parameters, no filenames (shape_file_root
 will be overwritten in SDS env with "prior_rivers" in current
@@ -47,6 +48,7 @@ use_fractional_inundation (-) = [False, False]
 use_segmentation          (-) = [True, True]
 use_heights               (-) = [True, False]
 preseg_dilation_iter      (-) = 1
+slope_method              (-) = first_to_last
 
 Author (s): Alex Fore
 """
@@ -93,7 +95,7 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if key in ['geolocation_method', 'reach_db_path', 'height_agg_method',
-                   'area_agg_method']:
+                   'area_agg_method', 'slope_method']:
             continue
         config[key] = ast.literal_eval(config[key])
 

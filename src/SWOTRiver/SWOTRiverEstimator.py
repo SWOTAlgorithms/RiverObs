@@ -197,6 +197,7 @@ class SWOTRiverEstimator(SWOTL2):
                  height_agg_method='weight',#[weight, median, uniform, orig]
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
+                 slope_method='weighted',
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -205,6 +206,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.input_file = os.path.split(swotL2_file)[-1]
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
+        self.slope_method = slope_method
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -1296,10 +1298,13 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # Do weighted LS using height errors; flip sign to make
-        # downstream flow positive. Get flow distance from the prior node
-        # lengths (which come from the high-res centerlines).
-        ss = -np.cumsum(river_reach.p_length)
+        # along-flow distance for all PRD nodes, flip sign to make downstream
+        # flow positive.
+        all_ss = -np.cumsum(reach.node_length)
+
+        # along-flow distance for just the observed nodes.
+        ss = all_ss[self.river_obs.populated_nodes]
+
         hh = river_reach.wse
         ww = 1/(river_reach.wse_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
@@ -1311,21 +1316,37 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         if mask.sum() > 1:
-            if all(~np.isfinite(ww)):
-                fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
-            else:
-                fit = statsmodels.api.WLS(
-                    hh[mask], SS[mask], weights=ww[mask]).fit()
+            if self.slope_method == 'first_to_last':
+                reach_stats['slope'] = (
+                    hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
+                reach_stats['height'] = (
+                    np.mean(hh[mask]) + reach_stats['slope'] *
+                    (np.mean(all_ss)-np.mean(ss[mask])))
 
-            # fit slope is meters per meter
-            reach_stats['slope'] = fit.params[0]
-            reach_stats['height'] = fit.params[1]
+                # TBD on unc quantities for first_to_last method
+                reach_stats['slope_u'] = MISSING_VALUE_FLT
+                reach_stats['height_u'] = MISSING_VALUE_FLT
 
-            # use White’s (1980) heteroskedasticity robust standard errors.
-            # https://www.statsmodels.org/dev/generated/
-            #        statsmodels.regression.linear_model.RegressionResults.html
-            reach_stats['slope_u'] = fit.HC0_se[0]
-            reach_stats['height_u'] = fit.HC0_se[1]
+            elif self.slope_method in ['unweighted', 'weighted']:
+                # use weighted fit if commanded and all weights are good
+                if self.slope_method == 'weighted' and all(np.isfinite(ww[mask])):
+                    fit = statsmodels.api.WLS(
+                        hh[mask], SS[mask], weights=ww[mask]).fit()
+
+                # use unweighted fit
+                else:
+                    fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
+
+                # fit slope is meters per meter
+                reach_stats['slope'] = fit.params[0]
+                reach_stats['height'] = fit.params[1]
+
+                # use White’s (1980) heteroskedasticity robust standard errors.
+                # https://www.statsmodels.org/dev/generated/
+                #        statsmodels.regression.linear_model.RegressionResults.html
+                reach_stats['slope_u'] = fit.HC0_se[0]
+                reach_stats['height_u'] = fit.HC0_se[1]
+
         else:
             reach_stats['slope'] = MISSING_VALUE_FLT
             reach_stats['slope_u'] = MISSING_VALUE_FLT
