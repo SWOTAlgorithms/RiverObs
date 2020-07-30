@@ -63,9 +63,13 @@ class RiverObs:
                  max_width=None,
                  minobs=1,
                  node_class=RiverNode,
-                 missing_value=MISSING_VALUE_FLT):
+                 missing_value=MISSING_VALUE_FLT,
+                 second_pass=False):
 
         self.missing_value = missing_value
+
+        # for using with a 2-pass node assignment
+        self.second_pass = second_pass
 
         # Register the node class
         self.node_class = node_class
@@ -123,8 +127,15 @@ class RiverObs:
 
         # Flag out pixels not in the dominant segmentation label
         if self.max_width is not None:
-            self.in_channel = self.flag_out_channel_and_label(
-                self.max_width, seg_label)
+
+            # Use variable ext_dist_coef on second pass
+            if self.second_pass:
+                self.in_channel = self.flag_out_channel_and_label(
+                    self.max_width, seg_label, ext_dist_coef=reach.ext_dist_coef)
+
+            else:
+                self.in_channel = self.flag_out_channel_and_label(
+                    self.max_width, seg_label, ext_dist_coef=None)
 
         self.nedited_data = len(self.x)
         LOGGER.debug("num nodes in reach %d" % len(np.unique(self.index)))
@@ -136,7 +147,8 @@ class RiverObs:
         self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(
             self.index, self.minobs)
 
-    def flag_out_channel_and_label(self, max_width, seg_label):
+    def flag_out_channel_and_label(
+        self, max_width, seg_label, ext_dist_coef=None):
         """
         Gets the indexes of all of the points inside a channel of
         max_width, a segmentation label
@@ -153,8 +165,13 @@ class RiverObs:
 
         dst0 = abs(self.s - self.centerline.s[self.index])
 
-        extreme_dist = 20.0 * np.maximum(
-            abs(self.ds[self.index]), max_distance)
+        if ext_dist_coef is None:
+            extreme_dist = 20.0 * np.maximum(
+                abs(self.ds[self.index]), max_distance)
+        else:
+            extreme_dist = ext_dist_coef[self.index] * np.maximum(
+                abs(self.ds[self.index]), max_distance)
+
         self.in_channel = np.logical_and(
             abs(self.n) <= max_distance,
             dst0 <= 3.0 * abs(self.ds[self.index]))

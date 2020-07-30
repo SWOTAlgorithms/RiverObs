@@ -98,6 +98,9 @@ class L2PixcToRiverTile(object):
         if 'preseg_dilation_iter' not in self.config:
             self.config['preseg_dilation_iter'] = 0
 
+        if 'slope_method' not in self.config:
+            self.config['slope_method'] = 'weighted'
+
         # key/value arguments for constructing SWOTRiverEstimator
         kwargs = {
             'bounding_box': self.compute_bounding_box(),
@@ -117,7 +120,8 @@ class L2PixcToRiverTile(object):
             'subsample_factor': 1,
             'height_agg_method': self.config['height_agg_method'],
             'area_agg_method': self.config['area_agg_method'],
-            'preseg_dilation_iter': self.config['preseg_dilation_iter'],}
+            'preseg_dilation_iter': self.config['preseg_dilation_iter'],
+            'slope_method': self.config['slope_method']}
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)

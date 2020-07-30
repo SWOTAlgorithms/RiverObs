@@ -185,26 +185,44 @@ class ReachExtractor(object):
                 lats = this_reach['centerlines']['y'][not_extra_mask]
                 xx, yy = lat_lon_region.proj(lons, lats)
 
+                found_start = 0
+                found_stop = 0
                 extra_indicies = is_extra_mask.nonzero()[0]
                 for ii, extra_index in enumerate(extra_indicies):
                     try_lon = this_reach['centerlines']['x'][extra_index]
                     try_lat = this_reach['centerlines']['y'][extra_index]
                     try_xx, try_yy = lat_lon_region.proj(try_lon, try_lat)
 
-                    dist_start = np.sqrt((try_xx-xx[0])**2 + (try_yy-yy[0])**2)
-                    dist_stop = np.sqrt((try_xx-xx[-1])**2 + (try_yy-yy[-1])**2)
+                    dist_start = np.sqrt(
+                        (try_xx-xx[0:found_start+1])**2 +
+                        (try_yy-yy[0:found_start+1])**2)
 
-                    if dist_start < 50:
-                        lons = np.concatenate([[try_lon], lons])
-                        lats = np.concatenate([[try_lat], lats])
-                        xx = np.concatenate([[try_xx], xx])
-                        yy = np.concatenate([[try_yy], yy])
+                    dist_stop = np.sqrt(
+                        (try_xx-xx[-(found_stop+1):])**2 +
+                        (try_yy-yy[-(found_stop+1):])**2)
 
-                    elif dist_stop < 50:
-                        lons = np.concatenate([lons, [try_lon]])
-                        lats = np.concatenate([lats, [try_lat]])
-                        xx = np.concatenate([xx, [try_xx]])
-                        yy = np.concatenate([yy, [try_yy]])
+                    if any(dist_start < 50):
+                        # put vertex before one it is closest to
+                        cut_idx = np.argmin(dist_start)
+                        found_start += 1
+
+                    elif any(dist_stop < 50):
+                        # put vertex after one it is closest to
+                        cut_idx = len(xx)-found_stop+np.argmin(dist_stop)
+                        found_stop += 1
+
+                    else:
+                        # skip this one
+                        continue
+
+                    lons = np.concatenate([
+                        lons[:cut_idx], [try_lon], lons[cut_idx:]])
+                    lats = np.concatenate([
+                        lats[:cut_idx], [try_lat], lats[cut_idx:]])
+                    xx = np.concatenate([
+                        xx[:cut_idx], [try_xx], xx[cut_idx:]])
+                    yy = np.concatenate([
+                        yy[:cut_idx], [try_yy], yy[cut_idx:]])
 
                 this_reach['centerlines']['x'] = lons
                 this_reach['centerlines']['y'] = lats
@@ -234,7 +252,8 @@ class ReachExtractor(object):
 
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
-                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef']
+                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef',
+                'ext_dist_coef']
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}
@@ -393,6 +412,8 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['wth_coef',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['ext_dist_coef',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def subset(self, reach_ids):
@@ -421,7 +442,7 @@ class ReachDatabaseNodes(Product):
         for dset in [
                 'x', 'y', 'node_id', 'reach_id', 'node_length', 'wse',
                 'wse_var', 'width', 'width_var', 'n_chan_max', 'n_chan_mod',
-                'grod_id', 'dist_out', 'wth_coef']:
+                'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -432,7 +453,7 @@ class ReachDatabaseReaches(Product):
     ATTRIBUTES = odict([])
     GROUPS = odict([
         ['area_fits', 'ReachDatabaseReachAreaFits'],
-        ['discharge_models', 'ReachDatabaseReachDischargeModels']])
+        ['discharge_models', 'ReachDatabaseReachDischargeModelsGroup']])
 
     DIMENSIONS = odict([
         ['centerlines', 2], ['reach_neighbors', 4], ['julian_day', 0],
@@ -565,6 +586,36 @@ class ReachDatabaseReaches(Product):
                 overlapping_reach_ids.append(reach_id)
         return overlapping_reach_ids
 
+class ReachDatabaseReachDischargeModelsGroup(Product):
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict()
+    VARIABLES = odict()
+    GROUPS = odict([
+        ['unconstrained', 'ReachDatabaseReachDischargeModels'],
+        ['constrained', 'ReachDatabaseReachDischargeModels']])
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachDischargeModelsGroup by reach_ids"""
+        klass = ReachDatabaseReachDischargeModelsGroup()
+        for group in self.GROUPS:
+            klass[group] = self[group].subset(mask)
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {}
+        for group in self.GROUPS:
+            outputs[group] = self[group](mask)
+        return outputs
+
+    def __add__(self, other):
+        klass = ReachDatabaseReachDischargeModelsGroup()
+        for group in self.GROUPS:
+            klass[group] = self[group] + other[group]
+        return klass
+
 class ReachDatabaseReachDischargeModels(Product):
     """class for prior reach database reach discharge_models datagroup"""
     ATTRIBUTES = odict()
@@ -573,7 +624,7 @@ class ReachDatabaseReachDischargeModels(Product):
     GROUPS = odict([
         ['MetroMan', 'ReachDatabaseReachMetroMan'],
         ['BAM', 'ReachDatabaseReachBAM'],
-        ['HiDVI', 'ReachDatabaseReachHiDVI'],
+        ['HiVDI', 'ReachDatabaseReachHiVDI'],
         ['MOMMA', 'ReachDatabaseReachMOMMA'],
         ['SADS', 'ReachDatabaseReachSADS'],
     ])
@@ -678,8 +729,8 @@ class ReachDatabaseReachBAM(Product):
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
-class ReachDatabaseReachHiDVI(Product):
-    """class for PRD reach HiDVI discharge model"""
+class ReachDatabaseReachHiVDI(Product):
+    """class for PRD reach HiVDI discharge model"""
     ATTRIBUTES = odict()
     DIMENSIONS = odict([['reaches', 0]])
     VARIABLES = odict([
@@ -690,8 +741,8 @@ class ReachDatabaseReachHiDVI(Product):
     GROUPS = odict([])
 
     def subset(self, mask):
-        """Subsets ReachDatabaseReachHiDVI by reach_ids"""
-        klass = ReachDatabaseReachHiDVI()
+        """Subsets ReachDatabaseReachHiVDI by reach_ids"""
+        klass = ReachDatabaseReachHiVDI()
         outputs = {
             key: self[key][mask] for key in self.VARIABLES.keys()}
         for key, value in outputs.items():
@@ -708,7 +759,7 @@ class ReachDatabaseReachHiDVI(Product):
 
     def __add__(self, other):
         """Adds other to self"""
-        klass = ReachDatabaseReachHiDVI()
+        klass = ReachDatabaseReachHiVDI()
         for dset in self.VARIABLES.keys():
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))

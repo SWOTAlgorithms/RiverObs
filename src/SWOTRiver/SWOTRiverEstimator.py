@@ -197,6 +197,7 @@ class SWOTRiverEstimator(SWOTL2):
                  height_agg_method='weight',#[weight, median, uniform, orig]
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
+                 slope_method='weighted',
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -205,6 +206,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.input_file = os.path.split(swotL2_file)[-1]
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
+        self.slope_method = slope_method
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -562,8 +564,9 @@ class SWOTRiverEstimator(SWOTL2):
         bounding box.
         """
         # assign the reaches
-        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
-            scalar_max_width, minobs, use_width_db, ds)
+        river_obs_list, reach_idx_list, ireach_list = \
+            self.assign_reaches_two_pass(
+                scalar_max_width, minobs, use_width_db, ds)
 
         river_reach_collection = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
@@ -643,7 +646,8 @@ class SWOTRiverEstimator(SWOTL2):
                        scalar_max_width,
                        minobs=10,
                        use_width_db=False,
-                       ds=None):
+                       ds=None,
+                       second_pass=False):
         """
         Assigns pixels to nodes for every reach.
         """
@@ -659,7 +663,7 @@ class SWOTRiverEstimator(SWOTL2):
                 river_obs = IteratedRiverObs(
                     self.reaches[i_reach], self.x, self.y, ds=ds,
                     seg_label=self.seg_label, max_width=scalar_max_width,
-                    minobs=minobs)
+                    minobs=minobs, second_pass=second_pass)
             except CenterLineException as e:
                 print("CenterLineException: ", e)
                 continue
@@ -705,7 +709,8 @@ class SWOTRiverEstimator(SWOTL2):
                     ds=ds,
                     seg_label=seg_label,
                     max_width=scalar_max_width,
-                    minobs=minobs)
+                    minobs=minobs,
+                    second_pass=second_pass)
 
             except CenterLineException as e:
                 print("CenterLineException: ", e)
@@ -794,6 +799,58 @@ class SWOTRiverEstimator(SWOTL2):
                 ireach_list_out.append(ireach)
 
         return river_obs_list_out, reach_idx_list_out, ireach_list_out
+
+    def assign_reaches_two_pass(
+        self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
+        """
+        Does the second pass of reach assignments using the results from the
+        first pass.
+        """
+        river_obs_list1, reach_idx_list1, ireach_list1 = self.assign_reaches(
+            scalar_max_width, minobs, use_width_db, ds)
+
+        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
+            scalar_max_width, minobs, use_width_db, ds, second_pass=True)
+
+        # iterate over reaches in second pass, only keep pixels that were
+        # also assigned to the same reach in first pass assignments
+        reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
+        for river_obs, reach_idx, ireach in reach_zips:
+
+            irch1 = np.argwhere(reach_idx_list1==reach_idx)[0][0]
+            river_obs1 = river_obs_list1[irch1]
+
+            if (river_obs1.in_channel != river_obs.in_channel).any():
+                # Make new in channel mask
+                new_in_channel = np.logical_and(
+                    river_obs.in_channel, river_obs1.in_channel)
+
+                # subset it to the previous subset of in_channel for mask
+                # of pixels to keep that were already kept.
+                mask_keep = new_in_channel[river_obs.in_channel]
+
+                # update river_obs in channel mask
+                river_obs.in_channel = new_in_channel
+
+                # Drop pixels that were double-assigned to reaches and
+                # recompute things set in RiverObs constructor
+                river_obs.index = river_obs.index[mask_keep]
+                river_obs.d = river_obs.d[mask_keep]
+                river_obs.x = river_obs.x[mask_keep]
+                river_obs.y = river_obs.y[mask_keep]
+                river_obs.s = river_obs.s[mask_keep]
+                river_obs.n = river_obs.n[mask_keep]
+                river_obs.nedited_data = len(river_obs.d)
+                river_obs.populated_nodes, river_obs.obs_to_node_map = \
+                    river_obs.get_obs_to_node_map(river_obs.index,
+                    river_obs.minobs)
+
+                # Recompute things set in IteratedRiverObs constructor
+                river_obs.add_obs('xo', river_obs.xobs)
+                river_obs.add_obs('yo', river_obs.yobs)
+                river_obs.load_nodes(['xo', 'yo'])
+
+        return river_obs_list, reach_idx_list, ireach_list
 
     def process_node(self,
                      reach,
@@ -1241,9 +1298,13 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # Do weighted LS using height errors; flip sign to make
-        # downstream flow positive.
-        ss = -(river_reach.s - np.mean(self.river_obs.centerline.s))
+        # along-flow distance for all PRD nodes, flip sign to make downstream
+        # flow positive.
+        all_ss = -np.cumsum(reach.node_length)
+
+        # along-flow distance for just the observed nodes.
+        ss = all_ss[self.river_obs.populated_nodes]
+
         hh = river_reach.wse
         ww = 1/(river_reach.wse_std**2)
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
@@ -1255,21 +1316,37 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         if mask.sum() > 1:
-            if all(~np.isfinite(ww)):
-                fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
-            else:
-                fit = statsmodels.api.WLS(
-                    hh[mask], SS[mask], weights=ww[mask]).fit()
+            if self.slope_method == 'first_to_last':
+                reach_stats['slope'] = (
+                    hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
+                reach_stats['height'] = (
+                    np.mean(hh[mask]) + reach_stats['slope'] *
+                    (np.mean(all_ss)-np.mean(ss[mask])))
 
-            # fit slope is meters per meter
-            reach_stats['slope'] = fit.params[0]
-            reach_stats['height'] = fit.params[1]
+                # TBD on unc quantities for first_to_last method
+                reach_stats['slope_u'] = MISSING_VALUE_FLT
+                reach_stats['height_u'] = MISSING_VALUE_FLT
 
-            # use White’s (1980) heteroskedasticity robust standard errors.
-            # https://www.statsmodels.org/dev/generated/
-            #        statsmodels.regression.linear_model.RegressionResults.html
-            reach_stats['slope_u'] = fit.HC0_se[0]
-            reach_stats['height_u'] = fit.HC0_se[1]
+            elif self.slope_method in ['unweighted', 'weighted']:
+                # use weighted fit if commanded and all weights are good
+                if self.slope_method == 'weighted' and all(np.isfinite(ww[mask])):
+                    fit = statsmodels.api.WLS(
+                        hh[mask], SS[mask], weights=ww[mask]).fit()
+
+                # use unweighted fit
+                else:
+                    fit = statsmodels.api.OLS(hh[mask], SS[mask]).fit()
+
+                # fit slope is meters per meter
+                reach_stats['slope'] = fit.params[0]
+                reach_stats['height'] = fit.params[1]
+
+                # use White’s (1980) heteroskedasticity robust standard errors.
+                # https://www.statsmodels.org/dev/generated/
+                #        statsmodels.regression.linear_model.RegressionResults.html
+                reach_stats['slope_u'] = fit.HC0_se[0]
+                reach_stats['height_u'] = fit.HC0_se[1]
+
         else:
             reach_stats['slope'] = MISSING_VALUE_FLT
             reach_stats['slope_u'] = MISSING_VALUE_FLT
