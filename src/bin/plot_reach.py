@@ -10,6 +10,7 @@ Author(s): Alexander Corben, Cassie Stuurman
 '''
 import os
 import re
+import math
 import warnings
 import argparse
 import numpy as np
@@ -38,89 +39,117 @@ CUSTOM_COLORS = {
     'y': '#ffff00',
 }
 
+
 def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, style='.'):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
-    node_i = np.logical_and(data.nodes['reach_id']==reach_id,
-                            np.logical_not(data.nodes['wse'].mask))
+    reach_id = int(reach_id)
+    node_i = np.logical_and(data.nodes['reach_id'] == reach_id, np.logical_not(data.nodes['wse'].mask))
     node_id = data.nodes['node_id'][node_i]
-    node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
-                            np.logical_not(truth.nodes['wse'].mask))
+    node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id, np.logical_not(truth.nodes['wse'].mask))
     node_id_truth = truth.nodes['node_id'][node_i_truth]
 
     wse = data.nodes['wse'][node_i]
     truth_wse = truth.nodes['wse'][node_i_truth]
-    #wse_u = data.nodes['wse_u'][node_i] # not currently populated in rivertiles
+    # wse_u = data.nodes['wse_u'][node_i] # not currently populated in rivertiles
     wse_r_u = data.nodes['wse_r_u'][node_i]
     truth_wse_r_u = truth.nodes['wse_r_u'][node_i_truth]
 
-    reach_i = data.reaches['reach_id']==reach_id
+    reach_i = data.reaches['reach_id'] == reach_id
     reach_i_truth = truth.reaches['reach_id'] == reach_id
     reach_wse = data.reaches['wse'][reach_i]
     truth_reach_wse = truth.reaches['wse'][reach_i_truth]
     reach_slope = data.reaches['slope'][reach_i]
     truth_slope = truth.reaches['slope'][reach_i_truth]
-    print('data reaches is', data.reaches)
     reach_width = data.reaches['width'][reach_i]
     truth_width = truth.reaches['width'][reach_i_truth]
-    reach_width = str(round(reach_width[0],1))
+    reach_width = str(round(reach_width[0], 1))
     reach_xtrk = data.reaches['xtrk_dist'][reach_i]
-    reach_xtrk = str(round(reach_xtrk[0]/1000,1))#.encode('utf-8','ignore')
+    reach_xtrk = str(round(reach_xtrk[0] / 1000, 1))  # .encode('utf-8','ignore')
     reach_lat = data.reaches['p_lat'][reach_i]
     reach_long = data.reaches['p_lon'][reach_i]
+    reach_wse_r_u = data.reaches['wse_r_u'][reach_i]
+    reach_wse_t_r_u = truth.reaches['wse_r_u'][reach_i]
 
     axis.errorbar(node_id, wse, wse_r_u, fmt='o', markersize=4, label='pixc', zorder=0)
     axis.plot(node_id_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
+    print('reach wse is', reach_wse, 'truth wse is', truth_reach_wse, 'reach slope is', reach_slope, 'truth slope is',
+          truth_slope)
+    print('calculated slope error is', reach_slope - truth_slope, 'calculated wse error is',
+          reach_wse - truth_reach_wse)
+    print('normalized error is',
+          (reach_wse - truth_reach_wse) * 1e2 / math.sqrt(reach_wse_r_u ** 2 + reach_wse_t_r_u ** 2))
+    print('input slope error is', str(round(errors[0], 2)))
     if reach_fit:
-        mid_node = int(min(node_id) + (max(node_id) - min(node_id))/2)
-        node_spacing = 200 #hard code for now
-        data_fit = reach_wse - reach_slope*(node_id-mid_node)*node_spacing
+        mid_node = int(min(node_id) + (max(node_id) - min(node_id)) / 2)
+        mid_node_truth = int(min(node_id_truth) + (max(node_id_truth) - min(node_id_truth)) / 2)
+        node_spacing = 200  # hard code for now
+        data_fit = reach_wse - reach_slope * (node_id - mid_node) * node_spacing
+        truth_fit = truth_reach_wse - truth_slope * (node_id_truth - mid_node_truth) * node_spacing
+        axis.plot(node_id_truth, truth_fit, '--', markersize=10, color='r', label='Truth fit')
         axis.plot(node_id, data_fit, '--', markersize=10, color='b', label='RiverObs fit')
+
+    # get_riverobs_residuals(data_fit, wse)
 
     # Add summary metrics in text
     left, width = .05, .5
-    bottom, height = .02, .8
+    bottom, height = .02, .85
     top = bottom + height
-    quad_coeff, lin_coeff = get_quadratic_fit(node_id, wse)
+    quad_coeff, lin_coeff = get_quadratic_fit(node_id_truth, truth_wse)
+    try: # fix this later, only important for slope assessments
+        r_sq = str(get_r_squared(node_id_truth, truth_wse))
+    except:
+        print('couldnt get r squared')
+        r_sq = '0'
     lake_proximity = str(get_lake_proximity(reach_id, reach_lat, reach_long))
     if errors:
-        str1 = 'Slope Error=' + str(round(errors[0],2)) + 'cm/km\n'
+        str1 = 'Slope Error=' + str(round(errors[0], 2)) + 'cm/km\n' + 'linear r-sq=' + r_sq
         axis.text(left + 0.1, top, str1,
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
-                  color=get_passfail_color(errors[3], 'slp e (cm/km)'),
+                  color=get_passfail_color(errors[0], 'slp e (cm/km)'),
                   transform=axis.transAxes)
-    summary_string = 'Lake proximity= ' + lake_proximity + ' m\n' + 'Reach Width= ' + reach_width + ' m\n' + 'Quadratic coeff=' + str(quad_coeff) + '\n' + 'Linear coeff=' + str(lin_coeff) + '\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
-    #'Flow angle= \n ' + \
+        str2 = 'wse error=' + str(round(errors[1], 2)) + ' cm\n'
+        axis.text(left + 0.1, top - 0.12, str2,
+                  horizontalalignment='left',
+                  verticalalignment='bottom',
+                  fontsize=5,
+                  color=get_passfail_color(errors[1], 'wse e (cm)'),
+                  transform=axis.transAxes)
+    summary_string = 'Lake proximity= ' + lake_proximity + ' m\n' + 'Reach Width= ' + reach_width + ' m\n' + 'Truth quad coeff=' + str(
+        quad_coeff) + '\n' + 'Truth Lin coeff=' + str(
+        lin_coeff) + '\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
+    # 'Flow angle= \n ' + \
     axis.text(left, bottom, summary_string,
               horizontalalignment='left',
               verticalalignment='bottom',
               fontsize=5,
-              transform = axis.transAxes)
+              transform=axis.transAxes)
 
     axis.grid()
     axis.set_xlabel('node_id')
-    axis.set_ylabel('wse (cm)')
+    axis.set_ylabel('wse (m)')
     leg = axis.legend()
     if leg:
         leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
 
+
 def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     # plot the truth and observed area, for detected and total
-    node_i = np.logical_and(data.nodes['reach_id']==reach_id,
+    node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
                             np.logical_not(data.nodes['wse'].mask))
     node_id = data.nodes['node_id'][node_i]
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
-                            np.logical_not(truth.nodes['wse'].mask))
+                                  np.logical_not(truth.nodes['wse'].mask))
     node_id_truth = truth.nodes['node_id'][node_i_truth]
 
     area_detct = data.nodes['area_detct'][node_i]
-    area_total = data.nodes['area_total'][node_i] # includes dark water flag
+    area_total = data.nodes['area_total'][node_i]  # includes dark water flag
     area_truth = truth.nodes['area_detct'][node_i_truth]
 
-    reach_i = data.reaches['reach_id']==reach_id
+    reach_i = data.reaches['reach_id'] == reach_id
     reach_area_detct = data.reaches['area_detct'][reach_i]
     reach_area_total = data.reaches['area_total'][reach_i]
 
@@ -138,16 +167,16 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
         str2 = 'Area total e=' + str(round(errors[2], 1)) + '%'
         str3 = 'Width e=' + str(round(errors[4], 1)) + ' m'
         axis.text(left, top, str1,
-                     horizontalalignment='left',
-                     verticalalignment='top',
-                     fontsize=5,
-                     transform=axis.transAxes)
-        axis.text(left, top-0.06, str2,
-                     horizontalalignment='left',
-                     verticalalignment='top',
-                     fontsize=5,
-                     color=get_passfail_color(errors[2], 'area_tot e (%)'),
-                     transform=axis.transAxes)
+                  horizontalalignment='left',
+                  verticalalignment='top',
+                  fontsize=5,
+                  transform=axis.transAxes)
+        axis.text(left, top - 0.06, str2,
+                  horizontalalignment='left',
+                  verticalalignment='top',
+                  fontsize=5,
+                  color=get_passfail_color(errors[2], 'area_tot e (%)'),
+                  transform=axis.transAxes)
         axis.text(left, top - 0.12, str3,
                   horizontalalignment='left',
                   verticalalignment='top',
@@ -163,51 +192,62 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     if title is not None:
         axis.set_title(title)
 
+
 def plot_pix_assgn(data, reach_id, axis, style='.'):
     # plot the pixel assignment
     # to do: find a way to either loop colourmap or find one with one colour per node
-    pix_i = (data['reach_id'] == reach_id) #np.logical_and...np.logical_not(data['wse'].mask))
+    pix_i = (data['reach_id'] == reach_id)  # np.logical_and...np.logical_not(data['wse'].mask))
     node_id = data['node_id'][pix_i]
     reach_i = data['reach_id'] == reach_id
 
     lat = data['latitude_vectorproc'][pix_i]
     lon = data['longitude_vectorproc'][pix_i]
-    
+
     plot = axis.scatter(lon, lat, cmap=plt.cm.get_cmap('tab20b', len(lon)), s=2, c=node_id, edgecolor='none')
     axis.grid()
     axis.set_aspect('equal', adjustable='box')
     axis.set_xlabel('lon')
     axis.set_ylabel('lat')
-    #axis.legend(['pix location'])
+    # axis.legend(['pix location'])
     axis.set_title('pixel locations')
     colorbar = plt.colorbar(plot, ax=axis)
     colorbar.set_label('node_id')
 
+
 def plot_locations(data, truth, reach_id, axis, plot_prior=True, gdem_dem_file=None, title=None):
     # creates the plot with the observation centroids and the prior node locations
-    node_i = np.logical_and(data.nodes['reach_id']==reach_id,
+    reach_id = int(reach_id)
+    node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
                             np.logical_not(data.nodes['wse'].mask))
     node_id = data.nodes['node_id'][node_i]
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
-                            np.logical_not(truth.nodes['wse'].mask))
+                                  np.logical_not(truth.nodes['wse'].mask))
     node_id_truth = truth.nodes['node_id'][node_i_truth]
     lat = data.nodes['lat'][node_i]
     lon = data.nodes['lon'][node_i]
 
     if gdem_dem_file is not None:
-        with Dataset(gdem_dem_file, 'r') as fin:
-            gdem_dem_lat = fin['latitude'][:]
-            gdem_dem_lon = fin['longitude'][:]
-            gdem_dem_el = fin['elevation'][:]
-        lon_bounds = [np.max((np.min(gdem_dem_lon), np.min(lon)-(np.max(lon)-np.min(lon)))),
-                      np.min((np.max(gdem_dem_lon), np.max(lon)+(np.max(lon)-np.min(lon))))]
-        lat_bounds = [np.max((np.min(gdem_dem_lat), np.min(lat)-(np.max(lat)-np.min(lat)))),
-                      np.min((np.max(gdem_dem_lat), np.max(lat)+(np.max(lat)-np.min(lat))))]
+        try:
+            with Dataset(gdem_dem_file, 'r') as fin:
+                gdem_dem_lat = fin['latitude'][:]
+                gdem_dem_lon = fin['longitude'][:]
+                gdem_dem_el = fin['elevation'][:]
+        except FileNotFoundError:
+            gdem_dem_file = gdem_dem_file[0:-8] + '_sim.nc'
+            print('gdem_file is', gdem_dem_file)
+            with Dataset(gdem_dem_file, 'r') as fin:
+                gdem_dem_lat = fin['latitude'][:]
+                gdem_dem_lon = fin['longitude'][:]
+                gdem_dem_el = fin['elevation'][:]
+        lon_bounds = [np.max((np.min(gdem_dem_lon), np.min(lon) - (np.max(lon) - np.min(lon)))),
+                      np.min((np.max(gdem_dem_lon), np.max(lon) + (np.max(lon) - np.min(lon))))]
+        lat_bounds = [np.max((np.min(gdem_dem_lat), np.min(lat) - (np.max(lat) - np.min(lat)))),
+                      np.min((np.max(gdem_dem_lat), np.max(lat) + (np.max(lat) - np.min(lat))))]
         lon_mask = np.logical_and(gdem_dem_lon >= lon_bounds[0],
                                   gdem_dem_lon <= lon_bounds[1])
         lat_mask = np.logical_and(gdem_dem_lat >= lat_bounds[0],
                                   gdem_dem_lat <= lat_bounds[1])
-        gdem_dem_el = gdem_dem_el[lat_mask][:,lon_mask]
+        gdem_dem_el = gdem_dem_el[lat_mask][:, lon_mask]
         cmap = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
                 CUSTOM_COLORS['y'], CUSTOM_COLORS['c']]
         color_map = matplotlib.colors.LinearSegmentedColormap.from_list(
@@ -221,16 +261,16 @@ def plot_locations(data, truth, reach_id, axis, plot_prior=True, gdem_dem_file=N
     if plot_prior:
         axis.scatter(truth.nodes['lon_prior'][node_i_truth], truth.nodes['lat_prior'][node_i_truth],
                      marker='x', s=5, c='k')
-        print('prior location is', truth.nodes['lon_prior'][node_i_truth], truth.nodes['lat_prior'][node_i_truth])
     colorbar = plt.colorbar(plot, ax=axis)
     colorbar.set_label('node_id')
-    #if plot_prior:
-        #axis.legend(['data node'])#, 'prior node'])
+    # if plot_prior:
+    # axis.legend(['data node'])#, 'prior node'])
     axis.grid()
     axis.set_xlabel('longitude')
     axis.set_ylabel('latitude')
     if title is not None:
         axis.set_title(title)
+
 
 def get_passfail_color(error_value, parameter):
     # returns a colour that signifies how a number relates to the scientific requirements for SWOT
@@ -242,12 +282,13 @@ def get_passfail_color(error_value, parameter):
     else:
         return 'red'
 
-def make_plots(rivertile_file, reach_id, gdem_dem_file, errors=None, scene=None):
+
+def make_plots(rivertile_file, truth_file, reach_id, gdem_dem_file, errors=None, scene=None):
+    reach_id = int(reach_id)
     # creates the figure window and populates it
     pixc_vec = rivertile_file[0:-12] + '/pixcvec.nc'
     data = SWOTWater.products.product.MutableProduct.from_ncfile(rivertile_file)
     pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
-    truth_file = rivertile_file[0:-17] + 'gdem/rivertile.nc'
     truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
 
     if scene is not None:
@@ -264,9 +305,10 @@ def make_plots(rivertile_file, reach_id, gdem_dem_file, errors=None, scene=None)
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
-    #mngr.window.setGeometry(0, 0, 1500, 500)
+    # mngr.window.setGeometry(0, 0, 1500, 500)
 
     return figure, axes
+
 
 def get_reach_error(errors, reach_id):
     # this gets the slope, wse, and area errors for the reach of interest
@@ -284,6 +326,7 @@ def get_reach_error(errors, reach_id):
     reach_error = [slope_error, wse_error, area_error, area_dtct_error, width_error]
     return reach_error
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('pixc_rivertile', help='pixc/rivertile.nc')
@@ -296,6 +339,7 @@ def main():
     reach_error = get_reach_error(errors, args.reach_id)
     make_plots(args.pixc_rivertile, args.reach_id, gdem_dem, reach_error)
     plt.show()
+
 
 if __name__ == "__main__":
     main()
