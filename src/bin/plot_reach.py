@@ -40,7 +40,7 @@ CUSTOM_COLORS = {
 }
 
 
-def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, style='.'):
+def plot_wse(data, truth, errors, reach_id, axis, reach_fit=False, title=None, style='.'):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
     reach_id = int(reach_id)
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id, np.logical_not(data.nodes['wse'].mask))
@@ -94,15 +94,15 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
     left, width = .05, .5
     bottom, height = .02, .85
     top = bottom + height
-    quad_coeff, lin_coeff = get_quadratic_fit(node_id_truth, truth_wse)
+    #quad_coeff, lin_coeff = get_quadratic_fit(node_id_truth, truth_wse)
     try: # fix this later, only important for slope assessments
         r_sq = str(get_r_squared(node_id_truth, truth_wse))
     except:
         print('couldnt get r squared')
         r_sq = '0'
-    lake_proximity = str(get_lake_proximity(reach_id, reach_lat, reach_long))
+    #lake_proximity = str(get_lake_proximity(reach_id, reach_lat, reach_long))
     if errors:
-        str1 = 'Slope Error=' + str(round(errors[0], 2)) + 'cm/km\n' + 'linear r-sq=' + r_sq
+        str1 = 'Slope Error=' + str(round(errors[0], 2)) + 'cm/km\n' #+ 'linear r-sq=' + r_sq
         axis.text(left + 0.1, top, str1,
                   horizontalalignment='left',
                   verticalalignment='bottom',
@@ -110,16 +110,18 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
                   color=get_passfail_color(errors[0], 'slp e (cm/km)'),
                   transform=axis.transAxes)
         str2 = 'wse error=' + str(round(errors[1], 2)) + ' cm\n'
-        axis.text(left + 0.1, top - 0.12, str2,
+        axis.text(left + 0.1, top - 0.1, str2,
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
                   color=get_passfail_color(errors[1], 'wse e (cm)'),
                   transform=axis.transAxes)
-    summary_string = 'Lake proximity= ' + lake_proximity + ' m\n' + 'Reach Width= ' + reach_width + ' m\n' + 'Truth quad coeff=' + str(
-        quad_coeff) + '\n' + 'Truth Lin coeff=' + str(
-        lin_coeff) + '\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
+    summary_string = 'Reach Width= ' + reach_width + ' m\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
+    # 'Lake proximity= ' + lake_proximity + ' m\n' +
     # 'Flow angle= \n ' + \
+    # + 'Truth quad coeff=' + str(
+    #         quad_coeff) + '\n' + 'Truth Lin coeff=' + str(
+    #         lin_coeff) +
     axis.text(left, bottom, summary_string,
               horizontalalignment='left',
               verticalalignment='bottom',
@@ -234,6 +236,8 @@ def plot_locations(data, truth, reach_id, axis, plot_prior=True, gdem_dem_file=N
                 gdem_dem_el = fin['elevation'][:]
         except FileNotFoundError:
             gdem_dem_file = gdem_dem_file[0:-8] + '_sim.nc'
+            if '__' in gdem_dem_file:
+                gdem_dem_file = gdem_dem_file.replace('__', '_')
             print('gdem_file is', gdem_dem_file)
             with Dataset(gdem_dem_file, 'r') as fin:
                 gdem_dem_lat = fin['latitude'][:]

@@ -71,6 +71,7 @@ def load_and_accumulate(
     if (len(truth_tmp.reaches.reach_id)<=0) or (
        len(data_tmp.reaches.reach_id)<=0):
         # do nothing if truth or data file have no reach data
+        print('File has no reach data')
         return metrics, truth, data, scene, scene_nodes, sig0
     # handle masked arrays here
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp)
