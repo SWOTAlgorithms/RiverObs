@@ -170,7 +170,7 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
     for index, reach in enumerate(reach_errors):
         rivertile_file = reach[0]
         reach_id = reach[2]
-        errors = [reach[3], reach[4], reach[5], reach[6], reach[7]] # slope e, wse_e, area total e, area detected e
+        errors = [reach[3], reach[4], reach[6], reach[7], reach[8]] # slope e, wse_e, area total e, area detected e, width e
         scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(rivertile_file)
         truth_file = get_truth_file(proc_dir, pixc_dir, rivertile_file, truth_basedir)
         gdem_file = get_gdem_from_pixc(rivertile_file)
