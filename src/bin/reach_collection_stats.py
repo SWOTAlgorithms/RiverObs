@@ -69,7 +69,7 @@ def load_data(pixc_files, gdem_files, test_bool):
     return data_collection, truth_collection, msk_collection
 
 
-def slope_hist(pixc_data, gdem_data, msks):
+def slope_hist(pixc_data, gdem_data, msks, title_str):
     data_slopes = np.array([])
     truth_slopes = np.array([])
     for index, scene in enumerate(pixc_data):
@@ -81,10 +81,10 @@ def slope_hist(pixc_data, gdem_data, msks):
     plt.hist(truth_slopes, bins=50, alpha=0.5, label='truth slopes')
     plt.legend(loc='upper right')
     plt.xlabel('slope, m/m')
-    plt.title('June 2020 Rivertiles, nominal riverobs')
+    plt.title(title_str + ' Slopes')
     plt.show()
 
-def wse_hist(pixc_data, gdem_data, msks):
+def wse_hist(pixc_data, gdem_data, msks, title_str):
     data_wse = np.array([])
     truth_wse = np.array([])
     for index, scene in enumerate(pixc_data):
@@ -96,10 +96,10 @@ def wse_hist(pixc_data, gdem_data, msks):
     plt.hist(truth_wse, bins=50, alpha=0.5, label='truth wse')
     plt.legend(loc='upper right')
     plt.xlabel('wse, m')
-    plt.title('June 2020 Rivertiles, nominal riverobs')
+    plt.title(title_str + ' wse')
     plt.show()
 
-def area_hist(pixc_data, gdem_data, msks):
+def area_hist(pixc_data, gdem_data, msks, title_str):
     data_area = np.array([])
     truth_area = np.array([])
     for index, scene in enumerate(pixc_data):
@@ -111,10 +111,10 @@ def area_hist(pixc_data, gdem_data, msks):
     plt.hist(truth_area, bins=50, alpha=0.5, label='truth area total')
     plt.legend(loc='upper right')
     plt.xlabel('area total (incl dark water), m^2')
-    plt.title('June 2020 Rivertiles, nominal riverobs')
+    plt.title(title_str + ' Area Total')
     plt.show()
 
-def area_dtct_hist(pixc_data, gdem_data, msks):
+def area_dtct_hist(pixc_data, gdem_data, msks, title_str):
     data_area = np.array([])
     truth_area = np.array([])
     for index, scene in enumerate(pixc_data):
@@ -125,11 +125,11 @@ def area_dtct_hist(pixc_data, gdem_data, msks):
     plt.hist(data_area, bins=50, alpha=0.5, label='data area detected')
     plt.hist(truth_area, bins=50, alpha=0.5, label='truth area detected')
     plt.legend(loc='upper right')
-    plt.xlabel('area total (incl dark water), m^2')
-    plt.title('June 2020 Rivertiles, nominal riverobs')
+    plt.xlabel('area detected, m^2')
+    plt.title(title_str + ' Area Detected')
     plt.show()
 
-def get_collection_node_error(datas, truths):
+def get_collection_node_error(datas, truths, title_str):
     scene_node_errors = []
     for index, scene in enumerate(datas):
         data = datas[index]
@@ -141,7 +141,7 @@ def get_collection_node_error(datas, truths):
     plt.hist(scene_node_errors[scene_node_errors<100], bins=100, alpha=0.5, label='Average node errors for each scene in collection')
     plt.legend(loc='upper right')
     plt.xlabel('Average node wse error of scene')
-    plt.title('June 2020 Rivertiles, nominal riverobs')
+    plt.title(title_str + ' Node WSE')
     plt.show()
     print('average (abs) wse node error of the collection is', collection_avg_node_error)
     print('median wse node error of the collection is', collection_med_node_error)
@@ -264,7 +264,15 @@ def main():
     parser.add_argument('pixc_basename', type=str, default=None,
                         help='pixc directory basename')
     parser.add_argument('--test_boolean', help='set to "True" if testing script', default=False, required=False)
+    parser.add_argument('--title', help='Title of Rivertile Set', required=False)
     args = parser.parse_args()
+
+    # get or create title for rivertile set
+    if args.title not in locals():
+        title_str = args.basedir + '_' + args.slc_basename + '_' + args.pixc_basename + '_' + args.proc_rivertile
+        print('Title is', title_str)
+    else:
+        title_str = args.title
 
     # get all rivertiles
     pixc_files, gdem_files = get_input_files(args.basedir, args.slc_basename, args.pixc_basename, args.proc_rivertile,
@@ -273,13 +281,13 @@ def main():
     datas, truths, msks = load_data(pixc_files, gdem_files, args.test_boolean)
 
     # get histogram of slopes
-    slope_hist(datas, truths, msks)
-    wse_hist(datas, truths, msks)
-    area_hist(datas, truths, msks)
-    area_dtct_hist(datas, truths, msks)
+    slope_hist(datas, truths, msks, title_str)
+    wse_hist(datas, truths, msks, title_str)
+    area_hist(datas, truths, msks, title_str)
+    area_dtct_hist(datas, truths, msks, title_str)
 
     # print general stats
-    get_collection_node_error(datas, truths)
+    get_collection_node_error(datas, truths, title_str)
     get_collection_errors(datas, truths)
 
     # get highest slope error cases
