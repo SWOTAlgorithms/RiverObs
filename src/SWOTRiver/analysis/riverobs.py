@@ -353,7 +353,6 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
                 y = y2[np.isfinite(y2)]
                 x = x2[np.isfinite(y2)]
                 #print("reach, x, y",reach, x, y)
-                pdb.set_trace()
                 z = np.polyfit( x, y, 1)
                 p = np.poly1d(z)
                 #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
