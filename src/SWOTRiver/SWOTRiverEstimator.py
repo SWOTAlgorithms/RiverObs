@@ -1298,11 +1298,15 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # along-flow distance for all PRD nodes, flip sign to make downstream
+        # Along-flow distance for all PRD nodes, flip sign to make downstream
         # flow positive.
         all_ss = -np.cumsum(reach.node_length)
 
-        # along-flow distance for just the observed nodes.
+        # Make center of PRD reach the ss == 0 intercept (reference point) for
+        # reach WSE.
+        all_ss = all_ss - np.mean(all_ss)
+
+        # Along-flow distance for just the observed nodes.
         ss = all_ss[self.river_obs.populated_nodes]
 
         hh = river_reach.wse
