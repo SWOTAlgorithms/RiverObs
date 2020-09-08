@@ -281,9 +281,11 @@ def compute_average_node_error(data, truth):
                 sig0.append(s0[nodes==node])
         # exclude outliers
         p_68 = np.nanpercentile(np.abs(diff_wse),68)
-        outlier_msk = np.abs(diff_wse) > p_68 * 3 # 3-sigma is outlier
         diff_wse = np.array(diff_wse)
-        weight = np.array(weight) 
+        diff_wse = diff_wse.flatten()
+        diff_wse[abs(diff_wse) > 1.0e+11] = np.nan # remove fill values
+        outlier_msk = np.abs(diff_wse) > p_68 * 3  # 3-sigma is outlier
+        weight = np.array(weight)
         diff_wse[outlier_msk] = np.nan
         weight[outlier_msk] = np.nan
         err_out[ind] = np.nanmedian(diff_wse)#np.nanmean((diff_wse * weight)) / np.nanmean(weight)
@@ -291,7 +293,7 @@ def compute_average_node_error(data, truth):
     return err_out, sig0_out
 
 def get_metrics(truth, data,
-                with_slope=True, with_width=True, wse_node_avg=None):
+                with_slope=True, with_width=True, with_wse_r_u=True, wse_node_avg=None):
     metrics = {
         'area_total': (
             (data.area_total - truth.area_total) / truth.area_total) * 100.0,
@@ -299,6 +301,7 @@ def get_metrics(truth, data,
             (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
             #(data.area_detct - truth.area_total) / truth.area_total) * 100.0,
         'wse': (data.wse - truth.wse) * 1e2,#convert m to cm
+
     }
     if wse_node_avg is not None:
         metrics['wse_node_avg'] = wse_node_avg * 1e2#convert m to cm
@@ -307,6 +310,9 @@ def get_metrics(truth, data,
         metrics['slope_t'] = (truth.slope) * 1e5#convert from m/m to cm/km
     if with_width:
         metrics['width'] = data.width - truth.width
+    if with_wse_r_u:
+        metrics['wse_r_u'] = data.wse_r_u * 1e2 #convert m to cm
+        metrics['wse_t_r_u'] = truth.wse_r_u * 1e2 #convert m to cm
     return metrics
 
 def get_passfail(is_lake = False):
@@ -330,8 +336,8 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
             inds = (truth.nodes['reach_id'] == reach)
             inds = np.logical_and(truth.nodes['reach_id'] == reach, 
                 np.array(scene_nodes) == scene_id)
-            #print("scene_nodes",np.array(scene_nodes)[inds], reach, truth.nodes['reach_id'][inds])
-            #print("reach, wse, node_id", reach, truth.nodes['wse'][inds], truth.nodes['node_id'][inds])
+            print("scene_nodes",np.array(scene_nodes)[inds], reach, truth.nodes['reach_id'][inds])
+            print("reach, wse, node_id", reach, truth.nodes['wse'][inds], truth.nodes['node_id'][inds])
             ind = (truth.reaches['reach_id'] == reach)
             try:
                 y0 = truth.nodes['wse'][inds]
@@ -347,6 +353,7 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
                 y = y2[np.isfinite(y2)]
                 x = x2[np.isfinite(y2)]
                 #print("reach, x, y",reach, x, y)
+                pdb.set_trace()
                 z = np.polyfit( x, y, 1)
                 p = np.poly1d(z)
                 #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
@@ -363,7 +370,7 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
 def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     # find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
-    fit_error = compute_reach_fit_error(truth, scene, scene_nodes)
+    fit_error = []#compute_reach_fit_error(truth, scene, scene_nodes)
     #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
     #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0]*200)
     # now make the mask
@@ -371,10 +378,9 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
           np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
           np.logical_and((truth.reaches['width']>100),
           np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and((truth.reaches['p_length']>=1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
-          np.logical_and(np.abs(fit_error) < 150.0,
+          np.logical_and((truth.reaches['p_length']>=1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
           np.logical_and(truth.reaches['obs_frac_n'] > 0.5,
-              truth.reaches['dark_frac'] < 0.35)))))))
+              truth.reaches['dark_frac'] < 0.35))))))
     return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
@@ -449,13 +455,16 @@ def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
         dark_frac=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, passfail={}):
+        with_node_avg=False, reach_len=None, with_wse_r_u=True, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse']),dtype = bool)
     table['wse e (cm)'] = metrics['wse'][msk]
     if with_node_avg:
         table['wse node e (cm)'] = metrics['wse_node_avg'][msk]
+    if with_wse_r_u:
+        table['wse r u (cm)'] = metrics['wse_r_u'][msk]
+        table['wse t r u (cm)'] = metrics['wse_t_r_u'][msk]
     if with_slope:
         table['slp e (cm/km)'] = metrics['slope'][msk]
         table['slope (cm/km)'] = metrics['slope_t'][msk]
@@ -474,8 +483,8 @@ def print_metrics(
         table['xtrk (km)'] = truth['xtrk_dist'][msk]/1e3
     if scene is not None:
         table['scene_pass_tile'] = np.array(scene)[msk]
-    if fit_error is not None:
-        table['fit_error (cm)'] = np.array(fit_error)[msk]
+    #if fit_error is not None:
+    #    table['fit_error (cm)'] = np.array(fit_error)[msk]
     if dark_frac is not None:
         table['dark_frac'] = np.array(dark_frac)[msk]
     if reach_len is not None:
