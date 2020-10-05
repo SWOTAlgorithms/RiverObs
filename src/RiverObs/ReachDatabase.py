@@ -958,3 +958,28 @@ class ReachDatabaseCenterlines(Product):
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
         return klass
+
+class ReachDatabaseTile(ReachDatabase):
+    """PRD reach database for a single RiverTile"""
+    ATTRIBUTES = odict([
+        ['x_min', {'dtype': 'f8', 'value': None}],
+        ['x_max', {'dtype': 'f8', 'value': None}],
+        ['y_min', {'dtype': 'f8', 'value': None}],
+        ['y_max', {'dtype': 'f8', 'value': None}],
+        ['Name', {}], ['production_date', {}],
+        ['pass_number', {'dtype': 'i4', 'value': None}],
+        ['tile_number', {'dtype': 'i4', 'value': None}],
+        ['swath_side', {}],
+        ])
+
+    def subset(self, reach_ids):
+        """Subsets the PRD by reach_ids"""
+        klass = ReachDatabaseTile()
+        klass.nodes = self.nodes.subset(reach_ids)
+        klass.reaches = self.reaches.subset(reach_ids)
+        klass.centerlines = self.centerlines.subset(reach_ids)
+        klass.x_min = np.min(klass.centerlines.x)
+        klass.x_max = np.max(klass.centerlines.x)
+        klass.y_min = np.min(klass.centerlines.y)
+        klass.y_max = np.max(klass.centerlines.y)
+        return klass
