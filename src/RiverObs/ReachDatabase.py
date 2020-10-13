@@ -547,7 +547,7 @@ class ReachDatabaseReaches(Product):
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
-        for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn']:
+        for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn', 'iceflag']:
             setattr(klass, dset, np.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
 
