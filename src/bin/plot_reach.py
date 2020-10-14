@@ -40,7 +40,7 @@ CUSTOM_COLORS = {
 }
 
 
-def plot_wse(data, truth, errors, reach_id, axis, reach_fit=False, title=None, style='.'):
+def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, style='.'):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
     reach_id = int(reach_id)
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id, np.logical_not(data.nodes['wse'].mask))
@@ -48,11 +48,18 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=False, title=None, s
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id, np.logical_not(truth.nodes['wse'].mask))
     node_id_truth = truth.nodes['node_id'][node_i_truth]
 
+    node_dist = data.nodes['p_dist_out'][node_i]
+    node_dist_truth = truth.nodes['p_dist_out'][node_i_truth]
+
     wse = data.nodes['wse'][node_i]
     truth_wse = truth.nodes['wse'][node_i_truth]
+    avg_wse = np.mean(wse)
+    avg_truth_wse = np.mean(truth_wse)
     # wse_u = data.nodes['wse_u'][node_i] # not currently populated in rivertiles
     wse_r_u = data.nodes['wse_r_u'][node_i]
     truth_wse_r_u = truth.nodes['wse_r_u'][node_i_truth]
+    node_dist = data.nodes['p_dist_out'][node_i]
+    truth_node_dist = truth.nodes['p_dist_out'][node_i_truth]
 
     reach_i = data.reaches['reach_id'] == reach_id
     reach_i_truth = truth.reaches['reach_id'] == reach_id
@@ -70,25 +77,36 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=False, title=None, s
     reach_wse_r_u = data.reaches['wse_r_u'][reach_i]
     reach_wse_t_r_u = truth.reaches['wse_r_u'][reach_i]
 
-    axis.errorbar(node_id, wse, wse_r_u, fmt='o', markersize=4, label='pixc', zorder=0)
-    axis.plot(node_id_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
-    print('reach wse is', reach_wse, 'truth wse is', truth_reach_wse, 'reach slope is', reach_slope, 'truth slope is',
-          truth_slope)
+
+    axis.errorbar(node_dist, wse, wse_r_u, fmt='o', markersize=4, label='pixc', zorder=0)
+    axis.plot(node_dist_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
+    axis2 = axis.twiny()
+    axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
+    axis2.cla()
+    axis2.xaxis.get_offset_text().set_visible(False)
+    axis2.set_xlabel('node id')
+
+    print('reach wse is', reach_wse,
+          'truth wse is', truth_reach_wse,
+          'reach slope is', reach_slope,
+          'truth slope is', truth_slope)
+    print('Difference of node-level obs and truth means', avg_wse - avg_truth_wse)
     print('calculated slope error is', reach_slope - truth_slope, 'calculated wse error is',
           reach_wse - truth_reach_wse)
     print('normalized error is',
           (reach_wse - truth_reach_wse) * 1e2 / math.sqrt(reach_wse_r_u ** 2 + reach_wse_t_r_u ** 2))
-    print('input slope error is', str(round(errors[0], 2)))
+    print('input slope error is', str(round(errors[0], 2)), 'cm/km')
     if reach_fit:
         mid_node = int(min(node_id) + (max(node_id) - min(node_id)) / 2)
         mid_node_truth = int(min(node_id_truth) + (max(node_id_truth) - min(node_id_truth)) / 2)
-        node_spacing = 200  # hard code for now
-        data_fit = reach_wse - reach_slope * (node_id - mid_node) * node_spacing
-        truth_fit = truth_reach_wse - truth_slope * (node_id_truth - mid_node_truth) * node_spacing
-        axis.plot(node_id_truth, truth_fit, '--', markersize=10, color='r', label='Truth fit')
-        axis.plot(node_id, data_fit, '--', markersize=10, color='b', label='RiverObs fit')
-
-    # get_riverobs_residuals(data_fit, wse)
+        node_spacing = abs(np.max(node_dist) - np.min(node_dist))/(len(node_id)-1)
+        node_spacing_truth = abs(np.max(node_dist_truth) - np.min(node_dist_truth))/(len(node_id_truth)-1)
+        print('average node spacing is', node_spacing)
+        print('average truth node spacing is', node_spacing_truth)
+        data_fit = reach_wse - reach_slope/10 * (node_id - mid_node) * node_spacing
+        truth_fit = truth_reach_wse - truth_slope/10 * (node_id_truth - mid_node_truth) * node_spacing_truth
+        axis.plot(truth_node_dist, truth_fit, '--', markersize=10, color='r', label='Truth fit')
+        axis.plot(node_dist, data_fit, '--', markersize=10, color='b', label='RiverObs fit')
 
     # Add summary metrics in text
     left, width = .05, .5
@@ -129,14 +147,13 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=False, title=None, s
               transform=axis.transAxes)
 
     axis.grid()
-    axis.set_xlabel('node_id')
+    axis.set_xlabel('dist from outlet (m)')
     axis.set_ylabel('wse (m)')
     leg = axis.legend()
     if leg:
         leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
-
 
 def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     # plot the truth and observed area, for detected and total
@@ -303,7 +320,7 @@ def make_plots(rivertile_file, truth_file, reach_id, gdem_dem_file, errors=None,
     figure, axes = plt.subplots(2, 2, figsize=FIGSIZE, dpi=DPI)
     plot_wse(data, truth, errors, reach_id, axes[0][0], title=title_str + ' - wse')
     plot_area(data, truth, errors, reach_id, axes[1][0], title=title_str + ' - area')
-    plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file,
+    plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file, #gdem_dem_file=gdem_dem_file
                    title=title_str + ' - locations')
     plot_pix_assgn(pixc_data, reach_id, axes[1][1])
 
