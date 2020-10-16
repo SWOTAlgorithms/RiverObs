@@ -1169,6 +1169,8 @@ class SWOTRiverEstimator(SWOTL2):
         tangent_angle = np.arctan2(tangent[:, 1], tangent[:, 0])
         flow_dir = np.rad2deg(tangent_angle - at_angle) % 360
 
+        prior_s = np.cumsum(reach.node_length)
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
@@ -1219,6 +1221,8 @@ class SWOTRiverEstimator(SWOTL2):
             'n_chan_max': reach.n_chan_max[self.river_obs.populated_nodes],
             'n_chan_mod': reach.n_chan_mod[self.river_obs.populated_nodes],
             'flow_dir': flow_dir.astype('float64'),
+            'prior_node_ss': prior_s,
+            'node_ss': prior_s[self.river_obs.populated_nodes],
         }
 
         if xtrack_median is not None:
@@ -1375,7 +1379,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['lake_flag'] = uint8_flg
         reach_stats['centerline_lon'] = reach.metadata['centerline_lon']
         reach_stats['centerline_lat'] = reach.metadata['centerline_lat']
-        reach_stats['prior_node_s'] = self.river_obs.centerline.s
 
         # Compute discharge
         discharge_model_values = SWOTRiver.discharge.compute(
@@ -1510,8 +1513,7 @@ class SWOTRiverEstimator(SWOTL2):
         up_id = self.reaches[ireach].metadata['rch_id_up'][0, 0]
         dn_id = self.reaches[ireach].metadata['rch_id_dn'][0, 0]
 
-        prior_s = river_reach.metadata['prior_node_s']
-
+        prior_s = river_reach.prior_node_ss
         try:
             up_idx = np.where(other_ids == up_id)[0][0]
         except IndexError:
@@ -1531,24 +1533,21 @@ class SWOTRiverEstimator(SWOTL2):
 
         if dn_idx is not None:
             reach_downstream = river_reach_collection[dn_idx]
-            distances = np.concatenate([reach_downstream.s, distances])
+            distances = np.concatenate([reach_downstream.node_ss, distances])
             heights = np.concatenate([reach_downstream.wse, heights])
 
-        distances = np.concatenate([river_reach.s, distances+prior_s[-1]])
+        distances = np.concatenate([river_reach.node_ss, distances+prior_s[-1]])
         heights = np.concatenate([river_reach.wse, heights])
 
         if up_idx is not None:
             reach_upstream = river_reach_collection[up_idx]
-            # guard on upstream being unprocessable
-            if 'prior_node_s' in reach_upstream.metadata:
-                upstream_prior_s = reach_upstream.metadata['prior_node_s']
-                first_node = first_node + len(reach_upstream.wse)
-                distances = np.concatenate([
-                    reach_upstream.s, distances+upstream_prior_s[-1]])
-                heights = np.concatenate([reach_upstream.wse, heights])
+            upstream_prior_s = reach_upstream.prior_node_ss
+            first_node = first_node + len(reach_upstream.wse)
+            distances = np.concatenate([
+                reach_upstream.node_ss, distances+upstream_prior_s[-1]])
+            heights = np.concatenate([reach_upstream.wse, heights])
 
         last_node = first_node + len(river_reach.wse) - 1
-
         this_reach_len = distances[last_node] - distances[first_node]
 
         # window size and sigma for Gaussian averaging
