@@ -630,9 +630,6 @@ class SWOTRiverEstimator(SWOTL2):
                         max_window_size=max_window_size,
                         min_sigma=min_sigma,
                         window_size_sigma_ratio=window_size_sigma_ratio)
-
-                    # flip sign, convert to m/m
-                    enhanced_slope = enhanced_slope * -1
                 else:
                     enhanced_slope = MISSING_VALUE_FLT
 
@@ -1302,9 +1299,8 @@ class SWOTRiverEstimator(SWOTL2):
         if river_reach.xtrack is not None:
             reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
 
-        # Along-flow distance for all PRD nodes, flip sign to make downstream
-        # flow positive.
-        all_ss = -np.cumsum(reach.node_length)
+        # Along-flow distance for all PRD nodes.
+        all_ss = np.cumsum(reach.node_length)
 
         # Make center of PRD reach the ss == 0 intercept (reference point) for
         # reach WSE.
@@ -1531,21 +1527,21 @@ class SWOTRiverEstimator(SWOTL2):
         distances = np.array([])
         heights = np.array([])
 
-        if dn_idx is not None:
-            reach_downstream = river_reach_collection[dn_idx]
-            distances = np.concatenate([reach_downstream.node_ss, distances])
-            heights = np.concatenate([reach_downstream.wse, heights])
+        if up_idx is not None:
+            reach_upstream = river_reach_collection[up_idx]
+            distances = np.concatenate([reach_upstream.node_ss, distances])
+            heights = np.concatenate([reach_upstream.wse, heights])
 
         distances = np.concatenate([river_reach.node_ss, distances+prior_s[-1]])
         heights = np.concatenate([river_reach.wse, heights])
 
-        if up_idx is not None:
-            reach_upstream = river_reach_collection[up_idx]
-            upstream_prior_s = reach_upstream.prior_node_ss
-            first_node = first_node + len(reach_upstream.wse)
+        if dn_idx is not None:
+            reach_downstream = river_reach_collection[dn_idx]
+            downstream_prior_s = reach_downstream.prior_node_ss
+            first_node = first_node + len(reach_downstream.wse)
             distances = np.concatenate([
-                reach_upstream.node_ss, distances+upstream_prior_s[-1]])
-            heights = np.concatenate([reach_upstream.wse, heights])
+                reach_downstream.node_ss, distances+downstream_prior_s[-1]])
+            heights = np.concatenate([reach_downstream.wse, heights])
 
         last_node = first_node + len(river_reach.wse) - 1
         this_reach_len = distances[last_node] - distances[first_node]

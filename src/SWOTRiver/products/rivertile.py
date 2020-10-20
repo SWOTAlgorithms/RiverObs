@@ -338,7 +338,7 @@ class L2HRRiverTile(Product):
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
                             'loc_offset', 'xtrk_dist', 'frac_obs',
                             'slope', 'height', 'slope_u', 'height_u',
-                            'geoid_slop', 'geoid_hght', 'prior_node_s',
+                            'geoid_slop', 'geoid_hght',
                             'd_x_area', 'd_x_area_u', 'dark_frac', 'slope2',
                             'metro_q_c', 'bam_q_c', 'hivdi_q_c', 'momma_q_c',
                             'sads_q_c', 'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
