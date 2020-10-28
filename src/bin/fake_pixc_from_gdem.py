@@ -135,7 +135,7 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['height'] = elevation[mask]
         out_pixc_dsets['cross_track'] = cross_track[mask]
         out_pixc_dsets['illumination_time'] = tvp_time[azimuth_index[mask]]
-        out_pixc_dsets['num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
+        out_pixc_dsets['eff_num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
         if make_sig0:
             out_pixc_dsets['sig0'] =  media_attenuation[mask]**2
