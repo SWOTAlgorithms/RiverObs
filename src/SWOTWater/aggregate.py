@@ -38,6 +38,45 @@ def simple(in_var, metric='mean'):
         out_var,_ = scipy.stats.mode(in_var)
     return out_var
 
+def sig0_with_uncerts(
+        sig0, good, sig0_std,
+        num_rare_looks=1.0, num_med_looks=1.0,  method='rare'):
+    """
+    Return the aggregate sig0, sample std, and estimate of uncert
+    implements methods: rare (default), medium which is the assumtption
+    of the kind of sig0 input from the pixel cloud.
+
+    INPUTS:
+    sig0        = 1d array of rare (or medium) sig0s over the water feature
+    good        = mask for filtering out some pixels
+    sig0_std    = pixel-wise sig0 error std/uncertainty from pixel cloud
+    method      = type of sig0 input ('rare', or 'medium')
+    num_*_looks = rare or medium number of looks (only used if method=medium)
+ 
+    OUTPUTS:
+    sig0_agg     = aggregated sig0
+    sig0_std_out = sample std of sig0
+    sig0_uncert  = estimate of sig0_agg 1-sigma uncertainty
+    """
+    # just do a simple average of sig0, nothing fancy
+    sig0_agg = simple(sig0[good], metric='mean')
+    #
+    sig0_std_out = None
+    sig_uncert = None
+    if method == 'rare':
+        # rare method assumes sig0 is the rare sig0 and all pixels are indep
+        # compute uncertainty as the std assuming
+        # all sig0 measurements are independent
+        num_pixels = simple(sig0[good], metric='count')
+        sig_uncert = np.sqrt(simple(sig0_std**2[good], metric='sum')) / num_pixels
+        sig_std_out = simple(sig0[good], metric='std') 
+    elif method == 'medium':
+        # assumes that sig0 is the medium sig0 and computes the
+        # uncert using the sample std scaled by rare and medium looks
+        sig_uncert = None # may want to implement this if we want to use med sig0
+        sig_std_out = height_uncert_std(sig0, good, num_rare_looks, num_med_looks)
+    return sig0_agg, sig_std_out, sig_uncert
+
 def height_only(height, good, height_std=1.0, method='weight'):
     """
     Return the aggregate height
