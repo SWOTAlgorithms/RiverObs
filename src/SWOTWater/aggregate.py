@@ -68,7 +68,7 @@ def sig0_with_uncerts(
         # compute uncertainty as the std assuming
         # all sig0 measurements are independent
         num_pixels = simple(sig0[good], metric='count')
-        sig_uncert = np.sqrt(simple(sig0_std**2[good], metric='sum')) / num_pixels
+        sig_uncert = np.sqrt(simple(sig0_std[good]**2, metric='sum')) / num_pixels
         sig_std_out = simple(sig0[good], metric='std') 
     elif method == 'medium':
         # assumes that sig0 is the medium sig0 and computes the
