@@ -293,11 +293,7 @@ class RiverNode:
         Returns the aggregate sigma0 and sigma0_unc
         """
         good = getattr(self, goodvar)
-        rdr_sig0 = np.mean(self.sig0)
-        rdr_sig0_std = aggregate.height_uncert_std(
-            self.sig0, good, self.num_rare_looks, self.num_med_looks)
-        rdr_sig0_u = None
-        return rdr_sig0, rdr_sig0_std, rdr_sig0_u
+        return aggregate.sig0_with_uncerts(self.sig0, good, self.sig0_uncert)
 
     def height_with_uncert(self, goodvar='good', method='weight'):
         """

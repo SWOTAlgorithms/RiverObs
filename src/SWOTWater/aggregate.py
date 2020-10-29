@@ -52,7 +52,7 @@ def sig0_with_uncerts(
     sig0_std    = pixel-wise sig0 error std/uncertainty from pixel cloud
     method      = type of sig0 input ('rare', or 'medium')
     num_*_looks = rare or medium number of looks (only used if method=medium)
- 
+
     OUTPUTS:
     sig0_agg     = aggregated sig0
     sig0_std_out = sample std of sig0
@@ -60,7 +60,7 @@ def sig0_with_uncerts(
     """
     # just do a simple average of sig0, nothing fancy
     sig0_agg = simple(sig0[good], metric='mean')
-    #
+
     sig0_std_out = None
     sig_uncert = None
     if method == 'rare':
@@ -68,13 +68,15 @@ def sig0_with_uncerts(
         # compute uncertainty as the std assuming
         # all sig0 measurements are independent
         num_pixels = simple(sig0[good], metric='count')
-        sig_uncert = np.sqrt(simple(sig0_std[good]**2, metric='sum')) / num_pixels
+        sig_uncert = np.sqrt(simple(
+            sig0_std[good]**2, metric='sum')) / num_pixels
         sig_std_out = simple(sig0[good], metric='std') 
     elif method == 'medium':
         # assumes that sig0 is the medium sig0 and computes the
         # uncert using the sample std scaled by rare and medium looks
         sig_uncert = None # may want to implement this if we want to use med sig0
-        sig_std_out = height_uncert_std(sig0, good, num_rare_looks, num_med_looks)
+        sig_std_out = height_uncert_std(
+            sig0, good, num_rare_looks, num_med_looks)
     return sig0_agg, sig_std_out, sig_uncert
 
 def height_only(height, good, height_std=1.0, method='weight'):
@@ -123,7 +125,9 @@ def height_only(height, good, height_std=1.0, method='weight'):
     weight_norm = weight/weight_sum_pixc
     return height_out, weight_norm
 
-def height_uncert_std(height, good, num_rare_looks, num_med_looks, height_std=1.0, method='weight'):
+def height_uncert_std(
+    height, good, num_rare_looks, num_med_looks, height_std=1.0,
+    method='weight'):
     """
     Compute the sample standard devieation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
