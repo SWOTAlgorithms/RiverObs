@@ -1220,6 +1220,7 @@ class SWOTRiverEstimator(SWOTL2):
             'flow_dir': flow_dir.astype('float64'),
             'prior_node_ss': prior_s,
             'node_ss': prior_s[self.river_obs.populated_nodes],
+            'populated_nodes': self.river_obs.populated_nodes,
         }
 
         if xtrack_median is not None:
@@ -1506,42 +1507,72 @@ class SWOTRiverEstimator(SWOTL2):
         other_ids = [item.reach_indx[0] for item in river_reach_collection]
 
         # get up/dn id from prior db
-        up_id = self.reaches[ireach].metadata['rch_id_up'][0, 0]
-        dn_id = self.reaches[ireach].metadata['rch_id_dn'][0, 0]
-
+        up_id_try = self.reaches[ireach].metadata['rch_id_up'][0, 0]
+        dn_id_try = self.reaches[ireach].metadata['rch_id_dn'][0, 0]
         prior_s = river_reach.prior_node_ss
-        try:
-            up_idx = np.where(other_ids == up_id)[0][0]
-        except IndexError:
-            up_idx = None
 
-        try:
-            dn_idx = np.where(other_ids == dn_id)[0][0]
-        except IndexError:
-            dn_idx = None
+        # In all these dicts: -1 -- downstream, +1 -- upstream
+        prd_rch = {}
+        prd_rch[0] = self.reaches.reach[
+            np.where(self.reaches.reach_idx == this_id)[0][0]]
 
-        # Build up array of data to be smoothed from downstream to
-        # upstream.  Adjust along-reach to be cumulative across
+        prd_is_good = {-1: False, 1: False}
+        prd_delta = {}
+        adj_rch = {}
+
+        for side in [-1, 1]:
+            for id_try in [dn_id_try, up_id_try]:
+                try:
+                    # index in observed reaches
+                    other_idx = np.where(other_ids == id_try)[0][0]
+
+                    # get PRD reach
+                    try_prd_rch = self.reaches.reach[
+                        np.where(self.reaches.reach_idx == id_try)[0][0]]
+
+                except IndexError:
+                    # cannot find adjacent reach with id_try in either
+                    # PRD or observed reaches
+                    continue
+
+                if side == -1:
+                    # side is downstream of current reach
+                    dx = try_prd_rch.x[-1] - prd_rch[0].x[0]
+                    dy = try_prd_rch.y[-1] - prd_rch[0].y[0]
+                else:
+                    # side is upstream of current reach
+                    dx = try_prd_rch.x[0] - prd_rch[0].x[-1]
+                    dy = try_prd_rch.y[0] - prd_rch[0].y[-1]
+
+                delta = np.sqrt(dx**2+dy**2)
+                if delta < 300:
+                    prd_is_good[side] = True
+                    prd_delta[side] = delta
+                    adj_rch[side] = river_reach_collection[other_idx]
+                    prd_rch[side] = try_prd_rch
+
+        # Build up array of data to be smoothed from upstream to
+        # downstream.  Adjust along-reach to be cumulative across
         # reach boundaries.
         first_node = 0
         distances = np.array([])
         heights = np.array([])
 
-        if up_idx is not None:
-            reach_upstream = river_reach_collection[up_idx]
-            distances = np.concatenate([reach_upstream.node_ss, distances])
-            heights = np.concatenate([reach_upstream.wse, heights])
+        # if upstream PRD reach is useable
+        if prd_is_good[1]:
+            distances = np.concatenate([adj_rch[1].node_ss, distances])
+            heights = np.concatenate([adj_rch[1].wse, heights])
 
         distances = np.concatenate([river_reach.node_ss, distances+prior_s[-1]])
         heights = np.concatenate([river_reach.wse, heights])
 
-        if dn_idx is not None:
-            reach_downstream = river_reach_collection[dn_idx]
-            downstream_prior_s = reach_downstream.prior_node_ss
-            first_node = first_node + len(reach_downstream.wse)
+        # if downstream PRD reach is useable
+        if prd_is_good[-1]:
+            downstream_prior_s = adj_rch[-1].prior_node_ss
+            first_node = first_node + len(adj_rch[-1].wse)
             distances = np.concatenate([
-                reach_downstream.node_ss, distances+downstream_prior_s[-1]])
-            heights = np.concatenate([reach_downstream.wse, heights])
+                adj_rch[-1].node_ss, distances+downstream_prior_s[-1]])
+            heights = np.concatenate([adj_rch[-1].wse, heights])
 
         last_node = first_node + len(river_reach.wse) - 1
         this_reach_len = distances[last_node] - distances[first_node]
@@ -1560,7 +1591,6 @@ class SWOTRiverEstimator(SWOTL2):
         enhanced_slope = (
             heights_smooth[last_node] - heights_smooth[first_node]
             ) / this_reach_len
-
         return enhanced_slope
 
     @staticmethod
