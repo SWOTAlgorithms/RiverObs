@@ -350,15 +350,15 @@ def get_reach_error(errors, reach_id):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('pixc_rivertile', help='pixc/rivertile.nc')
+    parser.add_argument('proc_tile', help='river_data/rivertile.nc')
+    parser.add_argument('truth_tile', help='river_data/rivertile.nc')
     parser.add_argument('reach_id', help='reach id', type=int)
     args = parser.parse_args()
 
-    gdem_dem = get_gdem_from_pixc(args.pixc_rivertile)
-    gdem_tile = args.pixc_rivertile[0:-17] + 'gdem/rivertile.nc'
-    errors = get_errors(args.pixc_rivertile, gdem_tile, test=False, verbose=False)
+    gdem_dem = get_gdem_from_pixc(args.proc_tile)
+    errors = get_errors(args.proc_tile, args.truth_tile, test=False, verbose=False)
     reach_error = get_reach_error(errors, args.reach_id)
-    make_plots(args.pixc_rivertile, args.reach_id, gdem_dem, reach_error)
+    make_plots(args.proc_tile, args.truth_tile, args.reach_id, gdem_dem, reach_error)
     plt.show()
 
 
