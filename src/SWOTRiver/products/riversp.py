@@ -22,6 +22,8 @@ RIVERSP_ATTRIBUTES['xref_l2_hr_river_sp_param_file'] = {
     'docstr': textjoin("""
         Name of PGE_L2_HR_RiverSP parameter file used to generate data in
         product""")}
+RIVERSP_ATTRIBUTES['short_name'] = {
+    'dtype': 'str', 'docstr': 'L2_HR_RiverSP', 'value': 'L2_HR_RiverSP'}
 
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['inner', 'outer'] for b in ['first', 'last']
