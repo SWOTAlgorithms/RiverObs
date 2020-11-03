@@ -38,7 +38,10 @@ CUSTOM_COLORS = {
     'm': '#ff00ff',
     'y': '#ffff00',
 }
-
+cmap_custom = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
+                CUSTOM_COLORS['y'], CUSTOM_COLORS['c']]
+cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
+            'cmyc', cmap_custom)
 
 def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, style='.'):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
@@ -304,10 +307,11 @@ def get_passfail_color(error_value, parameter):
         return 'red'
 
 
-def make_plots(rivertile_file, truth_file, reach_id, gdem_dem_file, errors=None, scene=None):
+def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
+        gdem_dem_file, errors=None, scene=None, nodes=None):
     reach_id = int(reach_id)
     # creates the figure window and populates it
-    pixc_vec = rivertile_file[0:-12] + '/pixcvec.nc'
+    #pixc_vec = rivertile_file[0:-12] + '/pixcvec.nc'
     data = SWOTWater.products.product.MutableProduct.from_ncfile(rivertile_file)
     pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
     truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
@@ -327,7 +331,9 @@ def make_plots(rivertile_file, truth_file, reach_id, gdem_dem_file, errors=None,
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
     # mngr.window.setGeometry(0, 0, 1500, 500)
-
+    if pixc is not None:
+        pixc0_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
+        plot_pixcs(pixc_data, pixc0_data, reach_id, nodes)
     return figure, axes
 
 
@@ -347,18 +353,160 @@ def get_reach_error(errors, reach_id):
     reach_error = [slope_error, wse_error, area_error, area_dtct_error, width_error]
     return reach_error
 
+def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
+    reach_id = int(reach_id)
+    # get only the reach_id for pixels in pixc_vec
+    pix_i = (pixc_vec['reach_id'] == reach_id)
+    node_id0 = pixc_vec['node_id'][pix_i]
+    reach_i = pixc_vec['reach_id'] == reach_id
+    #print('node0: ', node_id0[0])
+    #print('reach_id: ', reach_id)
+    node_id = node_id0.astype('int') - (reach_id-1)*1000
+    #print('node[0]: ', node_id[0])
+
+    aziv = pixc_vec['azimuth_index'][pix_i]
+    riv = pixc_vec['range_index'][pix_i]
+
+    latv = pixc_vec['latitude_vectorproc'][pix_i]
+    lonv = pixc_vec['longitude_vectorproc'][pix_i]
+    heightv = pixc_vec['height_vectorproc'][pix_i]
+
+    #azi = pixc['azimuth_index']
+    #ri = pixc['range_index']
+
+    # map to slant_plane
+    M1 = np.max(aziv)+1
+    N1 = np.max(riv)+1
+    M0 = np.min(aziv)
+    N0 = np.min(riv)
+    M = M1-M0
+    N = N1-N0
+    Node_id = np.zeros((M,N)) + np.nan
+    Node_id[aziv-M0,riv-N0] = node_id[:]
+    Heightv = np.zeros((M,N)) + np.nan
+    Heightv[aziv-M0,riv-N0] = heightv[:]
+
+
+    # now get PIXC in slant-plane
+    azi = pixc.pixel_cloud['azimuth_index']
+    ri = pixc.pixel_cloud['range_index']
+    height = pixc.pixel_cloud['height']
+    geoid = pixc.pixel_cloud['geoid']
+    cls = pixc.pixel_cloud['classification']
+    m = np.max(azi)+1
+    n = np.max(ri)+1
+    Height = np.zeros((m,n)) + np.nan
+    Geoid = np.zeros((m,n)) + np.nan
+    Cls = np.zeros((m,n)) + np.nan
+    Height[azi,ri] = height[:]
+    Geoid[azi,ri] = geoid[:]
+    Cls[azi,ri] = cls[:]
+
+    # now crop it to pixcvec size
+    Height1 = Height[M0:M1,N0:N1]
+    Geoid1 = Geoid[M0:M1,N0:N1]
+    Cls1 = Cls[M0:M1,N0:N1]
+    # exclude non-pixcvec things in theis reach
+    Height1[np.isnan(Heightv)] = np.nan
+    Geoid1[np.isnan(Heightv)] = np.nan
+    Cls1[np.isnan(Node_id)] = np.nan
+    # now plot them
+    c1 = np.nanpercentile(Height1,80)
+    c0 = np.nanpercentile(Height1,20)
+
+    plt.figure(figsize=FIGSIZE, dpi=DPI)
+    ax1 = plt.subplot(2,3,1)
+    pt1 =ax1.imshow(Node_id, interpolation='none',aspect='auto',
+        cmap=plt.cm.get_cmap('tab20b'))
+    plt.colorbar(pt1,ax=ax1)
+    ax1.set_title('node_id (slant-plane)')
+
+    # TODO: make a better cmap for classification, also make font bigger 
+    ax2 = plt.subplot(2,3,2, sharex=ax1, sharey=ax1)
+    pt2 = ax2.imshow(Cls1, interpolation='none', aspect='auto',
+        cmap='tab10', clim=(0,5))
+    ax2.set_title('classification (slant-plane)')
+    plt.colorbar(pt2,ax=ax2)
+
+    ax3 = plt.subplot(2,3,4, sharex=ax1, sharey=ax1)
+    pt3 = ax3.imshow(Heightv, interpolation='none', aspect='auto',
+        cmap=cmaph, clim=(c0,c1))
+    ax3.set_title('height_vectorproc (m) (slant-plane)')
+    plt.colorbar(pt3,ax=ax3)
+
+    ax4 = plt.subplot(2,3,5, sharex=ax1, sharey=ax1)
+    pt4 = ax4.imshow(Height1, interpolation='none', aspect='auto',
+        cmap=cmaph, clim=(c0,c1))
+    ax4.set_title('height (m) (slant-plane)')
+    plt.colorbar(pt4,ax=ax4)
+
+    ax5 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
+    pt5 = ax5.imshow(Geoid1, interpolation='none', aspect='auto',
+        cmap=cmaph)#, clim=(c0,c1))
+    ax5.set_title('geoid height (m) (slant-plane)')
+    plt.colorbar(pt5,ax=ax5)
+
+    for node in nodes:
+        # plot node-level pixc height histograms
+        idx = (Node_id==int(node))
+        hgt = Height1[idx]
+        hgtv = Heightv[idx]
+        hgtv = Heightv[idx]
+        klass = Cls1[idx]
+        #print('hgt:',hgt)
+        #print('hgtv:',hgtv)
+        hgt_both = np.concatenate((hgt, hgtv))
+        b1 = np.nanpercentile(hgt_both,99)
+        b0 = np.nanpercentile(hgt_both,1)
+        num = 200
+        if len(hgt) < 100:
+            num = len(hgt)/2 + 1
+        bins = np.linspace(b0,b1, int(num))
+        h, bins0 = np.histogram(hgt, bins)
+        hv, bins0 = np.histogram(hgtv, bins)
+        h4, bins0 = np.histogram(hgt[klass==4], bins)
+        h3, bins0 = np.histogram(hgt[klass==3], bins)
+        h2, bins0 = np.histogram(hgt[klass==2], bins)
+        hd, bins0 = np.histogram(hgt[klass>4], bins)
+        binc = bins[0:-1] + (bins[1]-bins[2])/2.0
+        mn = np.mean(hgt)
+        sd = np.std(hgt)
+        plt.figure(figsize=(3,2), dpi=DPI)
+        plt.plot(binc, h)#, linewidth=2)
+        plt.plot(binc, hv)#, linewidth=2)
+        plt.plot(binc, h4)#, linewidth=2)
+        plt.plot(binc, h3)#, linewidth=2)
+        plt.plot(binc, h2,'--')#, linewidth=2)
+        plt.plot(binc, hd, ':')#, linewidth=2)
+        plt.title('node %d, mean=%3.2f, std=%3.2f'%(int(node), mn, sd))
+        plt.xlabel('height (m)')
+        plt.grid()
+        plt.legend(['pixc', 'pixc_vec',
+            'pixc interior water', 'pixc edge water',
+            'pixc edge land', 'pixc dark water'],
+            loc='best')
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('proc_tile', help='river_data/rivertile.nc')
     parser.add_argument('truth_tile', help='river_data/rivertile.nc')
     parser.add_argument('reach_id', help='reach id', type=int)
+    parser.add_argument('--pixc_vec', help='pixcvec.nc', default=None)
+    parser.add_argument('--pixc', help='pixel_cloud.nc', default=None)
+    parser.add_argument('--nodes', nargs='*',
+        help='list of nodes for which to plot height  histograms', default=None)
     args = parser.parse_args()
 
     gdem_dem = get_gdem_from_pixc(args.proc_tile)
+    gdem_tile = args.truth_tile
+    pixc_vec = args.pixc_vec
+    if pixc_vec is None:
+        pixc_vec = args.proc_tile[0:-12] + '/pixcvec.nc'
     errors = get_errors(args.proc_tile, args.truth_tile, test=False, verbose=False)
     reach_error = get_reach_error(errors, args.reach_id)
-    make_plots(args.proc_tile, args.truth_tile, args.reach_id, gdem_dem, reach_error)
+    #make_plots(args.proc_tile, args.truth_tile, args.reach_id, gdem_dem, reach_error)
+    make_plots(args.proc_tile, args.truth_tile, pixc_vec, args.pixc, args.reach_id,
+        gdem_dem, reach_error, nodes=args.nodes)
     plt.show()
 
 
