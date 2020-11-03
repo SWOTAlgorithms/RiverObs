@@ -991,8 +991,8 @@ class SWOTRiverEstimator(SWOTL2):
         ]
 
         other_obs_keys = [
-            'xtrack', 'sig0', 'water_frac', 'water_frac_uncert', 'ifgram',
-            'power1', 'power2', 'phase_noise_std', 'dh_dphi',
+            'xtrack', 'sig0', 'sig0_uncert', 'water_frac', 'water_frac_uncert',
+            'ifgram', 'power1', 'power2', 'phase_noise_std', 'dh_dphi',
             'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
             'looks_to_efflooks', 'geoid', 'solid_earth_tide', 'load_tide_fes',
