@@ -1515,7 +1515,6 @@ class SWOTRiverEstimator(SWOTL2):
         prd_rch = {}
         prd_rch[0] = self.reaches.reach[
             np.where(self.reaches.reach_idx == this_id)[0][0]]
-
         prd_is_good = {-1: False, 1: False}
         prd_delta = {}
         adj_rch = {}

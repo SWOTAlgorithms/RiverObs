@@ -66,7 +66,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
     scene = None
     sig0 = None
     table = None
-    bad_scenes = []         #['3356',]# these scenes will be excluded from analysis
+    bad_scene = ['tanana_0434_0002','tanana_0156_0001']      #['3356',]# these scenes will be excluded from analysis
     good_pixc_list = []
 
     test_count = 0                      # this only increases if we're in script testing mode
@@ -74,7 +74,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
         # function was called for a single file
         print('Retrieving errors for single file...')
         try:
-            metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list)
+            metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list, bad_scenes=bad_scene)
         except FileNotFoundError:
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
@@ -95,7 +95,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
             if test_count<=5:
                 # get the error of that scene
                 try:
-                    metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index], gdem_list[index])
+                    metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index], gdem_list[index], bad_scenes=bad_scene)
                 except FileNotFoundError:
                     print('Pixc rivertile has no matching gdem rivertile')
 
@@ -173,7 +173,7 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
         errors = [reach[3], reach[4], reach[6], reach[7], reach[8]] # slope e, wse_e, area total e, area detected e, width e
         scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(rivertile_file)
         truth_file = get_truth_file(proc_dir, pixc_dir, rivertile_file, truth_basedir)
-        gdem_file = get_gdem_from_pixc(rivertile_file)
+        gdem_file = None #get_gdem_from_pixc(rivertile_file)
         figure, axes = plot_reach.make_plots(rivertile_file, truth_file, reach_id, gdem_file, errors, scene)
 
         plt.show()
