@@ -33,7 +33,6 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
             http://www.esri.com/library/whitepapers/pdfs/shapefile.pdf""") }],
     # title gets overridden for SLC product
     ['title', {'dtype': 'str',
-        'value': 'Level 2 KaRIn High Rate River Single Pass Vector Product',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
     ['institution', {'dtype': 'str', 'value': 'JPL',
          'docstr': 'Name of producing agency.'}],
@@ -47,8 +46,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
     ['history', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time when file generated. Format is:
-            'YYYY-MM-DD hh:mm:ss : Creation'""")}],
-    ['platform', {'dtype': 'str' ,'value':'SWOT','docstr': 'SWOT'}],
+            'YYYY-MM-DDThh:mm:ssZ : Creation'""")}],
+    ['platform', {'dtype': 'str', 'docstr': 'SWOT'}],
     ['references', {'dtype': 'str',
         'docstr': textjoin("""
             Published or web-based references that describe
@@ -68,14 +67,30 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Pass number of the product granule.'}],
     ['continent', {'dtype': 'str',
         'docstr': 'Continent the product belongs to.'}],
+    ['short_name', {'dtype': 'str',
+        'docstr': 'L2_HR_RiverTile'}],
+    ['crid', {'dtype': 'str',
+        'docstr': textjoin("""
+            Composite release identifier (CRID) of the data system used to
+            generate this file""")}],
+    ['product_version', {'dtype': 'str',
+        'docstr': 'Version identifier of this data file'}],
+    ['pge_name', {'dtype': 'str',
+        'docstr': textjoin("""
+            Name of the product generation executable (PGE) that created
+            this file""")}],
+    ['pge_version', {'dtype': 'str',
+        'docstr': textjoin("""
+            Version identifier of the product generation executable (PGE)
+            that created this file""")}],
     ['time_coverage_start', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time of first measurement.
-            Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
+            Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
     ['time_coverage_end', {'dtype': 'str',
         'docstr': textjoin("""
             UTC time of last measurement.
-            Format is: YYYY-MM-DD hh:mm:ss.ssssssZ""")}],
+            Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
     ['geospatial_lon_min',  {'dtype': 'f8',
         'docstr': "Westernmost longitude (deg) of granule bounding box"}],
     ['geospatial_lon_max',  {'dtype': 'f8',
@@ -169,7 +184,7 @@ RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
 for key in ATTRIBUTE_KEYS2POP:
     RIVERTILE_ATTRIBUTES.pop(key, None)
 
-for key in ['Conventions', 'title', 'platform']:
+for key in ['Conventions', 'title', 'platform', 'short_name', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
@@ -643,7 +658,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['calendar', 'gregorian'],
                 ['tai_utc_difference',
                  '[value of TAI-UTC at time of first record]'],
-                ['leap_second', 'YYYY-MM-DD hh:mm:ss'],
+                ['leap_second', 'YYYY-MM-DDThh:mm:ssZ'],
                 ['units', 'seconds since 2000-01-01 00:00:00.000'],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
@@ -676,7 +691,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['calendar', 'gregorian'],
                 ['tai_utc_difference',
                  '[value of TAI-UTC at time of first record]'],
-                ['leap_second', 'YYYY-MM-DD hh:mm:ss'],
+                ['leap_second', 'YYYY-MM-DDThh:mm:ssZ'],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
@@ -1004,7 +1019,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['standard_name', 'status_flag'],
                 ['source', 'Yang et al. (2020)'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                    no_ice_cover uncertain_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 2],
@@ -1016,8 +1031,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     is ice-covered on the day of the observation based on
                     external climatological information (not the SWOT
                     measurement).  Values of 0, 1, and 2 indicate that the node
-                    is likely not ice covered, likely partially ice covered,
-                    and likely fully ice covered, respectively""")],
+                    is likely not ice covered, may or may not be partially
+                    or fully, and likely fully ice covered, respectively""")],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
@@ -2495,7 +2510,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['standard_name', 'status_flag'],
                 ['source', 'Yang et al. (2020)'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                    no_ice_cover uncertain_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 2],
@@ -2503,12 +2518,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Climatological ice cover flag indicating whether the reach
-                    is ice-covered on the day of the observation based on
-                    external climatological information (not the SWOT
+                    Climatological ice cover flag indicating whether the
+                    reach is ice-covered on the day of the observation based
+                    on external climatological information (not the SWOT
                     measurement).  Values of 0, 1, and 2 indicate that the
-                    reach is likely not ice covered, likely partially ice
-                    covered, and likely fully ice covered, respectively.""")],
+                    reach is likely not ice covered, may or may not be
+                    partially or fully ice covered, and likely fully ice
+                    covered, respectively.""")],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
