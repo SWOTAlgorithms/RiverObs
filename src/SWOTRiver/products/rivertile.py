@@ -69,6 +69,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Continent the product belongs to.'}],
     ['short_name', {'dtype': 'str',
         'docstr': 'L2_HR_RiverTile'}],
+    ['product_file_id', {'dtype': 'str',
+        'docstr': 'Reach/Node', 'value': 'Reach/Node'}],
     ['crid', {'dtype': 'str',
         'docstr': textjoin("""
             Composite release identifier (CRID) of the data system used to
@@ -625,6 +627,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         'dtype': 'str',
         'value': 'Level 2 KaRIn High Rate River Tile Vector Product - Node',
         'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product - Node'}
+    ATTRIBUTES['product_file_id'] = {
+        'dtype': 'str', 'value': 'Node', 'docstr': 'Node'}
 
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
@@ -1555,6 +1559,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         'dtype': 'str',
         'value': 'Level 2 KaRIn High Rate River Tile Vector Product - Reach',
         'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product - Reach'}
+    ATTRIBUTES['product_file_id'] = {
+        'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}
 
     DIMENSIONS = odict([
         ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
