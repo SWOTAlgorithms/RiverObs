@@ -106,8 +106,8 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
         node_spacing_truth = abs(np.max(node_dist_truth) - np.min(node_dist_truth))/(len(node_id_truth)-1)
         print('average node spacing is', node_spacing)
         print('average truth node spacing is', node_spacing_truth)
-        data_fit = reach_wse - reach_slope/10 * (node_id - mid_node) * node_spacing
-        truth_fit = truth_reach_wse - truth_slope/10 * (node_id_truth - mid_node_truth) * node_spacing_truth
+        data_fit = reach_wse - reach_slope/10 * (mid_node-node_id) * node_spacing
+        truth_fit = truth_reach_wse - truth_slope/10 * (mid_node_truth-node_id_truth) * node_spacing_truth
         axis.plot(truth_node_dist, truth_fit, '--', markersize=10, color='r', label='Truth fit')
         axis.plot(node_dist, data_fit, '--', markersize=10, color='b', label='RiverObs fit')
 
@@ -313,7 +313,10 @@ def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
     # creates the figure window and populates it
     #pixc_vec = rivertile_file[0:-12] + '/pixcvec.nc'
     data = SWOTWater.products.product.MutableProduct.from_ncfile(rivertile_file)
-    pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
+    if pixc is not None:
+        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
+    else:
+        pixc_data = None
     truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
 
     if scene is not None:
@@ -334,6 +337,7 @@ def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
     if pixc is not None:
         pixc0_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
         plot_pixcs(pixc_data, pixc0_data, reach_id, nodes)
+
     return figure, axes
 
 
@@ -446,45 +450,46 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
     ax5.set_title('geoid height (m) (slant-plane)')
     plt.colorbar(pt5,ax=ax5)
 
-    for node in nodes:
-        # plot node-level pixc height histograms
-        idx = (Node_id==int(node))
-        hgt = Height1[idx]
-        hgtv = Heightv[idx]
-        hgtv = Heightv[idx]
-        klass = Cls1[idx]
-        #print('hgt:',hgt)
-        #print('hgtv:',hgtv)
-        hgt_both = np.concatenate((hgt, hgtv))
-        b1 = np.nanpercentile(hgt_both,99)
-        b0 = np.nanpercentile(hgt_both,1)
-        num = 200
-        if len(hgt) < 100:
-            num = len(hgt)/2 + 1
-        bins = np.linspace(b0,b1, int(num))
-        h, bins0 = np.histogram(hgt, bins)
-        hv, bins0 = np.histogram(hgtv, bins)
-        h4, bins0 = np.histogram(hgt[klass==4], bins)
-        h3, bins0 = np.histogram(hgt[klass==3], bins)
-        h2, bins0 = np.histogram(hgt[klass==2], bins)
-        hd, bins0 = np.histogram(hgt[klass>4], bins)
-        binc = bins[0:-1] + (bins[1]-bins[2])/2.0
-        mn = np.mean(hgt)
-        sd = np.std(hgt)
-        plt.figure(figsize=(3,2), dpi=DPI)
-        plt.plot(binc, h)#, linewidth=2)
-        plt.plot(binc, hv)#, linewidth=2)
-        plt.plot(binc, h4)#, linewidth=2)
-        plt.plot(binc, h3)#, linewidth=2)
-        plt.plot(binc, h2,'--')#, linewidth=2)
-        plt.plot(binc, hd, ':')#, linewidth=2)
-        plt.title('node %d, mean=%3.2f, std=%3.2f'%(int(node), mn, sd))
-        plt.xlabel('height (m)')
-        plt.grid()
-        plt.legend(['pixc', 'pixc_vec',
-            'pixc interior water', 'pixc edge water',
-            'pixc edge land', 'pixc dark water'],
-            loc='best')
+    if nodes:
+        for node in nodes:
+            # plot node-level pixc height histograms
+            idx = (Node_id==int(node))
+            hgt = Height1[idx]
+            hgtv = Heightv[idx]
+            hgtv = Heightv[idx]
+            klass = Cls1[idx]
+            #print('hgt:',hgt)
+            #print('hgtv:',hgtv)
+            hgt_both = np.concatenate((hgt, hgtv))
+            b1 = np.nanpercentile(hgt_both,99)
+            b0 = np.nanpercentile(hgt_both,1)
+            num = 200
+            if len(hgt) < 100:
+                num = len(hgt)/2 + 1
+            bins = np.linspace(b0,b1, int(num))
+            h, bins0 = np.histogram(hgt, bins)
+            hv, bins0 = np.histogram(hgtv, bins)
+            h4, bins0 = np.histogram(hgt[klass==4], bins)
+            h3, bins0 = np.histogram(hgt[klass==3], bins)
+            h2, bins0 = np.histogram(hgt[klass==2], bins)
+            hd, bins0 = np.histogram(hgt[klass>4], bins)
+            binc = bins[0:-1] + (bins[1]-bins[2])/2.0
+            mn = np.mean(hgt)
+            sd = np.std(hgt)
+            plt.figure(figsize=(3,2), dpi=DPI)
+            plt.plot(binc, h)#, linewidth=2)
+            plt.plot(binc, hv)#, linewidth=2)
+            plt.plot(binc, h4)#, linewidth=2)
+            plt.plot(binc, h3)#, linewidth=2)
+            plt.plot(binc, h2,'--')#, linewidth=2)
+            plt.plot(binc, hd, ':')#, linewidth=2)
+            plt.title('node %d, mean=%3.2f, std=%3.2f'%(int(node), mn, sd))
+            plt.xlabel('height (m)')
+            plt.grid()
+            plt.legend(['pixc', 'pixc_vec',
+                'pixc interior water', 'pixc edge water',
+                'pixc edge land', 'pixc dark water'],
+                loc='best')
 
 def main():
     parser = argparse.ArgumentParser()

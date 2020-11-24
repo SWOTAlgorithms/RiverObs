@@ -32,17 +32,21 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     truth_rivertile_list = []
     n_char = len(pixc_dir) + 1 + len(proc_rivertile) + len('river_data/rivertile.nc') + 1
     for file in proc_rivertile_list:
-        truth_file =  get_truth_file(proc_rivertile, pixc_dir, file, truth_dir)
+        truth_file = get_truth_file(proc_rivertile, pixc_dir, file, truth_dir)
         truth_rivertile_list.append(truth_file)
     return proc_rivertile_list, truth_rivertile_list
 
 def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir):
-    n_char = len(proc_dir) + len(pixc_dir) +1 + len('river_data/rivertile.nc') + 1
+    n_char = len(proc_dir) + len(pixc_dir) + 1 + len('river_data/rivertile.nc') + 1
     path = proc_rivertile[0:-n_char]
     truth_file = path + truth_dir + '/river_data/rivertile.nc'
-    #truth_file = proc_rivertile[0:43] + proc_rivertile[44:120] + truth_dir + '/river_data/rivertile.nc' # hardcoded for new set of rivertiles to avoid truth re-run
-    #truth_file = path + truth_dir + '/river_data/rivertile.nc'
     return truth_file
+
+def get_pixc_file(proc_dir, proc_rivertile):
+    n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc') + 1
+    path = proc_rivertile[0:-n_char]
+    pixc_file = path + '/pixc_data/pixel_cloud.nc'
+    return pixc_file
 
 def get_errors(pixc_list, gdem_list, test, verbose=True):
     worst_area = 0
@@ -169,12 +173,15 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
     reach_errors = reach_errors[first_reach:]
     for index, reach in enumerate(reach_errors):
         rivertile_file = reach[0]
+        pixc_file = get_pixc_file(proc_dir, rivertile_file)
         reach_id = reach[2]
         errors = [reach[3], reach[4], reach[6], reach[7], reach[8]] # slope e, wse_e, area total e, area detected e, width e
         scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(rivertile_file)
         truth_file = get_truth_file(proc_dir, pixc_dir, rivertile_file, truth_basedir)
-        gdem_file = None #get_gdem_from_pixc(rivertile_file)
-        figure, axes = plot_reach.make_plots(rivertile_file, truth_file, reach_id, gdem_file, errors, scene)
+        gdem_file = None    # this is the gdem_dem file
+        pixc_vec = get_pixcvec_from_rivertile(rivertile_file)
+        figure, axes = plot_reach.make_plots(rivertile_file, truth_file, pixc_vec, pixc_file,
+                                             reach_id, gdem_file, errors, scene)
 
         plt.show()
 
@@ -225,6 +232,11 @@ def get_gdem_from_pixc(pixc_file):
     gdem_file = '/u/swot-fn-r0/swot/sim_proc_inputs/gdem-dem-truth-v9-nowet/' +  lidar_scene + '_lidar.nc'
     return gdem_file
 
+def get_pixcvec_from_rivertile(rivertile_file):
+    # gets a pixcvec file from an input rivertile.nc. Hard coded, user beware.
+    pixcvec_file = rivertile_file[0:-12] + '/pixcvec.nc'
+    return pixcvec_file
+
 def takeSlope(elem):
     print(elem[3])
     return abs(elem[3])
@@ -260,12 +272,12 @@ def main():
         raise Exception('Input sort string must be wse, area, or slope.')
 
     print('base directory is', args.basedir)
-    pixc_list, gdem_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename, args.proc_rivertile, args.truth_rivertile)
-    scene_errors, reach_errors, pixc_list = get_errors(pixc_list, gdem_list, args.test_boolean)
-    scene_slope_error = sort_scene_errors(scene_errors, pixc_list, 'slope_error')
-    scene_wse_error = sort_scene_errors(scene_errors, pixc_list, 'wse_error')
-    scene_area_error = sort_scene_errors(scene_errors, pixc_list, 'area_error')
-    scene_area_dtct_error = sort_scene_errors(scene_errors, pixc_list, 'area_dtct_error')
+    proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename, args.proc_rivertile, args.truth_rivertile)
+    scene_errors, reach_errors, proc_list = get_errors(proc_list, truth_list, args.test_boolean)
+    scene_slope_error = sort_scene_errors(scene_errors, proc_list, 'slope_error')
+    scene_wse_error = sort_scene_errors(scene_errors, proc_list, 'wse_error')
+    scene_area_error = sort_scene_errors(scene_errors, proc_list, 'area_error')
+    scene_area_dtct_error = sort_scene_errors(scene_errors, proc_list, 'area_dtct_error')
 
     # uncomment below if you want scene-level error summaries
     # print_best_worst_scenes(scene_slope_error, 'Slope')
@@ -276,8 +288,8 @@ def main():
     # start plotting at the error percentile of interest
     n_reaches = len(reach_errors)
     first_reach = int(np.floor(n_reaches*(100-args.percentile)/100))
-    plot_worst_reaches(reach_errors, first_reach, args.sort_by,
-                       pixc_list, args.proc_rivertile, args.pixc_basename, args.truth_rivertile)
+    plot_worst_reaches(reach_errors, first_reach, args.sort_by, proc_list,
+                       args.proc_rivertile, args.pixc_basename, args.truth_rivertile)
 
 if __name__ == "__main__":
     main()
