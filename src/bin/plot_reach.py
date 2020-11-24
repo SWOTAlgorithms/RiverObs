@@ -313,10 +313,6 @@ def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
     # creates the figure window and populates it
     #pixc_vec = rivertile_file[0:-12] + '/pixcvec.nc'
     data = SWOTWater.products.product.MutableProduct.from_ncfile(rivertile_file)
-    if pixc is not None:
-        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
-    else:
-        pixc_data = None
     truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
 
     if scene is not None:
@@ -329,14 +325,20 @@ def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
     plot_area(data, truth, errors, reach_id, axes[1][0], title=title_str + ' - area')
     plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file, #gdem_dem_file=gdem_dem_file
                    title=title_str + ' - locations')
-    plot_pix_assgn(pixc_data, reach_id, axes[1][1])
+    if pixc_vec is not None:
+        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
+        plot_pix_assgn(pixc_data, reach_id, axes[1][1])
+    else:
+        pixc_data = None
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
     # mngr.window.setGeometry(0, 0, 1500, 500)
-    if pixc is not None:
+    if pixc and pixc_data:
         pixc0_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
         plot_pixcs(pixc_data, pixc0_data, reach_id, nodes)
+    else:
+        print('Missing pixc or pixcvec file, skipping pixel assignment plot')
 
     return figure, axes
 

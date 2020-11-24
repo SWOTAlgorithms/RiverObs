@@ -14,6 +14,7 @@
 
 import argparse
 import os
+from os import path
 import glob
 import math
 import numpy as np
@@ -44,9 +45,13 @@ def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir):
 
 def get_pixc_file(proc_dir, proc_rivertile):
     n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc') + 1
-    path = proc_rivertile[0:-n_char]
-    pixc_file = path + '/pixc_data/pixel_cloud.nc'
-    return pixc_file
+    proc_path = proc_rivertile[0:-n_char]
+    pixc_file = proc_path + '/pixc_data/pixel_cloud1.nc'
+    if path.exists(pixc_file):
+        return pixc_file
+    else:
+        print('Missing pixel cloud file, continuing...')
+        return None
 
 def get_errors(pixc_list, gdem_list, test, verbose=True):
     worst_area = 0
@@ -96,7 +101,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
     else: # function was called for a list of files
         print('Retrieving errors for all rivertiles...')
         for index, filename in enumerate(pixc_list):
-            if test_count<=5:
+            if test_count<=3:
                 # get the error of that scene
                 try:
                     metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index], gdem_list[index], bad_scenes=bad_scene)
@@ -235,7 +240,11 @@ def get_gdem_from_pixc(pixc_file):
 def get_pixcvec_from_rivertile(rivertile_file):
     # gets a pixcvec file from an input rivertile.nc. Hard coded, user beware.
     pixcvec_file = rivertile_file[0:-12] + '/pixcvec.nc'
-    return pixcvec_file
+    if path.exists(pixcvec_file):
+        return pixcvec_file
+    else:
+        print('Missing pixcvec file, continuing...')
+        return None
 
 def takeSlope(elem):
     print(elem[3])
