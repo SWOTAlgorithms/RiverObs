@@ -81,6 +81,8 @@ class RiverSPNodes(RiverTileNodes):
         'dtype': 'str',
         'value': 'Level 2 KaRIn High Rate River Single Pass Vector Product - Node',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product - Node'}
+    ATTRIBUTES['product_file_id'] = {
+        'dtype': 'str', 'value': 'Node', 'docstr': 'Node'}
 
 class RiverSPReaches(RiverTileReaches):
     ATTRIBUTES = RIVERSP_ATTRIBUTES.copy()
@@ -88,3 +90,5 @@ class RiverSPReaches(RiverTileReaches):
         'dtype': 'str',
         'value': 'Level 2 KaRIn High Rate River Single Pass Vector Product - Reach',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product - Reach'}
+    ATTRIBUTES['product_file_id'] = {
+        'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}

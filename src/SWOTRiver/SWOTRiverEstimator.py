@@ -1591,6 +1591,7 @@ class SWOTRiverEstimator(SWOTL2):
         enhanced_slope = (
             heights_smooth[last_node] - heights_smooth[first_node]
             ) / this_reach_len
+
         return enhanced_slope
 
     @staticmethod
