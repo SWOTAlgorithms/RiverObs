@@ -248,6 +248,10 @@ class Product(object):
                 else:
                     dtype = default_dtype
             dtype_str = np.dtype(dtype).str[1:]
+            if (dtype_str[0] == 'S') or (dtype_str[0] == 'U') or (
+                    dtype_str[0]=='O'):
+                # handle arbirary-size strings
+                dtype_str = 'S1'
             fill = FILL_VALUES[dtype_str]
         return fill
 
