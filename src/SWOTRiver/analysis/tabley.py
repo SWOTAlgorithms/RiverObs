@@ -12,7 +12,16 @@ import numpy as np
 def print_table(*args, **kwargs):
     """Create a Table() from arguments and print it."""
     table = Table(*args, **kwargs)
-    print(table)
+    print('table.fname:',table.fname)
+    if table.fname is not None:
+        # write to file if fname is set
+        f = open(table.fname,'w')
+        f.write(table.__str__())
+        f.close()
+    else:
+        # print to terminal
+        print(table)
+
 
 
 class Table():
@@ -30,7 +39,7 @@ class Table():
     printed.
     """
     def __init__(
-            self, data, headers=None, style=None, precision=4, width=0, passfail={}):
+            self, data, headers=None, style=None, precision=4, width=0, passfail={}, fname=None):
         if isinstance(data, dict):
             headers = list(data.keys())
             # data = np.column_stack(data.values())
@@ -48,6 +57,7 @@ class Table():
         self.widths = None
         self.formats = None
         self.passfail = passfail
+        self.fname = fname
         self.fit_widths()
         if style == 'pipe':
             self.border = '|'
