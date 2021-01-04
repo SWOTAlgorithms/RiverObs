@@ -39,7 +39,8 @@ class Table():
     printed.
     """
     def __init__(
-            self, data, headers=None, style=None, precision=4, width=0, passfail={}, fname=None):
+            self, data, headers=None, style=None, precision=4, width=0, passfail={},
+            fname=None, preamble=None):
         if isinstance(data, dict):
             headers = list(data.keys())
             # data = np.column_stack(data.values())
@@ -58,6 +59,7 @@ class Table():
         self.formats = None
         self.passfail = passfail
         self.fname = fname
+        self.preamble = preamble
         self.fit_widths()
         if style == 'pipe':
             self.border = '|'
@@ -148,8 +150,10 @@ class Table():
 
     def __str__(self):
         string = ''
+        if self.preamble is not None:
+            string = self.preamble + '\n'
         if self.headers is not None:
-            string = self._header_line() + '\n'
+            string = string + self._header_line() + '\n'
         string = string + self._horizontal_rule() + '\n'
         string = string + self._data_lines()
         if self.headers is None:
