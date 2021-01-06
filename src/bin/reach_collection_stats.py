@@ -37,8 +37,8 @@ def mask_for_sci_req_old(metrics, truth, data, scene, scene_nodes=None, sig0=Non
           np.logical_and((np.abs(truth.reaches['xtrk_dist']) < 60000),
           np.logical_and((truth.reaches['width'] > 100),
           np.logical_and((truth.reaches['area_total'] > 1e6),
-          np.logical_and((truth.reaches['p_n_nodes'] >= 1e4 / 200.0), # p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
-          np.logical_and(truth.reaches['obs_frac_n'] > 0.5, truth.reaches['dark_frac'] < 0.35))))))
+          np.logical_and((truth.reaches['p_n_nodes'] >= 1e4 / 200.0),                                  # p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
+          np.logical_and(truth.reaches['obs_frac_n'] > 0.9, truth.reaches['dark_frac'] < 0.3))))))
     return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_n_nodes'] * 200.0
 
 def load_data(pixc_files, gdem_files, test_bool):
@@ -146,16 +146,17 @@ def get_collection_node_error(datas, truths, title_str):
     print('average (abs) wse node error of the collection is', collection_avg_node_error)
     print('median wse node error of the collection is', collection_med_node_error)
 
-def get_collection_errors(datas, truths):
+def get_collection_errors(datas, truths, msks):
     metrics = []
     wse_errors = []
     slope_errors = []
     area_total_errors = []
     area_detct_errors = []
     for index, scene in enumerate(datas):
+        msk = msks[index]
         truth = truths[index]
         data = datas[index]
-        metric = SWOTRiver.analysis.riverobs.get_metrics(truth.reaches, data.reaches)
+        metric = SWOTRiver.analysis.riverobs.get_metrics(truth.reaches, data.reaches, msk)
         metrics.append(metric)
         wse_errors = np.append(wse_errors, metric['wse'])
         slope_errors = np.append(slope_errors, metric['slope'])
@@ -237,8 +238,14 @@ def get_collection_errors(datas, truths):
     ax2.axvline(-1*passfail['area_tot e (%)'][1], color='r', linestyle='dashed', linewidth=1)
     area_t_percent_good = 100*len(area_total_errors[abs(area_total_errors)<passfail['area_tot e (%)'][1]])\
                           /len(area_total_errors)
-    areastr = '% of reaches that meet scientific requirements = ' + str(round(area_t_percent_good,2))
     num_a_t = 'num reaches=' + str(len(area_total_errors))
+    # getting 68%ile
+    area_ordered = np.sort(abs(area_total_errors))
+    index = int(np.floor(0.68*len(area_ordered)))
+    pdb.set_trace()
+    print('68%ile total area error (%) is', area_ordered[index])
+    areastr = '% of reaches that meet scientific requirements = ' + str(round(area_t_percent_good,2))
+
     ax2.text(left, top, areastr,
               horizontalalignment='left',
               verticalalignment='bottom',
@@ -288,7 +295,7 @@ def main():
 
     # print general stats
     get_collection_node_error(datas, truths, title_str)
-    get_collection_errors(datas, truths)
+    get_collection_errors(datas, truths, msks)
 
     # get highest slope error cases
     # scene_errors, reach_errors, pixc_list = get_errors(pixc_files, gdem_files, args.test_boolean)
