@@ -16,7 +16,7 @@ import numpy as np
 import scipy.stats
 from scipy import interpolate
 
-def simple(in_var, metric='mean'):
+def simple(in_var, metric='mean', pcnt=68):
     """
     Aggregate the input variable according to desired metric/accumulator.
     
@@ -32,6 +32,8 @@ def simple(in_var, metric='mean'):
         out_var = np.sum(in_var)
     elif metric == 'std':
         out_var = np.std(in_var)
+    elif metric == 'pcnt':
+        out_var = np.percentile(in_var, pcnt)
     elif metric == 'count':
         out_var = np.sum(np.ones(np.shape(in_var)))
     elif metric == 'mode':
