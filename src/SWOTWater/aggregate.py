@@ -254,7 +254,7 @@ def height_with_uncerts(
 
 def area_only(pixel_area, water_fraction, klass, good,
               interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
-              method='composite'):
+              dark_water_klasses = [5,23,24], method='composite'):
     """
     Return the aggregate height
     implements methods: weight (default), median, uniform 
@@ -276,6 +276,8 @@ def area_only(pixel_area, water_fraction, klass, good,
     Reference: implements Eq.s (15), (16), and (17) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
+    
+    Updated to handle dark classes like interior water
     """
     Idw_in = np.zeros(np.shape(pixel_area))
     Idw_in[klass == interior_water_klass] = 1.0
@@ -283,6 +285,11 @@ def area_only(pixel_area, water_fraction, klass, good,
     Idw = np.zeros(np.shape(pixel_area))
     Idw[klass == interior_water_klass] = 1.0
     Idw[klass == water_edge_klass] = 1.0
+
+    # handle current and legacy dark water classes like interior water
+    for dark_water_klass in dark_water_klasses:
+        Idw_in[klass == dark_water_klass] = 1.0
+        Idw[klass == dark_water_klass] = 1.0
 
     Ide = np.zeros(np.shape(pixel_area))
     Ide[klass == water_edge_klass] = 1.0
@@ -312,6 +319,7 @@ def area_uncert(
     pixel_area, water_fraction, water_fraction_uncert, darea_dheight, klass,
     Pfd, Pmd, good, Pca=0.9, Pw=0.5,Ptf=0.5, ref_dem_std=10,
     interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
+    dark_water_klasses=[5,23,24],
     method='composite'):
     '''
     Ie  = mask for edge pixels
@@ -326,6 +334,8 @@ def area_uncert(
     Reference: implements Eq.s (18), (26), and (30) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
+    
+    TODO: add dark water uncertainty estimate
     '''
     # get indicator functions
     Ide = np.zeros(np.shape(pixel_area))
@@ -466,19 +476,21 @@ def area_with_uncert(
     pixel_area, water_fraction, water_fraction_uncert, darea_dheight, klass,
     Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
     interior_water_klass=4, water_edge_klass=3,
-    land_edge_klass=2, method='composite'):
+    land_edge_klass=2, dark_water_klasses=[5,23,24], method='composite'):
 
     area_agg, num_pixels = area_only(
         pixel_area, water_fraction, klass, good, method=method,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass,
-        land_edge_klass=land_edge_klass)
+        land_edge_klass=land_edge_klass,
+        dark_water_klasses=dark_water_klasses)
 
     area_unc = area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
+        dark_water_klasses=dark_water_klasses,
         method=method)
 
     # normalize to get area percent error

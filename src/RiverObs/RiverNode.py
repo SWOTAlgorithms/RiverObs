@@ -333,8 +333,9 @@ class RiverNode:
         water_edge_klass = PIXC_CLASSES['water_near_land']
         land_edge_klass = PIXC_CLASSES['land_near_water']
         land_near_dark_water_klass = PIXC_CLASSES['land_near_dark_water']
-        dark_edge_klass = PIXC_CLASSES['dark_water_edge']
-        dark_klass = PIXC_CLASSES['dark_water']
+        #dark_edge_klass = PIXC_CLASSES['dark_water_edge']
+        #dark_klass = PIXC_CLASSES['dark_water']
+        dark_water_klasses = PIXC_CLASSES['dark_water_klasses']
 
         # decode/encode the water classes to send to external function
         # first set everything to interior water
@@ -342,9 +343,10 @@ class RiverNode:
         # assumes we dont give land pixels in the class_list if method=simple
         # and that we set the use_fractional_inundation to true for land edge
         # pixels if method=water_fraction or method=composite
-        klass = np.zeros(np.shape(self.klass)) + interior_water_klass
-        klass[self.edge_water==1] = water_edge_klass
-        klass[self.klass == land_near_dark_water_klass] = 0
+        #klass = np.zeros(np.shape(self.klass)) + interior_water_klass
+        #klass[self.edge_water==1] = water_edge_klass
+        #klass[self.klass == land_near_dark_water_klass] = 0
+        klass = self.klass
 
         # call the external function to aggregate areas and uncertainties
         area, area_unc, area_pcnt_uncert = aggregate.area_with_uncert(
@@ -355,15 +357,16 @@ class RiverNode:
             interior_water_klass=interior_water_klass,
             water_edge_klass=water_edge_klass,
             land_edge_klass=land_edge_klass,
+            dark_water_klasses=dark_water_klasses,
             method=method)
 
         width_area = area/self.ds
         width_area_unc = area_unc/self.ds
 
         # reject dark water and recompute areas and uncertainties
-        klass[self.klass == land_near_dark_water_klass] = 0
-        klass[self.klass == dark_edge_klass] = 0
-        klass[self.klass == dark_klass] = 0
+        #klass[self.klass == land_near_dark_water_klass] = 0
+        #klass[self.klass == dark_edge_klass] = 0
+        #klass[self.klass == dark_klass] = 0
 
         area_det, area_det_unc, area_det_pcnt_uncert = \
             aggregate.area_with_uncert(
@@ -374,6 +377,7 @@ class RiverNode:
                 interior_water_klass=interior_water_klass,
                 water_edge_klass=water_edge_klass,
                 land_edge_klass=land_edge_klass,
+                dark_water_klasses=[],
                 method=method)
 
         return (area, width_area, area_unc, width_area_unc, area_det,
