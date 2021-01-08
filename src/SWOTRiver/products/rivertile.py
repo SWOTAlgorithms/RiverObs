@@ -69,6 +69,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Continent the product belongs to.'}],
     ['short_name', {'dtype': 'str',
         'docstr': 'L2_HR_RiverTile'}],
+    ['product_file_id', {'dtype': 'str',
+        'docstr': 'Reach/Node', 'value': 'Reach/Node'}],
     ['crid', {'dtype': 'str',
         'docstr': textjoin("""
             Composite release identifier (CRID) of the data system used to
@@ -625,6 +627,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         'dtype': 'str',
         'value': 'Level 2 KaRIn High Rate River Tile Vector Product - Node',
         'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product - Node'}
+    ATTRIBUTES['product_file_id'] = {
+        'dtype': 'str', 'value': 'Node', 'docstr': 'Node'}
 
     DIMENSIONS = odict([['nodes', 0]])
     VARIABLES = odict([
@@ -1445,9 +1449,12 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 (node_outputs['y']-node_outputs['y_prior'])**2)
             klass['dark_frac'] = node_outputs['dark_frac']
 
+            klass['p_dam_id'] = node_outputs['grand_id']
+            klass['p_n_ch_max'] = node_outputs['n_chan_max']
+            klass['p_n_ch_mod'] = node_outputs['n_chan_mod']
+
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
-                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
-                        'grand_id', 'n_chan_max', 'n_chan_mod']:
+                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length']:
                 klass[key] = node_outputs[key]
 
             # set quality flag
@@ -1555,6 +1562,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         'dtype': 'str',
         'value': 'Level 2 KaRIn High Rate River Tile Vector Product - Reach',
         'docstr': 'Level 2 KaRIn High Rate River Tile Vector Product - Reach'}
+    ATTRIBUTES['product_file_id'] = {
+        'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}
 
     DIMENSIONS = odict([
         ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
@@ -3009,6 +3018,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['dark_frac'] = reach_outputs['dark_frac']
             klass['p_n_ch_max'] = reach_outputs['n_chan_max']
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
+            klass['p_dam_id'] = reach_outputs['grand_id']
 
 #             klass['dschg_c'] = ...
 #             klass['dschg_c_u'] = ...
@@ -3053,7 +3063,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
 #             klass['dschg_gs_q'] = ...
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
-                        'p_dist_out', 'p_length', 'grand_id', 'p_n_nodes',
+                        'p_dist_out', 'p_length', 'p_n_nodes',
                         'p_lat', 'p_lon']:
                 klass[key] = reach_outputs[key]
 

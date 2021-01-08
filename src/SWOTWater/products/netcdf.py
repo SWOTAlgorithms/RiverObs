@@ -19,6 +19,9 @@ DEPTH_DIMNAMES = ['depth', 'complex_depth']
 def get_fill(dtype):
     """Get the SWOT approved fill value for a data type"""
     dtype_str = np.dtype(dtype).str[1:]
+    if (dtype_str[0] == 'S') or (dtype_str[0] == 'U') or (dtype_str[0]=='O'):
+        # handle arbitrary-length strings
+        dtype_str = 'S1'
     return FILL_VALUES[dtype_str]
 
 
@@ -34,9 +37,14 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
     # np.ma.mask_array has fill_value attr, else use default fill value
     fill_value = getattr(array, 'fill_value', get_fill(array.dtype))
     def _make_variable(key, data, dimensions, attributes=None):
+        dtype = data.dtype
+        if dtype == object:
+            # assume that objects are strings
+            dtype = str
         dataset.createVariable(
-            key, data.dtype, dimensions, fill_value=fill_value)
-        if data.dtype.str[0] == 'S' and np.ma.isMaskedArray(data):
+            key, dtype, dimensions, fill_value=fill_value)
+        if ((data.dtype.str[1] == 'S') or (data.dtype.str[1] == 'U') or (
+                data.dtype.str[1] == 'O')) and np.ma.isMaskedArray(data):
             dataset[key][:] = data.data
         else:
             dataset[key][:] = data
@@ -115,7 +123,11 @@ def get_variable(dataset, key):
     if isinstance(variable, np.ma.MaskedArray):
         return variable
     variable = variable.view(np.ma.MaskedArray)
-    fill_value = get_fill(dataset[key].dtype.str[1:])
+    if dataset[key].dtype is str:
+        # handle arrays of strings
+        fill_value = get_fill('S1')
+    else:
+        fill_value = get_fill(dataset[key].dtype.str[1:])
     variable.set_fill_value(fill_value)
     return variable
 
