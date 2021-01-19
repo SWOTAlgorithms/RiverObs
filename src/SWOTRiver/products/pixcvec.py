@@ -333,9 +333,9 @@ class L2PIXCVector(Product):
             'cycle_number', 'pass_number', 'tile_number', 'swath_side',
             'tile_name', 'start_time', 'stop_time',
             'inner_first_latitude', 'inner_first_longitude',
-            'inner_last_latitude', 'inner_last_longitude'
-            'outer_last_longitude', 'outer_first_latitude',
-            'outer_first_longitude', 'outer_last_latitude',
+            'inner_last_latitude', 'inner_last_longitude',
+            'outer_first_latitude', 'outer_first_longitude',
+            'outer_last_latitude', 'outer_last_longitude',
             'ellipsoid_semi_major_axis', 'ellipsoid_flattening',
             'near_range', 'nominal_slant_range_spacing',
             'time_coverage_start', 'time_coverage_end',
