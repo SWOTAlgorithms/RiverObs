@@ -329,54 +329,37 @@ class RiverNode:
         # (not just the use_heights pixels), but could use goodvar 
         # to filter out outliers
         good = getattr(self, goodvar)
-        interior_water_klass = PIXC_CLASSES['open_water']
-        water_edge_klass = PIXC_CLASSES['water_near_land']
-        land_edge_klass = PIXC_CLASSES['land_near_water']
-        land_near_dark_water_klass = PIXC_CLASSES['land_near_dark_water']
-        #dark_edge_klass = PIXC_CLASSES['dark_water_edge']
-        #dark_klass = PIXC_CLASSES['dark_water']
-        dark_water_klasses = PIXC_CLASSES['dark_water_klasses']
 
-        # decode/encode the water classes to send to external function
-        # first set everything to interior water
-        # then set use_fractional_inundation pixels to water edge 
         # assumes we dont give land pixels in the class_list if method=simple
         # and that we set the use_fractional_inundation to true for land edge
         # pixels if method=water_fraction or method=composite
-        #klass = np.zeros(np.shape(self.klass)) + interior_water_klass
-        #klass[self.edge_water==1] = water_edge_klass
-        #klass[self.klass == land_near_dark_water_klass] = 0
-        klass = self.klass
 
         # call the external function to aggregate areas and uncertainties
+        # using dark water classes.
         area, area_unc, area_pcnt_uncert = aggregate.area_with_uncert(
             self.pixel_area, self.water_frac, self.water_frac_uncert,
-            self.darea_dheight, klass, self.false_detection_rate,
+            self.darea_dheight, self.klass, self.false_detection_rate,
             self.missed_detection_rate, good,
             Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-            interior_water_klass=interior_water_klass,
-            water_edge_klass=water_edge_klass,
-            land_edge_klass=land_edge_klass,
-            dark_water_klasses=dark_water_klasses,
+            interior_water_klass=PIXC_CLASSES['open_water'],
+            water_edge_klass=PIXC_CLASSES['water_near_land'],
+            land_edge_klass=PIXC_CLASSES['land_near_water'],
+            dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
             method=method)
 
         width_area = area/self.ds
         width_area_unc = area_unc/self.ds
 
-        # reject dark water and recompute areas and uncertainties
-        #klass[self.klass == land_near_dark_water_klass] = 0
-        #klass[self.klass == dark_edge_klass] = 0
-        #klass[self.klass == dark_klass] = 0
-
+        # Recompute areas and uncertainties without dark water
         area_det, area_det_unc, area_det_pcnt_uncert = \
             aggregate.area_with_uncert(
                 self.pixel_area, self.water_frac, self.water_frac_uncert,
-                self.darea_dheight, klass, self.false_detection_rate,
+                self.darea_dheight, self.klass, self.false_detection_rate,
                 self.missed_detection_rate, good,
                 Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-                interior_water_klass=interior_water_klass,
-                water_edge_klass=water_edge_klass,
-                land_edge_klass=land_edge_klass,
+                interior_water_klass=PIXC_CLASSES['open_water'],
+                water_edge_klass=PIXC_CLASSES['water_near_land'],
+                land_edge_klass=PIXC_CLASSES['land_near_water'],
                 dark_water_klasses=[],
                 method=method)
 
