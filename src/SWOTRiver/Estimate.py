@@ -297,23 +297,23 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
-        pixcvec.update_from_rivertile(self.rivertile_product)
-        pixcvec.to_ncfile(self.index_file)
-
         history_string = "Created {}".format(
             datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
+
+        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec.update_from_rivertile(self.rivertile_product)
+        pixcvec.history = history_string
+        pixcvec.to_ncfile(self.index_file)
+
         self.rivertile_product.nodes.title = \
             "Level 2 KaRIn High Rate River Tile Node Data Product"
         self.rivertile_product.nodes.history = history_string
-        self.rivertile_product.nodes.xref_input_l2_hr_pixc_files = \
-            self.pixc_file
+        self.rivertile_product.nodes.xref_l2_hr_pixc_files = self.pixc_file
 
         self.rivertile_product.reaches.title = \
             "Level 2 KaRIn High Rate River Tile Reach Data Product"
         self.rivertile_product.reaches.history = history_string
-        self.rivertile_product.reaches.xref_input_l2_hr_pixc_files = \
-            self.pixc_file
+        self.rivertile_product.reaches.xref_l2_hr_pixc_files = self.pixc_file
 
         # Fixup some other things
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:

@@ -16,14 +16,15 @@ import warnings
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
-from SWOTRiver.products.pixcvec import L2PIXCVector
 from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
-
 ATTRS_2COPY_FROM_PIXC = [
-    'time_coverage_start', 'time_coverage_end', 'cycle_number', 'pass_number']
+    'cycle_number', 'pass_number', 'tile_number',
+    'inner_first_latitude', 'inner_first_longitude', 'inner_last_latitude',
+    'inner_last_longitude', 'outer_first_latitude', 'outer_first_longitude',
+    'outer_last_latitude', 'outer_last_longitude']
 
 RIVER_PRODUCT_ATTRIBUTES = odict([
     ['Conventions',{'dtype': 'str' ,'value': 'CF-1.7',
@@ -165,16 +166,19 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': textjoin("""
             Nominal swath corner latitude for the last range line and right
             edge of the swath (degrees_north)""")}],
-    ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
-        'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
-    ['xref_static_river_db_file', {'dtype': 'str',
+    ['xref_l2_hr_pixc_files', {'dtype': 'str',
         'docstr': textjoin("""
-            Name of static river a-priori database file used to generate data
-            in product""")}],
-    ['xref_l2_hr_river_tile_param_file', {'dtype': 'str',
+            Names of input Level 2 high rate water mask pixel cloud files.
+            """)}],
+    ['xref_param_l2_hr_rivertile_files', {'dtype': 'str',
         'docstr': textjoin("""
-            Name of PGE_L2_HR_RiverTile parameter file used to generate data
-            in product""")}],
+            Names of input Level 2 high rate river tile processor configuration
+            parameters files."""
+            )}],
+    ['xref_prior_river_db_files', {'dtype': 'str',
+        'docstr': textjoin("""Names of input prior river database files.""")}],
+    ['xref_reforbittrack_files', {'dtype': 'str',
+        'docstr': textjoin("""Names of input reference orbit track files.""")}],
     ])
 
 ATTRIBUTE_KEYS2POP = [
@@ -1495,6 +1499,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
+        from SWOTRiver.products.pixcvec import L2PIXCVector
         pixc_vec = L2PIXCVector.from_ncfile(index_file)
 
         pixc2rivertile_map = {
