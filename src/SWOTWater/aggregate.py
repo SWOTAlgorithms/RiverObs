@@ -16,6 +16,8 @@ import numpy as np
 import scipy.stats
 from scipy import interpolate
 
+from SWOTWater.constants import PIXC_CLASSES
+
 def simple(in_var, metric='mean', pcnt=68):
     """
     Aggregate the input variable according to desired metric/accumulator.
@@ -125,7 +127,9 @@ def height_only(height, good, height_std=1.0, method='weight'):
     weight_norm = weight/weight_sum_pixc
     return height_out, weight_norm
 
-def height_uncert_std(height, good, num_rare_looks, num_med_looks, height_std=1.0, method='weight'):
+def height_uncert_std(
+        height, good, num_rare_looks, num_med_looks, height_std=1.0,
+        method='weight'):
     """
     Compute the sample standard devieation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
@@ -141,7 +145,6 @@ def height_uncert_std(height, good, num_rare_looks, num_med_looks, height_std=1.
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
     """
-    
     # need to do a weighted sample std when aggregating with weights
     # TODO: for median, should probably throw out outliers...
     weight = np.ones(np.shape(height))# default to uniform
@@ -252,9 +255,13 @@ def height_with_uncerts(
     return (height_out, height_std_out, height_uncert_out, lat_uncert_out,
             lon_uncert_out)
 
-def area_only(pixel_area, water_fraction, klass, good,
-              interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
-              method='composite'):
+def area_only(
+        pixel_area, water_fraction, klass, good,
+        interior_water_klass=PIXC_CLASSES['open_water'],
+        water_edge_klass=PIXC_CLASSES['water_near_land'],
+        land_edge_klass=PIXC_CLASSES['land_near_water'],
+        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        method='composite'):
     """
     Return the aggregate height
     implements methods: weight (default), median, uniform 
@@ -276,6 +283,8 @@ def area_only(pixel_area, water_fraction, klass, good,
     Reference: implements Eq.s (15), (16), and (17) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
+    
+    Updated to handle dark classes like interior water
     """
     Idw_in = np.zeros(np.shape(pixel_area))
     Idw_in[klass == interior_water_klass] = 1.0
@@ -283,6 +292,11 @@ def area_only(pixel_area, water_fraction, klass, good,
     Idw = np.zeros(np.shape(pixel_area))
     Idw[klass == interior_water_klass] = 1.0
     Idw[klass == water_edge_klass] = 1.0
+
+    # handle current and legacy dark water classes like interior water
+    for dark_water_klass in dark_water_klasses:
+        Idw_in[klass == dark_water_klass] = 1.0
+        Idw[klass == dark_water_klass] = 1.0
 
     Ide = np.zeros(np.shape(pixel_area))
     Ide[klass == water_edge_klass] = 1.0
@@ -309,10 +323,13 @@ def area_only(pixel_area, water_fraction, klass, good,
     return area_agg, num_pixels
 
 def area_uncert(
-    pixel_area, water_fraction, water_fraction_uncert, darea_dheight, klass,
-    Pfd, Pmd, good, Pca=0.9, Pw=0.5,Ptf=0.5, ref_dem_std=10,
-    interior_water_klass=4, water_edge_klass=3, land_edge_klass=2,
-    method='composite'):
+        pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
+        klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5,Ptf=0.5, ref_dem_std=10,
+        interior_water_klass=PIXC_CLASSES['open_water'],
+        water_edge_klass=PIXC_CLASSES['water_near_land'],
+        land_edge_klass=PIXC_CLASSES['land_near_water'],
+        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        method='composite'):
     '''
     Ie  = mask for edge pixels
     Pfd = Probability of false detection of water [0,1]
@@ -326,6 +343,8 @@ def area_uncert(
     Reference: implements Eq.s (18), (26), and (30) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
+    
+    TODO: add dark water uncertainty estimate
     '''
     # get indicator functions
     Ide = np.zeros(np.shape(pixel_area))
@@ -463,22 +482,27 @@ def area_uncert(
     return std_out
 
 def area_with_uncert(
-    pixel_area, water_fraction, water_fraction_uncert, darea_dheight, klass,
-    Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-    interior_water_klass=4, water_edge_klass=3,
-    land_edge_klass=2, method='composite'):
+        pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
+        klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
+        interior_water_klass=PIXC_CLASSES['open_water'],
+        water_edge_klass=PIXC_CLASSES['water_near_land'],
+        land_edge_klass=PIXC_CLASSES['land_near_water'],
+        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        method='composite'):
 
     area_agg, num_pixels = area_only(
         pixel_area, water_fraction, klass, good, method=method,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass,
-        land_edge_klass=land_edge_klass)
+        land_edge_klass=land_edge_klass,
+        dark_water_klasses=dark_water_klasses)
 
     area_unc = area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
         interior_water_klass=interior_water_klass,
         water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
+        dark_water_klasses=dark_water_klasses,
         method=method)
 
     # normalize to get area percent error
