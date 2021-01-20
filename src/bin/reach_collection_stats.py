@@ -38,7 +38,7 @@ def mask_for_sci_req_old(metrics, truth, data, scene, scene_nodes=None, sig0=Non
           np.logical_and((truth.reaches['width'] > 100),
           np.logical_and((truth.reaches['area_total'] > 1e6),
           np.logical_and((truth.reaches['p_n_nodes'] >= 1e4 / 200.0),                                  # p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
-          np.logical_and(truth.reaches['obs_frac_n'] > 0.9, truth.reaches['dark_frac'] < 0.3))))))
+          np.logical_and(truth.reaches['obs_frac_n'] >= 1.0, truth.reaches['dark_frac'] < 0.3))))))
     return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_n_nodes'] * 200.0
 
 def load_data(pixc_files, gdem_files, test_bool):
@@ -239,12 +239,23 @@ def get_collection_errors(datas, truths, msks):
     area_t_percent_good = 100*len(area_total_errors[abs(area_total_errors)<passfail['area_tot e (%)'][1]])\
                           /len(area_total_errors)
     num_a_t = 'num reaches=' + str(len(area_total_errors))
-    # getting 68%ile
-    area_ordered = np.sort(abs(area_total_errors))
-    index = int(np.floor(0.68*len(area_ordered)))
-    pdb.set_trace()
-    print('68%ile total area error (%) is', area_ordered[index])
     areastr = '% of reaches that meet scientific requirements = ' + str(round(area_t_percent_good,2))
+
+    # getting 68%iles
+    wse_med = np.median(wse_errors)
+    wse_ordered = np.sort(abs(wse_errors))
+    index = int(np.floor(0.68 * len(wse_errors)))
+    print('68%ile wse error (cm) is', wse_ordered[index], 'median is', wse_med)
+
+    area_med = np.median(area_total_errors)
+    area_ordered = np.sort(abs(area_total_errors))
+    index = int(np.floor(0.68 * len(area_ordered)))
+    print('68%ile total area error (%) is', area_ordered[index], 'median is', area_med)
+
+    slope_med = np.median(slope_errors)
+    slope_ordered = np.sort(abs(slope_errors))
+    index = int(np.floor(0.68 * len(slope_ordered)))
+    print('68%ile total slope error (cm/km) is', slope_ordered[index], 'median is', slope_med)
 
     ax2.text(left, top, areastr,
               horizontalalignment='left',
