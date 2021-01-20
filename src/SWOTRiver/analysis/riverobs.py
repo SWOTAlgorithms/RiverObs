@@ -292,27 +292,27 @@ def compute_average_node_error(data, truth):
         sig0_out[ind] = np.nanmean(np.array(sig0))
     return err_out, sig0_out
 
-def get_metrics(truth, data,
+def get_metrics(truth, data, msk=True,
                 with_slope=True, with_width=True, with_wse_r_u=True, wse_node_avg=None):
     metrics = {
         'area_total': (
-            (data.area_total - truth.area_total) / truth.area_total) * 100.0,
+            (data.area_total[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
         'area_detct':(
-            (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
+            (data.area_detct[msk] - truth.area_detct[msk]) / truth.area_detct[msk]) * 100.0,
             #(data.area_detct - truth.area_total) / truth.area_total) * 100.0,
-        'wse': (data.wse - truth.wse) * 1e2,#convert m to cm
+        'wse': (data.wse[msk] - truth.wse[msk]) * 1e2,#convert m to cm
 
     }
     if wse_node_avg is not None:
         metrics['wse_node_avg'] = wse_node_avg * 1e2#convert m to cm
     if with_slope:
-        metrics['slope'] = (data.slope - truth.slope) * 1e5#convert from m/m to cm/km
-        metrics['slope_t'] = (truth.slope) * 1e5#convert from m/m to cm/km
+        metrics['slope'] = (data.slope[msk] - truth.slope[msk]) * 1e5#convert from m/m to cm/km
+        metrics['slope_t'] = (truth.slope[msk]) * 1e5#convert from m/m to cm/km
     if with_width:
-        metrics['width'] = data.width - truth.width
+        metrics['width'] = data.width[msk] - truth.width[msk]
     if with_wse_r_u:
-        metrics['wse_r_u'] = data.wse_r_u * 1e2 #convert m to cm
-        metrics['wse_t_r_u'] = truth.wse_r_u * 1e2 #convert m to cm
+        metrics['wse_r_u'] = data.wse_r_u[msk] * 1e2 #convert m to cm
+        metrics['wse_t_r_u'] = truth.wse_r_u[msk] * 1e2 #convert m to cm
     return metrics
 
 def get_passfail(is_lake = False):
@@ -373,12 +373,12 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
     #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0]*200)
     # now make the mask
-    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),
-          np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
-          np.logical_and((truth.reaches['width']>100),
+    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),#),
+          np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000),#),
+          np.logical_and((truth.reaches['width']>100),#100),
           np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and((truth.reaches['p_length']>=1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
-          np.logical_and(truth.reaches['obs_frac_n'] > 0.5,
+          np.logical_and((truth.reaches['p_length']>=0),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
+          np.logical_and(truth.reaches['obs_frac_n'] > 0.1,
               truth.reaches['dark_frac'] < 0.35))))))
     return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
