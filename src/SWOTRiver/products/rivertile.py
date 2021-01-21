@@ -36,7 +36,7 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
     # title gets overridden for SLC product
     ['title', {'dtype': 'str',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
-    ['institution', {'dtype': 'str', 'value': 'JPL',
+    ['institution', {'dtype': 'str', 'value': 'NASA/JPL',
          'docstr': 'Name of producing agency.'}],
     ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
         'docstr': textjoin("""
