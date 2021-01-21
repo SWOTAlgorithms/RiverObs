@@ -67,6 +67,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Cycle number of the product granule.'}],
     ['pass_number', {'dtype': 'i2',
         'docstr': 'Pass number of the product granule.'}],
+    ['continent', {'dtype': 'str',
+        'docstr': 'Continent the product belongs to.'}],
     ['tile_number', {'dtype': 'i2',
         'docstr': 'Tile number in the pass of the product granule.'}],
     ['swath_side', {'dtype': 'str',
@@ -180,6 +182,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': textjoin("""
             Names of input Level 2 high rate water mask pixel cloud files.
             """)}],
+    ['xref_l2_hr_rivertile_files', {'dtype': 'str',
+        'docstr': 'Names of input Level 2 river tile files.'}],
     ['xref_param_l2_hr_rivertile_files', {'dtype': 'str',
         'docstr': textjoin("""
             Names of input Level 2 high rate river tile processor configuration
@@ -193,7 +197,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
 
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['right', 'left'] for b in ['first', 'last']
-    for c in ['latitude', 'longitude']]
+    for c in ['latitude', 'longitude']] + [
+        'xref_l2_hr_rivertile_files', 'continent']
 
 RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
 

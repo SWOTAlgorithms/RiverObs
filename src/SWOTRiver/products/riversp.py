@@ -14,11 +14,6 @@ from SWOTRiver.products.rivertile import \
     L2HRRiverTile, RiverTileNodes, RiverTileReaches, RIVER_PRODUCT_ATTRIBUTES
 
 RIVERSP_ATTRIBUTES = copy.deepcopy(RIVER_PRODUCT_ATTRIBUTES)
-
-RIVERSP_ATTRIBUTES['xref_l2_hr_rivertile_files'] = {
-    'dtype': 'str', 'docstr': 'Names of input Level 2 river tile files.'}
-RIVERSP_ATTRIBUTES['continent'] = {
-    'dtype': 'str', 'docstr': 'Continent the product belongs to.'}
 RIVERSP_ATTRIBUTES['short_name'] = {
     'dtype': 'str', 'docstr': 'L2_HR_RiverSP', 'value': 'L2_HR_RiverSP'}
 ATTRIBUTE_KEYS2POP = [
