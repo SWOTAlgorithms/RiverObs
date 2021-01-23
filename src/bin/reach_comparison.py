@@ -233,7 +233,13 @@ def print_best_worst_scenes(param_errors, param_str):
 def get_gdem_from_pixc(pixc_file):
     # gets the input gdem file from an output pixc rivertile.nc. Hard coded.
     file_parts = pixc_file.split('/')
-    lidar_scene = file_parts[6]
+    #lidar_scene = file_parts[-7]
+    # assume the lidar scene name is the part before the cycle_* part
+    ind = -6
+    for n, part in enumerate(file_parts):
+        if file_parts[n].startswith('cycle_'):
+            ind = n-1
+    lidar_scene = file_parts[ind]
     gdem_file = '/u/swot-fn-r0/swot/sim_proc_inputs/gdem-dem-truth-v9-nowet/' +  lidar_scene + '_lidar.nc'
     return gdem_file
 

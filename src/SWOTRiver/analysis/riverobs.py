@@ -292,8 +292,10 @@ def compute_average_node_error(data, truth):
         sig0_out[ind] = np.nanmean(np.array(sig0))
     return err_out, sig0_out
 
-def get_metrics(truth, data, msk=True,
+def get_metrics(truth, data, msk=None,
                 with_slope=True, with_width=True, with_wse_r_u=True, wse_node_avg=None):
+    if msk is None:
+        msk = np.ones(np.shape(data.wse),dtype=bool)
     metrics = {
         'area_total': (
             (data.area_total[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
@@ -304,7 +306,7 @@ def get_metrics(truth, data, msk=True,
 
     }
     if wse_node_avg is not None:
-        metrics['wse_node_avg'] = wse_node_avg * 1e2#convert m to cm
+        metrics['wse_node_avg'] = wse_node_avg[msk] * 1e2#convert m to cm
     if with_slope:
         metrics['slope'] = (data.slope[msk] - truth.slope[msk]) * 1e5#convert from m/m to cm/km
         metrics['slope_t'] = (truth.slope[msk]) * 1e5#convert from m/m to cm/km
@@ -457,7 +459,7 @@ def print_metrics(
         with_node_avg=False, reach_len=None, with_wse_r_u=True, passfail={}):
     table = {}
     if msk is None:
-        msk = np.ones(np.shape(metrics['wse']),dtype = bool)
+        msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
     table['wse e (cm)'] = metrics['wse'][msk]
     if with_node_avg:
         table['wse node e (cm)'] = metrics['wse_node_avg'][msk]
