@@ -12,6 +12,7 @@ import fiona
 import netCDF4
 import datetime
 import warnings
+import xml.etree.ElementTree
 
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
@@ -21,7 +22,7 @@ from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 ATTRS_2COPY_FROM_PIXC = [
-    'cycle_number', 'pass_number', 'tile_number',
+    'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
     'inner_first_latitude', 'inner_first_longitude', 'inner_last_latitude',
     'inner_last_longitude', 'outer_first_latitude', 'outer_first_longitude',
     'outer_last_latitude', 'outer_last_longitude']
@@ -35,7 +36,7 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
     # title gets overridden for SLC product
     ['title', {'dtype': 'str',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
-    ['institution', {'dtype': 'str', 'value': 'JPL',
+    ['institution', {'dtype': 'str', 'value': 'NASA/JPL',
          'docstr': 'Name of producing agency.'}],
     ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
         'docstr': textjoin("""
@@ -68,6 +69,17 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Pass number of the product granule.'}],
     ['continent', {'dtype': 'str',
         'docstr': 'Continent the product belongs to.'}],
+    ['tile_number', {'dtype': 'i2',
+        'docstr': 'Tile number in the pass of the product granule.'}],
+    ['swath_side', {'dtype': 'str',
+        'docstr':
+        "'L' or 'R' to indicate left and right swath, respectively."}],
+    ['tile_name', {'dtype': 'str',
+        'docstr': textjoin("""
+            Tile name using format PPP_TTTS, where PPP is a 3 digit pass
+            number with leading zeros, TTT is a 3 digit tile number within
+            the pass, and S is a character 'L' or 'R' for the left and right
+            swath, respectively.""")}],
     ['short_name', {'dtype': 'str',
         'docstr': 'L2_HR_RiverTile'}],
     ['product_file_id', {'dtype': 'str',
@@ -170,6 +182,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': textjoin("""
             Names of input Level 2 high rate water mask pixel cloud files.
             """)}],
+    ['xref_l2_hr_rivertile_files', {'dtype': 'str',
+        'docstr': 'Names of input Level 2 river tile files.'}],
     ['xref_param_l2_hr_rivertile_files', {'dtype': 'str',
         'docstr': textjoin("""
             Names of input Level 2 high rate river tile processor configuration
@@ -183,7 +197,8 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
 
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['right', 'left'] for b in ['first', 'last']
-    for c in ['latitude', 'longitude']]
+    for c in ['latitude', 'longitude']] + [
+        'xref_l2_hr_rivertile_files', 'continent']
 
 RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
 
@@ -616,7 +631,7 @@ class ShapeWriterMixIn(object):
                            'properties': this_property, 'type': 'Feature'})
 
         # write shape XML metadata and prj file
-        self.write_shape_xml(shp_fname.replace('.shp', '.xml'))
+        self.write_shape_xml(shp_fname.replace('.shp', '.shp.xml'))
         with open(shp_fname.replace('.shp', '.prj'), 'w') as ofp:
             ofp.write((
                 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'+
@@ -1472,6 +1487,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     def from_shapes(cls, shape_path):
         """Constructs self from shapefiles"""
         klass = cls()
+
+        # load attributes from XML files
+        tree = xml.etree.ElementTree.parse(shape_path+'.xml')
+        root = tree.getroot()
+        for item in root.find('global_attributes'):
+            try:
+                value = eval(item.text)
+            except:
+                value = item.text
+            setattr(klass, item.tag, value)
+
+        # load datasets from shapefiles
         with fiona.open(shape_path) as ifp:
             records = list(ifp)
         data = {}
@@ -3095,6 +3122,17 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     def from_shapes(cls, shape_path):
         """Constructs self from shapefiles"""
         klass = cls()
+
+        # load attributes from XML files
+        tree = xml.etree.ElementTree.parse(shape_path+'.xml')
+        root = tree.getroot()
+        for item in root.find('global_attributes'):
+            try:
+                value = eval(item.text)
+            except:
+                value = item.text
+            setattr(klass, item.tag, value)
+
         with fiona.open(shape_path) as ifp:
             records = list(ifp)
 

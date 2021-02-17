@@ -14,58 +14,13 @@ from SWOTRiver.products.rivertile import \
     L2HRRiverTile, RiverTileNodes, RiverTileReaches, RIVER_PRODUCT_ATTRIBUTES
 
 RIVERSP_ATTRIBUTES = copy.deepcopy(RIVER_PRODUCT_ATTRIBUTES)
-
-
-RIVERSP_ATTRIBUTES['xref_l2_hr_rivertile_files'] = {
-    'dtype': 'str', 'docstr': 'Names of input Level 2 river tile files.'}
 RIVERSP_ATTRIBUTES['short_name'] = {
     'dtype': 'str', 'docstr': 'L2_HR_RiverSP', 'value': 'L2_HR_RiverSP'}
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['inner', 'outer'] for b in ['first', 'last']
-    for c in ['latitude', 'longitude']] + ['xref_l2_hr_river_tile_param_file',]
-
-    ['left_first_longitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner longitude for the first range line and left
-            edge of the swath (degrees_east)""")}],
-    ['left_first_latitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner latitude for the first range line and left
-            edge of the swath (degrees_north)""")}],
-    ['left_last_longitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner longitude for the last range line and left
-            edge of the swath (degrees_east)""")}],
-    ['left_last_latitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner latitude for the last range line and left
-            edge of the swath (degrees_north)""")}],
-    ['right_first_longitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner longitude for the first range line and right
-            edge of the swath (degrees_east)""")}],
-    ['right_first_latitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner latitude for the first range line and right
-            edge of the swath (degrees_north)""")}],
-    ['right_last_longitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner longitude for the last range line and right
-            edge of the swath (degrees_east)""")}],
-    ['right_last_latitude',  {'dtype': 'float',
-        'docstr': textjoin("""
-            Nominal swath corner latitude for the last range line and right
-            edge of the swath (degrees_north)""")}],
-    ['xref_l2_hr_pixc_files', {'dtype': 'str',
-        'docstr': textjoin("""
-            Names of input Level 2 high rate water mask pixel cloud files.
-            """)}],
-    ['xref_param_l2_hr_rivertile_files', {'dtype': 'str',
-        'docstr': textjoin("""
-            Names of input Level 2 high rate river tile processor configuration
-            parameters files."""
-            )}],
-
+    for c in ['latitude', 'longitude']] + [
+        'xref_l2_hr_river_tile_param_file', 'tile_number', 'swath_side',
+        'tile_name']
 
 for key in ATTRIBUTE_KEYS2POP:
     RIVERSP_ATTRIBUTES.pop(key, None)
@@ -122,6 +77,15 @@ class RiverSPNodes(RiverTileNodes):
     ATTRIBUTES['product_file_id'] = {
         'dtype': 'str', 'value': 'Node', 'docstr': 'Node'}
 
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = RiverSPNodes()
+        for key in klass.VARIABLES:
+            setattr(klass, key, np.concatenate((
+                getattr(self, key), getattr(other, key))))
+        return klass
+
+
 class RiverSPReaches(RiverTileReaches):
     ATTRIBUTES = RIVERSP_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
@@ -130,3 +94,12 @@ class RiverSPReaches(RiverTileReaches):
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product - Reach'}
     ATTRIBUTES['product_file_id'] = {
         'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = RiverSPReaches()
+        for key in klass.VARIABLES:
+            setattr(klass, key, np.concatenate((
+                getattr(self, key), getattr(other, key))))
+        return klass
+
+
