@@ -373,13 +373,14 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
     #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0]*200)
     # now make the mask
-    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),#),
-          np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000),#),
-          np.logical_and((truth.reaches['width']>100),#100),
-          np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and((truth.reaches['p_length']>=0),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
-          np.logical_and(truth.reaches['obs_frac_n'] > 0.1,
-              truth.reaches['dark_frac'] < 0.35))))))
+    msk = np.logical_and(truth.reaches['width']>0, truth.reaches['area_total']>0)
+    # msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>0),#),
+    #       np.logical_and((np.abs(truth.reaches['xtrk_dist'])<99999),#),
+    #       np.logical_and((truth.reaches['width']>0),#100),
+    #       np.logical_and((truth.reaches['area_total']>0),
+    #       np.logical_and((truth.reaches['p_length']>=0),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
+    #       np.logical_and(truth.reaches['obs_frac_n'] > 0,
+    #           truth.reaches['dark_frac'] < 1))))))
     return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
@@ -401,20 +402,20 @@ def get_scene_from_fnamedir(fnamedir):
 #
 def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
     # get statistics of area error
-    area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)
-    area_50 = np.nanpercentile(metrics['area_total'][msk], 50)
-    area_mean = np.nanmean(metrics['area_total'][msk])
-    area_num = np.count_nonzero(~np.isnan(metrics['area_total'][msk]))
+    area_68 = np.nanpercentile(abs(metrics['area_total'][0][msk]), 68)
+    area_50 = np.nanpercentile(metrics['area_total'][0][msk], 50)
+    area_mean = np.nanmean(metrics['area_total'][0][msk])
+    area_num = np.count_nonzero(~np.isnan(metrics['area_total'][0][msk]))
     # get statistics of area_detct error
-    area_d_68 = np.nanpercentile(abs(metrics['area_detct'][msk]), 68)
-    area_d_50 = np.nanpercentile(metrics['area_detct'][msk], 50)
-    area_d_mean = np.nanmean(metrics['area_detct'][msk])
-    area_d_num = np.count_nonzero(~np.isnan(metrics['area_detct'][msk]))
+    area_d_68 = np.nanpercentile(abs(metrics['area_detct'][0][msk]), 68)
+    area_d_50 = np.nanpercentile(metrics['area_detct'][0][msk], 50)
+    area_d_mean = np.nanmean(metrics['area_detct'][0][msk])
+    area_d_num = np.count_nonzero(~np.isnan(metrics['area_detct'][0][msk]))
     # get statistics of height error
-    height_68 = np.nanpercentile(abs(metrics['wse'][msk]), 68)
-    height_50 = np.nanpercentile(metrics['wse'][msk], 50)
-    height_mean = np.nanmean(metrics['wse'][msk])
-    height_num = np.count_nonzero(~np.isnan(metrics['wse'][msk]))
+    height_68 = np.nanpercentile(abs(metrics['wse'][0][msk]), 68)
+    height_50 = np.nanpercentile(metrics['wse'][0][msk], 50)
+    height_mean = np.nanmean(metrics['wse'][0][msk])
+    height_num = np.count_nonzero(~np.isnan(metrics['wse'][0][msk]))
     table = {
         'metric': ['area_total (%)','area_detct (%)', 'wse (cm)'],
         '|68%ile|': [area_68, area_d_68, height_68],
@@ -436,10 +437,10 @@ def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
         table['count'].append(wse_n_num)
     if with_slope:
         # get statistics of slope error
-        slope_68 = np.nanpercentile(abs(metrics['slope'][msk]), 68)
-        slope_50 = np.nanpercentile(metrics['slope'][msk], 50)
-        slope_mean = np.nanmean(metrics['slope'][msk])
-        slope_num = np.count_nonzero(~np.isnan(metrics['slope'][msk]))
+        slope_68 = np.nanpercentile(abs(metrics['slope'][0][msk]), 68)
+        slope_50 = np.nanpercentile(metrics['slope'][0][msk], 50)
+        slope_mean = np.nanmean(metrics['slope'][0][msk])
+        slope_num = np.count_nonzero(~np.isnan(metrics['slope'][0][msk]))
 
         table['metric'].append('slope (cm/km)')
         table['|68%ile|'].append(slope_68)
@@ -454,26 +455,26 @@ def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
         dark_frac=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, passfail={}):
+        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse']),dtype = bool)
-    table['wse e (cm)'] = metrics['wse'][msk]
+    table['wse e (cm)'] = metrics['wse'][0][msk]
     if with_node_avg:
         table['wse node e (cm)'] = metrics['wse_node_avg'][msk]
     if with_wse_r_u:
-        table['wse r u (cm)'] = metrics['wse_r_u'][msk]
-        table['wse t r u (cm)'] = metrics['wse_t_r_u'][msk]
+        table['wse r u (cm)'] = metrics['wse_r_u'][0][msk]
+        table['wse t r u (cm)'] = metrics['wse_t_r_u'][0][msk]
     if with_slope:
-        table['slp e (cm/km)'] = metrics['slope'][msk]
-        table['slope (cm/km)'] = metrics['slope_t'][msk]
-    table['area_tot e (%)'] = metrics['area_total'][msk]
-    table['area_det e (%)'] = metrics['area_detct'][msk]
+        table['slp e (cm/km)'] = metrics['slope'][0][msk]
+        table['slope (cm/km)'] = metrics['slope_t'][0][msk]
+    table['area_tot e (%)'] = metrics['area_total'][0][msk]
+    table['area_det e (%)'] = metrics['area_detct'][0][msk]
     if with_width:
-        table['width e (m)'] = metrics['width'][msk]
+        table['width e (m)'] = metrics['width'][0][msk]
         table['width (m)'] = truth.reaches['width'][msk]
     else:
-        table['sqrt(area) (m)'] = np.sqrt(truth['area_total'][msk])
+        table['sqrt(area) (m)'] = np.sqrt(truth['area_total'][0][msk])
     try:
         table['reach'] = [str(int(rid)) for rid in truth.reaches['reach_id'][msk]]
         table['xtrk (km)'] = truth.reaches['xtrk_dist'][msk]/1e3
@@ -489,5 +490,5 @@ def print_metrics(
     if reach_len is not None:
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
     
-    SWOTRiver.analysis.tabley.print_table(table, precision=5, passfail=passfail)
+    SWOTRiver.analysis.tabley.print_table(table, precision=5, passfail=passfail, fname=fname)
     return table

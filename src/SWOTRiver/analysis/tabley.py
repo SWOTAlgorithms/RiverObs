@@ -23,7 +23,6 @@ def print_table(*args, **kwargs):
         print(table)
 
 
-
 class Table():
     """Turn 2D data into a pretty table, suitable for printing or markdown.
 
@@ -145,7 +144,6 @@ class Table():
                             my_format = '\033[92m'+this_format+'\033[00m'
                 string = string + my_format.format(item) + self.separator
             string = string[:-1] + self.border + '\n'
-        return string
         return string
 
     def __str__(self):
