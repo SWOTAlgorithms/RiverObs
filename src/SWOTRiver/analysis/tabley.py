@@ -15,9 +15,10 @@ def print_table(*args, **kwargs):
     print('table.fname:',table.fname)
     if table.fname is not None:
         # write to file if fname is set
-        f = open(table.fname,'w')
-        f.write(table.__str__())
-        f.close()
+        #f = open(table.fname,'w')
+        #f.write(table.__str__())
+        #f.close()
+        table.to_file()
     else:
         # print to terminal
         print(table)
@@ -158,6 +159,124 @@ class Table():
             string = string + self._horizontal_rule() + '\n'
         return string
 
+    def to_file(self, fname=None):
+        if fname is None:
+            if self.fname is None:
+                print('No filename given so not writting to file')
+                return
+            else:
+                fname = self.fname
+        f = open(fname,'w')
+        f.write(self.__str__())
+        f.close()
+
+    @classmethod
+    def from_file(cls, fname):
+        # create a Table object and populate the contents from the file
+        # read the table
+        f = open(fname,'r')
+        lines = f.readlines()
+        f.close()
+        
+        # decode the lines
+        # search for the dashed-line
+        dash_line_num = 0
+        for k, line in enumerate(lines):
+            if '---' in line:
+                dash_line_num = k
+        dash_line = lines[dash_line_num]
+        # header is the line before the dashed line
+        header = lines[dash_line_num-1]
+        # preamble is the line before the header
+        if dash_line_num<2:
+            preamble = None
+        else:
+            preamble = lines[dash_line_num-2]
+        #print('dash_line_num', dash_line_num)
+        #print(preamble)
+        #print(header)
+        #print(dash_line)
+        # set some defaults
+        style = None
+        precision=4
+        width=0
+        passfail = {} # don't do pass-fail when reading, tha ANSI escape codes should already be there
+        separator = None
+        # handle pipe style
+        if len(dash_line.split('|')) > 1:
+            style = 'pipe'
+            separator = '|'
+        dashes = dash_line.split(separator)
+        #print(dashes)
+        # use the dash line to decode the header line, which may have spaces
+        l_accum = 0
+        headers = []
+        for dash_word in dashes:
+            l = len(dash_word)
+            headers.append(header[l_accum:l_accum+l].lstrip().rstrip())
+            #print("dash_word[%d:%d]"%(l_accum, l))
+            l_accum = l_accum+l+1
+        #print(headers)
+        data = {}
+        # init the data dictionary with empty lists 
+        for key in headers:
+            data[key] = []
+        for line in lines[dash_line_num+1:]:
+            parts0 = line.split(separator)
+            # merge back some escape sequences
+            parts = []
+            pass_fail_line = []
+            kp = 0
+            for k, h in enumerate(headers):
+                part = parts0[kp]
+                pf = 'none'
+                dat_str = part.strip()
+                if (dat_str.startswith('(') and dat_str.endswith(')')) and k>0:
+                    # this is a unit separated by space that should
+                    # go with to the previous item
+                    #print('part:',parts[-1],dat_str)
+                    parts[-1] = parts[-1] + ' ' + dat_str
+                    kp=kp+1
+                    part = parts0[kp]
+                # handle ANSI escape color codes
+                if ('\033[91m' in part or '\033[92m' in part) and not (
+                        '\033[00m' in part):
+                    part = part + parts0[kp+1]
+                    if '\033[91m' in part:
+                        pf = 'pass'
+                    else:
+                        pf = 'fail'
+                    kp=kp+1
+                    # strip out the ANSI escape codes now
+                    #print('part:', part, part[5:-5])
+                    part = part[5:-5]
+                dat_str = part.strip()
+                #print(dat_str, k)
+                dat = dat_str
+                # if it has a decimal point try to cast to float
+                # also detect the max precision
+                if '.' in dat_str:
+                    this_precision = -1
+                    try:
+                        dat = float(dat_str)
+                        this_precision = len(dat_str.split('e')[0].strip('-'))
+                    except ValueError:
+                        pass
+                    if precision < this_precision:
+                        # set precision to max precision found of any float
+                        precision = this_precision
+                parts.append(dat)
+                pass_fail_line.append(pf)
+                kp=kp+1
+            #print("len(parts), len(headers):",len(parts), len(headers))
+            #print(parts)
+            for key, part in zip(headers, parts):
+                data[key].append(part)
+        # TODO: detect 'width', and estimate pass-fail criteria based on data...
+        # create instance
+        table = cls(data, headers, style, precision, width, passfail,
+            fname=None, preamble=preamble)
+        return table
 
 def main():
     log_format = '%(levelname)s:%(module)s.%(funcName)s:%(message)s'
