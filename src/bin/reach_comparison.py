@@ -90,12 +90,16 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
         if truth:
-            msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+            msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                 metrics, truth, data, scene, sig0=sig0)
-            print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+            #print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+            preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" + str(bounds['max_xtrk']) + " km and width>" \
+               + str(bounds['min_width']) + " m and area>(" + str(bounds['min_area']) + " m)^2 and reach len>=" \
+               + str(bounds['min_length']) + " m"
+            print(preamble)
             metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
                 metrics, truth, scene, msk, fit_error,
-                dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+                dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len, preamble=preamble)
             table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
             reach_error_list.append(metrics_table)
             return reach_error_list
@@ -113,18 +117,23 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                 passfail = SWOTRiver.analysis.riverobs.get_passfail()
 
                 if truth:
-                    msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+                    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                         metrics, truth, data, scene, sig0=sig0)
                     if not any(msk):
                         print('No reaches in file', filename, 'are within sci req bounds\n')
                         table=None
                     else:
-                        print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+                        #print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+                        #print('and file', filename, '\n')
+                        preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" + str(bounds['max_xtrk']) + " km and width>" \
+                            + str(bounds['min_width']) + " m and area>(" + str(bounds['min_area']) + " m)^2 and reach len>=" \
+                            + str(bounds['min_length']) + " m"
+                        print(preamble)
                         print('and file', filename, '\n')
                         table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
                         metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
                                             metrics, truth, scene, msk, fit_error,
-                                            dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+                                            dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len, preamble=preamble)
                         scene_error_list.append(table)
                         reach_error_list.append(metrics_table)
                         good_pixc_list.append(pixc_list[index])
