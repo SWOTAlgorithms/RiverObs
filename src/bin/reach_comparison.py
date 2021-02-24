@@ -26,6 +26,7 @@ import plot_reach
 import pdb
 import matplotlib.pyplot as plt
 
+
 def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     # get all pixc files 'rivertile.nc' and find associated truth file
     #file_str = basedir + '**/cycle_**/' + slc_dir + '/' + proc_rivertile + '/' + 'river_data/rivertile.nc'
@@ -70,6 +71,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
 
     scene_error_list = []
     reach_error_list = []
+    bad_scene = []
 
     metrics = None
     truth = None
@@ -77,7 +79,6 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
     scene = None
     sig0 = None
     table = None
-    bad_scene = ['tanana_0434_0002','tanana_0156_0001']      #['3356',]# these scenes will be excluded from analysis
     good_pixc_list = []
 
     test_count = 0                      # this only increases if we're in script testing mode
@@ -90,23 +91,32 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
         if truth:
-            msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+            msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                 metrics, truth, data, scene, sig0=sig0)
-            print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+            preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+                       + str(bounds['max_xtrk']) + " km and width>" \
+                       + str(bounds['min_width']) + " m and area>(" \
+                       + str(bounds['min_area']) + " m)^2 and reach len>=" \
+                       + str(bounds['min_length']) + " m\n"
+            print(preamble)
+            print('and file', pixc_list, '\n')
             metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
-                metrics, truth, scene, msk, fit_error,
-                dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+                metrics, truth, scene, msk, fit_error, dark_frac,
+                with_node_avg=True,
+                passfail=passfail,
+                preamble=preamble,
+                reach_len=reach_len)
             table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
             reach_error_list.append(metrics_table)
             return reach_error_list
 
-    else: # function was called for a list of files
+    else:  # function was called for a list of files
         print('Retrieving errors for all rivertiles...')
         for index, filename in enumerate(pixc_list):
-            if test_count<=3:
+            if test_count <= 3:
                 # get the error of that scene
                 try:
-                    metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index], gdem_list[index], bad_scenes=bad_scene)
+                    metrics, truth, bounds, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index], gdem_list[index], bad_scenes=bad_scene)
                 except FileNotFoundError:
                     print('Pixc rivertile has no matching gdem rivertile')
 
@@ -117,9 +127,14 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                         metrics, truth, data, scene, sig0=sig0)
                     if not any(msk):
                         print('No reaches in file', filename, 'are within sci req bounds\n')
-                        table=None
+                        table = None
                     else:
-                        print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+                        preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+                                   + str(bounds['max_xtrk']) + " km and width>" \
+                                   + str(bounds['min_width']) + " m and area>(" \
+                                   + str(bounds['min_area']) + " m)^2 and reach len>=" \
+                                   + str(bounds['min_length']) + " m\n"
+                        print(preamble)
                         print('and file', filename, '\n')
                         table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
                         metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
