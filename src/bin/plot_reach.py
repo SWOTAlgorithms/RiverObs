@@ -376,15 +376,12 @@ def make_plots(rivertile_file, truth_file, pixcvec, pixc,
         plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes)
     else:
         print('Missing pixc or pixcvec file, skipping pixel assignment plot')
-<<<<<<< HEAD
-=======
 
     if pixc and truth_pixc:# only plot these if pixc was also given
         truth_pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixcvec)
         truth_pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixc)
         plot_pixcs(truth_pixcvec_data, truth_pixc_data, reach_id, nodes, title_tag='(truth)')
 
->>>>>>> 29c4cff6706a518346998ff2c55630b8eedd0a5f
     return figure, axes
 
 
