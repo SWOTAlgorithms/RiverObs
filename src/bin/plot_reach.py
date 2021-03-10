@@ -342,7 +342,8 @@ def get_passfail_color(error_value, parameter):
         return 'red'
 
 
-def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
+def make_plots(rivertile_file, truth_file, pixcvec, pixc,
+        truth_pixcvec, truth_pixc, reach_id,
         gdem_dem_file, errors=None, scene=None, nodes=None):
     reach_id = int(reach_id)
 
@@ -359,22 +360,31 @@ def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
     figure, axes = plt.subplots(2, 2, figsize=FIGSIZE, dpi=DPI)
     plot_wse(data, truth, errors, reach_id, axes[0][0], title=title_str + ' - wse')
     plot_area(data, truth, errors, reach_id, axes[1][0], title=title_str + ' - area')
-    plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file, #gdem_dem_file=gdem_dem_file
+    plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file,
                    title=title_str + ' - locations')
-    if pixc_vec is not None:
-        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
-        plot_pix_assgn(pixc_data, reach_id, axes[1][1])
+    if pixcvec is not None:
+        pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixcvec)
+        plot_pix_assgn(pixcvec_data, reach_id, axes[1][1])
     else:
-        pixc_data = None
+        pixcvec_data = None
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
     # mngr.window.setGeometry(0, 0, 1500, 500)
-    if pixc and pixc_data:
-        pixc0_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
-        plot_pixcs(pixc_data, pixc0_data, reach_id, nodes)
+    if pixc and pixcvec_data:
+        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
+        plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes)
     else:
         print('Missing pixc or pixcvec file, skipping pixel assignment plot')
+<<<<<<< HEAD
+=======
+
+    if pixc and truth_pixc:# only plot these if pixc was also given
+        truth_pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixcvec)
+        truth_pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixc)
+        plot_pixcs(truth_pixcvec_data, truth_pixc_data, reach_id, nodes, title_tag='(truth)')
+
+>>>>>>> 29c4cff6706a518346998ff2c55630b8eedd0a5f
     return figure, axes
 
 
@@ -394,7 +404,7 @@ def get_reach_error(errors, reach_id):
     reach_error = [slope_error, wse_error, area_error, area_dtct_error, width_error]
     return reach_error
 
-def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
+def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
     reach_id = int(reach_id)
     # get only the reach_id for pixels in pixc_vec
     pix_i = (pixc_vec['reach_id'] == reach_id)
@@ -460,31 +470,31 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
     pt1 =ax1.imshow(Node_id, interpolation='none',aspect='auto',
         cmap=plt.cm.get_cmap('tab20b'))
     plt.colorbar(pt1,ax=ax1)
-    ax1.set_title('node_id (slant-plane)')
+    ax1.set_title('node_id '+title_tag)
 
     # TODO: make a better cmap for classification, also make font bigger 
     ax2 = plt.subplot(2,3,2, sharex=ax1, sharey=ax1)
     pt2 = ax2.imshow(Cls1, interpolation='none', aspect='auto',
         cmap='tab10', clim=(0,5))
-    ax2.set_title('classification (slant-plane)')
+    ax2.set_title('classification '+title_tag)
     plt.colorbar(pt2,ax=ax2)
 
     ax3 = plt.subplot(2,3,4, sharex=ax1, sharey=ax1)
     pt3 = ax3.imshow(Heightv, interpolation='none', aspect='auto',
         cmap=cmaph, clim=(c0,c1))
-    ax3.set_title('height_vectorproc (m) (slant-plane)')
+    ax3.set_title('height_vectorproc (m) '+title_tag)
     plt.colorbar(pt3,ax=ax3)
 
     ax4 = plt.subplot(2,3,5, sharex=ax1, sharey=ax1)
     pt4 = ax4.imshow(Height1, interpolation='none', aspect='auto',
         cmap=cmaph, clim=(c0,c1))
-    ax4.set_title('height (m) (slant-plane)')
+    ax4.set_title('height (m) '+title_tag)
     plt.colorbar(pt4,ax=ax4)
 
     ax5 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
     pt5 = ax5.imshow(Geoid1, interpolation='none', aspect='auto',
         cmap=cmaph)#, clim=(c0,c1))
-    ax5.set_title('geoid height (m) (slant-plane)')
+    ax5.set_title('geoid height (m) '+title_tag)
     plt.colorbar(pt5,ax=ax5)
 
     if nodes:
@@ -533,21 +543,40 @@ def main():
     parser.add_argument('proc_tile', help='river_data/rivertile.nc')
     parser.add_argument('truth_tile', help='river_data/rivertile.nc')
     parser.add_argument('reach_id', help='reach id', type=int)
-    parser.add_argument('--pixc_vec', help='pixcvec.nc', default=None)
+    parser.add_argument('--pixcvec', help='pixcvec.nc, defaults to river_data/pixcvec.nc', default=None)
     parser.add_argument('--pixc', help='pixel_cloud.nc', default=None)
+    parser.add_argument('--truth_pixcvec', default=None,
+        help='river_truth*/river_data/pixcvec.nc, defaults to river_truth*/river_data/pixcvec.nc')
+    parser.add_argument('--truth_pixc', help='gdem_pixc.nc', default=None)
     parser.add_argument('--nodes', nargs='*',
         help='list of nodes for which to plot height  histograms', default=None)
     args = parser.parse_args()
 
+    proc_tile = os.path.abspath(args.proc_tile)
+    truth_tile = os.path.abspath(args.truth_tile)
     gdem_dem = get_gdem_from_pixc(args.proc_tile)
     gdem_tile = args.truth_tile
-    pixc_vec = args.pixc_vec
-    if pixc_vec is None:
-        pixc_vec = args.proc_tile[0:-12] + '/pixcvec.nc'
-    errors = get_errors(args.proc_tile, args.truth_tile, test=False, verbose=False)
+    pixcvec = args.pixcvec
+    truth_pixcvec = args.truth_pixcvec
+    #proc_tile = os.path.abspath(args.proc_tile)
+    #truth_tile = os.path.abspath(args.truth_tile)
+    if pixcvec is None:
+        pixcvec = proc_tile[0:-12] + '/pixcvec.nc'
+    if truth_pixcvec is None:
+        truth_pixcvec = truth_tile[0:-12] + '/pixcvec.nc'
+    if args.pixc is None:
+        pixc = None
+    else:
+        pixc = os.path.abspath(args.pixc)
+    if args.truth_pixc is None:
+        truth_pixc = truth_tile[0:-12] + '/gdem_pixc.nc'
+    else:
+        truth_pixc = os.path.abspath(args.truth_pixc)
+    errors = get_errors(proc_tile, truth_tile, test=False, verbose=False)
     reach_error = get_reach_error(errors, args.reach_id)
     #make_plots(args.proc_tile, args.truth_tile, args.reach_id, gdem_dem, reach_error)
-    make_plots(args.proc_tile, args.truth_tile, pixc_vec, args.pixc, args.reach_id,
+    make_plots(proc_tile, truth_tile, pixcvec, pixc,
+        truth_pixcvec, truth_pixc, args.reach_id,
         gdem_dem, reach_error, nodes=args.nodes)
     plt.show()
 

@@ -203,6 +203,9 @@ def main():
         if args.outdir is not None:
             filenames = [args.outdir + '/' + name for name in filenames]
             table_fname = args.outdir + '/' + table_fname
+            # if the directory doesnt exist create it
+            if not os.path.exists(args.outdir):
+                os.makedirs(args.outdir)
     else:
         filenames = [None, None, None, None]
 

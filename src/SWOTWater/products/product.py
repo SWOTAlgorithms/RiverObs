@@ -476,9 +476,17 @@ class Product(object):
 
             # XML shape value
             shape_name = "_".join(attrs['dimensions'])+"_shape"
+
+            dims = attrs['dimensions']
+            if prefix is not None:
+                shape_name = "{}_{}".format(prefix, shape_name)
+                dims = odict(
+                    ('/{}/{}'.format(prefix, key), value) for key, value in
+                    attrs['dimensions'].items())
+
             if shape_name not in shape_names:
                 shape_names.append(shape_name)
-                shape_dims[shape_name] = attrs['dimensions']
+                shape_dims[shape_name] = dims
 
             # Don't write out dimensions
             attrs.pop('dimensions', None)

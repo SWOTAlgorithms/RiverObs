@@ -123,7 +123,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                 passfail = SWOTRiver.analysis.riverobs.get_passfail()
 
                 if truth:
-                    msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+                    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                         metrics, truth, data, scene, sig0=sig0)
                     if not any(msk):
                         print('No reaches in file', filename, 'are within sci req bounds\n')
@@ -139,7 +139,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                         table = SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
                         metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
                                             metrics, truth, scene, msk, fit_error,
-                                            dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
+                                            dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len, preamble=preamble)
                         scene_error_list.append(table)
                         reach_error_list.append(metrics_table)
                         good_pixc_list.append(pixc_list[index])
