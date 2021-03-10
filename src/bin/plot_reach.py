@@ -101,7 +101,6 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=True, reach_fit=True, 
         # fit slope is meters per meter
         outclip_height = new_fit.params[0]
         outclip_slope = new_fit.params[1]
-    pdb.set_trace()
 
     axis.errorbar(node_dist, wse, wse_r_u, fmt='o', markersize=2, label='node wse', zorder=0)
     axis.plot(node_dist_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
