@@ -11,34 +11,27 @@ def plot_area_vs_slope(errors):
     slopes = [el[3] for el in errors]
     areas = [el[5] for el in errors]
     plt.plot(abs(slopes), abs(areas), 'o')
-    #pdb.set_trace()
     plt.xlabel('slope error (%)')
     plt.ylabel('area total error (%)')
     print('n is', len(areas))
     plt.show()
 
-def get_input_files_old(dir):
-    # get all pixc files 'rivertile.nc' and find associated gdem file
-    pixc_files = glob.glob(dir + '/**/pixc/rivertile.nc', recursive=True)
-    gdem_files = []
-    for file in pixc_files:
-        path = file[0:-18]
-        gdem_files.append(path + '/gdem/rivertile.nc')
-    return pixc_files, gdem_files
 
 def mask_for_sci_req_old(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     # find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
-    fit_error = []# SWOTRiver.analysis.riverobs.compute_reach_fit_error(truth, scene, scene_nodes)
-    # print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
-    # print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0])
-    # now make the mask
-    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist']) > 10000),
-          np.logical_and((np.abs(truth.reaches['xtrk_dist']) < 60000),
+    fit_error = []  # SWOTRiver.analysis.riverobs.compute_reach_fit_error(truth, scene, scene_nodes)
+    bad_reaches = [73150600261, 73150600551, 73150601011, 73160300011, 73216000231, 73218000071, 73218000251,
+                   73220700271, 73220900221, 73220900231, 73240100211, 73240200041, 73240200231, 74230900191,
+                   74230900201, 74230900271, 74262700251, 74265000131, 74266300011, 74269800121, 74291700051,
+                   74291700071, 74291900011, 74292100271, 81130400071]
+    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist']) > 15000),
+          np.logical_and((np.abs(truth.reaches['xtrk_dist']) < 55000),
           np.logical_and((truth.reaches['width'] > 100),
-          np.logical_and((truth.reaches['area_total'] > 1e6),
-          np.logical_and((truth.reaches['p_n_nodes'] >= 1e4 / 200.0),                                  # p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches
-          np.logical_and(truth.reaches['obs_frac_n'] >= 1.0, truth.reaches['dark_frac'] < 0.3))))))
+          np.logical_and((truth.reaches['area_total'] > 8e5),
+          np.logical_and(np.isin(truth.reaches['reach_id'], bad_reaches, invert=True),
+          np.logical_and((truth.reaches['p_length'] >= 8000),
+          np.logical_and(truth.reaches['obs_frac_n'] >= 1.0, truth.reaches['dark_frac'] < 0.9)))))))
     return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_n_nodes'] * 200.0
 
 def load_data(pixc_files, gdem_files, test_bool):
@@ -46,7 +39,7 @@ def load_data(pixc_files, gdem_files, test_bool):
     truth_collection = []
     msk_collection = []
     test_counter = 0
-    truth=0
+    truth = 0
     for index, filename in enumerate(pixc_files):
         if test_counter < 5:
             # get the error of that scene
@@ -69,6 +62,22 @@ def load_data(pixc_files, gdem_files, test_bool):
     return data_collection, truth_collection, msk_collection
 
 
+def dark_frac_hist(pixc_data, gdem_data, msks, title_str):
+    data_fracs = np.array([])
+    truth_fracs = np.array([])
+    for index, scene in enumerate(pixc_data):
+        msk = msks[index]
+        data_fracs = np.append(data_fracs, pixc_data[index].reaches.dark_frac[msk])
+        truth_fracs = np.append(truth_fracs, gdem_data[index].reaches.dark_frac[msk])
+    plt.figure()
+    plt.hist(data_fracs, bins=50, alpha=0.5, label='data dark frac')
+    plt.hist(truth_fracs, bins=50, alpha=0.5, label='truth dark frac')
+    plt.legend(loc='upper right')
+    plt.xlabel('Dark fraction')
+    plt.title(title_str + 'Collection Dark Fractions')
+    plt.show()
+
+
 def slope_hist(pixc_data, gdem_data, msks, title_str):
     data_slopes = np.array([])
     truth_slopes = np.array([])
@@ -84,6 +93,7 @@ def slope_hist(pixc_data, gdem_data, msks, title_str):
     plt.title(title_str + ' Slopes')
     plt.show()
 
+
 def wse_hist(pixc_data, gdem_data, msks, title_str):
     data_wse = np.array([])
     truth_wse = np.array([])
@@ -92,12 +102,13 @@ def wse_hist(pixc_data, gdem_data, msks, title_str):
         data_wse = np.append(data_wse, pixc_data[index].reaches.wse[msk])
         truth_wse = np.append(truth_wse, gdem_data[index].reaches.wse[msk])
     plt.figure()
-    plt.hist(data_wse, bins=50, alpha=0.5, label='data wse')
-    plt.hist(truth_wse, bins=50, alpha=0.5, label='truth wse')
+    plt.hist(data_wse, bins=50, alpha=0.5, label='data reach wse')
+    plt.hist(truth_wse, bins=50, alpha=0.5, label='truth reach wse')
     plt.legend(loc='upper right')
-    plt.xlabel('wse, m')
+    plt.xlabel('wse, cm')
     plt.title(title_str + ' wse')
     plt.show()
+
 
 def area_hist(pixc_data, gdem_data, msks, title_str):
     data_area = np.array([])
@@ -107,12 +118,13 @@ def area_hist(pixc_data, gdem_data, msks, title_str):
         data_area = np.append(data_area, pixc_data[index].reaches.area_total[msk])
         truth_area = np.append(truth_area, gdem_data[index].reaches.area_total[msk])
     plt.figure()
-    plt.hist(data_area, bins=50, alpha=0.5, label='data area total')
-    plt.hist(truth_area, bins=50, alpha=0.5, label='truth area total')
+    plt.hist(data_area, bins=50, alpha=0.5, label='data reach area total')
+    plt.hist(truth_area, bins=50, alpha=0.5, label='truth reach area total')
     plt.legend(loc='upper right')
     plt.xlabel('area total (incl dark water), m^2')
     plt.title(title_str + ' Area Total')
     plt.show()
+
 
 def area_dtct_hist(pixc_data, gdem_data, msks, title_str):
     data_area = np.array([])
@@ -122,12 +134,13 @@ def area_dtct_hist(pixc_data, gdem_data, msks, title_str):
         data_area = np.append(data_area, pixc_data[index].reaches.area_detct[msk])
         truth_area = np.append(truth_area, gdem_data[index].reaches.area_detct[msk])
     plt.figure()
-    plt.hist(data_area, bins=50, alpha=0.5, label='data area detected')
-    plt.hist(truth_area, bins=50, alpha=0.5, label='truth area detected')
+    plt.hist(data_area, bins=50, alpha=0.5, label='data reach area detected')
+    plt.hist(truth_area, bins=50, alpha=0.5, label='truth reach area detected')
     plt.legend(loc='upper right')
     plt.xlabel('area detected, m^2')
     plt.title(title_str + ' Area Detected')
     plt.show()
+
 
 def get_collection_node_error(datas, truths, title_str):
     scene_node_errors = []
@@ -145,6 +158,7 @@ def get_collection_node_error(datas, truths, title_str):
     plt.show()
     print('average (abs) wse node error of the collection is', collection_avg_node_error)
     print('median wse node error of the collection is', collection_med_node_error)
+
 
 def get_collection_errors(datas, truths, msks):
     metrics = []
@@ -164,14 +178,14 @@ def get_collection_errors(datas, truths, msks):
         area_detct_errors = np.append(area_detct_errors, metric['area_detct'])
 
     # compute average errors for whole collection of rivertiles
-    print('mean absolute wse reach error is', np.mean(abs(wse_errors)))
-    print('median wse reach error is', np.median(wse_errors))
-    print('mean absolute slope reach error is', np.mean(abs(slope_errors)))
-    print('median slope reach error is', np.median(slope_errors))
-    print('mean absolute area total reach error is', np.mean(abs(area_total_errors)))
-    print('median area total reach error is', np.median(area_total_errors))
-    print('mean absolute area detected reach error is', np.mean(abs(area_detct_errors)))
-    print('median area detected reach error is', np.median(area_detct_errors))
+    print('mean absolute wse reach error is', str(round(np.mean(abs(wse_errors)), 2)))
+    print('median wse reach error is', str(round(np.median(wse_errors), 2)))
+    print('mean absolute slope reach error is', str(round(np.mean(abs(slope_errors)), 3)))
+    print('median slope reach error is', str(round(np.median(slope_errors), 3)))
+    print('mean absolute area total reach error is', str(round(np.mean(abs(area_total_errors)), 2)))
+    print('median area total reach error is', str(round(np.median(area_total_errors), 2)))
+    print('mean absolute area detected reach error is', str(round(np.mean(abs(area_detct_errors)), 2)))
+    print('median area detected reach error is', str(round(np.median(area_detct_errors), 2)))
 
     # compute proportion that do not meet science requirements
     passfail = {
@@ -189,14 +203,14 @@ def get_collection_errors(datas, truths, msks):
     top = bottom + height
 
     fig, [(ax0, ax1), (ax2, ax3)] = plt.subplots(2, 2, sharey=False, tight_layout=True)
-    ax0.hist(wse_errors[abs(wse_errors)<wse_max], 100)
+    ax0.hist(wse_errors[abs(wse_errors) < wse_max], 100)
     ax0.axvline(passfail['wse e (cm)'][0], color='k', linestyle='dashed', linewidth=1)
     ax0.axvline(-1*passfail['wse e (cm)'][0], color='k', linestyle='dashed', linewidth=1)
     ax0.axvline(passfail['wse e (cm)'][1], color='r', linestyle='dashed', linewidth=1)
     ax0.axvline(-1*passfail['wse e (cm)'][1], color='r', linestyle='dashed', linewidth=1)
     ax0.set_title('Reach wse errors', fontsize=12)
     ax0.set_xlabel('wse error, cm')
-    wse_percent_good = 100*len(wse_errors[abs(wse_errors)<passfail['wse e (cm)'][1]])/len(wse_errors)
+    wse_percent_good = 100*len(wse_errors[abs(wse_errors)<passfail['wse e (cm)'][0]])/len(wse_errors)
     wsestr = '% of reaches that meet scientific requirements = ' + str(round(wse_percent_good,2))
     num_wse = 'n reaches=' + str(len(wse_errors))
     ax0.text(left, top, wsestr,
@@ -219,7 +233,7 @@ def get_collection_errors(datas, truths, msks):
     ax1.axvline(-1*passfail['slp e (cm/km)'][0], color='k', linestyle='dashed', linewidth=1)
     ax1.axvline(passfail['slp e (cm/km)'][1], color='r', linestyle='dashed', linewidth=1)
     ax1.axvline(-1*passfail['slp e (cm/km)'][1], color='r', linestyle='dashed', linewidth=1)
-    slope_percent_good = 100*len(slope_errors[abs(slope_errors)<passfail['slp e (cm/km)'][1]])/len(slope_errors)
+    slope_percent_good = 100*len(slope_errors[abs(slope_errors)<passfail['slp e (cm/km)'][0]])/len(slope_errors)
     slopestr = '% of reaches that meet scientific requirements = ' + str(round(slope_percent_good,2))
     num_slope = 'num reaches=' + str(len(slope_errors))
     ax1.text(left, top, slopestr,
@@ -236,7 +250,7 @@ def get_collection_errors(datas, truths, msks):
     ax2.axvline(-1*passfail['area_tot e (%)'][0], color='k', linestyle='dashed', linewidth=1)
     ax2.axvline(passfail['area_tot e (%)'][1], color='r', linestyle='dashed', linewidth=1)
     ax2.axvline(-1*passfail['area_tot e (%)'][1], color='r', linestyle='dashed', linewidth=1)
-    area_t_percent_good = 100*len(area_total_errors[abs(area_total_errors)<passfail['area_tot e (%)'][1]])\
+    area_t_percent_good = 100*len(area_total_errors[abs(area_total_errors)<passfail['area_tot e (%)'][0]])\
                           /len(area_total_errors)
     num_a_t = 'num reaches=' + str(len(area_total_errors))
     areastr = '% of reaches that meet scientific requirements = ' + str(round(area_t_percent_good,2))
@@ -245,17 +259,17 @@ def get_collection_errors(datas, truths, msks):
     wse_med = np.median(wse_errors)
     wse_ordered = np.sort(abs(wse_errors))
     index = int(np.floor(0.68 * len(wse_errors)))
-    print('68%ile wse error (cm) is', wse_ordered[index], 'median is', wse_med)
+    print('68%ile wse error (cm) is', str(round(wse_ordered[index],2)), 'median is', str(round(wse_med,2)))
 
     area_med = np.median(area_total_errors)
     area_ordered = np.sort(abs(area_total_errors))
     index = int(np.floor(0.68 * len(area_ordered)))
-    print('68%ile total area error (%) is', area_ordered[index], 'median is', area_med)
+    print('68%ile total area error (%) is', str(round(area_ordered[index], 2)), 'median is', str(round(area_med, 2)))
 
     slope_med = np.median(slope_errors)
     slope_ordered = np.sort(abs(slope_errors))
     index = int(np.floor(0.68 * len(slope_ordered)))
-    print('68%ile total slope error (cm/km) is', slope_ordered[index], 'median is', slope_med)
+    print('68%ile total slope error (cm/km) is', str(round(slope_ordered[index],2)), 'median is', str(round(slope_med,2)))
 
     ax2.text(left, top, areastr,
               horizontalalignment='left',
@@ -269,6 +283,7 @@ def get_collection_errors(datas, truths, msks):
     ax3.set_xlabel('Area detected errors, %')
 
     plt.show()
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -286,7 +301,7 @@ def main():
     args = parser.parse_args()
 
     # get or create title for rivertile set
-    if args.title not in locals():
+    if args.title is None:
         title_str = args.basedir + '_' + args.slc_basename + '_' + args.pixc_basename + '_' + args.proc_rivertile
         print('Title is', title_str)
     else:
@@ -299,6 +314,7 @@ def main():
     datas, truths, msks = load_data(pixc_files, gdem_files, args.test_boolean)
 
     # get histogram of slopes
+    dark_frac_hist(datas, truths, msks, title_str)
     slope_hist(datas, truths, msks, title_str)
     wse_hist(datas, truths, msks, title_str)
     area_hist(datas, truths, msks, title_str)
@@ -322,6 +338,7 @@ def main():
     #     figure, axes = plot_reach.make_plots(rivertile_file, reach_id, gdem_file, errors, scene)
     #
     #     plt.show()
+
 
 if __name__ == "__main__":
     main()
