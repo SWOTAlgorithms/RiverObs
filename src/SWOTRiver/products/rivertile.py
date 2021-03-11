@@ -870,7 +870,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'total uncertainty in the node width'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
