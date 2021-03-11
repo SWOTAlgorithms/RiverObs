@@ -29,22 +29,26 @@ import matplotlib.pyplot as plt
 
 def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     # get all pixc files 'rivertile.nc' and find associated truth file
-    #file_str = basedir + '**/cycle_**/' + slc_dir + '/' + proc_rivertile + '/' + 'river_data/rivertile.nc'
-    proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile, 'river_data', 'rivertile.nc'))
-    #keep = ['platte_0120']
-    #proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
+    proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
+                                                 'river_data', 'rivertile.nc'))
+    # keep = ['platte_0120']
+    # proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
+    if len(proc_rivertile_list) == 0:
+        raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
     n_char = len(pixc_dir) + 1 + len(proc_rivertile) + len('river_data/rivertile.nc') + 1
-    for file in proc_rivertile_list:
-        truth_file = get_truth_file(proc_rivertile, pixc_dir, file, truth_dir)
+    for rivertile in proc_rivertile_list:
+        truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile, truth_dir)
         truth_rivertile_list.append(truth_file)
     return proc_rivertile_list, truth_rivertile_list
+
 
 def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir):
     n_char = len(proc_dir) + len(pixc_dir) + 1 + len('river_data/rivertile.nc') + 1
     path = proc_rivertile[0:-n_char]
     truth_file = path + truth_dir + '/river_data/rivertile.nc'
     return truth_file
+
 
 def get_pixc_file(proc_dir, proc_rivertile):
     n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc') + 1
@@ -55,6 +59,7 @@ def get_pixc_file(proc_dir, proc_rivertile):
     else:
         print('Missing pixel cloud file, continuing...')
         return None
+
 
 def get_errors(pixc_list, gdem_list, test, verbose=True):
     worst_area = 0
@@ -188,6 +193,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
 
         return scene_error_list, reach_error_list, good_pixc_list
 
+
 def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, proc_dir, pixc_dir, truth_basedir):
     # calls plot_reach for all reaches, from worst to best slope (or area, hardcoded) error
     reach_errors = sort_errors(reach_errors, rivertile_files, sort_param)
@@ -205,6 +211,7 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
                                              reach_id, gdem_file, errors, scene)
 
         plt.show()
+
 
 def sort_errors(reach_error_list, pixc_list, sort_param):
     # ranks reach-level errors from largest to smallest absolute value
@@ -228,6 +235,7 @@ def sort_errors(reach_error_list, pixc_list, sort_param):
     errors.sort(key=sort_dict[sort_param], reverse=True)
     return errors
 
+
 def sort_scene_errors(scene_error_list, pixc_list, error_var):
     # error var is slope, wse, area detected, or area total error
     # returns scenes sorted by input error parameter
@@ -242,9 +250,11 @@ def sort_scene_errors(scene_error_list, pixc_list, error_var):
     sorted_errors = errors.sort(key=takeSceneError)#, reverse=True)
     return sorted_errors
 
+
 def print_best_worst_scenes(param_errors, param_str):
     print('Worst ' + param_str + ' scenes', param_errors[0:10])
     print('\nBest ' + param_str + ' scenes', param_errors[-10:])
+
 
 def get_gdem_from_pixc(pixc_file):
     # gets the input gdem file from an output pixc rivertile.nc. Hard coded.
@@ -259,6 +269,7 @@ def get_gdem_from_pixc(pixc_file):
     gdem_file = '/u/swot-fn-r0/swot/sim_proc_inputs/gdem-dem-truth-v9-nowet/' +  lidar_scene + '_lidar.nc'
     return gdem_file
 
+
 def get_pixcvec_from_rivertile(rivertile_file):
     # gets a pixcvec file from an input rivertile.nc. Hard coded, user beware.
     pixcvec_file = rivertile_file[0:-12] + '/pixcvec.nc'
@@ -268,19 +279,24 @@ def get_pixcvec_from_rivertile(rivertile_file):
         print('Missing pixcvec file, continuing...')
         return None
 
-def takeSlope(elem):
+
+def take_slope(elem):
     print(elem[3])
     return abs(elem[3])
 
-def takeArea(elem):
+
+def take_area(elem):
     return abs(elem[6])
 
-def takeWse(elem):
+
+def take_wse(elem):
     return abs(elem[5])
 
-def takeSceneError(elem):
+
+def take_scene_error(elem):
     return abs(elem[1])
-    
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('proc_rivertile', type=str, default=None,
@@ -305,12 +321,13 @@ def main():
     print('base directory is', args.basedir)
     proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename, args.proc_rivertile, args.truth_rivertile)
     scene_errors, reach_errors, proc_list = get_errors(proc_list, truth_list, args.test_boolean)
-    scene_slope_error = sort_scene_errors(scene_errors, proc_list, 'slope_error')
-    scene_wse_error = sort_scene_errors(scene_errors, proc_list, 'wse_error')
-    scene_area_error = sort_scene_errors(scene_errors, proc_list, 'area_error')
-    scene_area_dtct_error = sort_scene_errors(scene_errors, proc_list, 'area_dtct_error')
 
-    # uncomment below if you want scene-level error summaries
+    # Uncomment below if you want scene-level error summaries
+    #
+    # scene_slope_error = sort_scene_errors(scene_errors, proc_list, 'slope_error')
+    # scene_wse_error = sort_scene_errors(scene_errors, proc_list, 'wse_error')
+    # scene_area_error = sort_scene_errors(scene_errors, proc_list, 'area_error')
+    # scene_area_dtct_error = sort_scene_errors(scene_errors, proc_list, 'area_dtct_error')
     # print_best_worst_scenes(scene_slope_error, 'Slope')
     # print_best_worst_scenes(scene_wse_error, 'wse')
     # print_best_worst_scenes(scene_area_error, 'area total')
@@ -321,6 +338,7 @@ def main():
     first_reach = int(np.floor(n_reaches*(100-args.percentile)/100))
     plot_worst_reaches(reach_errors, first_reach, args.sort_by, proc_list,
                        args.proc_rivertile, args.pixc_basename, args.truth_rivertile)
+
 
 if __name__ == "__main__":
     main()
