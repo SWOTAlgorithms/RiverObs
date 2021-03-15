@@ -1096,7 +1096,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             node_aggs = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
-                area_method=self.area_agg_method)
+                area_method=self.area_agg_method, good_flag='h_flg')
 
             latitude_u = node_aggs['lat_u']
             longitud_u = node_aggs['lon_u']
