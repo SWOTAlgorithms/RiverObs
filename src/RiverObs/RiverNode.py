@@ -44,7 +44,7 @@ class RiverNode:
 
     To edit the data, it is useful to sort it by order in one of the variables.
     To sort the data, set sort=True and set sort_variable one of
-    ['d','s','n','h'].  If the data are not sorted intially, they can be
+    ['d','s','n','h'].  If the data are not sorted initially, they can be
     sorted later, as desired by calling RiverNode.sort.
     """
 

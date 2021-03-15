@@ -22,7 +22,7 @@ class RiverObs:
     a center line point.
 
     The class supports extracting summary observations from each node and
-    returning them for analaysis (e.g., fitting).
+    returning them for analysis (e.g., fitting).
 
     Initialize with a reach variable (e.g., from ReachExtractor),
     and a set of observation coordinates.
@@ -156,7 +156,7 @@ class RiverObs:
         """
         # Brent Williams, May 2017: added this function to handle
         # segmentation/exclude unconnected-to-river pixels.
-        # get dominant label & map centerline observalble to measurements
+        # get dominant label & map centerline observable to measurements
         self.dominant_label = None
         if np.iterable(max_width):
             max_distance = max_width[self.index] / 2.
@@ -437,7 +437,7 @@ class RiverObs:
         """
         Move nodes from the populated node list to the unpopulated node list.
 
-        If reverse is True, move in the opposite directionp. No information is
+        If reverse is True, move in the opposite direction. No information is
         lost during this process and it is invertible. Both lists are kept
         sorted at each step.
         """
