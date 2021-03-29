@@ -16,6 +16,7 @@ import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
 from pathlib import Path
+import pdb
 
 def handle_bad_reaches(truth_tmp, data_tmp):
     """
@@ -134,8 +135,9 @@ def main():
     scene = None
     scene_nodes = None
     sig0 = None
+
     bad_scenes = [] # e.g. ['3356',...] these scenes will be excluded from analysis
-    print("args.basedir: ",args.basedir)
+    print("args.basedir: ", args.basedir)
     if args.basedir is not None:
         if args.slc_basename is None or args.pixc_basename is None:
             print('Must specify at least slc_basename and pixc_basename '
@@ -230,7 +232,7 @@ def main():
                                              with_node_avg=True)
     # printing masked data to table
     preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" + str(bounds['max_xtrk']) + " km and width>" \
-               + str(bounds['min_width']) + " m and area>(" + str(bounds['min_area']) + " m)^2 and reach len>=" \
+               + str(bounds['min_width']) + " m and area>" + str(bounds['min_area']) + " m^2 and reach len>=" \
                + str(bounds['min_length']) + " m"
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
