@@ -31,7 +31,8 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     # get all pixc files 'rivertile.nc' and find associated truth file
     proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
                                                  'river_data', 'rivertile.nc'))
-    # keep = ['platte_0120']
+    # uncomment below if you want to keep only some scenes or passes
+    # keep = ['platte']
     # proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
     if len(proc_rivertile_list) == 0:
         raise Exception('No rivertiles found, check input directory names')
@@ -91,7 +92,8 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
         # function was called for a single file
         print('Retrieving errors for single file...')
         try:
-            metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list, bad_scenes=bad_scene)
+            metrics, truth, bounds, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list,
+                                                                                 bad_scenes=bad_scene)
         except FileNotFoundError:
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
@@ -319,7 +321,8 @@ def main():
         raise Exception('Input sort string must be wse, area, or slope.')
 
     print('base directory is', args.basedir)
-    proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename, args.proc_rivertile, args.truth_rivertile)
+    proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename,
+                                            args.proc_rivertile, args.truth_rivertile)
     scene_errors, reach_errors, proc_list = get_errors(proc_list, truth_list, args.test_boolean)
 
     # Uncomment below if you want scene-level error summaries
