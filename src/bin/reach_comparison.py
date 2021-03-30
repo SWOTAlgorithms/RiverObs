@@ -32,8 +32,8 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
                                                  'river_data', 'rivertile.nc'))
     # uncomment below if you want to keep only some scenes or passes
-    keep = ['3824']
-    proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
+    # keep = ['3824']
+    # proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
     if len(proc_rivertile_list) == 0:
         raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
