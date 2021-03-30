@@ -32,8 +32,8 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
                                                  'river_data', 'rivertile.nc'))
     # uncomment below if you want to keep only some scenes or passes
-    # keep = ['platte']
-    # proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
+    keep = ['3824']
+    proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
     if len(proc_rivertile_list) == 0:
         raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
@@ -92,7 +92,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
         # function was called for a single file
         print('Retrieving errors for single file...')
         try:
-            metrics, truth, bounds, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list,
+            metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list,
                                                                                  bad_scenes=bad_scene)
         except FileNotFoundError:
             print('Pixc rivertile has no matching gdem rivertile')
@@ -102,8 +102,8 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                 metrics, truth, data, scene, sig0=sig0)
             preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                        + str(bounds['max_xtrk']) + " km and width>" \
-                       + str(bounds['min_width']) + " m and area>(" \
-                       + str(bounds['min_area']) + " m)^2 and reach len>=" \
+                       + str(bounds['min_width']) + " m and area>" \
+                       + str(bounds['min_area']) + " m^2 and reach len>=" \
                        + str(bounds['min_length']) + " m\n"
             print(preamble)
             print('and file', pixc_list, '\n')
@@ -123,7 +123,9 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
             if test_count <= 3:
                 # get the error of that scene
                 try:
-                    metrics, truth, bounds, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index], gdem_list[index], bad_scenes=bad_scene)
+                    metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index],
+                                                                                         gdem_list[index],
+                                                                                         bad_scenes=bad_scene)
                 except FileNotFoundError:
                     print('Pixc rivertile has no matching gdem rivertile')
 
@@ -138,8 +140,8 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                     else:
                         preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                                    + str(bounds['max_xtrk']) + " km and width>" \
-                                   + str(bounds['min_width']) + " m and area>(" \
-                                   + str(bounds['min_area']) + " m)^2 and reach len>=" \
+                                   + str(bounds['min_width']) + " m and area>" \
+                                   + str(bounds['min_area']) + " m^2 and reach len>=" \
                                    + str(bounds['min_length']) + " m\n"
                         print(preamble)
                         print('and file', filename, '\n')
@@ -207,9 +209,11 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
         errors = [reach[3], reach[4], reach[6], reach[7], reach[8]] # slope e, wse_e, area total e, area detected e, width e
         scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(rivertile_file)
         truth_file = get_truth_file(proc_dir, pixc_dir, rivertile_file, truth_basedir)
+        truth_pixc = get_pixc_file(proc_dir, truth_file)
+        truth_pixcvec = get_pixc_file(proc_dir, truth_file)
         gdem_file = None    # this is the gdem_dem file
         pixc_vec = get_pixcvec_from_rivertile(rivertile_file)
-        figure, axes = plot_reach.make_plots(rivertile_file, truth_file, pixc_vec, pixc_file,
+        figure, axes = plot_reach.make_plots(rivertile_file, truth_file, pixc_vec, pixc_file, truth_pixcvec, truth_pixc,
                                              reach_id, gdem_file, errors, scene)
 
         plt.show()
@@ -218,9 +222,9 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
 def sort_errors(reach_error_list, pixc_list, sort_param):
     # ranks reach-level errors from largest to smallest absolute value
     errors = []
-    sort_dict = {'wse': takeWse,
-                 'area': takeArea,
-                 'slope': takeSlope}
+    sort_dict = {'wse': take_wse,
+                 'area': take_area,
+                 'slope': take_slope}
     for scene_index, scene in enumerate(reach_error_list):
         for reach_index, reach in enumerate(reach_error_list[scene_index]['reach']):
             slope_error = reach_error_list[scene_index]['slp e (cm/km)'][reach_index]
