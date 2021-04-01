@@ -27,10 +27,15 @@ import pdb
 import matplotlib.pyplot as plt
 
 
-def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
+def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir, truth_only=False):
     # get all pixc files 'rivertile.nc' and find associated truth file
-    proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
-                                                 'river_data', 'rivertile.nc'))
+    if truth_only:
+        print('doing truth-to-truth file aggregation...')
+        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, proc_rivertile,
+                                                     'river_data', 'rivertile.nc'))
+    else:
+        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
+                                                     'river_data', 'rivertile.nc'))
     # uncomment below if you want to keep only some scenes or passes
     # keep = ['3824']
     # proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
@@ -39,15 +44,19 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir):
     truth_rivertile_list = []
     n_char = len(pixc_dir) + 1 + len(proc_rivertile) + len('river_data/rivertile.nc') + 1
     for rivertile in proc_rivertile_list:
-        truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile, truth_dir)
+        truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile, truth_dir, truth_only)
         truth_rivertile_list.append(truth_file)
     return proc_rivertile_list, truth_rivertile_list
 
 
-def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir):
-    n_char = len(proc_dir) + len(pixc_dir) + 1 + len('river_data/rivertile.nc') + 1
+def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir, truth_only=False):
+    if truth_only:
+        n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc')
+    else:
+        n_char = len(proc_dir) + len(pixc_dir) + 1 + len('river_data/rivertile.nc') + 1
     path = proc_rivertile[0:-n_char]
     truth_file = path + truth_dir + '/river_data/rivertile.nc'
+    
     return truth_file
 
 
@@ -317,6 +326,8 @@ def main():
     parser.add_argument('--test_boolean', help='set to "True" if testing script', default=False, required=False)
     parser.add_argument('--percentile', type=int,help='%%ile along the distribution of errors where you want to begin the analysis, 0-100',default=100,required=False)
     parser.add_argument('--sort_by', type=str, default='wse', help='Which error class to sort by: wse, area, or slope')
+    parser.add_argument('-t', '--truth_only', type=bool, default=False,
+                        help='Compare truth rivertiles to truth rivertile, True or False')
     args = parser.parse_args()
 
     # check validity of input sort parameter
@@ -326,7 +337,7 @@ def main():
 
     print('base directory is', args.basedir)
     proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename,
-                                            args.proc_rivertile, args.truth_rivertile)
+                                            args.proc_rivertile, args.truth_rivertile, args.truth_only)
     scene_errors, reach_errors, proc_list = get_errors(proc_list, truth_list, args.test_boolean)
 
     # Uncomment below if you want scene-level error summaries
