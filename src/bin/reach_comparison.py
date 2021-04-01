@@ -42,7 +42,6 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir, truth
     if len(proc_rivertile_list) == 0:
         raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
-    n_char = len(pixc_dir) + 1 + len(proc_rivertile) + len('river_data/rivertile.nc') + 1
     for rivertile in proc_rivertile_list:
         truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile, truth_dir, truth_only)
         truth_rivertile_list.append(truth_file)
@@ -56,7 +55,6 @@ def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir, truth_only=Fal
         n_char = len(proc_dir) + len(pixc_dir) + 1 + len('river_data/rivertile.nc') + 1
     path = proc_rivertile[0:-n_char]
     truth_file = path + truth_dir + '/river_data/rivertile.nc'
-    
     return truth_file
 
 
@@ -95,6 +93,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
     sig0 = None
     table = None
     good_pixc_list = []
+    good_truth_list = []
 
     test_count = 0                      # this only increases if we're in script testing mode
     if type(pixc_list) is not list:
@@ -161,6 +160,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
                         scene_error_list.append(table)
                         reach_error_list.append(metrics_table)
                         good_pixc_list.append(pixc_list[index])
+                        good_truth_list.append(gdem_list[index])
                 else:
                     print('Load and accumulation failure for file', filename, '\n')
             # if table:
@@ -204,20 +204,20 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
             #       '\nBest mean wse error', best_wse,
             #       '\nBest mean slope error', best_slope)
 
-        return scene_error_list, reach_error_list, good_pixc_list
+        return scene_error_list, reach_error_list, good_pixc_list, good_truth_list
 
 
-def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, proc_dir, pixc_dir, truth_basedir):
+def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, truth_files, proc_dir):
     # calls plot_reach for all reaches, from worst to best slope (or area, hardcoded) error
-    reach_errors = sort_errors(reach_errors, rivertile_files, sort_param)
+    reach_errors = sort_errors(reach_errors, rivertile_files, truth_files, sort_param)
     reach_errors = reach_errors[first_reach:]
     for index, reach in enumerate(reach_errors):
         rivertile_file = reach[0]
+        truth_file = reach[9]
         pixc_file = get_pixc_file(proc_dir, rivertile_file)
         reach_id = reach[2]
         errors = [reach[3], reach[4], reach[6], reach[7], reach[8]] # slope e, wse_e, area total e, area detected e, width e
         scene = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(rivertile_file)
-        truth_file = get_truth_file(proc_dir, pixc_dir, rivertile_file, truth_basedir)
         truth_pixc = get_pixc_file(proc_dir, truth_file)
         truth_pixcvec = get_pixc_file(proc_dir, truth_file)
         gdem_file = None    # this is the gdem_dem file
@@ -228,7 +228,7 @@ def plot_worst_reaches(reach_errors, first_reach, sort_param, rivertile_files, p
         plt.show()
 
 
-def sort_errors(reach_error_list, pixc_list, sort_param):
+def sort_errors(reach_error_list, pixc_list, truth_list, sort_param):
     # ranks reach-level errors from largest to smallest absolute value
     errors = []
     sort_dict = {'wse': take_wse,
@@ -246,7 +246,8 @@ def sort_errors(reach_error_list, pixc_list, sort_param):
             width_error = reach_error_list[scene_index]['width e (m)'][reach_index]
             scene = reach_error_list[scene_index]['scene_pass_tile'][reach_index]
             errors.append([pixc_list[scene_index], scene, reach,
-                                 slope_error, wse_error, norm_wse_e, area_error, area_dtct_error, width_error])
+                                 slope_error, wse_error, norm_wse_e, area_error, area_dtct_error, width_error,
+                           truth_list[scene_index]])
     errors.sort(key=sort_dict[sort_param], reverse=True)
     return errors
 
@@ -338,7 +339,7 @@ def main():
     print('base directory is', args.basedir)
     proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename,
                                             args.proc_rivertile, args.truth_rivertile, args.truth_only)
-    scene_errors, reach_errors, proc_list = get_errors(proc_list, truth_list, args.test_boolean)
+    scene_errors, reach_errors, proc_list, truth_list = get_errors(proc_list, truth_list, args.test_boolean)
 
     # Uncomment below if you want scene-level error summaries
     #
@@ -354,8 +355,7 @@ def main():
     # start plotting at the error percentile of interest
     n_reaches = len(reach_errors)
     first_reach = int(np.floor(n_reaches*(100-args.percentile)/100))
-    plot_worst_reaches(reach_errors, first_reach, args.sort_by, proc_list,
-                       args.proc_rivertile, args.pixc_basename, args.truth_rivertile)
+    plot_worst_reaches(reach_errors, first_reach, args.sort_by, proc_list, truth_list, args.proc_rivertile)
 
 
 if __name__ == "__main__":
