@@ -242,8 +242,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     axis.set_xlabel('node_id')
     axis.set_ylabel('area (m^2)')
     leg = axis.legend(['area detected', 'area total', 'truth'])
-    if leg:
-        leg.set_draggable(1)
+    leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
 
@@ -347,6 +346,7 @@ def make_plots(rivertile_file, truth_file, pixcvec, pixc,
 
     # create MutableProduct objects using input files
     # contains node group and reach group for each input netcdf
+
     data = SWOTWater.products.product.MutableProduct.from_ncfile(rivertile_file)
     truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
 

@@ -128,7 +128,7 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
     else:  # function was called for a list of files
         print('Retrieving errors for all rivertiles...')
         for index, filename in enumerate(pixc_list):
-            if test_count <= 3:
+            if test_count <= 6:
                 # get the error of that scene
                 try:
                     metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list[index],
@@ -325,7 +325,8 @@ def main():
     parser.add_argument('pixc_basename', type=str, default=None,
                         help='pixc directory basename')
     parser.add_argument('--test_boolean', help='set to "True" if testing script', default=False, required=False)
-    parser.add_argument('--percentile', type=int,help='%%ile along the distribution of errors where you want to begin the analysis, 0-100',default=100,required=False)
+    parser.add_argument('--percentile', type=int, default=100, required=False,
+                        help='%%ile along the distribution of errors where you want to begin the analysis, 0-100')
     parser.add_argument('--sort_by', type=str, default='wse', help='Which error class to sort by: wse, area, or slope')
     parser.add_argument('-t', '--truth_only', type=bool, default=False,
                         help='Compare truth rivertiles to truth rivertile, True or False')
@@ -333,7 +334,7 @@ def main():
 
     # check validity of input sort parameter
     sort_strs = ['wse', 'area', 'slope']
-    if any(args.sort_by in sort_strs for sort_str in sort_strs)==False:
+    if not any(args.sort_by in sort_strs for sort_str in sort_strs):
         raise Exception('Input sort string must be wse, area, or slope.')
 
     print('base directory is', args.basedir)
