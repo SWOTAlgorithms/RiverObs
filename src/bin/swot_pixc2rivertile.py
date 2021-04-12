@@ -131,12 +131,6 @@ def main():
         l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
             args.shpbase[1]+'.shp')
 
-    if args.shpbase[0] is not None:
-        l2pixc_to_rivertile.rivertile_product.nodes.write_shapes(
-            args.shpbase[0]+'.shp')
-        l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
-            args.shpbase[1]+'.shp')
-
     if args.gdem_file is not None:
         os.remove(pixc_file)
 
