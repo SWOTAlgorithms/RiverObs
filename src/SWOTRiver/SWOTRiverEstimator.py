@@ -1312,7 +1312,7 @@ class SWOTRiverEstimator(SWOTL2):
         ss = all_ss[self.river_obs.populated_nodes]
 
         hh = river_reach.wse
-        ww = 1/(river_reach.wse_u**2)
+        ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
 
         mask = np.logical_and(hh > -500, hh < 9000)
