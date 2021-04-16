@@ -1361,11 +1361,16 @@ class SWOTRiverEstimator(SWOTL2):
 
         # do fit on geoid heights
         gg = river_reach.geoid_hght
-        geoid_fit = statsmodels.api.OLS(gg, SS).fit()
+        mask = np.logical_and(gg > -500, gg < 9000)
+        if mask.sum() > 1:
+            geoid_fit = statsmodels.api.OLS(gg[mask], SS[mask]).fit()
 
-        # fit slope is meters per meter
-        reach_stats['geoid_slop'] = geoid_fit.params[0]
-        reach_stats['geoid_hght'] = geoid_fit.params[1]
+            # fit slope is meters per meter
+            reach_stats['geoid_slop'] = geoid_fit.params[0]
+            reach_stats['geoid_hght'] = geoid_fit.params[1]
+        else:
+            reach_stats['geoid_slop'] = MISSING_VALUE_FLT
+            reach_stats['geoid_hght'] = MISSING_VALUE_FLT
 
         LOGGER.debug('Reach height/slope processing finished')
 
