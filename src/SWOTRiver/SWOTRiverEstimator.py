@@ -1584,15 +1584,18 @@ class SWOTRiverEstimator(SWOTL2):
         sigma = np.max([
             min_sigma, window_size/window_size_sigma_ratio])
 
-        # smooth h_n_ave, and get slope
-        slope = np.polyfit(distances, heights, 1)[0]
-        heights_detrend = heights - slope*distances
-        heights_smooth = self.gaussian_averaging(
-            distances, heights_detrend, window_size, sigma)
-        heights_smooth = heights_smooth + slope*(distances - distances[0])
-        enhanced_slope = (
-            heights_smooth[last_node] - heights_smooth[first_node]
-            ) / this_reach_len
+        if len(heights) < 2 or last_node == first_node:
+            enhanced_slope = MISSING_VALUE_FLT
+        else:
+            # smooth h_n_ave, and get slope
+            slope = np.polyfit(distances, heights, 1)[0]
+            heights_detrend = heights - slope*distances
+            heights_smooth = self.gaussian_averaging(
+                distances, heights_detrend, window_size, sigma)
+            heights_smooth = heights_smooth + slope*(distances - distances[0])
+            enhanced_slope = (
+                heights_smooth[last_node] - heights_smooth[first_node]
+                ) / this_reach_len
 
         return enhanced_slope
 
