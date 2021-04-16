@@ -330,14 +330,15 @@ class L2HRRiverTile(Product):
                         reach_outputs[key])+[reach.metadata[key],])
 
                 this_rch_id_up = reach.metadata['rch_id_up'].T
+                this_rch_id_up[this_rch_id_up == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_up'] = np.concatenate(
                     (reach_outputs['rch_id_up'], this_rch_id_up))
-
-                this_rch_id_dn = reach.metadata['rch_id_dn'].T
-                reach_outputs['rch_id_dn'] = np.concatenate(
-                    (reach_outputs['rch_id_dn'], this_rch_id_up))
                 reach_outputs['n_reach_up'] = np.append(
                     reach_outputs['n_reach_up'], (this_rch_id_up>0).sum())
+                this_rch_id_dn = reach.metadata['rch_id_dn'].T
+                this_rch_id_dn[this_rch_id_dn == 0] = MISSING_VALUE_INT9
+                reach_outputs['rch_id_dn'] = np.concatenate(
+                    (reach_outputs['rch_id_dn'], this_rch_id_dn))
                 reach_outputs['n_reach_dn'] = np.append(
                     reach_outputs['n_reach_dn'], (this_rch_id_dn>0).sum())
                 reach_outputs['reach_idx'] = np.append(
@@ -3211,8 +3212,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             node_value = getattr(nodes, key)
             reach_value = getattr(self, key)
             for ii, reach_id in enumerate(self.reach_id):
-                reach_value[ii] = np.mean(
-                    node_value[node_reach_ids == reach_id])
+                mask = np.logical_and(
+                    node_reach_ids == reach_id, nodes.n_good_pix > 0)
+                if mask.sum() > 0:
+                    reach_value[ii] = np.mean(
+                        node_value[mask])
+                else:
+                    reach_value[ii] = MISSING_VALUE_FLT
             self[key] = reach_value
 
     def __add__(self, other):
