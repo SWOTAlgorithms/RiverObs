@@ -414,10 +414,6 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['ext_dist_coef',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
-        ['facc',
-         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
-        ['lake_id',
-         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def subset(self, reach_ids):
@@ -493,8 +489,6 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['width_var',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
-        ['facc',
-         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['n_chan_max',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['n_chan_mod',
@@ -519,8 +513,6 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ICEFLAG]])],
         ['cl_ids',
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_CLIDS]])],
-        ['lake_id',
-         odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
 
     def subset(self, reach_ids):
