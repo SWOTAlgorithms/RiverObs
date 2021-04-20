@@ -1059,9 +1059,9 @@ class SWOTRiverEstimator(SWOTL2):
         # heights using only "good" heights
         wse = np.asarray(self.river_obs.get_node_stat(
                 'median', 'h_noise', good_flag='h_flg'))
-        wse_u = np.asarray(
+        wse_r_u = np.asarray(
             self.river_obs.get_node_stat('std', 'h_noise', good_flag='h_flg'))
-        wse_std = wse_u
+        wse_std = wse_r_u
 
         # The following are estimates of river width
         width_ptp = np.asarray(self.river_obs.get_node_stat('width_ptp', ''))
@@ -1117,7 +1117,7 @@ class SWOTRiverEstimator(SWOTL2):
             if (self.height_agg_method is not 'orig'):
                 wse = node_aggs['h']
                 wse_std = node_aggs['h_std']
-                wse_u = node_aggs['h_u']
+                wse_r_u = node_aggs['h_u']
                 area_of_ht = area
 
         # These are the values from the width database
@@ -1188,7 +1188,7 @@ class SWOTRiverEstimator(SWOTL2):
             'area_of_ht': area_of_ht.astype('float64'),
             'wse': wse.astype('float64'),
             'wse_std': wse_std.astype('float64'),
-            'wse_u': wse_u.astype('float64'),
+            'wse_r_u': wse_r_u.astype('float64'),
             'nobs_h': nobs_h.astype('int32'),
             'node_indx': node_indx.astype('int64'),
             'reach_indx': reach_index.astype('int64'),
@@ -1312,7 +1312,7 @@ class SWOTRiverEstimator(SWOTL2):
         ss = all_ss[self.river_obs.populated_nodes]
 
         hh = river_reach.wse
-        ww = 1/(river_reach.wse_u**2)  # TO DO: validate wse_u here
+        ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
 
         mask = np.logical_and(hh > -500, hh < 9000)

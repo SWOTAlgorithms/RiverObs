@@ -315,7 +315,7 @@ class L2HRRiverTile(Product):
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
                          'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
-                         'area_of_ht', 'wse', 'wse_std', 'wse_u', 'rdr_sig0',
+                         'area_of_ht', 'wse', 'wse_std', 'wse_r_u', 'rdr_sig0',
                          'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
                          'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
                          'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
@@ -1450,7 +1450,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['lat_u'] = node_outputs['latitude_u']
             klass['lon_u'] = node_outputs['longitud_u']
             klass['wse'] = node_outputs['wse']
-            klass['wse_r_u'] = node_outputs['wse_std']
+            klass['wse_r_u'] = node_outputs['wse_r_u']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
             klass['area_detct'] = node_outputs['area_det']
