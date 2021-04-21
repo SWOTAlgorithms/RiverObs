@@ -198,6 +198,7 @@ class SWOTRiverEstimator(SWOTL2):
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
                  slope_method='weighted',
+                 use_ext_dist_coef=True,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -207,6 +208,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
         self.slope_method = slope_method
+        self.use_ext_dist_coef = use_ext_dist_coef
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -564,9 +566,13 @@ class SWOTRiverEstimator(SWOTL2):
         bounding box.
         """
         # assign the reaches
-        river_obs_list, reach_idx_list, ireach_list = \
-            self.assign_reaches_two_pass(
-                scalar_max_width, minobs, use_width_db, ds)
+        if self.use_ext_dist_coef:
+            river_obs_list, reach_idx_list, ireach_list = \
+                self.assign_reaches_two_pass(
+                    scalar_max_width, minobs, use_width_db, ds)
+        else:
+            river_obs_list, reach_idx_list, ireach_list = \
+                self.assign_reaches(scalar_max_width, minobs, use_width_db, ds)
 
         river_reach_collection = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
