@@ -565,7 +565,10 @@ class ShapeWriterMixIn(object):
 
         # add time-string
         properties_ = properties.copy()
-        properties['time_str'] = 'str'
+        for key in ['time_str', 't_str_avg', 't_str_med', 't_str_min',
+                    't_str_max']:
+            if key in properties:
+                properties[key] = 'str'
 
         # mash up the schema
         schema = {'geometry': 'Point', 'properties': properties}
@@ -577,7 +580,7 @@ class ShapeWriterMixIn(object):
             schema['geometry'] = 'LineString'
 
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
-            for ii in range(self.time.shape[0]):
+            for ii in range(self.reach_id.shape[0]):
 
                 this_property = odict()
                 for key in properties_:
