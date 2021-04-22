@@ -575,9 +575,10 @@ class ShapeWriterMixIn(object):
 
         # special treatment of these
         if is_reach:
-            properties['rch_id_up'] = 'str'
-            properties['rch_id_dn'] = 'str'
             schema['geometry'] = 'LineString'
+            for key in ['rch_id_up', 'rch_id_dn', 'pass_list']:
+                if key in properties:
+                    properties[key] = 'str'
 
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
             for ii in range(self.reach_id.shape[0]):
