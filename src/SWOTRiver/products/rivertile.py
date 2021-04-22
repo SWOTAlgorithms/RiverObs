@@ -520,7 +520,8 @@ class ShapeWriterMixIn(object):
                         pass
 
                 my_vars[key] = value.copy()
-                if key in ['time_str',]:
+                if key in ['time_str', 't_str_avg', 't_str_min', 't_str_med',
+                           't_str_max']:
                     my_vars[key]['fill_value'] = 'no_data'
 
                 # remove these fill values

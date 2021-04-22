@@ -441,7 +441,8 @@ class Product(object):
                     continue
 
                 if dset in ['reach_id', 'node_id', 'rch_id_dn',
-                            'rch_id_up', 'time_str']:
+                            'rch_id_up', 'time_str', 't_str_avg', 't_str_min',
+                            't_str_max', 't_str_med']:
                     attrs['type'] = 'text'
                     if dset in ['reach_id', 'node_id']:
                         attrs.pop("_FillValue", None)
