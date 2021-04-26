@@ -590,7 +590,7 @@ class ShapeWriterMixIn(object):
                     else:
                         this_item = self[key]
 
-                    if key in ['rch_id_up', 'rch_id_dn']:
+                    if key in ['rch_id_up', 'rch_id_dn', 'pass_list']:
                         strings = []
                         for item in this_item[ii]:
                             if item == self.VARIABLES[key]['_FillValue']:
@@ -630,13 +630,20 @@ class ShapeWriterMixIn(object):
                                      float(self.lat_prior[ii]))
 
                 # add time-string
-                try:
-                    this_property['time_str'] = (
-                        datetime.datetime(2000, 1, 1) + datetime.timedelta(
-                            seconds=this_property['time'])
-                        ).strftime('%Y-%m-%dT%H:%M%SZ')
-                except (OverflowError, ValueError):
-                    this_property['time_str'] = 'no_data'
+                time_string_vars = {
+                    'time': 'time_str', 't_avg': 't_str_avg',
+                    't_hmin': 't_str_min', 't_hmax': 't_str_max',
+                    't_hmed': 't_str_med'}
+                for in_dset, out_dset in time_string_vars.items():
+                    if in_dset in this_property:
+                        try:
+                            this_property[out_dset] = (
+                                datetime.datetime(2000, 1, 1) +
+                                datetime.timedelta(
+                                seconds=this_property[in_dset])
+                                ).strftime('%Y-%m-%dT%H:%M%SZ')
+                        except (OverflowError, ValueError):
+                            this_property[out_dset] = 'no_data'
 
                 ofp.write({'geometry': mapping(this_geo), 'id': ii,
                            'properties': this_property, 'type': 'Feature'})
@@ -3173,14 +3180,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     tmp = record['properties'][key].replace(
                         'no_data', str(fill))
                     data[key][irec, :] = np.array([
-                        int(item) for item in tmp.split(' ')])
+                        int(float(item)) for item in tmp.split(' ')])
 
             else:
                 data[key] = np.array([
                     record['properties'][key] for record in records])
 
         for key, value in data.items():
-            if key in ['reach_id', 'node_id']:
+            if key in ['reach_id', 'node_id', 'rch_id_up', 'rch_id_dn']:
                 value = value.astype('int')
             setattr(klass, key, value)
         return klass
