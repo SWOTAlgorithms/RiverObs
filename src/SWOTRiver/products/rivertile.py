@@ -1114,7 +1114,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     quantities are not computed.""")],
                 ])],
         ['n_good_pix',
-         odict([['dtype', 'i4'],
+         odict([['dtype', 'i8'],
                 ['long_name', 'number of pixels that have a valid WSE'],
                 ['units', 1],
                 ['valid_min', 0],
