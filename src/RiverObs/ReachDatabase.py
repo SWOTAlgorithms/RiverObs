@@ -247,6 +247,8 @@ class ReachExtractor(object):
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
                            'discharge_models']:
                     reach_metadata[key] = this_reach['reaches'][key]
+                elif key in ['iceflag']:
+                    reach_metadata[key] = this_reach['reaches'][key][:, 0]
                 else:
                     reach_metadata[key] = this_reach['reaches'][key][0]
 
