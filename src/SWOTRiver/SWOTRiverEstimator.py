@@ -1430,9 +1430,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['grand_id'] = reach.metadata['grod_id']
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
-
-        # TODO get day of year and set ice flag
-        # reach_stats['ice_clim_f'] = reach.metadata['iceflag']
+        reach_stats['ice_clim_f'] = reach.metadata['iceflag']
 
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)

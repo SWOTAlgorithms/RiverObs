@@ -13,6 +13,8 @@ import pyproj
 
 from collections import OrderedDict as odict
 
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 from RiverObs.RiverReach import RiverReach
 from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 
@@ -123,7 +125,12 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1):
+        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1,
+        day_of_year=None):
+
+        if day_of_year is None:
+            LOGGER.warn(
+                "Day of year not specified, not extracting ice flag!")
 
         lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
         # check for wraps
@@ -248,7 +255,11 @@ class ReachExtractor(object):
                            'discharge_models']:
                     reach_metadata[key] = this_reach['reaches'][key]
                 elif key in ['iceflag']:
-                    reach_metadata[key] = this_reach['reaches'][key][:, 0]
+                    if day_of_year is not None:
+                        reach_metadata[key] = this_reach['reaches'][key][
+                            day_of_year, 0]
+                    else:
+                        reach_metadata[key] = MISSING_VALUE_INT4
                 else:
                     reach_metadata[key] = this_reach['reaches'][key][0]
 
