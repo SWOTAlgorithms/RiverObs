@@ -310,7 +310,7 @@ class L2HRRiverTile(Product):
 
                     for key in ['nobs', 'nobs_h', 'node_blocked']:
                         node_outputs[key] = np.insert(
-                            node_outputs[key], insert_idx, MISSING_VALUE_INT4)
+                            node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
@@ -1114,7 +1114,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     quantities are not computed.""")],
                 ])],
         ['n_good_pix',
-         odict([['dtype', 'i8'],
+         odict([['dtype', 'i4'],
                 ['long_name', 'number of pixels that have a valid WSE'],
                 ['units', 1],
                 ['valid_min', 0],
