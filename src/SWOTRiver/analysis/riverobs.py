@@ -7,6 +7,7 @@ Author(s): Dustin Lagoy, Brent Williams
 
 """
 import warnings
+import pdb
 
 import numpy as np
 import os.path
@@ -384,14 +385,19 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         'min_obs': 0,
         'max_dark': 1
     }
-
-    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>bounds['min_xtrk']),#),
-          np.logical_and((np.abs(truth.reaches['xtrk_dist'])<bounds['max_xtrk']),#),
-          np.logical_and((truth.reaches['width']>bounds['min_width']),#100),
-          np.logical_and((truth.reaches['area_total']>bounds['min_area']),
-          np.logical_and((truth.reaches['p_length']>=bounds['min_length']),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
-          np.logical_and(truth.reaches['obs_frac_n'] > bounds['min_obs'],
-              truth.reaches['dark_frac'] < bounds['max_dark']))))))
+    msk=[]
+    bad_reaches = [73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
+                   73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
+                   74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271]  # from Rui
+    if truth.reaches is not None:
+        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>bounds['min_xtrk']),#),
+              np.logical_and((np.abs(truth.reaches['xtrk_dist'])<bounds['max_xtrk']),#),
+              np.logical_and((truth.reaches['width']>bounds['min_width']),#100),
+              np.logical_and((truth.reaches['area_total']>bounds['min_area']),
+              np.logical_and(np.isin(truth.reaches['reach_id'], bad_reaches, invert=True),
+              np.logical_and((truth.reaches['p_length']>=bounds['min_length']),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
+              np.logical_and(truth.reaches['obs_frac_n'] > bounds['min_obs'],
+                  truth.reaches['dark_frac'] < bounds['max_dark'])))))))
     return msk, fit_error, bounds, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):

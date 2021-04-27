@@ -18,7 +18,9 @@ def mask_for_sci_req_local(metrics, truth, data, scene, scene_nodes=None, sig0=N
 
     # uncomment below line to find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
-    bad_reaches = []
+    bad_reaches = [73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
+                   73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
+                   74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271]  # from Rui
     fit_error = []  # SWOTRiver.analysis.riverobs.compute_reach_fit_error(truth, scene, scene_nodes)
     msk = np.logical_and((np.abs(truth.reaches['xtrk_dist']) > 10000),
           np.logical_and((np.abs(truth.reaches['xtrk_dist']) < 60000),
@@ -150,20 +152,19 @@ def make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df
         if var in node_df.columns:
             anno_text = "data median is " + str(node_df[var].quantile(0.5)) + \
                         "\ntruth median is " + str(node_df_truth[var].quantile(0.5))
-            x_min = min(node_df_comb[var])
-            x_max = node_df_comb[var].quantile(0.95)
+            node_df_subselect = node_df_comb[node_df_comb[var].abs() < node_df_comb[var].abs().quantile(0.95)]
             g = (
-                    ggplot(node_df_comb)
+                    ggplot(node_df_subselect)
                     + aes(x=var, fill='type')
                     + geom_histogram(alpha=0.5, bins=100)
                     + labs(title=title_str + " Node-level " + var)
                     + annotate("text", label=anno_text)
-                    + coord_cartesian(xlim=(x_min, x_max))
+                    #+ coord_cartesian(xlim=(x_min, x_max))
             )
             print(g)
         if var in reach_metrics_df.columns:
             g = (
-                    ggplot(reach_metrics_df[reach_metrics_df[var] < reach_metrics_df[var].quantile(0.90)])
+                    ggplot(reach_metrics_df[reach_metrics_df[var].abs() < reach_metrics_df[var].quantile(0.95)])
                     + aes(x=var, fill='scene')
                     + geom_histogram(alpha=0.5, bins=100)
                     + labs(title=title_str + " Reach-level " + var + " error by scene")
@@ -173,7 +174,7 @@ def make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df
             var_metrics_df = node_metrics_df[node_metrics_df[var].abs() > 0]
             # x_bound = var_metrics_df[var].abs().quantile(0.9)
             g = (
-                    ggplot(var_metrics_df[var_metrics_df[var].abs() < var_metrics_df[var].quantile(0.90)])
+                    ggplot(var_metrics_df[var_metrics_df[var].abs() < var_metrics_df[var].quantile(0.95)])
                     + aes(x=var, fill='scene')
                     + geom_histogram(alpha=0.5, bins=100)
                     + labs(title=title_str + " Node-level " + var + " error") # + coord_cartesian(xlim=(-1*x_bound, x_bound))
@@ -255,8 +256,8 @@ def plot_correlation_matrix(river_metrics):
                                 'node_area_d_e', 'reach_area_d_e', 'node_area_t_e', 'reach_area_t_e',
                                 'node_dist_node_data', 'node_dist_reach_data', 'node_lat_e', 'node_lon_e'
                                  ]].sort_values(by=['reach_wse_e'], ascending=False).transpose()
-    h = sns.heatmap(error_matrix, cmap=cmap, xticklabels=True, yticklabels=True, square=True)
-    h.set_yticklabels(h.get_yticklabels(), fontsize=12)
+    h = sns.heatmap(error_matrix, cmap=cmap, xticklabels=True, yticklabels=True)
+    h.set_yticklabels(h.get_yticklabels(), fontsize=11)
     plt.show()
 
     return river_matrix
@@ -264,6 +265,7 @@ def plot_correlation_matrix(river_metrics):
 
 def plot_xy(dataframe, var1, var2, title_str):
     print('Plotting x y', var1, var2)
+    # TO DO: explore area errors vs wse_u - wse_r_u (or stdev)
     try:
         g = (
                 ggplot(dataframe)
