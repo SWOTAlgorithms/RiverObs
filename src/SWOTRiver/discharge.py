@@ -12,11 +12,11 @@ def compute(reach, reach_height, reach_width, reach_slope):
         reach_height, reach_width, reach.metadata['area_fits'])
 
     d_x_area = area_fit_outputs[0]
-    if d_x_area < -10000000:
+    if d_x_area < -10000000 or np.ma.is_masked(d_x_area):
         d_x_area = MISSING_VALUE_FLT
 
     d_x_area_u = area_fit_outputs[3]
-    if d_x_area_u < 0:
+    if d_x_area_u < 0 or np.ma.is_masked(d_x_area_u):
         d_x_area_u = MISSING_VALUE_FLT
 
     outputs = {'d_x_area': d_x_area, 'd_x_area_u': d_x_area_u}
