@@ -1321,7 +1321,7 @@ class SWOTRiverEstimator(SWOTL2):
         ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
 
-        mask = np.logical_and(hh > -500, hh < 9000)
+        mask = np.logical_and(hh > -500, hh < 8000)
 
         reach_stats['n_good_nod'] = mask.sum()
         reach_stats['frac_obs'] = (
@@ -1367,7 +1367,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # do fit on geoid heights
         gg = river_reach.geoid_hght
-        mask = np.logical_and(gg > -500, gg < 9000)
+        mask = np.logical_and(gg > -500, gg < 8000)
         if mask.sum() > 1:
             geoid_fit = statsmodels.api.OLS(gg[mask], SS[mask]).fit()
 
@@ -1573,11 +1573,11 @@ class SWOTRiverEstimator(SWOTL2):
 
         # if upstream PRD reach is useable
         if prd_is_good[1]:
-            mask = np.logical_and(adj_rch[1].wse > -420, adj_rch[1].wse < 8000)
+            mask = np.logical_and(adj_rch[1].wse > -500, adj_rch[1].wse < 8000)
             distances = np.concatenate([adj_rch[1].node_ss[mask], distances])
             heights = np.concatenate([adj_rch[1].wse[mask], heights])
 
-        mask = np.logical_and(river_reach.wse > -420, river_reach.wse < 8000)
+        mask = np.logical_and(river_reach.wse > -500, river_reach.wse < 8000)
         distances = np.concatenate([
             river_reach.node_ss[mask], distances+prior_s[-1]])
         heights = np.concatenate([river_reach.wse[mask], heights])
@@ -1587,7 +1587,7 @@ class SWOTRiverEstimator(SWOTL2):
         if prd_is_good[-1]:
             downstream_prior_s = adj_rch[-1].prior_node_ss
             mask = np.logical_and(
-                adj_rch[-1].wse > -420, adj_rch[-1].wse < 8000)
+                adj_rch[-1].wse > -500, adj_rch[-1].wse < 8000)
             first_node = first_node + len(adj_rch[-1].wse[mask])
             distances = np.concatenate([
                 adj_rch[-1].node_ss[mask], distances+downstream_prior_s[-1]])
