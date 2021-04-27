@@ -417,6 +417,8 @@ class RiverObs:
         # cast to arrays to make life easier later
         for key in outputs:
             outputs[key] = np.asarray(outputs[key])
+            mask = np.isnan(outputs[key])
+            outputs[key][mask] = MISSING_VALUE_FLT
         return outputs
 
     def trim_nodes(self, fraction, mode='both', sort_variable='n'):

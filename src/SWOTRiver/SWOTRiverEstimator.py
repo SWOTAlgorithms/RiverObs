@@ -1573,31 +1573,37 @@ class SWOTRiverEstimator(SWOTL2):
 
         # if upstream PRD reach is useable
         if prd_is_good[1]:
-            distances = np.concatenate([adj_rch[1].node_ss, distances])
-            heights = np.concatenate([adj_rch[1].wse, heights])
+            mask = np.logical_and(adj_rch[1].wse > -420, adj_rch[1].wse < 8000)
+            distances = np.concatenate([adj_rch[1].node_ss[mask], distances])
+            heights = np.concatenate([adj_rch[1].wse[mask], heights])
 
-        distances = np.concatenate([river_reach.node_ss, distances+prior_s[-1]])
-        heights = np.concatenate([river_reach.wse, heights])
+        mask = np.logical_and(river_reach.wse > -420, river_reach.wse < 8000)
+        distances = np.concatenate([
+            river_reach.node_ss[mask], distances+prior_s[-1]])
+        heights = np.concatenate([river_reach.wse[mask], heights])
+        this_len = len(river_reach.wse[mask])
 
         # if downstream PRD reach is useable
         if prd_is_good[-1]:
             downstream_prior_s = adj_rch[-1].prior_node_ss
-            first_node = first_node + len(adj_rch[-1].wse)
+            mask = np.logical_and(
+                adj_rch[-1].wse > -420, adj_rch[-1].wse < 8000)
+            first_node = first_node + len(adj_rch[-1].wse[mask])
             distances = np.concatenate([
-                adj_rch[-1].node_ss, distances+downstream_prior_s[-1]])
-            heights = np.concatenate([adj_rch[-1].wse, heights])
+                adj_rch[-1].node_ss[mask], distances+downstream_prior_s[-1]])
+            heights = np.concatenate([adj_rch[-1].wse[mask], heights])
 
-        last_node = first_node + len(river_reach.wse) - 1
-        this_reach_len = distances[last_node] - distances[first_node]
-
-        # window size and sigma for Gaussian averaging
-        window_size = np.min([max_window_size, this_reach_len])
-        sigma = np.max([
-            min_sigma, window_size/window_size_sigma_ratio])
-
-        if len(heights) < 2 or last_node == first_node:
+        if this_len < 2:
             enhanced_slope = MISSING_VALUE_FLT
         else:
+            last_node = first_node + this_len - 1
+            this_reach_len = distances[last_node] - distances[first_node]
+
+            # window size and sigma for Gaussian averaging
+            window_size = np.min([max_window_size, this_reach_len])
+            sigma = np.max([
+                min_sigma, window_size/window_size_sigma_ratio])
+
             # smooth h_n_ave, and get slope
             slope = np.polyfit(distances, heights, 1)[0]
             heights_detrend = heights - slope*distances
@@ -1608,6 +1614,8 @@ class SWOTRiverEstimator(SWOTL2):
                 heights_smooth[last_node] - heights_smooth[first_node]
                 ) / this_reach_len
 
+        if np.isnan(enhanced_slope):
+            enhanced_slope = MISSING_VALUE_FLT
         return enhanced_slope
 
     @staticmethod
