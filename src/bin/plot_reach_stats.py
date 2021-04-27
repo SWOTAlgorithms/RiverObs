@@ -23,6 +23,9 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     only keep reaches that all the pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
+    # bad_reaches = np.array([73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
+    #                73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
+    #                74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271])  # from Rui
     main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire
@@ -137,6 +140,17 @@ def main():
     sig0 = None
 
     bad_scenes = [] # e.g. ['3356',...] these scenes will be excluded from analysis
+    # bad_scenes = ['1782', '1793', '1830', '1847',
+    #               '2367', '2447', '2800', '2801', '2819', '298', '3007', '3024', '316',
+    #               '3356', '3376', '3379', '3382', '3396',
+    #               '3413', '3421', '3424', '3442', '3455', '3487', '3574', '3575', '3579', '3586', '3596', '3607',
+    #               '3769', '3770', '3781', '3783', '3787', '3815',  '3821',
+    #               '730', 'platte_0036_0012', 'platte_0120_0290',
+    #               'sacramento_0221_0264', 'sacramento_0314_0264', 'sacramento_0220_0249',
+    #               'tanana_0434_0002', 'tanana_0156_0001']
+    # 2543, 3454, 3583, 3824, 3836,
+    # subset [2543 3454 3583 3824 3836]
+    # bad_scenes = [316, 730, 1782, 3376]
     print("args.basedir: ", args.basedir)
     if args.basedir is not None:
         if args.slc_basename is None or args.pixc_basename is None:
@@ -192,6 +206,11 @@ def main():
         metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
             proc_rivertile, truth_rivertile)
 
+    # get pass/fail and mask for science requirements
+    passfail = SWOTRiver.analysis.riverobs.get_passfail()
+    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+        metrics, truth, data, scene, scene_nodes, sig0=sig0)
+
     # generate output filenames for metric tables and images
     if args.print:
         filenames = ['reach-area.png', 'reach-wse.png',
@@ -210,11 +229,7 @@ def main():
                 os.makedirs(args.outdir)
     else:
         filenames = [None, None, None, None]
-
-    # get pass/fail and mask for science requirements
-    passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene, scene_nodes, sig0=sig0)
+        table_fname = 'temp'
 
     # printing all data to table
     SWOTRiver.analysis.riverobs.print_metrics(
@@ -312,8 +327,19 @@ def main():
     SWOTRiver.analysis.riverobs.HeightVsAreaPlot(
         truth.reaches, data.reaches, metrics, args.title, filenames[3], msk=msk)
     if not args.print:
-        print('show')
+        print('showing stats...')
+        f = open('temp.txt', 'r')
+        file_contents = f.read()
+        print(file_contents)
+        f = open('temp_errors.txt', 'r')
+        file_contents = f.read()
+        print(file_contents)
         plt.show()
+        os.remove('temp.txt')
+        os.remove('temp_all.txt')
+        os.remove('temp_errors.txt')
+        os.remove('temp_errors_all.txt')
+
 
 
 if __name__ == '__main__':
