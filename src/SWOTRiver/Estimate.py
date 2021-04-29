@@ -39,6 +39,18 @@ class L2PixcToRiverTile(object):
             with netCDF4.Dataset(self.pixc_file) as ifp:
                 self.is_new_pixc = 'pixel_cloud' in ifp.groups
 
+        # compute day of year
+        try:
+            with netCDF4.Dataset(self.pixc_file) as ifp:
+                t_str_start = ifp.time_coverage_start
+            datetime_start = datetime.datetime.strptime(
+                t_str_start.split(' ')[0], '%Y-%m-%d')
+            datetime_ = datetime.datetime.strptime(
+                t_str_start.split('-')[0], '%Y')
+            self.day_of_year = (datetime_start-datetime_).days+1
+        except AttributeError:
+            self.day_of_year = None
+
     def load_config(self, config):
         """Copies config object into self's storage from main"""
         LOGGER.info('load_config')
@@ -130,7 +142,8 @@ class L2PixcToRiverTile(object):
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
 
-        river_estimator.get_reaches(self.config['reach_db_path'])
+        river_estimator.get_reaches(
+            self.config['reach_db_path'], day_of_year=self.day_of_year)
 
         self.reach_collection = river_estimator.process_reaches(
             minobs=self.config['minobs'],
