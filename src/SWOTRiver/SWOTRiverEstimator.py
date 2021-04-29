@@ -635,7 +635,8 @@ class SWOTRiverEstimator(SWOTL2):
                         river_reach, river_reach_collection, ireach,
                         max_window_size=max_window_size,
                         min_sigma=min_sigma,
-                        window_size_sigma_ratio=window_size_sigma_ratio)
+                        window_size_sigma_ratio=window_size_sigma_ratio,
+                        min_fit_points=min_fit_points)
                 else:
                     enhanced_slope = MISSING_VALUE_FLT
 
@@ -1327,7 +1328,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['frac_obs'] = (
             mask.sum() / len(self.river_obs.centerline.s))
 
-        if mask.sum() > 1:
+        if mask.sum() >= min_fit_points:
             if self.slope_method == 'first_to_last':
                 reach_stats['slope'] = (
                     hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
@@ -1368,7 +1369,7 @@ class SWOTRiverEstimator(SWOTL2):
         # do fit on geoid heights
         gg = river_reach.geoid_hght
         mask = np.logical_and(gg > -500, gg < 8000)
-        if mask.sum() > 1:
+        if mask.sum() >= min_fit_points:
             geoid_fit = statsmodels.api.OLS(gg[mask], SS[mask]).fit()
 
             # fit slope is meters per meter
@@ -1498,7 +1499,7 @@ class SWOTRiverEstimator(SWOTL2):
 
     def compute_enhanced_slope(
         self, river_reach, river_reach_collection, ireach,
-        max_window_size, min_sigma, window_size_sigma_ratio):
+        max_window_size, min_sigma, window_size_sigma_ratio, min_fit_points=3):
         """
         This function calculate enhanced reach slope from smoothed
         node height using Gaussian moving average.
@@ -1593,7 +1594,7 @@ class SWOTRiverEstimator(SWOTL2):
                 adj_rch[-1].node_ss[mask], distances+downstream_prior_s[-1]])
             heights = np.concatenate([adj_rch[-1].wse[mask], heights])
 
-        if this_len < 2:
+        if this_len < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
         else:
             last_node = first_node + this_len - 1

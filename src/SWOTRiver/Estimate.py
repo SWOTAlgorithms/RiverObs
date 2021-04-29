@@ -130,18 +130,11 @@ class L2PixcToRiverTile(object):
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
 
-        river_estimator.get_reaches(
-            self.config['reach_db_path'],
-            clip_buffer=self.config['clip_buffer'])
-
-        if self.config['use_width_db']:
-            river_estimator.get_width_db(self.config['width_db_file'])
+        river_estimator.get_reaches(self.config['reach_db_path'])
 
         self.reach_collection = river_estimator.process_reaches(
-            scalar_max_width=self.config['scalar_max_width'],
             minobs=self.config['minobs'],
             min_fit_points=self.config['min_fit_points'],
-            use_width_db=self.config['use_width_db'],
             ds=self.config['ds'],
             refine_centerline=self.config['refine_centerline'],
             smooth=self.config['smooth'],
