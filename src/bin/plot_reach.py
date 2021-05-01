@@ -105,8 +105,10 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
     axis.errorbar(node_p_dist, wse, wse_r_u, fmt='o', markersize=2, label='node wse', zorder=0)
     axis.plot(node_p_dist_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
     if outclip:
-        axis.errorbar(node_p_dist, data_df['wse'], data_df['wse_r_u'], fmt='gx', markersize=2, label='outclip wse', zorder=1)
+        axis.errorbar(node_p_dist, data_df['wse'], data_df['wse_r_u'], fmt='gx',
+                      markersize=2, label='outclip wse', zorder=1)
     axis2 = axis.twiny()
+    node_id = node_id - node_id[0] + 11  # remove reach_id prefix from node_id for readability
     axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
     axis2.cla()
     axis2.xaxis.get_offset_text().set_visible(False)
@@ -137,39 +139,36 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
         print('average truth node spacing is', node_spacing_truth)
         data_fit = reach_wse - reach_slope/10 * (mid_node-node_id) * node_spacing
         truth_fit = truth_reach_wse - truth_slope/10 * (mid_node_truth-node_id_truth) * node_spacing_truth
-        axis.plot(node_p_dist_truth, truth_fit, '--', markersize=10, color='r', label='Truth fit')
-        axis.plot(node_p_dist, data_fit, '--', markersize=10, color='b', label='RiverObs fit')
+        axis.plot(node_p_dist_truth, truth_fit, '--', markersize=10, color='r', label='truth fit')
+        axis.plot(node_p_dist, data_fit, '--', markersize=10, color='b', label='obs fit')
+        axis.plot(np.mean(node_p_dist), reach_wse, '*', markersize=5, color='g', label='obs wse', zorder=1)
+        axis.plot(np.mean(node_p_dist), truth_reach_wse, '*', markersize=5, label='truth wse', zorder=2)
+        axis.fill_between(node_p_dist, wse + 3*wse_r_u, wse - 3*wse_r_u, facecolor='gray', alpha=0.3, interpolate=True)
         if outclip:
             outclip_fit = outclip_height - outclip_slope / 10 * (mid_node - node_id) * node_spacing
             # axis.plot(node_p_dist, outclip_fit, '--', markersize=10, color='g', label='Outlier fit')
 
     # Add summary metrics in text
     left, width = .05, .5
-    bottom, height = .02, .85
+    bottom, height = .02, .82
     top = bottom + height
-    #quad_coeff, lin_coeff = get_quadratic_fit(node_id_truth, truth_wse)
-    try:  # fix this later, only important for slope assessments
-        r_sq = str(get_r_squared(node_id_truth, truth_wse))
-    except:
-        print('couldn\'t get r squared')
-        r_sq = '0'
-    #lake_proximity = str(get_lake_proximity(reach_id, reach_lat, reach_long))
+
     if errors:
-        str1 = 'Slope Error=' + str(round(errors[0], 2)) + 'cm/km\n' #+ 'linear r-sq=' + r_sq
+        str1 = 'slope_e=' + str(round(errors[0], 2)) + 'cm/km\n'
         axis.text(left + 0.1, top, str1,
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
                   color=get_passfail_color(errors[0], 'slp e (cm/km)'),
                   transform=axis.transAxes)
-        str2 = 'wse error=' + str(round(errors[1], 2)) + ' cm\n'
+        str2 = 'wse_e=' + str(round(errors[1], 2)) + ' cm\n'
         axis.text(left + 0.1, top - 0.1, str2,
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
                   color=get_passfail_color(errors[1], 'wse e (cm)'),
                   transform=axis.transAxes)
-    summary_string = 'Reach Width= ' + reach_width + ' m\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
+    summary_string = 'width= ' + reach_width + ' m\n' + 'X-track dist =' + reach_xtrk + ' km'
     # 'Lake proximity= ' + lake_proximity + ' m\n' +
     # 'Flow angle= \n ' + \
     # + 'Truth quad coeff=' + str(
@@ -184,9 +183,9 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
     axis.grid()
     axis.set_xlabel('dist from outlet (m)')
     axis.set_ylabel('wse (m)')
-    leg = axis.legend()
-    if leg:
-        leg.set_draggable(1)
+    leg = axis.legend(loc='lower right', fontsize=5, ncol=2)
+    leg.set_draggable(1)
+
     if title is not None:
         axis.set_title(title)
 
@@ -241,7 +240,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     axis.grid()
     axis.set_xlabel('node_id')
     axis.set_ylabel('area (m^2)')
-    leg = axis.legend(['area detected', 'area total', 'truth'])
+    leg = axis.legend(['area detected', 'area total', 'truth'], fontsize=5)
     leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
