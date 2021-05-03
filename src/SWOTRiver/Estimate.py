@@ -39,6 +39,18 @@ class L2PixcToRiverTile(object):
             with netCDF4.Dataset(self.pixc_file) as ifp:
                 self.is_new_pixc = 'pixel_cloud' in ifp.groups
 
+        # compute day of year
+        try:
+            with netCDF4.Dataset(self.pixc_file) as ifp:
+                t_str_start = ifp.time_coverage_start
+            datetime_start = datetime.datetime.strptime(
+                t_str_start.split(' ')[0], '%Y-%m-%d')
+            datetime_ = datetime.datetime.strptime(
+                t_str_start.split('-')[0], '%Y')
+            self.day_of_year = (datetime_start-datetime_).days+1
+        except AttributeError:
+            self.day_of_year = None
+
     def load_config(self, config):
         """Copies config object into self's storage from main"""
         LOGGER.info('load_config')
@@ -101,6 +113,9 @@ class L2PixcToRiverTile(object):
         if 'slope_method' not in self.config:
             self.config['slope_method'] = 'weighted'
 
+        if 'use_ext_dist_coef' not in self.config:
+            self.config['use_ext_dist_coef'] = True
+
         # key/value arguments for constructing SWOTRiverEstimator
         kwargs = {
             'bounding_box': self.compute_bounding_box(),
@@ -121,23 +136,18 @@ class L2PixcToRiverTile(object):
             'height_agg_method': self.config['height_agg_method'],
             'area_agg_method': self.config['area_agg_method'],
             'preseg_dilation_iter': self.config['preseg_dilation_iter'],
-            'slope_method': self.config['slope_method']}
+            'slope_method': self.config['slope_method'],
+            'use_ext_dist_coef': self.config['use_ext_dist_coef']}
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
 
         river_estimator.get_reaches(
-            self.config['reach_db_path'],
-            clip_buffer=self.config['clip_buffer'])
-
-        if self.config['use_width_db']:
-            river_estimator.get_width_db(self.config['width_db_file'])
+            self.config['reach_db_path'], day_of_year=self.day_of_year)
 
         self.reach_collection = river_estimator.process_reaches(
-            scalar_max_width=self.config['scalar_max_width'],
             minobs=self.config['minobs'],
             min_fit_points=self.config['min_fit_points'],
-            use_width_db=self.config['use_width_db'],
             ds=self.config['ds'],
             refine_centerline=self.config['refine_centerline'],
             smooth=self.config['smooth'],
@@ -297,23 +307,23 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
-        pixcvec.update_from_rivertile(self.rivertile_product)
-        pixcvec.to_ncfile(self.index_file)
-
         history_string = "Created {}".format(
             datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
+
+        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec.update_from_rivertile(self.rivertile_product)
+        pixcvec.history = history_string
+        pixcvec.to_ncfile(self.index_file)
+
         self.rivertile_product.nodes.title = \
             "Level 2 KaRIn High Rate River Tile Node Data Product"
         self.rivertile_product.nodes.history = history_string
-        self.rivertile_product.nodes.xref_input_l2_hr_pixc_files = \
-            self.pixc_file
+        self.rivertile_product.nodes.xref_l2_hr_pixc_files = self.pixc_file
 
         self.rivertile_product.reaches.title = \
             "Level 2 KaRIn High Rate River Tile Reach Data Product"
         self.rivertile_product.reaches.history = history_string
-        self.rivertile_product.reaches.xref_input_l2_hr_pixc_files = \
-            self.pixc_file
+        self.rivertile_product.reaches.xref_l2_hr_pixc_files = self.pixc_file
 
         # Fixup some other things
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:

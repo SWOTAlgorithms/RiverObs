@@ -6,7 +6,7 @@ Useage:
 swot_pixc2rivertile.py l2pixc rivertile.nc pixcvector.nc config.rdf
 
 Optional args:
---shpbasedir dirname    -- writes shapefiles in dirname/reaches dirname/nodes
+--shpbas nodebase reachbase -- writes shapefiles in nodebase.shp reachbase.shp
 --sensor-file sensor.nc -- gets sensor info from sensor.nc
 --gdem-file gdem.nc     -- will make a fake pixel cloud from a gdem and run
                            riverobs on that instead.
@@ -72,7 +72,7 @@ def main():
     parser.add_argument('out_riverobs_file', help='Output NetCDF file')
     parser.add_argument('out_pixc_vector_file', help='Output PIXC vector file')
     parser.add_argument('rdf_file', help='Static config params')
-    parser.add_argument('--shpbasedir', type=str, default=None)
+    parser.add_argument('--shpbase', type=str, nargs=2, default=[None, None])
     parser.add_argument(
         '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
@@ -125,13 +125,11 @@ def main():
     l2pixc_to_rivertile.build_products()
 
     l2pixc_to_rivertile.rivertile_product.to_ncfile(args.out_riverobs_file)
-    if args.shpbasedir is not None:
-        if not os.path.isdir(args.shpbasedir):
-            os.mkdir(args.shpbasedir)
+    if args.shpbase[0] is not None:
         l2pixc_to_rivertile.rivertile_product.nodes.write_shapes(
-            os.path.join(args.shpbasedir, 'nodes.shp'))
+            args.shpbase[0]+'.shp')
         l2pixc_to_rivertile.rivertile_product.reaches.write_shapes(
-            os.path.join(args.shpbasedir, 'reaches.shp'))
+            args.shpbase[1]+'.shp')
 
     if args.gdem_file is not None:
         os.remove(pixc_file)

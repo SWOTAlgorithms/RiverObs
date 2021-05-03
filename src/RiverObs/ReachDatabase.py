@@ -13,6 +13,8 @@ import pyproj
 
 from collections import OrderedDict as odict
 
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 from RiverObs.RiverReach import RiverReach
 from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 
@@ -123,7 +125,12 @@ class ReachExtractor(object):
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
     def __init__(
-        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1):
+        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1,
+        day_of_year=None):
+
+        if day_of_year is None:
+            LOGGER.warn(
+                "Day of year not specified, not extracting ice flag!")
 
         lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
         # check for wraps
@@ -215,13 +222,13 @@ class ReachExtractor(object):
                         # skip this one
                         continue
 
-                    lons = np.concatenate([
+                    lons = np.ma.concatenate([
                         lons[:cut_idx], [try_lon], lons[cut_idx:]])
-                    lats = np.concatenate([
+                    lats = np.ma.concatenate([
                         lats[:cut_idx], [try_lat], lats[cut_idx:]])
-                    xx = np.concatenate([
+                    xx = np.ma.concatenate([
                         xx[:cut_idx], [try_xx], xx[cut_idx:]])
-                    yy = np.concatenate([
+                    yy = np.ma.concatenate([
                         yy[:cut_idx], [try_yy], yy[cut_idx:]])
 
                 this_reach['centerlines']['x'] = lons
@@ -241,12 +248,18 @@ class ReachExtractor(object):
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
                 'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
                 'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
-                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag']
+                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag', 'iceflag']
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
                            'discharge_models']:
                     reach_metadata[key] = this_reach['reaches'][key]
+                elif key in ['iceflag']:
+                    if day_of_year is not None:
+                        reach_metadata[key] = this_reach['reaches'][key][
+                            day_of_year, 0]
+                    else:
+                        reach_metadata[key] = MISSING_VALUE_INT4
                 else:
                     reach_metadata[key] = this_reach['reaches'][key][0]
 
@@ -374,6 +387,7 @@ class ReachDatabase(Product):
                         klass = this_db
                     else:
                         klass = klass + this_db
+
         return klass
 
 class ReachDatabaseNodes(Product):
@@ -443,9 +457,9 @@ class ReachDatabaseNodes(Product):
                 'x', 'y', 'node_id', 'reach_id', 'node_length', 'wse',
                 'wse_var', 'width', 'width_var', 'n_chan_max', 'n_chan_mod',
                 'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
-        klass.cl_ids = np.concatenate([self.cl_ids, other.cl_ids], 1)
+        klass.cl_ids = np.ma.concatenate([self.cl_ids, other.cl_ids], 1)
         return klass
 
 class ReachDatabaseReaches(Product):
@@ -544,11 +558,11 @@ class ReachDatabaseReaches(Product):
                     'reach_length', 'n_nodes', 'wse', 'wse_var', 'width',
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
                     'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
         for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn', 'iceflag']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
 
         klass.area_fits = self.area_fits + other.area_fits
@@ -689,7 +703,7 @@ class ReachDatabaseReachMetroMan(Product):
         """Adds other to self"""
         klass = ReachDatabaseReachMetroMan()
         for dset in self.VARIABLES.keys():
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
@@ -725,7 +739,7 @@ class ReachDatabaseReachBAM(Product):
         """Adds other to self"""
         klass = ReachDatabaseReachBAM()
         for dset in self.VARIABLES.keys():
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
@@ -761,7 +775,7 @@ class ReachDatabaseReachHiVDI(Product):
         """Adds other to self"""
         klass = ReachDatabaseReachHiVDI()
         for dset in self.VARIABLES.keys():
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
@@ -797,7 +811,7 @@ class ReachDatabaseReachMOMMA(Product):
         """Adds other to self"""
         klass = ReachDatabaseReachMOMMA()
         for dset in self.VARIABLES.keys():
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
@@ -832,7 +846,7 @@ class ReachDatabaseReachSADS(Product):
         """Adds other to self"""
         klass = ReachDatabaseReachSADS()
         for dset in self.VARIABLES.keys():
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
 
@@ -869,6 +883,10 @@ class ReachDatabaseReachAreaFits(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_FIT]])],
         ])
 
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
+
     def subset(self, mask):
         """Subsets ReachDatabaseReachAreaFits by reach_ids"""
         klass = ReachDatabaseReachAreaFits()
@@ -891,13 +909,13 @@ class ReachDatabaseReachAreaFits(Product):
         klass = ReachDatabaseReachAreaFits()
         for dset in ['h_variance', 'w_variance', 'hw_covariance',
                      'med_flow_area', 'h_err_stdev', 'w_err_stdev', 'h_w_nobs']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         for dset in ['h_break', 'w_break']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
         for dset in ['fit_coeffs',]:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)], 2))
         return klass
 
@@ -951,11 +969,11 @@ class ReachDatabaseCenterlines(Product):
     def __add__(self, other):
         klass = ReachDatabaseCenterlines()
         for dset in ['x', 'y', 'cl_id']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
         for dset in ['reach_id', 'node_id']:
-            setattr(klass, dset, np.concatenate([
+            setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
         return klass
 

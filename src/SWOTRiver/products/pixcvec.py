@@ -15,6 +15,8 @@ from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
+from SWOTRiver.products.rivertile import RIVER_PRODUCT_ATTRIBUTES
+
 class L2PIXCVector(Product):
     UID = "l2_hr_pixcvector"
 
@@ -132,23 +134,20 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the last
                  range line and outer part of the swath""")}],
-        ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
-            'docstr': textjoin("""
-                List of water mask pixel cloud files used to generate data in
-                product.""")}],
-        ['xref_static_river_db_file', {'dtype': 'str',
-            'docstr': textjoin("""
-                Name of static river a priori database file used to generate
-                data in product.""")}],
-        ['xref_static_river_db_file', {'dtype': 'str',
-            'docstr': textjoin("""
-                Name of static river a priori database file used to generate
-                data in product.""")}],
         ['ellipsoid_semi_major_axis', {'dtype': 'f8',
             'docstr': 'Semi-major axis of reference ellipsoid in meters.'}],
         ['ellipsoid_flattening', {'dtype': 'f8',
             'docstr': 'Flattening of reference ellipsoid'}],
+        ['xref_l2_hr_pixc_files',
+         RIVER_PRODUCT_ATTRIBUTES['xref_l2_hr_pixc_files']],
+        ['xref_param_l2_hr_rivertile_files',
+         RIVER_PRODUCT_ATTRIBUTES['xref_param_l2_hr_rivertile_files']],
+        ['xref_prior_river_db_files',
+         RIVER_PRODUCT_ATTRIBUTES['xref_prior_river_db_files']],
+        ['xref_reforbittrack_files',
+         RIVER_PRODUCT_ATTRIBUTES['xref_reforbittrack_files']],
         ])
+
 
     DIMENSIONS = odict([['points', 0]])
     VARIABLES = odict([
@@ -332,12 +331,16 @@ class L2PIXCVector(Product):
 
         ATTRS_2COPY_FROM_PIXC = [
             'cycle_number', 'pass_number', 'tile_number', 'swath_side',
-            'tile_name', 'start_time', 'stop_time', 'inner_first_latitude',
-            'inner_first_longitude', 'inner_last_latitude',
-            'outer_last_longitude', 'outer_first_latitude',
-            'outer_first_longitude', 'outer_last_latitude',
+            'tile_name', 'start_time', 'stop_time',
+            'inner_first_latitude', 'inner_first_longitude',
+            'inner_last_latitude', 'inner_last_longitude',
+            'outer_first_latitude', 'outer_first_longitude',
+            'outer_last_latitude', 'outer_last_longitude',
             'ellipsoid_semi_major_axis', 'ellipsoid_flattening',
-            'near_range', 'nominal_slant_range_spacing']
+            'near_range', 'nominal_slant_range_spacing',
+            'time_coverage_start', 'time_coverage_end',
+            'geospatial_lon_min', 'geospatial_lon_max',
+            'geospatial_lat_min', 'geospatial_lat_max']
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

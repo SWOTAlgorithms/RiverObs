@@ -441,7 +441,8 @@ class Product(object):
                     continue
 
                 if dset in ['reach_id', 'node_id', 'rch_id_dn',
-                            'rch_id_up', 'time_str']:
+                            'rch_id_up', 'time_str', 't_str_avg', 't_str_min',
+                            't_str_max', 't_str_med']:
                     attrs['type'] = 'text'
                     if dset in ['reach_id', 'node_id']:
                         attrs.pop("_FillValue", None)
@@ -476,9 +477,17 @@ class Product(object):
 
             # XML shape value
             shape_name = "_".join(attrs['dimensions'])+"_shape"
+
+            dims = attrs['dimensions']
+            if prefix is not None:
+                shape_name = "{}_{}".format(prefix, shape_name)
+                dims = odict(
+                    ('/{}/{}'.format(prefix, key), value) for key, value in
+                    attrs['dimensions'].items())
+
             if shape_name not in shape_names:
                 shape_names.append(shape_name)
-                shape_dims[shape_name] = attrs['dimensions']
+                shape_dims[shape_name] = dims
 
             # Don't write out dimensions
             attrs.pop('dimensions', None)

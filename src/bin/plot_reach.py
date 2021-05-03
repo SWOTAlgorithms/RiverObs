@@ -14,11 +14,13 @@ import math
 import warnings
 import argparse
 import numpy as np
+import pandas as pd
 import matplotlib.axes
 import matplotlib.pyplot as plt
 import SWOTWater.products.product
 import SWOTRiver.analysis.riverobs
 import pdb
+import statsmodels.api as sm
 
 from netCDF4 import Dataset
 
@@ -43,16 +45,22 @@ cmap_custom = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
             'cmyc', cmap_custom)
 
-def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, style='.'):
+def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True, title=None, style='.'):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
     reach_id = int(reach_id)
+    data_df = pd.DataFrame.from_dict(data['nodes'].variables)
+    truth_df = pd.DataFrame.from_dict(truth['nodes'].variables)
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id, np.logical_not(data.nodes['wse'].mask))
     node_id = data.nodes['node_id'][node_i]
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id, np.logical_not(truth.nodes['wse'].mask))
     node_id_truth = truth.nodes['node_id'][node_i_truth]
+    data_df = data_df[node_i]
+    truth_df = truth_df[node_i_truth]
+    data_df.set_index('node_id')
+    truth_df.set_index('node_id')
 
-    node_dist = data.nodes['p_dist_out'][node_i]
-    node_dist_truth = truth.nodes['p_dist_out'][node_i_truth]
+    node_p_dist = data.nodes['p_dist_out'][node_i]
+    node_p_dist_truth = truth.nodes['p_dist_out'][node_i_truth]
 
     wse = data.nodes['wse'][node_i]
     truth_wse = truth.nodes['wse'][node_i_truth]
@@ -61,8 +69,6 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
     # wse_u = data.nodes['wse_u'][node_i] # not currently populated in rivertiles
     wse_r_u = data.nodes['wse_r_u'][node_i]
     truth_wse_r_u = truth.nodes['wse_r_u'][node_i_truth]
-    node_dist = data.nodes['p_dist_out'][node_i]
-    truth_node_dist = truth.nodes['p_dist_out'][node_i_truth]
 
     reach_i = data.reaches['reach_id'] == reach_id
     reach_i_truth = truth.reaches['reach_id'] == reach_id
@@ -80,64 +86,89 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
     reach_wse_r_u = data.reaches['wse_r_u'][reach_i]
     reach_wse_t_r_u = truth.reaches['wse_r_u'][reach_i]
 
+    if outclip:
+        # get data again but remove outliers in nominal processing
+        data_df.loc[abs(data_df['wse'] - truth_df['wse']) > 0.1, 'wse_r_u'] = data_df['wse_r_u'].mean()
+        data_df.loc[abs(data_df['wse'] - truth_df['wse']) > 0.1, 'wse'] = truth_df['wse']
 
-    axis.errorbar(node_dist, wse, wse_r_u, fmt='o', markersize=4, label='pixc', zorder=0)
-    axis.plot(node_dist_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
+        # TO DO: fix intercept
+        data_df['ww'] = 1/(data_df['wse_r_u'] ** 2)  # define the weights
+        # SS = sm.add_constant(node_p_dist)
+        # SS = np.c_[node_p_dist, np.ones(len(node_p_dist), dtype=node_p_dist.dtype)]
+        data_df['ss'] = node_p_dist
+        data_df['intercept'] = 1
+        new_fit = sm.OLS(data_df['wse'], data_df[['ss', 'intercept']]).fit()
+        # fit slope is meters per meter
+        outclip_height = new_fit.params[0]
+        outclip_slope = new_fit.params[1]
+
+    axis.errorbar(node_p_dist, wse, wse_r_u, fmt='o', markersize=2, label='node wse', zorder=0)
+    axis.plot(node_p_dist_truth, truth_wse, 'kx', markersize=2, label='truth', zorder=10)
+    if outclip:
+        axis.errorbar(node_p_dist, data_df['wse'], data_df['wse_r_u'], fmt='gx',
+                      markersize=2, label='outclip wse', zorder=1)
     axis2 = axis.twiny()
+    node_id = node_id - node_id[0] + 11  # remove reach_id prefix from node_id for readability
     axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
     axis2.cla()
     axis2.xaxis.get_offset_text().set_visible(False)
     axis2.set_xlabel('node id')
 
-    print('reach wse is', reach_wse,
-          'truth wse is', truth_reach_wse,
-          'reach slope is', reach_slope,
-          'truth slope is', truth_slope)
+    print('reach wse is', reach_wse, '\n',
+          'truth wse is', truth_reach_wse, '\n',
+          'reach slope is', reach_slope, '\n',
+          'truth slope is', truth_slope, '\n')
+    if outclip:
+        print('outclip wse is', outclip_height, '\n',
+              'outclip slope is', outclip_slope, '\n')
     print('Difference of node-level obs and truth means', avg_wse - avg_truth_wse)
-    print('calculated slope error is', reach_slope - truth_slope, 'calculated wse error is',
-          reach_wse - truth_reach_wse)
-    print('normalized error is',
-          (reach_wse - truth_reach_wse) * 1e2 / math.sqrt(reach_wse_r_u ** 2 + reach_wse_t_r_u ** 2))
-    print('input slope error is', str(round(errors[0], 2)), 'cm/km')
+    print('calculated slope error is', (reach_slope - truth_slope)*1e5, 'cm/km. calculated wse error is',
+          reach_wse - truth_reach_wse, '\n')
+    print('normalized wse error is',
+          (reach_wse - truth_reach_wse) * 1e2 / math.sqrt(reach_wse_r_u ** 2 + reach_wse_t_r_u ** 2), '\n')
+    print('input slope error is', str(round(errors[0], 2)), 'cm/km \n')
+    if outclip:
+        print('outlier clipped wse error is', outclip_height - truth_reach_wse, '\n'
+              'outlier clipped slope error is', str(np.round((outclip_slope.data - truth_slope.data)*1e5,2)), '\n')
     if reach_fit:
         mid_node = int(min(node_id) + (max(node_id) - min(node_id)) / 2)
         mid_node_truth = int(min(node_id_truth) + (max(node_id_truth) - min(node_id_truth)) / 2)
-        node_spacing = abs(np.max(node_dist) - np.min(node_dist))/(len(node_id)-1)
-        node_spacing_truth = abs(np.max(node_dist_truth) - np.min(node_dist_truth))/(len(node_id_truth)-1)
+        node_spacing = abs(np.max(node_p_dist) - np.min(node_p_dist))/(len(node_id)-1)
+        node_spacing_truth = abs(np.max(node_p_dist_truth) - np.min(node_p_dist_truth))/(len(node_id_truth)-1)
         print('average node spacing is', node_spacing)
         print('average truth node spacing is', node_spacing_truth)
         data_fit = reach_wse - reach_slope/10 * (mid_node-node_id) * node_spacing
         truth_fit = truth_reach_wse - truth_slope/10 * (mid_node_truth-node_id_truth) * node_spacing_truth
-        axis.plot(truth_node_dist, truth_fit, '--', markersize=10, color='r', label='Truth fit')
-        axis.plot(node_dist, data_fit, '--', markersize=10, color='b', label='RiverObs fit')
+        axis.plot(node_p_dist_truth, truth_fit, '--', markersize=10, color='r', label='truth fit')
+        axis.plot(node_p_dist, data_fit, '--', markersize=10, color='b', label='obs fit')
+        axis.plot(np.mean(node_p_dist), reach_wse, '*', markersize=5, color='g', label='obs wse', zorder=1)
+        axis.plot(np.mean(node_p_dist), truth_reach_wse, '*', markersize=5, label='truth wse', zorder=2)
+        axis.fill_between(node_p_dist, wse + 3*wse_r_u, wse - 3*wse_r_u, facecolor='gray', alpha=0.3, interpolate=True)
+        if outclip:
+            outclip_fit = outclip_height - outclip_slope / 10 * (mid_node - node_id) * node_spacing
+            # axis.plot(node_p_dist, outclip_fit, '--', markersize=10, color='g', label='Outlier fit')
 
     # Add summary metrics in text
     left, width = .05, .5
-    bottom, height = .02, .85
+    bottom, height = .02, .82
     top = bottom + height
-    #quad_coeff, lin_coeff = get_quadratic_fit(node_id_truth, truth_wse)
-    try: # fix this later, only important for slope assessments
-        r_sq = str(get_r_squared(node_id_truth, truth_wse))
-    except:
-        print('couldnt get r squared')
-        r_sq = '0'
-    #lake_proximity = str(get_lake_proximity(reach_id, reach_lat, reach_long))
+
     if errors:
-        str1 = 'Slope Error=' + str(round(errors[0], 2)) + 'cm/km\n' #+ 'linear r-sq=' + r_sq
+        str1 = 'slope_e=' + str(round(errors[0], 2)) + 'cm/km\n'
         axis.text(left + 0.1, top, str1,
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
                   color=get_passfail_color(errors[0], 'slp e (cm/km)'),
                   transform=axis.transAxes)
-        str2 = 'wse error=' + str(round(errors[1], 2)) + ' cm\n'
+        str2 = 'wse_e=' + str(round(errors[1], 2)) + ' cm\n'
         axis.text(left + 0.1, top - 0.1, str2,
                   horizontalalignment='left',
                   verticalalignment='bottom',
                   fontsize=5,
                   color=get_passfail_color(errors[1], 'wse e (cm)'),
                   transform=axis.transAxes)
-    summary_string = 'Reach Width= ' + reach_width + ' m\n' + 'Reach X-track distance =' + reach_xtrk + ' km'
+    summary_string = 'width= ' + reach_width + ' m\n' + 'X-track dist =' + reach_xtrk + ' km'
     # 'Lake proximity= ' + lake_proximity + ' m\n' +
     # 'Flow angle= \n ' + \
     # + 'Truth quad coeff=' + str(
@@ -152,11 +183,12 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True, title=None, st
     axis.grid()
     axis.set_xlabel('dist from outlet (m)')
     axis.set_ylabel('wse (m)')
-    leg = axis.legend()
-    if leg:
-        leg.set_draggable(1)
+    leg = axis.legend(loc='lower right', fontsize=5, ncol=2)
+    leg.set_draggable(1)
+
     if title is not None:
         axis.set_title(title)
+
 
 def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     # plot the truth and observed area, for detected and total
@@ -207,10 +239,9 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
 
     axis.grid()
     axis.set_xlabel('node_id')
-    axis.set_ylabel('area')
-    leg = axis.legend(['area detected', 'area total', 'truth'])
-    if leg:
-        leg.set_draggable(1)
+    axis.set_ylabel('area (m^2)')
+    leg = axis.legend(['area detected', 'area total', 'truth'], fontsize=5)
+    leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
 
@@ -307,11 +338,14 @@ def get_passfail_color(error_value, parameter):
         return 'red'
 
 
-def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
+def make_plots(rivertile_file, truth_file, pixcvec, pixc,
+        truth_pixcvec, truth_pixc, reach_id,
         gdem_dem_file, errors=None, scene=None, nodes=None):
     reach_id = int(reach_id)
-    # creates the figure window and populates it
-    #pixc_vec = rivertile_file[0:-12] + '/pixcvec.nc'
+
+    # create MutableProduct objects using input files
+    # contains node group and reach group for each input netcdf
+
     data = SWOTWater.products.product.MutableProduct.from_ncfile(rivertile_file)
     truth = SWOTWater.products.product.MutableProduct.from_ncfile(truth_file)
 
@@ -323,22 +357,27 @@ def make_plots(rivertile_file, truth_file, pixc_vec, pixc, reach_id,
     figure, axes = plt.subplots(2, 2, figsize=FIGSIZE, dpi=DPI)
     plot_wse(data, truth, errors, reach_id, axes[0][0], title=title_str + ' - wse')
     plot_area(data, truth, errors, reach_id, axes[1][0], title=title_str + ' - area')
-    plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file, #gdem_dem_file=gdem_dem_file
+    plot_locations(data, truth, reach_id, axes[0][1], gdem_dem_file=gdem_dem_file,
                    title=title_str + ' - locations')
-    if pixc_vec is not None:
-        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_vec)
-        plot_pix_assgn(pixc_data, reach_id, axes[1][1])
+    if pixcvec is not None:
+        pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixcvec)
+        plot_pix_assgn(pixcvec_data, reach_id, axes[1][1])
     else:
-        pixc_data = None
+        pixcvec_data = None
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
     # mngr.window.setGeometry(0, 0, 1500, 500)
-    if pixc and pixc_data:
-        pixc0_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
-        plot_pixcs(pixc_data, pixc0_data, reach_id, nodes)
+    if pixc and pixcvec_data:
+        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
+        plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes)
     else:
         print('Missing pixc or pixcvec file, skipping pixel assignment plot')
+
+    if pixc and truth_pixc:# only plot these if pixc was also given
+        truth_pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixcvec)
+        truth_pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixc)
+        plot_pixcs(truth_pixcvec_data, truth_pixc_data, reach_id, nodes, title_tag='(truth)')
 
     return figure, axes
 
@@ -359,7 +398,8 @@ def get_reach_error(errors, reach_id):
     reach_error = [slope_error, wse_error, area_error, area_dtct_error, width_error]
     return reach_error
 
-def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
+
+def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
     reach_id = int(reach_id)
     # get only the reach_id for pixels in pixc_vec
     pix_i = (pixc_vec['reach_id'] == reach_id)
@@ -391,7 +431,6 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
     Node_id[aziv-M0,riv-N0] = node_id[:]
     Heightv = np.zeros((M,N)) + np.nan
     Heightv[aziv-M0,riv-N0] = heightv[:]
-
 
     # now get PIXC in slant-plane
     azi = pixc.pixel_cloud['azimuth_index']
@@ -425,31 +464,31 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
     pt1 =ax1.imshow(Node_id, interpolation='none',aspect='auto',
         cmap=plt.cm.get_cmap('tab20b'))
     plt.colorbar(pt1,ax=ax1)
-    ax1.set_title('node_id (slant-plane)')
+    ax1.set_title('node_id '+title_tag)
 
     # TODO: make a better cmap for classification, also make font bigger 
     ax2 = plt.subplot(2,3,2, sharex=ax1, sharey=ax1)
     pt2 = ax2.imshow(Cls1, interpolation='none', aspect='auto',
         cmap='tab10', clim=(0,5))
-    ax2.set_title('classification (slant-plane)')
+    ax2.set_title('classification '+title_tag)
     plt.colorbar(pt2,ax=ax2)
 
     ax3 = plt.subplot(2,3,4, sharex=ax1, sharey=ax1)
     pt3 = ax3.imshow(Heightv, interpolation='none', aspect='auto',
         cmap=cmaph, clim=(c0,c1))
-    ax3.set_title('height_vectorproc (m) (slant-plane)')
+    ax3.set_title('height_vectorproc (m) '+title_tag)
     plt.colorbar(pt3,ax=ax3)
 
     ax4 = plt.subplot(2,3,5, sharex=ax1, sharey=ax1)
     pt4 = ax4.imshow(Height1, interpolation='none', aspect='auto',
         cmap=cmaph, clim=(c0,c1))
-    ax4.set_title('height (m) (slant-plane)')
+    ax4.set_title('height (m) '+title_tag)
     plt.colorbar(pt4,ax=ax4)
 
     ax5 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
     pt5 = ax5.imshow(Geoid1, interpolation='none', aspect='auto',
         cmap=cmaph)#, clim=(c0,c1))
-    ax5.set_title('geoid height (m) (slant-plane)')
+    ax5.set_title('geoid height (m) '+title_tag)
     plt.colorbar(pt5,ax=ax5)
 
     if nodes:
@@ -493,26 +532,46 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None):
                 'pixc edge land', 'pixc dark water'],
                 loc='best')
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('proc_tile', help='river_data/rivertile.nc')
     parser.add_argument('truth_tile', help='river_data/rivertile.nc')
     parser.add_argument('reach_id', help='reach id', type=int)
-    parser.add_argument('--pixc_vec', help='pixcvec.nc', default=None)
+    parser.add_argument('--pixcvec', help='pixcvec.nc, defaults to river_data/pixcvec.nc', default=None)
     parser.add_argument('--pixc', help='pixel_cloud.nc', default=None)
+    parser.add_argument('--truth_pixcvec', default=None,
+        help='river_truth*/river_data/pixcvec.nc, defaults to river_truth*/river_data/pixcvec.nc')
+    parser.add_argument('--truth_pixc', help='gdem_pixc.nc', default=None)
     parser.add_argument('--nodes', nargs='*',
         help='list of nodes for which to plot height  histograms', default=None)
     args = parser.parse_args()
 
+    proc_tile = os.path.abspath(args.proc_tile)
+    truth_tile = os.path.abspath(args.truth_tile)
     gdem_dem = get_gdem_from_pixc(args.proc_tile)
     gdem_tile = args.truth_tile
-    pixc_vec = args.pixc_vec
-    if pixc_vec is None:
-        pixc_vec = args.proc_tile[0:-12] + '/pixcvec.nc'
-    errors = get_errors(args.proc_tile, args.truth_tile, test=False, verbose=False)
+    pixcvec = args.pixcvec
+    truth_pixcvec = args.truth_pixcvec
+    #proc_tile = os.path.abspath(args.proc_tile)
+    #truth_tile = os.path.abspath(args.truth_tile)
+    if pixcvec is None:
+        pixcvec = proc_tile[0:-12] + '/pixcvec.nc'
+    if truth_pixcvec is None:
+        truth_pixcvec = truth_tile[0:-12] + '/pixcvec.nc'
+    if args.pixc is None:
+        pixc = None
+    else:
+        pixc = os.path.abspath(args.pixc)
+    if args.truth_pixc is None:
+        truth_pixc = truth_tile[0:-12] + '/gdem_pixc.nc'
+    else:
+        truth_pixc = os.path.abspath(args.truth_pixc)
+    errors = get_errors(proc_tile, truth_tile, test=False, verbose=False)
     reach_error = get_reach_error(errors, args.reach_id)
     #make_plots(args.proc_tile, args.truth_tile, args.reach_id, gdem_dem, reach_error)
-    make_plots(args.proc_tile, args.truth_tile, pixc_vec, args.pixc, args.reach_id,
+    make_plots(proc_tile, truth_tile, pixcvec, pixc,
+        truth_pixcvec, truth_pixc, args.reach_id,
         gdem_dem, reach_error, nodes=args.nodes)
     plt.show()
 

@@ -11,19 +11,21 @@ import argparse
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import pdb
-
 
 import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
 from pathlib import Path
+import pdb
 
 def handle_bad_reaches(truth_tmp, data_tmp):
     """
     only keep reaches that all the pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
+    # bad_reaches = np.array([73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
+    #                73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
+    #                74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271])  # from Rui
     main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire
@@ -71,7 +73,7 @@ def load_and_accumulate(
     if (len(truth_tmp.reaches.reach_id)<=0) or (
        len(data_tmp.reaches.reach_id)<=0):
         # do nothing if truth or data file have no reach data
-        print('File has no reach data')
+        print('File', gdem_rivertile, 'has no reach data')
         return metrics, truth, data, scene, scene_nodes, sig0
     # handle masked arrays here
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp)
@@ -124,6 +126,8 @@ def main():
                         help='pixc directory basename')
     parser.add_argument('-eb','--pixc_errors_basename', type=str, default=None,
                         help = "pixc systematic errors basename")
+    parser.add_argument('-o', '--outdir', type=str,help='output directory for print files')
+    parser.add_argument('-tf','--table_fname', type=str, default=None, help='output filename for summary table')
     parser.add_argument('-t', '--title')
     parser.add_argument('-p', '--print', action='store_true')
     args = parser.parse_args()
@@ -134,8 +138,20 @@ def main():
     scene = None
     scene_nodes = None
     sig0 = None
-    bad_scenes = ['sacramento_0314_0264',]#['3356',]# these scenes will be excluded from analysis
-    print("args.basedir: ",args.basedir)
+
+    bad_scenes = [] # e.g. ['3356',...] these scenes will be excluded from analysis
+    # bad_scenes = ['1782', '1793', '1830', '1847',
+    #               '2367', '2447', '2800', '2801', '2819', '298', '3007', '3024', '316',
+    #               '3356', '3376', '3379', '3382', '3396',
+    #               '3413', '3421', '3424', '3442', '3455', '3487', '3574', '3575', '3579', '3586', '3596', '3607',
+    #               '3769', '3770', '3781', '3783', '3787', '3815',  '3821',
+    #               '730', 'platte_0036_0012', 'platte_0120_0290',
+    #               'sacramento_0221_0264', 'sacramento_0314_0264', 'sacramento_0220_0249',
+    #               'tanana_0434_0002', 'tanana_0156_0001']
+    # 2543, 3454, 3583, 3824, 3836,
+    # subset [2543 3454 3583 3824 3836]
+    # bad_scenes = [316, 730, 1782, 3376]
+    print("args.basedir: ", args.basedir)
     if args.basedir is not None:
         if args.slc_basename is None or args.pixc_basename is None:
             print('Must specify at least slc_basename and pixc_basename '
@@ -190,40 +206,62 @@ def main():
         metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
             proc_rivertile, truth_rivertile)
 
-
-    #SWOTRiver.analysis.tabley.print_table(metrics)
+    # get pass/fail and mask for science requirements
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
         metrics, truth, data, scene, scene_nodes, sig0=sig0)
+
+    # generate output filenames for metric tables and images
+    if args.print:
+        filenames = ['reach-area.png', 'reach-wse.png',
+                     'reach-slope.png','reach-wse-vs-area.png']
+        if args.table_fname is None:
+            args.table_fname = 'table'
+        table_fname = args.table_fname
+        if args.title is not None:
+            filenames = [args.title + '-' + name for name in filenames]
+            table_fname = args.title + '_' + table_fname
+        if args.outdir is not None:
+            filenames = [args.outdir + '/' + name for name in filenames]
+            table_fname = args.outdir + '/' + table_fname
+            # if the directory doesnt exist create it
+            if not os.path.exists(args.outdir):
+                os.makedirs(args.outdir)
+    else:
+        filenames = [None, None, None, None]
+        table_fname = 'temp'
+
+    # printing all data to table
     SWOTRiver.analysis.riverobs.print_metrics(
-        metrics, truth, scene, with_node_avg=True,
-        passfail=passfail, dark_frac=dark_frac, reach_len=reach_len)
+        metrics, truth, scene,
+        with_node_avg=True,
+        passfail=passfail,
+        preamble='For All Data',
+        dark_frac=dark_frac,
+        reach_len=reach_len,
+        fname=table_fname + '_all.txt')
     print("\nFor All Data")
-    SWOTRiver.analysis.riverobs.print_errors(metrics, with_node_avg=True)
-    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
+    SWOTRiver.analysis.riverobs.print_errors(metrics,
+                                             fname=table_fname + '_errors_all.txt',
+                                             preamble = 'For All Data',
+                                             with_node_avg=True)
+    # printing masked data to table
+    preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" + str(bounds['max_xtrk']) + " km and width>" \
+               + str(bounds['min_width']) + " m and area>" + str(bounds['min_area']) + " m^2 and reach len>=" \
+               + str(bounds['min_length']) + " m"
+    print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
         metrics, truth, scene, msk, fit_error,
-        dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
-    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
-    SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
-
-    """ I think this is redundant...
-    #SWOTRiver.analysis.tabley.print_table(metrics)
-    passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene, scene_nodes, sig0=sig0)
-    SWOTRiver.analysis.riverobs.print_metrics(
-        metrics, truth, scene, with_node_avg=True,
-        passfail=passfail, dark_frac=dark_frac, reach_len=reach_len)
-    print("\nFor All Data")
-    SWOTRiver.analysis.riverobs.print_errors(metrics, with_node_avg=True)
-    print("\nFor 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
-    SWOTRiver.analysis.riverobs.print_metrics(
-        metrics, truth, scene, msk, fit_error,
-        dark_frac, with_node_avg=True, passfail=passfail, reach_len=reach_len)
-    print("\nFor all Data with 10km<xtrk_dist<60km and width>100m and area>(1km)^2 and reach len>=10km")
-    SWOTRiver.analysis.riverobs.print_errors(metrics, msk, with_node_avg=True)
-    """
+        dark_frac,
+        with_node_avg=True,
+        passfail=passfail,
+        reach_len=reach_len,
+        preamble=preamble,
+        fname=table_fname + '.txt')
+    SWOTRiver.analysis.riverobs.print_errors(metrics, msk,
+                                             fname=table_fname + '_errors.txt',
+                                             preamble=preamble,
+                                             with_node_avg=True)
 
     # plot slope error vs reach length
     fig, (ax1, ax2, ax3) = plt.subplots(1,3)
@@ -280,14 +318,6 @@ def main():
     #plt.colorbar()
     #plt.xlabel('fit_error')
     #plt.ylabel('metrics')
-    
-    if args.print:
-        filenames = ['reach-area.png', 'reach-wse.png',
-                     'reach-slope.png','reach-wse-vs-area.png']
-        if args.title is not None:
-            filenames = [args.title + '-' + name for name in filenames]
-    else:
-        filenames = [None, None, None, None]
     SWOTRiver.analysis.riverobs.AreaPlot(
         truth.reaches, data.reaches, metrics, args.title, filenames[0], msk=msk)
     SWOTRiver.analysis.riverobs.HeightPlot(
@@ -297,8 +327,19 @@ def main():
     SWOTRiver.analysis.riverobs.HeightVsAreaPlot(
         truth.reaches, data.reaches, metrics, args.title, filenames[3], msk=msk)
     if not args.print:
-        print('show')
+        print('showing stats...')
+        f = open('temp.txt', 'r')
+        file_contents = f.read()
+        print(file_contents)
+        f = open('temp_errors.txt', 'r')
+        file_contents = f.read()
+        print(file_contents)
         plt.show()
+        os.remove('temp.txt')
+        os.remove('temp_all.txt')
+        os.remove('temp_errors.txt')
+        os.remove('temp_errors_all.txt')
+
 
 
 if __name__ == '__main__':

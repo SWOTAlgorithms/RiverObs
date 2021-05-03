@@ -7,13 +7,13 @@ Author(s): Dustin Lagoy, Brent Williams
 
 """
 import warnings
+import pdb
 
 import numpy as np
 import os.path
 
 import SWOTWater.products.product
 import SWOTRiver.analysis.tabley
-import pdb
 
 import matplotlib.pyplot as plt
 
@@ -127,7 +127,7 @@ class AreaPlot(ReachPlot):
         self.axis.plot(tsm_x, [i*15, i*15], '--r')
         self.axis.set_xlim((0, np.amax(true_area)+buff))
         #self.axis.set_ylim((-50,50))
-        self.axis.legend(legnd,loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
+        self.axis.legend(legnd, ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.15))
         i = -1
         self.axis.plot(goal_x, [i*25, i*25], '--g')
         self.axis.plot(req_x, [i*15, i*15], '--y')
@@ -164,7 +164,7 @@ class HeightPlot(ReachPlot):
         self.axis.plot(tsm_x, [i*11, i*11], '--r')
         self.axis.set_xlim((0,np.amax(true_area)+buff))
         #self.axis.set_ylim((-50,50))
-        self.axis.legend(legnd,loc='upper center', ncol=2, bbox_to_anchor=(0.5, 1.15))
+        self.axis.legend(legnd, ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.15)) # ,
         i = -1
         self.axis.plot(goal_x, [i*25, i*25], '--y')
         self.axis.plot(req_x, [i*10, i*10], '--y')
@@ -194,7 +194,7 @@ class SlopePlot(ReachPlot):
         self.axis.legend(
             ['BSM for $A>1 km^2$', 'TSM for $A>1 km^2$',
              'data','outlier clipped'],
-            loc='upper center', ncol=3, bbox_to_anchor=(0.5, 1.1))
+             ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.1))
         i = -1
         self.axis.plot([100, np.amax(true_width)+buff], [i*1.7, i*1.7], '--y')
         self.axis.plot([100, np.amax(true_width)+buff], [i*3, i*3], '--r')
@@ -292,27 +292,29 @@ def compute_average_node_error(data, truth):
         sig0_out[ind] = np.nanmean(np.array(sig0))
     return err_out, sig0_out
 
-def get_metrics(truth, data,
+def get_metrics(truth, data, msk=None,
                 with_slope=True, with_width=True, with_wse_r_u=True, wse_node_avg=None):
+    if msk is None:
+        msk = np.ones(np.shape(data.wse),dtype=bool)
     metrics = {
         'area_total': (
-            (data.area_total - truth.area_total) / truth.area_total) * 100.0,
+            (data.area_total[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
         'area_detct':(
-            (data.area_detct - truth.area_detct) / truth.area_detct) * 100.0,
+            (data.area_detct[msk] - truth.area_detct[msk]) / truth.area_detct[msk]) * 100.0,
             #(data.area_detct - truth.area_total) / truth.area_total) * 100.0,
-        'wse': (data.wse - truth.wse) * 1e2,#convert m to cm
+        'wse': (data.wse[msk] - truth.wse[msk]) * 1e2,#convert m to cm
 
     }
     if wse_node_avg is not None:
-        metrics['wse_node_avg'] = wse_node_avg * 1e2#convert m to cm
+        metrics['wse_node_avg'] = wse_node_avg[msk] * 1e2#convert m to cm
     if with_slope:
-        metrics['slope'] = (data.slope - truth.slope) * 1e5#convert from m/m to cm/km
-        metrics['slope_t'] = (truth.slope) * 1e5#convert from m/m to cm/km
+        metrics['slope'] = (data.slope[msk] - truth.slope[msk]) * 1e5#convert from m/m to cm/km
+        metrics['slope_t'] = (truth.slope[msk]) * 1e5#convert from m/m to cm/km
     if with_width:
-        metrics['width'] = data.width - truth.width
+        metrics['width'] = data.width[msk] - truth.width[msk]
     if with_wse_r_u:
-        metrics['wse_r_u'] = data.wse_r_u * 1e2 #convert m to cm
-        metrics['wse_t_r_u'] = truth.wse_r_u * 1e2 #convert m to cm
+        metrics['wse_r_u'] = data.wse_r_u[msk] * 1e2 #convert m to cm
+        metrics['wse_t_r_u'] = truth.wse_r_u[msk] * 1e2 #convert m to cm
     return metrics
 
 def get_passfail(is_lake = False):
@@ -373,14 +375,30 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
     #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0]*200)
     # now make the mask
-    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>10000),
-          np.logical_and((np.abs(truth.reaches['xtrk_dist'])<60000), 
-          np.logical_and((truth.reaches['width']>100),
-          np.logical_and((truth.reaches['area_total']>1e6),
-          np.logical_and((truth.reaches['p_length']>=1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
-          np.logical_and(truth.reaches['obs_frac_n'] > 0.5,
-              truth.reaches['dark_frac'] < 0.35))))))
-    return msk, fit_error, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
+    # msk = np.logical_and(truth.reaches['width']>0, truth.reaches['area_total']>0)
+    bounds = {
+        'min_xtrk': 10000,
+        'max_xtrk': 60000,
+        'min_width': 100,
+        'min_area': 800000,
+        'min_length': 8000,
+        'min_obs': 0,
+        'max_dark': 1
+    }
+    msk=[]
+    bad_reaches = [73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
+                   73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
+                   74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271]  # from Rui
+    if truth.reaches is not None:
+        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>bounds['min_xtrk']),#),
+              np.logical_and((np.abs(truth.reaches['xtrk_dist'])<bounds['max_xtrk']),#),
+              np.logical_and((truth.reaches['width']>bounds['min_width']),#100),
+              np.logical_and((truth.reaches['area_total']>bounds['min_area']),
+              np.logical_and(np.isin(truth.reaches['reach_id'], bad_reaches, invert=True),
+              np.logical_and((truth.reaches['p_length']>=bounds['min_length']),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
+              np.logical_and(truth.reaches['obs_frac_n'] > bounds['min_obs'],
+                  truth.reaches['dark_frac'] < bounds['max_dark'])))))))
+    return msk, fit_error, bounds, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
@@ -399,7 +417,7 @@ def get_scene_from_fnamedir(fnamedir):
                 + cycle_pass_tile[4]
     return scene
 #
-def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
+def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True, with_node_avg=False):
     # get statistics of area error
     area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)
     area_50 = np.nanpercentile(metrics['area_total'][msk], 50)
@@ -447,17 +465,17 @@ def print_errors(metrics, msk=True, with_slope=True, with_node_avg=False):
         table['mean'].append(slope_mean)
         table['count'].append(slope_num)
     
-    SWOTRiver.analysis.tabley.print_table(table, precision=8)
+    SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, fname=fname, precision=8)
     return table
 
 
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, passfail={}):
+        dark_frac=None, preamble=None, with_slope=True, with_width=True,
+        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
-        msk = np.ones(np.shape(metrics['wse']),dtype = bool)
+        msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
     table['wse e (cm)'] = metrics['wse'][msk]
     if with_node_avg:
         table['wse node e (cm)'] = metrics['wse_node_avg'][msk]
@@ -488,6 +506,6 @@ def print_metrics(
         table['dark_frac'] = np.array(dark_frac)[msk]
     if reach_len is not None:
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
-    
-    SWOTRiver.analysis.tabley.print_table(table, precision=5, passfail=passfail)
+
+    SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, precision=5, passfail=passfail, fname=fname)
     return table

@@ -12,18 +12,20 @@ import fiona
 import netCDF4
 import datetime
 import warnings
+import xml.etree.ElementTree
 
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
-from SWOTRiver.products.pixcvec import L2PIXCVector
 from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
-
 ATTRS_2COPY_FROM_PIXC = [
-    'time_coverage_start', 'time_coverage_end', 'cycle_number', 'pass_number']
+    'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
+    'inner_first_latitude', 'inner_first_longitude', 'inner_last_latitude',
+    'inner_last_longitude', 'outer_first_latitude', 'outer_first_longitude',
+    'outer_last_latitude', 'outer_last_longitude']
 
 RIVER_PRODUCT_ATTRIBUTES = odict([
     ['Conventions',{'dtype': 'str' ,'value': 'CF-1.7',
@@ -34,7 +36,7 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
     # title gets overridden for SLC product
     ['title', {'dtype': 'str',
         'docstr': 'Level 2 KaRIn High Rate River Single Pass Vector Product'}],
-    ['institution', {'dtype': 'str', 'value': 'JPL',
+    ['institution', {'dtype': 'str', 'value': 'NASA/JPL',
          'docstr': 'Name of producing agency.'}],
     ['source', {'dtype': 'str', 'value': 'Ka-band radar interferometer',
         'docstr': textjoin("""
@@ -67,6 +69,17 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Pass number of the product granule.'}],
     ['continent', {'dtype': 'str',
         'docstr': 'Continent the product belongs to.'}],
+    ['tile_number', {'dtype': 'i2',
+        'docstr': 'Tile number in the pass of the product granule.'}],
+    ['swath_side', {'dtype': 'str',
+        'docstr':
+        "'L' or 'R' to indicate left and right swath, respectively."}],
+    ['tile_name', {'dtype': 'str',
+        'docstr': textjoin("""
+            Tile name using format PPP_TTTS, where PPP is a 3 digit pass
+            number with leading zeros, TTT is a 3 digit tile number within
+            the pass, and S is a character 'L' or 'R' for the left and right
+            swath, respectively.""")}],
     ['short_name', {'dtype': 'str',
         'docstr': 'L2_HR_RiverTile'}],
     ['product_file_id', {'dtype': 'str',
@@ -165,21 +178,27 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': textjoin("""
             Nominal swath corner latitude for the last range line and right
             edge of the swath (degrees_north)""")}],
-    ['xref_input_l2_hr_pixc_files', {'dtype': 'str',
-        'docstr': 'List of L2_HR_PIXC files used to generate data in product'}],
-    ['xref_static_river_db_file', {'dtype': 'str',
+    ['xref_l2_hr_pixc_files', {'dtype': 'str',
         'docstr': textjoin("""
-            Name of static river a-priori database file used to generate data
-            in product""")}],
-    ['xref_l2_hr_river_tile_param_file', {'dtype': 'str',
+            Names of input Level 2 high rate water mask pixel cloud files.
+            """)}],
+    ['xref_l2_hr_rivertile_files', {'dtype': 'str',
+        'docstr': 'Names of input Level 2 river tile files.'}],
+    ['xref_param_l2_hr_rivertile_files', {'dtype': 'str',
         'docstr': textjoin("""
-            Name of PGE_L2_HR_RiverTile parameter file used to generate data
-            in product""")}],
+            Names of input Level 2 high rate river tile processor configuration
+            parameters files."""
+            )}],
+    ['xref_prior_river_db_files', {'dtype': 'str',
+        'docstr': textjoin("""Names of input prior river database files.""")}],
+    ['xref_reforbittrack_files', {'dtype': 'str',
+        'docstr': textjoin("""Names of input reference orbit track files.""")}],
     ])
 
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['right', 'left'] for b in ['first', 'last']
-    for c in ['latitude', 'longitude']]
+    for c in ['latitude', 'longitude']] + [
+        'xref_l2_hr_rivertile_files', 'continent']
 
 RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
 
@@ -285,15 +304,18 @@ class L2HRRiverTile(Product):
                         node_outputs['node_indx'], insert_idx, missing_node_id)
                     node_outputs['reach_indx'] = np.insert(
                         node_outputs['reach_indx'], insert_idx, reach_id)
+                    node_outputs['ice_clim_f'] = np.insert(
+                        node_outputs['ice_clim_f'], insert_idx,
+                        reach.metadata['iceflag'])
 
                     for key in ['nobs', 'nobs_h', 'node_blocked']:
                         node_outputs[key] = np.insert(
-                            node_outputs[key], insert_idx, MISSING_VALUE_INT4)
+                            node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
                          'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
-                         'area_of_ht', 'wse', 'wse_std', 'wse_u', 'rdr_sig0',
+                         'area_of_ht', 'wse', 'wse_std', 'wse_r_u', 'rdr_sig0',
                          'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
                          'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
                          'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
@@ -308,14 +330,15 @@ class L2HRRiverTile(Product):
                         reach_outputs[key])+[reach.metadata[key],])
 
                 this_rch_id_up = reach.metadata['rch_id_up'].T
+                this_rch_id_up[this_rch_id_up == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_up'] = np.concatenate(
                     (reach_outputs['rch_id_up'], this_rch_id_up))
-
-                this_rch_id_dn = reach.metadata['rch_id_dn'].T
-                reach_outputs['rch_id_dn'] = np.concatenate(
-                    (reach_outputs['rch_id_dn'], this_rch_id_up))
                 reach_outputs['n_reach_up'] = np.append(
                     reach_outputs['n_reach_up'], (this_rch_id_up>0).sum())
+                this_rch_id_dn = reach.metadata['rch_id_dn'].T
+                this_rch_id_dn[this_rch_id_dn == 0] = MISSING_VALUE_INT9
+                reach_outputs['rch_id_dn'] = np.concatenate(
+                    (reach_outputs['rch_id_dn'], this_rch_id_dn))
                 reach_outputs['n_reach_dn'] = np.append(
                     reach_outputs['n_reach_dn'], (this_rch_id_dn>0).sum())
                 reach_outputs['reach_idx'] = np.append(
@@ -350,6 +373,8 @@ class L2HRRiverTile(Product):
                     reach_outputs['n_good_nod'], MISSING_VALUE_INT4)
                 reach_outputs['lake_flag'] = np.append(
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
+                reach_outputs['ice_clim_f'] = np.append(
+                    reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
 
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
@@ -495,7 +520,8 @@ class ShapeWriterMixIn(object):
                         pass
 
                 my_vars[key] = value.copy()
-                if key in ['time_str',]:
+                if key in ['time_str', 't_str_avg', 't_str_min', 't_str_med',
+                           't_str_max']:
                     my_vars[key]['fill_value'] = 'no_data'
 
                 # remove these fill values
@@ -539,19 +565,23 @@ class ShapeWriterMixIn(object):
 
         # add time-string
         properties_ = properties.copy()
-        properties['time_str'] = 'str'
+        for key in ['time_str', 't_str_avg', 't_str_med', 't_str_min',
+                    't_str_max']:
+            if key in properties:
+                properties[key] = 'str'
 
         # mash up the schema
         schema = {'geometry': 'Point', 'properties': properties}
 
         # special treatment of these
         if is_reach:
-            properties['rch_id_up'] = 'str'
-            properties['rch_id_dn'] = 'str'
             schema['geometry'] = 'LineString'
+            for key in ['rch_id_up', 'rch_id_dn', 'pass_list']:
+                if key in properties:
+                    properties[key] = 'str'
 
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
-            for ii in range(self.time.shape[0]):
+            for ii in range(self.reach_id.shape[0]):
 
                 this_property = odict()
                 for key in properties_:
@@ -560,7 +590,7 @@ class ShapeWriterMixIn(object):
                     else:
                         this_item = self[key]
 
-                    if key in ['rch_id_up', 'rch_id_dn']:
+                    if key in ['rch_id_up', 'rch_id_dn', 'pass_list']:
                         strings = []
                         for item in this_item[ii]:
                             if item == self.VARIABLES[key]['_FillValue']:
@@ -600,19 +630,26 @@ class ShapeWriterMixIn(object):
                                      float(self.lat_prior[ii]))
 
                 # add time-string
-                try:
-                    this_property['time_str'] = (
-                        datetime.datetime(2000, 1, 1) + datetime.timedelta(
-                            seconds=this_property['time'])
-                        ).strftime('%Y-%m-%dT%H:%M%SZ')
-                except (OverflowError, ValueError):
-                    this_property['time_str'] = 'no_data'
+                time_string_vars = {
+                    'time': 'time_str', 't_avg': 't_str_avg',
+                    't_hmin': 't_str_min', 't_hmax': 't_str_max',
+                    't_hmed': 't_str_med'}
+                for in_dset, out_dset in time_string_vars.items():
+                    if in_dset in this_property:
+                        try:
+                            this_property[out_dset] = (
+                                datetime.datetime(2000, 1, 1) +
+                                datetime.timedelta(
+                                seconds=this_property[in_dset])
+                                ).strftime('%Y-%m-%dT%H:%M%SZ')
+                        except (OverflowError, ValueError):
+                            this_property[out_dset] = 'no_data'
 
                 ofp.write({'geometry': mapping(this_geo), 'id': ii,
                            'properties': this_property, 'type': 'Feature'})
 
         # write shape XML metadata and prj file
-        self.write_shape_xml(shp_fname.replace('.shp', '.xml'))
+        self.write_shape_xml(shp_fname.replace('.shp', '.shp.xml'))
         with open(shp_fname.replace('.shp', '.prj'), 'w') as ofp:
             ofp.write((
                 'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'+
@@ -851,7 +888,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'total uncertainty in the node width'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -1425,7 +1462,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['lat_u'] = node_outputs['latitude_u']
             klass['lon_u'] = node_outputs['longitud_u']
             klass['wse'] = node_outputs['wse']
-            klass['wse_r_u'] = node_outputs['wse_std']
+            klass['wse_r_u'] = node_outputs['wse_r_u']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
             klass['area_detct'] = node_outputs['area_det']
@@ -1452,6 +1489,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['p_dam_id'] = node_outputs['grand_id']
             klass['p_n_ch_max'] = node_outputs['n_chan_max']
             klass['p_n_ch_mod'] = node_outputs['n_chan_mod']
+            klass['ice_clim_f'] = node_outputs['ice_clim_f']
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length']:
@@ -1468,6 +1506,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     def from_shapes(cls, shape_path):
         """Constructs self from shapefiles"""
         klass = cls()
+
+        # load attributes from XML files
+        tree = xml.etree.ElementTree.parse(shape_path+'.xml')
+        root = tree.getroot()
+        for item in root.find('global_attributes'):
+            try:
+                value = eval(item.text)
+            except:
+                value = item.text
+            setattr(klass, item.tag, value)
+
+        # load datasets from shapefiles
         with fiona.open(shape_path) as ifp:
             records = list(ifp)
         data = {}
@@ -1495,6 +1545,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
+        from SWOTRiver.products.pixcvec import L2PIXCVector
         pixc_vec = L2PIXCVector.from_ncfile(index_file)
 
         pixc2rivertile_map = {
@@ -3019,6 +3070,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_max'] = reach_outputs['n_chan_max']
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
+            klass['ice_clim_f'] = reach_outputs['ice_clim_f']
 
 #             klass['dschg_c'] = ...
 #             klass['dschg_c_u'] = ...
@@ -3090,6 +3142,17 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
     def from_shapes(cls, shape_path):
         """Constructs self from shapefiles"""
         klass = cls()
+
+        # load attributes from XML files
+        tree = xml.etree.ElementTree.parse(shape_path+'.xml')
+        root = tree.getroot()
+        for item in root.find('global_attributes'):
+            try:
+                value = eval(item.text)
+            except:
+                value = item.text
+            setattr(klass, item.tag, value)
+
         with fiona.open(shape_path) as ifp:
             records = list(ifp)
 
@@ -3117,14 +3180,14 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     tmp = record['properties'][key].replace(
                         'no_data', str(fill))
                     data[key][irec, :] = np.array([
-                        int(item) for item in tmp.split(' ')])
+                        int(float(item)) for item in tmp.split(' ')])
 
             else:
                 data[key] = np.array([
                     record['properties'][key] for record in records])
 
         for key, value in data.items():
-            if key in ['reach_id', 'node_id']:
+            if key in ['reach_id', 'node_id', 'rch_id_up', 'rch_id_dn']:
                 value = value.astype('int')
             setattr(klass, key, value)
         return klass
@@ -3161,8 +3224,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             node_value = getattr(nodes, key)
             reach_value = getattr(self, key)
             for ii, reach_id in enumerate(self.reach_id):
-                reach_value[ii] = np.mean(
-                    node_value[node_reach_ids == reach_id])
+                mask = np.logical_and(
+                    node_reach_ids == reach_id, nodes.n_good_pix > 0)
+                if mask.sum() > 0:
+                    reach_value[ii] = np.mean(
+                        node_value[mask])
+                else:
+                    reach_value[ii] = MISSING_VALUE_FLT
             self[key] = reach_value
 
     def __add__(self, other):
