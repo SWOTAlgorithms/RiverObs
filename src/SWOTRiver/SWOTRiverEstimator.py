@@ -1250,7 +1250,8 @@ class SWOTRiverEstimator(SWOTL2):
         return river_reach
 
     def process_reach(
-        self, river_reach, reach, reach_id, reach_idx=None, min_fit_points=3):
+        self, river_reach, reach, reach_id, reach_idx=None, min_fit_points=3,
+        abs_thresh=2, rel_thresh=68, upr_thresh=80, iter_num=2):
         """
         Estimate the width, height, and slope for one reach.
 
@@ -1342,11 +1343,16 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['slope_u'] = MISSING_VALUE_FLT
                 reach_stats['height_u'] = MISSING_VALUE_FLT
 
-            elif self.slope_method in ['unweighted', 'weighted']:
+            elif self.slope_method in ['unweighted', 'weighted', 'outlier_flagging']:
                 # use weighted fit if commanded and all weights are good
                 if self.slope_method == 'weighted' and all(np.isfinite(ww[mask])):
                     fit = statsmodels.api.WLS(
                         hh[mask], SS[mask], weights=ww[mask]).fit()
+                    
+                # do outlier flagging
+                elif self.slope_method == 'outlier_flagging':
+                    fit = self.outlier_flagging(hh[mask], SS[mask], ww[mask],
+                        abs_thresh, rel_thresh, upr_thresh, iter_num)
 
                 # use unweighted fit
                 else:
@@ -1649,3 +1655,52 @@ class SWOTRiverEstimator(SWOTL2):
                 weights.sum())
 
         return smooth_heights
+
+    def outlier_flagging(self, wse, flow_dist, weights, abs_thresh, rel_thresh, 
+                         upr_thresh, iter_num):
+        """
+        Flag out outliers inside a reach and recompute the reach WLS slope 
+            and height 
+        wse: node wse 
+        flow_dist: node flow distance
+        abs_thresh: absolute threshold, default 2[m]
+        rel_thresh: relative threshold, default 68% percentile
+        upr_thresh: upper limit, how many percent of node will be kept at 
+            the last iteration, default 80%
+        iter_num: number of iterations
+
+        outputs:
+        wse : reach height
+        slope : reach slope
+        """
+        # initial fit OLS
+        fit = statsmodels.api.OLS(wse, flow_dist).fit()
+        r_slp = fit.params[0]
+        r_wse = fit.params[1]
+        wse_fit = r_wse + r_slp * flow_dist[:,0]
+        
+        for i in range(iter_num):
+            metric = abs(wse_fit - wse)
+            metric_one_sigma = np.percentile(metric, rel_thresh)
+            upr_threshs = np.zeros(iter_num)
+            upr_threshs[-1] = upr_thresh
+            frac_keep = np.percentile(metric, upr_threshs[i])
+            icond = np.logical_or(metric < abs_thresh, metric < metric_one_sigma)
+            
+            if sum(icond)/len(metric)*100 <= upr_threshs[i]:
+                current_ind = metric < frac_keep
+            else:
+                current_ind = icond
+            if i == iter_num - 1 and all(np.isfinite(weights)):
+                # last iteration use WLS
+                fit = statsmodels.api.WLS(wse[current_ind], flow_dist[current_ind], 
+                    weights=weights[current_ind]).fit()
+                r_slp = fit.params[0]
+                r_wse = fit.params[1]
+            else:
+                fit = statsmodels.api.OLS(wse[current_ind], flow_dist[current_ind]).fit()
+                r_slp = fit.params[0]
+                r_wse = fit.params[1]
+                
+            wse_fit = r_wse + r_slp * flow_dist[:,0]
+        return fit
