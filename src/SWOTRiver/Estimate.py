@@ -47,7 +47,9 @@ class L2PixcToRiverTile(object):
                 t_str_start[0:10], '%Y-%m-%d')
             datetime_ = datetime.datetime.strptime(t_str_start[0:4], '%Y')
             self.day_of_year = (datetime_start-datetime_).days+1
-        except AttributeError:
+        except (AttributeError, ValueError):
+            LOGGER.warn('Unable to parse day of year from PIXC input file,'+
+                        'not doing ice flagging!')
             self.day_of_year = None
 
     def load_config(self, config):
