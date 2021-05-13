@@ -1523,9 +1523,20 @@ class SWOTRiverEstimator(SWOTL2):
         other_ids = [item.reach_indx[0] for item in river_reach_collection]
 
         # get up/dn id from prior db
-        up_id_try = self.reaches[ireach].metadata['rch_id_up'][0, 0]
-        dn_id_try = self.reaches[ireach].metadata['rch_id_dn'][0, 0]
         prior_s = river_reach.prior_node_ss
+
+        # skip (disconnected lake, dam) reaches
+        skip_types = [2, 4]
+
+        # use the first good adjacent reach that is not skipped for height
+        # smoothing
+        for up_id_try in self.reaches[ireach].metadata['rch_id_up'][:, 0]:
+            if not up_id_try % 10 in skip_types:
+                break
+
+        for dn_id_try in self.reaches[ireach].metadata['rch_id_dn'][:, 0]:
+            if not dn_id_try % 10 in skip_types:
+                break
 
         # In all these dicts: -1 -- downstream, +1 -- upstream
         prd_rch = {}
