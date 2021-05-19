@@ -194,7 +194,7 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
 def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     # plot the truth and observed area, for detected and total
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
-                            np.logical_not(data.nodes['wse'].mask))
+                            np.logical_not(data.nodes['area_total'].mask))
     node_id = data.nodes['node_id'][node_i]
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
                                   np.logical_not(truth.nodes['wse'].mask))
@@ -245,6 +245,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
+    pdb.set_trace()
 
 
 def plot_pix_assgn(data, reach_id, axis, style='.'):
