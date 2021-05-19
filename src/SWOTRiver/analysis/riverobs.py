@@ -396,8 +396,8 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
               np.logical_and((truth.reaches['area_total']>bounds['min_area']),
               np.logical_and(np.isin(truth.reaches['reach_id'], bad_reaches, invert=True),
               np.logical_and((truth.reaches['p_length']>=bounds['min_length']),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
-              np.logical_and(truth.reaches['obs_frac_n'] > bounds['min_obs'],
-                  truth.reaches['dark_frac'] < bounds['max_dark'])))))))
+              np.logical_and(truth.reaches['obs_frac_n'] >= bounds['min_obs'],
+                  truth.reaches['dark_frac'] <= bounds['max_dark'])))))))
     return msk, fit_error, bounds, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
