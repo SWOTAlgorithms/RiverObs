@@ -245,7 +245,6 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
-    pdb.set_trace()
 
 
 def plot_pix_assgn(data, reach_id, axis, style='.'):
