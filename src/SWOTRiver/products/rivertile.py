@@ -12,6 +12,7 @@ import fiona
 import netCDF4
 import datetime
 import warnings
+import logging
 import xml.etree.ElementTree
 
 from shapely.geometry import Point, mapping, LineString
@@ -581,6 +582,10 @@ class ShapeWriterMixIn(object):
                     properties[key] = 'str'
 
         with fiona.open(shp_fname, 'w', 'ESRI Shapefile', schema) as ofp:
+            # Suppress fiona._env logger WARNINGs on formatting when
+            # writing shapefiles.
+            logging.getLogger('fiona._env').disabled = True
+
             for ii in range(self.reach_id.shape[0]):
 
                 this_property = odict()
