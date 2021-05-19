@@ -202,7 +202,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
 
     area_detct = data.nodes['area_detct'][node_i]
     area_total = data.nodes['area_total'][node_i]  # includes dark water flag
-    area_truth = truth.nodes['area_detct'][node_i_truth]
+    area_truth = truth.nodes['area_total'][node_i_truth]
 
     reach_i = data.reaches['reach_id'] == reach_id
     reach_area_detct = data.reaches['area_detct'][reach_i]
