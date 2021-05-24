@@ -642,9 +642,11 @@ class Product(object):
         self[my_var] = out_value
 
     def requantize(self):
-        """Calls quantize_from on all variables"""
+        """Calls quantize_from on all variables that are quantized"""
         for var in self.VARIABLES:
-            self.quantize_from(var, self[var])
+            scale_factor = self.VARIABLES[var].get('scale_factor', 1)
+            if scale_factor != 1:
+                self.quantize_from(var, self[var])
 
     def cast(self):
         for group in self.GROUPS:
