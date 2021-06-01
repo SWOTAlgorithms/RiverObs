@@ -35,7 +35,14 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
         variable[:, :, 1] == array.imag
     '''
     # np.ma.mask_array has fill_value attr, else use default fill value
-    fill_value = getattr(array, 'fill_value', get_fill(array.dtype))
+    if attributes is None:
+        fill_value = getattr(array, 'fill_value', get_fill(array.dtype))
+    else:
+        fill_value = attributes.get('_FillValue', get_fill(array.dtype))
+        # drop complex part of fill_value
+        if 'complex' in array.dtype.name:
+            fill_value = np.real(fill_value)
+
     def _make_variable(key, data, dimensions, attributes=None):
         dtype = data.dtype
         if dtype == object:
