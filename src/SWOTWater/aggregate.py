@@ -12,11 +12,13 @@ All rights reserved.
 Author (s): Brent Williams
 '''
 
+import sys
 import numpy as np
 import scipy.stats
 from scipy import interpolate
 
 from SWOTWater.constants import PIXC_CLASSES
+FLOAT_EPS = sys.float_info.epsilon
 
 def simple(in_var, metric='mean', pcnt=68):
     """
@@ -158,12 +160,13 @@ def height_uncert_std(
     height_agg2 = simple(
         weight[good]*(height[good]-height_mean)**2.0, metric='sum')
     h_std = np.sqrt(height_agg2/weight_sum)
-    
+
     num_pixels = simple(height[good], metric='count')
     # num_med_looks is rare_looks*num_pix_in_adaptive_window,
     # so need to normalize out rare to get number of independent pixels
     num_ind_pixels = simple(num_med_looks[good]/num_rare_looks[good],'mean')
     height_std_out = h_std * np.sqrt(num_ind_pixels/num_pixels)
+
     return height_std_out
 
 def height_uncert_multilook(
@@ -189,7 +192,7 @@ def height_uncert_multilook(
                         method
 
     Reference: implements square root of Eq. (7) in
-    "SWOT Hydrology Height and Area Uncertainty Estimation," 
+    "SWOT Hydrology Height and Area Uncertainty Estimation,"
     Brent Williams, 2018, JPL Memo
     """
     # multilook the rare interferogram over the raster bin
@@ -211,6 +214,9 @@ def height_uncert_multilook(
 
     # get phase noise variance using CRB
     phase_var = (0.5 / num_looks) * (1.0-coh**2)/(coh**2)
+    # TODO: Probably want to set a more reasonable phase variance
+    if phase_var < FLOAT_EPS: phase_var = FLOAT_EPS
+
     agg_dh_dphi = simple(dh_dphi[good]*weight_norm[good])
     agg_dh_dphi2 = simple(dh_dphi[good]**2*weight_norm[good])
 
