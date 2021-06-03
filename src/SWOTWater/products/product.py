@@ -627,12 +627,26 @@ class Product(object):
 
         valid = np.logical_and(value != fill, ~np.isnan(value))
         quantized_values = quantized_fill * np.ones(value.shape)
-        quantized_values[valid] = (
-            (value[valid]-add_offset) / scale_factor).astype(dtype)
+
+        if dtype[0] in ['i', 'u']:
+            # round integers to nearest int versus just typecast
+            quantized_values[valid] = np.round(
+                (value[valid]-add_offset) / scale_factor).astype(dtype)
+        else:
+            quantized_values[valid] = (
+                (value[valid]-add_offset) / scale_factor).astype(dtype)
+
         out_value = np.ma.masked_array(
             data=quantized_values, dtype=dtype, fill_value=quantized_fill,
             mask=np.logical_not(valid))
         self[my_var] = out_value
+
+    def requantize(self):
+        """Calls quantize_from on all variables that are quantized"""
+        for var in self.VARIABLES:
+            scale_factor = self.VARIABLES[var].get('scale_factor', 1)
+            if scale_factor != 1:
+                self.quantize_from(var, self[var])
 
     def cast(self):
         for group in self.GROUPS:

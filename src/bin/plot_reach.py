@@ -45,7 +45,7 @@ cmap_custom = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
             'cmyc', cmap_custom)
 
-def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True, title=None, style='.'):
+def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True, title=None, prd_heights=False):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
     reach_id = int(reach_id)
     data_df = pd.DataFrame.from_dict(data['nodes'].variables)
@@ -142,12 +142,13 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
         axis.plot(node_p_dist_truth, truth_fit, '--', markersize=10, color='r', label='truth fit')
         axis.plot(node_p_dist, data_fit, '--', markersize=10, color='b', label='obs fit')
         axis.plot(np.mean(node_p_dist), reach_wse, '*', markersize=5, color='g', label='obs wse', zorder=1)
-        axis.plot(np.mean(node_p_dist), truth_reach_wse, '*', markersize=5, label='truth wse', zorder=2)
+        axis.plot(np.mean(node_p_dist), truth_reach_wse, '*', markersize=5, label='truth wse', zorder=1)
         axis.fill_between(node_p_dist, wse + 3*wse_r_u, wse - 3*wse_r_u, facecolor='gray', alpha=0.3, interpolate=True)
         if outclip:
             outclip_fit = outclip_height - outclip_slope / 10 * (mid_node - node_id) * node_spacing
             # axis.plot(node_p_dist, outclip_fit, '--', markersize=10, color='g', label='Outlier fit')
-
+    if prd_heights:
+        axis.plot(node_p_dist, data.nodes['p_wse'][node_i], 'D', markersize=2, label='PRD wse')
     # Add summary metrics in text
     left, width = .05, .5
     bottom, height = .02, .82
@@ -168,7 +169,7 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
                   fontsize=5,
                   color=get_passfail_color(errors[1], 'wse e (cm)'),
                   transform=axis.transAxes)
-    summary_string = 'width= ' + reach_width + ' m\n' + 'X-track dist =' + reach_xtrk + ' km'
+    summary_string = 'w = ' + reach_width + ' m\n' + 'x-trk =' + reach_xtrk + ' km'
     # 'Lake proximity= ' + lake_proximity + ' m\n' +
     # 'Flow angle= \n ' + \
     # + 'Truth quad coeff=' + str(
@@ -193,7 +194,7 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True,
 def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     # plot the truth and observed area, for detected and total
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
-                            np.logical_not(data.nodes['wse'].mask))
+                            np.logical_not(data.nodes['area_total'].mask))
     node_id = data.nodes['node_id'][node_i]
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
                                   np.logical_not(truth.nodes['wse'].mask))
@@ -201,7 +202,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
 
     area_detct = data.nodes['area_detct'][node_i]
     area_total = data.nodes['area_total'][node_i]  # includes dark water flag
-    area_truth = truth.nodes['area_detct'][node_i_truth]
+    area_truth = truth.nodes['area_total'][node_i_truth]
 
     reach_i = data.reaches['reach_id'] == reach_id
     reach_area_detct = data.reaches['area_detct'][reach_i]
@@ -244,7 +245,6 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     leg.set_draggable(1)
     if title is not None:
         axis.set_title(title)
-
 
 def plot_pix_assgn(data, reach_id, axis, style='.'):
     # plot the pixel assignment
@@ -325,6 +325,7 @@ def plot_locations(data, truth, reach_id, axis, plot_prior=True, gdem_dem_file=N
     axis.set_ylabel('latitude')
     if title is not None:
         axis.set_title(title)
+
 
 
 def get_passfail_color(error_value, parameter):

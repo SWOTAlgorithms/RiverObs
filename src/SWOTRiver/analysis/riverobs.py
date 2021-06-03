@@ -300,8 +300,8 @@ def get_metrics(truth, data, msk=None,
         'area_total': (
             (data.area_total[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
         'area_detct':(
-            (data.area_detct[msk] - truth.area_detct[msk]) / truth.area_detct[msk]) * 100.0,
-            #(data.area_detct - truth.area_total) / truth.area_total) * 100.0,
+            #(data.area_detct[msk] - truth.area_detct[msk]) / truth.area_detct[msk]) * 100.0,
+            (data.area_detct[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
         'wse': (data.wse[msk] - truth.wse[msk]) * 1e2,#convert m to cm
 
     }
@@ -382,8 +382,8 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         'min_width': 100,
         'min_area': 800000,
         'min_length': 8000,
-        'min_obs': 0,
-        'max_dark': 1
+        'min_obs_frac': 0.5,
+        'max_dark_frac': 1
     }
     msk=[]
     bad_reaches = [73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
@@ -396,8 +396,8 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
               np.logical_and((truth.reaches['area_total']>bounds['min_area']),
               np.logical_and(np.isin(truth.reaches['reach_id'], bad_reaches, invert=True),
               np.logical_and((truth.reaches['p_length']>=bounds['min_length']),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
-              np.logical_and(truth.reaches['obs_frac_n'] > bounds['min_obs'],
-                  truth.reaches['dark_frac'] < bounds['max_dark'])))))))
+              np.logical_and(data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+                  truth.reaches['dark_frac'] <= bounds['max_dark_frac'])))))))
     return msk, fit_error, bounds, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
 #
 def get_scene_from_fnamedir(fnamedir):
