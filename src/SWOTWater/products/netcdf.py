@@ -43,13 +43,25 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
         if 'complex' in array.dtype.name:
             fill_value = np.real(fill_value)
 
-    def _make_variable(key, data, dimensions, attributes=None):
+    complevel = attributes.get('complevel', None)
+
+    def _make_variable(key, data, dimensions, attributes=None, complevel=None):
         dtype = data.dtype
         if dtype == object:
             # assume that objects are strings
             dtype = str
-        dataset.createVariable(
-            key, dtype, dimensions, fill_value=fill_value)
+        if complevel is not None:
+            if complevel not in range(1, 10):
+                raise Exception(
+                    'Invalid complevel {} specified in _make_variable'.format(
+                    complevel))
+            dataset.createVariable(
+                key, dtype, dimensions, fill_value=fill_value, zlib=True,
+                complevel=complevel)
+        else:
+            dataset.createVariable(
+                key, dtype, dimensions, fill_value=fill_value)
+
         if ((data.dtype.str[1] == 'S') or (data.dtype.str[1] == 'U') or (
                 data.dtype.str[1] == 'O')) and np.ma.isMaskedArray(data):
             dataset[key][:] = data.data
@@ -57,7 +69,7 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
             dataset[key][:] = data
         if attributes is not None:
             for name, value in attributes.items():
-                if name in ('dtype', 'dimensions', '_FillValue'):
+                if name in ('dtype', 'dimensions', '_FillValue', 'complevel'):
                     continue
                 if np.iscomplexobj(value):
                     value = value.real
@@ -65,6 +77,7 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
                 if name in ['valid_min', 'valid_max']:
                     value = data.dtype.type(value)
                 dataset[key].setncattr(name, value)
+
     if 'complex' in array.dtype.name:
         # Add the depth dimension
         if 'complex_depth' not in dataset.dimensions:
@@ -77,9 +90,11 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
             # array.
             array = array.filled()
         tmp = array.view(dtype=float_type).reshape(shape+(2,))
-        _make_variable(key, tmp, dimensions+['complex_depth'], attributes)
+        _make_variable(
+            key, tmp, dimensions+['complex_depth'], attributes,
+            complevel=complevel)
     else:
-        _make_variable(key, array, dimensions, attributes)
+        _make_variable(key, array, dimensions, attributes, complevel=complevel)
 
 
 def get_variable_keys(dataset):
