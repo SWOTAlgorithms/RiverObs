@@ -68,8 +68,10 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Cycle number of the product granule.'}],
     ['pass_number', {'dtype': 'i2',
         'docstr': 'Pass number of the product granule.'}],
-    ['continent', {'dtype': 'str',
-        'docstr': 'Continent the product belongs to.'}],
+    ['continent_id', {'dtype': 'str',
+        'docstr': 'Continent identifier of the product granule.'}],
+    ['continent_code', {'dtype': 'str',
+        'docstr': 'Continent code of the product granule.'}],
     ['tile_number', {'dtype': 'i2',
         'docstr': 'Tile number in the pass of the product granule.'}],
     ['swath_side', {'dtype': 'str',
@@ -199,7 +201,7 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['right', 'left'] for b in ['first', 'last']
     for c in ['latitude', 'longitude']] + [
-        'xref_l2_hr_rivertile_files', 'continent']
+        'xref_l2_hr_rivertile_files', 'continent_id', 'continent_code']
 
 RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
 
