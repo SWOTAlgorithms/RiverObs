@@ -153,7 +153,7 @@ def fake_pixc_from_gdem(
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
                     ('points', 'complex_depth'))
-            if varname == 'pixc_line_qual':
+            elif varname == 'pixc_line_qual':
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
                     ('num_pixc_lines',))
