@@ -138,10 +138,10 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['illumination_time'] = tvp_time[azimuth_index[mask]]
         out_pixc_dsets['eff_num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
-        out_pixc_dsets['interferogram_qual'] = np.zeros(pixc_shape)
-        out_pixc_dsets['classification_qual'] = np.zeros(pixc_shape)
-        out_pixc_dsets['height_qual'] = np.zeros(pixc_shape)
-        out_pixc_dsets['pixc_line_qual'] = np.zeros(gdem_shape[0])
+        out_pixc_dsets['interferogram_qual'] = np.zeros(pixc_shape, np.int8)
+        out_pixc_dsets['classification_qual'] = np.zeros(pixc_shape, np.int8)
+        out_pixc_dsets['height_qual'] = np.zeros(pixc_shape, np.int8)
+        out_pixc_dsets['pixc_line_qual'] = np.zeros(gdem_shape[0], np.int8)
 
         if make_sig0:
             out_pixc_dsets['sig0'] =  media_attenuation[mask]**2
