@@ -69,7 +69,8 @@ def fake_pixc_from_gdem(
 
         # copy pixel_cloud attributes
         ofp.createGroup('pixel_cloud')
-        ofp.groups['pixel_cloud'].createDimension('record', 0)
+        ofp.groups['pixel_cloud'].createDimension('points', 0)
+        ofp.groups['pixel_cloud'].createDimension('num_pixc_lines', 0)
         ofp.groups['pixel_cloud'].createDimension('complex_depth', 2)
 
         for attr in ifp_pixc.groups['pixel_cloud'].__dict__:
@@ -137,6 +138,11 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['illumination_time'] = tvp_time[azimuth_index[mask]]
         out_pixc_dsets['eff_num_rare_looks'] = np.zeros(pixc_shape) + subsample_factor
         out_pixc_dsets['pixel_area'] =  np.zeros(pixc_shape) + pixel_area
+        out_pixc_dsets['interferogram_qual'] = np.zeros(pixc_shape)
+        out_pixc_dsets['classification_qual'] = np.zeros(pixc_shape)
+        out_pixc_dsets['height_qual'] = np.zeros(pixc_shape)
+        out_pixc_dsets['pixc_line_qual'] = np.zeros(gdem_shape[0])
+
         if make_sig0:
             out_pixc_dsets['sig0'] =  media_attenuation[mask]**2
 
@@ -146,10 +152,15 @@ def fake_pixc_from_gdem(
             if varname == 'interferogram':
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
-                    ('record', 'complex_depth'))
+                    ('points', 'complex_depth'))
+            if varname == 'pixc_line_qual':
+                var = ofp.createVariable(
+                    '/pixel_cloud/'+varname, varvalue.dtype.str,
+                    ('num_pixc_lines',))
             else:
                 var = ofp.createVariable(
-                    '/pixel_cloud/'+varname, varvalue.dtype.str, ('record',))
+                    '/pixel_cloud/'+varname, varvalue.dtype.str,
+                    ('points',))
             var[:] = varvalue
 
 def main():
