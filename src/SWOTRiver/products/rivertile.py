@@ -527,10 +527,6 @@ class ShapeWriterMixIn(object):
                            't_str_max']:
                     my_vars[key]['fill_value'] = 'no_data'
 
-                # remove these fill values
-                if key in ['rdr_pol', 'river_name']:
-                    my_vars[key].pop('fill_value')
-
             for dset, attr_dict in my_vars.items():
                 ofp.write('    <{}>\n'.format(dset))
                 for attrname, attrvalue in attr_dict.items():
