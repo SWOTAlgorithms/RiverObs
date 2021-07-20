@@ -528,7 +528,7 @@ class ShapeWriterMixIn(object):
                     my_vars[key]['fill_value'] = 'no_data'
 
                 # remove these fill values
-                if key in ['rdr_pol',]:
+                if key in ['rdr_pol', 'river_name']:
                     my_vars[key].pop('fill_value')
 
             for dset, attr_dict in my_vars.items():
@@ -548,7 +548,7 @@ class ShapeWriterMixIn(object):
 
         properties = odict()
         for key, var in self.VARIABLES.items():
-            if key in ['rdr_pol', 'reach_id', 'node_id']:
+            if key in ['rdr_pol', 'reach_id', 'node_id', 'river_name']:
                 schema = 'str'
             else:
                 schema = self.get_schema(
@@ -608,9 +608,9 @@ class ShapeWriterMixIn(object):
 
                         this_property[key] = ' '.join(strings)
 
-                    elif key in ['reach_id', 'node_id']:
+                    elif key in ['reach_id', 'node_id', 'river_name']:
                         if this_item[ii] == self.VARIABLES[key]['_FillValue']:
-                            this_item[ii] = 'no_data'
+                            this_property[key] = 'no_data'
                         else:
                             this_property[key] = str(this_item[ii])
 
