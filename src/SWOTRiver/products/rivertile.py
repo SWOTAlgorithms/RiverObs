@@ -808,7 +808,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     """)],
                 ])],
         ['river_name',
-         odict([['dtype', 'U100'],
+         odict([['dtype', 'U254'],
                 ['long_name', 'river names(s)'],
                 ['_FillValue', 'no_data'],
                 ['tag_basic_expert','Basic'],
