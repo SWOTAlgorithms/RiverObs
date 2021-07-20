@@ -536,7 +536,7 @@ class Product(object):
                     5*INDENT+'<annotation app="conformance" %s/>' % annotations,
                     4*INDENT+'</char>\n'])
 
-            elif type_str[1] == 'S':
+            elif type_str[1] in ('S', 'U'):
                 width = int(type_str[2])
                 string = '\n'.join([
                     4*INDENT+'<string name="%s" shape="%s" width="%d">' % (
