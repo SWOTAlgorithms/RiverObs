@@ -523,8 +523,8 @@ class ShapeWriterMixIn(object):
                         pass
 
                 my_vars[key] = value.copy()
-                if key in ['time_str', 't_str_avg', 't_str_min', 't_str_med',
-                           't_str_max']:
+                if key in ['time_str', 't_str_avg', 't_str_hmin', 't_str_hmed',
+                           't_str_hmax']:
                     my_vars[key]['fill_value'] = 'no_data'
 
             for dset, attr_dict in my_vars.items():
@@ -564,8 +564,8 @@ class ShapeWriterMixIn(object):
 
         # add time-string
         properties_ = properties.copy()
-        for key in ['time_str', 't_str_avg', 't_str_med', 't_str_min',
-                    't_str_max']:
+        for key in ['time_str', 't_str_avg', 't_str_hmed', 't_str_hmin',
+                    't_str_hmax']:
             if key in properties:
                 properties[key] = 'str'
 
@@ -635,8 +635,8 @@ class ShapeWriterMixIn(object):
                 # add time-string
                 time_string_vars = {
                     'time': 'time_str', 't_avg': 't_str_avg',
-                    't_hmin': 't_str_min', 't_hmax': 't_str_max',
-                    't_hmed': 't_str_med'}
+                    't_hmin': 't_str_hmin', 't_hmax': 't_str_hmax',
+                    't_hmed': 't_str_hmed'}
                 for in_dset, out_dset in time_string_vars.items():
                     if in_dset in this_property:
                         try:
