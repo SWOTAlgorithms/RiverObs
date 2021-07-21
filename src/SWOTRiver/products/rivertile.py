@@ -1711,7 +1711,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['river_name',
          odict([['dtype', 'U100'],
-                ['long_name', 'river names(s)'],
+                ['long_name', 'river name(s)'],
                 ['_FillValue', 'no_data'],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
