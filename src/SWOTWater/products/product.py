@@ -70,9 +70,10 @@ class Product(object):
     DIMENSIONS = odict()
     VARIABLES = odict()
     GROUPS = odict()
+    DEFAULT_COMPLEVEL = None
     ATTRS = [
         'ATTRIBUTES', 'DIMENSIONS', 'VARIABLES', 'GROUPS', '_attributes',
-        '_variables', '_groups']
+        '_variables', '_groups', 'DEFAULT_COMPLEVEL']
 
     def __init__(self):
         # These hold what actually exists in memory
