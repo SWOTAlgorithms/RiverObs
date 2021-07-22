@@ -278,8 +278,9 @@ class Product(object):
 
     def to_ncfile(self, filename):
         """Write self to a netCDF file."""
+        default_complevel = getattr(self, 'DEFAULT_COMPLEVEL', None)
         dataset = nc.Dataset(filename, 'w')
-        self.to_dataset(dataset)
+        self.to_dataset(dataset, default_complevel=default_complevel)
         dataset.sync()
         dataset.close()
 
@@ -310,14 +311,15 @@ class Product(object):
             else:
                 variable.data.tofile(os.path.join(folder, key))
 
-    def to_dataset(self, dataset):
+    def to_dataset(self, dataset, default_complevel=None):
         """Store self in a NetCDF dataset/group.
 
         Will recursively store groups in self under dataset."""
         for key in self.GROUPS:
             netcdf_group = dataset.createGroup(key)
             # Recursively add the group members
-            self[key].to_dataset(netcdf_group)
+            self[key].to_dataset(
+                netcdf_group, default_complevel=default_complevel)
         for key in self.ATTRIBUTES:
             value = self[key]
             if value is None:
@@ -332,7 +334,7 @@ class Product(object):
             # Use a helper function to deal with complex numbers
             netcdf.set_variable(
                 dataset, key, variable, list(form['dimensions']),
-                attributes=form)
+                attributes=form, default_complevel=default_complevel)
 
     def get_biggest_var(self):
         var_names = [key for key, attr in self.VARIABLES.items()

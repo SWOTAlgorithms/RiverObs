@@ -25,7 +25,8 @@ def get_fill(dtype):
     return FILL_VALUES[dtype_str]
 
 
-def set_variable(dataset, key, array, dimensions, attributes=None):
+def set_variable(
+    dataset, key, array, dimensions, attributes=None, default_complevel=None):
     '''Set the NetCDF variable, dealing with complex numbers.
 
     If array is complex, it is stored in the dataset with a third dimension,
@@ -43,7 +44,7 @@ def set_variable(dataset, key, array, dimensions, attributes=None):
         if 'complex' in array.dtype.name:
             fill_value = np.real(fill_value)
 
-    complevel = attributes.get('complevel', None)
+    complevel = attributes.get('complevel', default_complevel)
 
     def _make_variable(key, data, dimensions, attributes=None, complevel=None):
         dtype = data.dtype
