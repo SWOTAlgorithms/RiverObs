@@ -454,8 +454,6 @@ class ReachDatabaseNodes(Product):
     def __call__(self, reach_id):
         """Returns dict-o-stuff for reach_id"""
         mask = self.reach_id == reach_id
-        if reach_id % 10 != 6:
-            mask = np.logical_and(mask, self.width > 1)
         outputs = {
             key: self[key][..., mask] for key in self.VARIABLES.keys()}
         return outputs
