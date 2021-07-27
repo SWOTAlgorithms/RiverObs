@@ -318,6 +318,9 @@ class L2HRRiverTile(Product):
                     node_outputs['ice_clim_f'] = np.insert(
                         node_outputs['ice_clim_f'], insert_idx,
                         reach.metadata['iceflag'])
+                    node_outputs['river_name'] = np.insert(
+                        node_outputs['river_name'], insert_idx,
+                        reach.river_name[rch_idx])
 
                     for key in ['nobs', 'nobs_h', 'node_blocked']:
                         node_outputs[key] = np.insert(
@@ -386,6 +389,8 @@ class L2HRRiverTile(Product):
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
+                reach_outputs['river_name'] = np.append(
+                    reach_outputs['river_name'], reach.metadata['river_name'])
 
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
@@ -1512,6 +1517,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['p_n_ch_max'] = node_outputs['n_chan_max']
             klass['p_n_ch_mod'] = node_outputs['n_chan_mod']
             klass['ice_clim_f'] = node_outputs['ice_clim_f']
+            klass['river_name'] = node_outputs['river_name']
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length']:
@@ -3291,6 +3297,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
+            klass['river_name'] = reach_outputs['river_name']
 
 #             klass['dschg_c'] = ...
 #             klass['dschg_c_u'] = ...

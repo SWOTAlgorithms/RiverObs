@@ -248,7 +248,8 @@ class ReachExtractor(object):
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
                 'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
                 'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
-                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag', 'iceflag']
+                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag', 'iceflag',
+                'river_name']
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
@@ -266,10 +267,16 @@ class ReachExtractor(object):
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
                 'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef',
-                'ext_dist_coef']
+                'ext_dist_coef', 'river_name']
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}
+
+            # replace NODATA with no_data
+            node_metadata['river_name'][
+                node_metadata['river_name']=='NODATA'] = 'no_data'
+            if reach_metadata['river_name'] == 'NODATA':
+                reach_metadata['river_name'] = 'no_data'
 
             self.reach_idx.append(reach_idx)
             self.reach.append(RiverReach(
@@ -428,6 +435,8 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['ext_dist_coef',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['river_name',
+         odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     def subset(self, reach_ids):
@@ -456,7 +465,8 @@ class ReachDatabaseNodes(Product):
         for dset in [
                 'x', 'y', 'node_id', 'reach_id', 'node_length', 'wse',
                 'wse_var', 'width', 'width_var', 'n_chan_max', 'n_chan_mod',
-                'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef']:
+                'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef',
+                'river_name']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.ma.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -527,6 +537,8 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ICEFLAG]])],
         ['cl_ids',
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_CLIDS]])],
+        ['river_name',
+         odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
 
     def subset(self, reach_ids):
@@ -557,7 +569,8 @@ class ReachDatabaseReaches(Product):
         for dset in ['x', 'x_min', 'x_max', 'y', 'y_min', 'y_max', 'reach_id',
                     'reach_length', 'n_nodes', 'wse', 'wse_var', 'width',
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
-                    'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag']:
+                    'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag',
+                    'river_name']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 

@@ -1230,7 +1230,8 @@ class SWOTRiverEstimator(SWOTL2):
             'prior_node_ss': prior_s,
             'node_ss': prior_s[self.river_obs.populated_nodes],
             'populated_nodes': self.river_obs.populated_nodes,
-            'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape)
+            'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape),
+            'river_name': reach.river_name[self.river_obs.populated_nodes]
         }
 
         if xtrack_median is not None:
@@ -1434,6 +1435,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
         reach_stats['ice_clim_f'] = reach.metadata['iceflag']
+        reach_stats['river_name'] = reach.metadata['river_name']
 
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
