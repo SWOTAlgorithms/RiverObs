@@ -377,10 +377,6 @@ class Product(object):
                 # Use a helper function to deal with complex numbers
                 variable = netcdf.get_variable(dataset, key)
                 setattr(self, key, variable)
-                for attribute in dataset[key].ncattrs():
-                    if attribute in self.VARIABLES[key]:
-                        self.VARIABLES[key][attribute] = dataset[key].getncattr(
-                            attribute)
             else:
                 warnings.warn(FIELD_WARNING.format(key, type(self).__name__))
         for key, group in dataset.groups.items():
