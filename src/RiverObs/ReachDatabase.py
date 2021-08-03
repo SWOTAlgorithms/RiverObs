@@ -439,6 +439,10 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
+
     def subset(self, reach_ids):
         """Subsets the PRD nodes by reach_ids"""
         klass = ReachDatabaseNodes()
@@ -538,6 +542,10 @@ class ReachDatabaseReaches(Product):
         ['river_name',
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
 
     def subset(self, reach_ids):
         """Subsets the PRD reaches by reach_ids"""
@@ -690,8 +698,13 @@ class ReachDatabaseReachMetroMan(Product):
         ['ninf_p_cor', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['p_Abar_cor', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['ninf_Abar_cor', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
     GROUPS = odict([])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachMetroMan by reach_ids"""
@@ -726,8 +739,13 @@ class ReachDatabaseReachBAM(Product):
     VARIABLES = odict([
         ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
     GROUPS = odict([])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachBAM by reach_ids"""
@@ -762,8 +780,13 @@ class ReachDatabaseReachHiVDI(Product):
         ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['alpha', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['beta', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
     GROUPS = odict([])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachHiVDI by reach_ids"""
@@ -801,6 +824,10 @@ class ReachDatabaseReachMOMMA(Product):
         ])
     GROUPS = odict([])
 
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
+
     def subset(self, mask):
         """Subsets ReachDatabaseReachMOMMA by reach_ids"""
         klass = ReachDatabaseReachMOMMA()
@@ -833,8 +860,13 @@ class ReachDatabaseReachSADS(Product):
     VARIABLES = odict([
         ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
     GROUPS = odict([])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachSADS by reach_ids"""
@@ -860,8 +892,6 @@ class ReachDatabaseReachSADS(Product):
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
-
-
 
 class ReachDatabaseReachAreaFits(Product):
     """class for prior reach database reach area_fits datagroup"""

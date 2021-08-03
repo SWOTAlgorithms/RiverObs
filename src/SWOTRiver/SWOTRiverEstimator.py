@@ -1437,6 +1437,20 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['ice_clim_f'] = reach.metadata['iceflag']
         reach_stats['river_name'] = reach.metadata['river_name']
 
+        dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
+        dsch_m_c = reach.metadata['discharge_models']['constrained']
+
+        reach_stats['dschg_msf'] = dsch_m_uc['MetroMan']['sbQ_rel']
+        reach_stats['dschg_bsf'] = dsch_m_uc['BAM']['sbQ_rel']
+        reach_stats['dschg_hsf'] = dsch_m_uc['HiVDI']['sbQ_rel']
+#         reach_stats['dschg_osf'] = dsch_m_uc['MOMMA']['sbQ_rel']
+        reach_stats['dschg_ssf'] = dsch_m_uc['SADS']['sbQ_rel']
+
+        reach_stats['dschg_gmsf'] = dsch_m_c['MetroMan']['sbQ_rel']
+        reach_stats['dschg_gbsf'] = dsch_m_c['BAM']['sbQ_rel']
+        reach_stats['dschg_ghsf'] = dsch_m_c['HiVDI']['sbQ_rel']
+#         reach_stats['dschg_gosf'] = dsch_m_c['MOMMA']['sbQ_rel']
+        reach_stats['dschg_gssf'] = dsch_m_c['SADS']['sbQ_rel']
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
 
