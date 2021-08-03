@@ -117,31 +117,33 @@ def get_variable(dataset, key):
     if variable.dimensions[0] in DEPTH_DIMNAMES and variable.shape[0] == 2:
         tmp = np.ma.MaskedArray(variable[0] + 1j*variable[1])
         return tmp
-    if variable.dimensions[-1] in DEPTH_DIMNAMES and variable.shape[-1] == 2:
-        n_bytes = int(variable.dtype.itemsize*2)
-        complex_type = np.dtype('c'+str(n_bytes))
-        tmp = variable[:]
-        fill_value = get_fill(complex_type)
-        mask = None
-        if isinstance(tmp, np.ma.MaskedArray):
-            # Somehow MaskedArray.view() doesn't work, so convert to a normal
-            # array.
-            # Keep the current fill value and mask, TODO: use default fill?
-            fill_value = tmp.fill_value
-            # Assume the real mask matches the imaginary mask
-            if isinstance(tmp.mask, np.ndarray):
-                mask = tmp.mask[..., 0]
-            else:
-                mask = tmp.mask
-            tmp = tmp.data
-        # Make the data complex
-        tmp = tmp.view(dtype=complex_type).squeeze()
-        # Turn back into a masked array and re-fill
-        tmp = tmp.view(np.ma.MaskedArray)
-        tmp.set_fill_value(fill_value)
-        if mask is not None:
-            tmp[mask] = np.ma.masked
-        return tmp
+    # Only attempt to deconstruct complex datatypes from floats
+    if np.issubdtype(variable.dtype, np.floating):
+        if variable.dimensions[-1] in DEPTH_DIMNAMES and variable.shape[-1] == 2:
+            n_bytes = int(variable.dtype.itemsize*2)
+            complex_type = np.dtype('c'+str(n_bytes))
+            tmp = variable[:]
+            fill_value = get_fill(complex_type)
+            mask = None
+            if isinstance(tmp, np.ma.MaskedArray):
+                # Somehow MaskedArray.view() doesn't work, so convert to a normal
+                # array.
+                # Keep the current fill value and mask, TODO: use default fill?
+                fill_value = tmp.fill_value
+                # Assume the real mask matches the imaginary mask
+                if isinstance(tmp.mask, np.ndarray):
+                    mask = tmp.mask[..., 0]
+                else:
+                    mask = tmp.mask
+                tmp = tmp.data
+            # Make the data complex
+            tmp = tmp.view(dtype=complex_type).squeeze()
+            # Turn back into a masked array and re-fill
+            tmp = tmp.view(np.ma.MaskedArray)
+            tmp.set_fill_value(fill_value)
+            if mask is not None:
+                tmp[mask] = np.ma.masked
+            return tmp
     variable = variable[:]
     if isinstance(variable, np.ma.MaskedArray):
         return variable
