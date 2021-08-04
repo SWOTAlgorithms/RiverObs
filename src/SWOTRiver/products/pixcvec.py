@@ -86,6 +86,14 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                 The range spacing (m) corresponding to the 200 MHz
                 sampling frequency""")}],
+        ['time_granule_start', {'dtype': 'str',
+            'docstr': textjoin("""
+                Nominal starting UTC time of product granule.
+                Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
+        ['time_granule_end', {'dtype': 'str',
+            'docstr': textjoin("""
+                Nominal ending UTC time of product granule.
+                Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
         ['time_coverage_start', {'dtype': 'str',
             'docstr': textjoin("""
                 UTC time of first measurement.
@@ -338,6 +346,7 @@ class L2PIXCVector(Product):
             'outer_last_latitude', 'outer_last_longitude',
             'ellipsoid_semi_major_axis', 'ellipsoid_flattening',
             'near_range', 'nominal_slant_range_spacing',
+            'time_granule_start', 'time_granule_end',
             'time_coverage_start', 'time_coverage_end',
             'geospatial_lon_min', 'geospatial_lon_max',
             'geospatial_lat_min', 'geospatial_lat_max']
