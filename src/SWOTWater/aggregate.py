@@ -269,6 +269,7 @@ def area_only(
         water_edge_klass=PIXC_CLASSES['water_near_land'],
         land_edge_klass=PIXC_CLASSES['land_near_water'],
         dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        low_coherence_klass=PIXC_CLASSES['low_coherence_klasses'],
         method='composite'):
     """
     Return the aggregate height
@@ -306,12 +307,17 @@ def area_only(
         Idw_in[klass == dark_water_klass] = 1.0
         Idw[klass == dark_water_klass] = 1.0
 
+    # handle low-coherence classes like interior water
+    for low_coherence_klass in low_coherence_klasses:
+        Idw_in[klass == low_coherence_klass] = 1.0
+        Idw[klass == low_coherence_klass] = 1.0
+
     Ide = np.zeros(np.shape(pixel_area))
     Ide[klass == water_edge_klass] = 1.0
     Ide[klass == land_edge_klass] = 1.0
 
     I = np.zeros(np.shape(pixel_area))
-    I[(Idw + Idw_in+ Ide) > 0] = 1.0 #all pixels near water
+    I[(Idw + Idw_in+ Ide) > 0] = 1.0  # all pixels near water
 
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
