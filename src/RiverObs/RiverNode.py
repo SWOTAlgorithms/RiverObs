@@ -353,9 +353,9 @@ class RiverNode:
                 self.darea_dheight, self.klass, self.false_detection_rate,
                 self.missed_detection_rate, good,
                 Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-                interior_water_klass=AGG_CLASSES['interior_water_klasses'],
-                water_edge_klass=AGG_CLASSES['water_edge_klasses'],
-                land_edge_klass=AGG_CLASSES['land_edge_klasses'],
+                interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+                water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+                land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
                 dark_water_klasses=[],
                 method=method)
 
