@@ -522,7 +522,6 @@ def area_with_uncert(
         water_edge_klasses=water_edge_klasses,
         land_edge_klasses=land_edge_klasses, 
         dark_water_klasses=dark_water_klasses,
-        low_coherence_klasses=low_coherence_klasses,
         method=method)
 
     # normalize to get area percent error

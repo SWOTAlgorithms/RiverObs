@@ -19,15 +19,20 @@ PIXC_CLASSES = {
 AGG_CLASSES = {
     'interior_water_klasses':[
         PIXC_CLASSES['open_water'],
-        PIXC_CLASSES['low_coh_water'],],
+        #PIXC_CLASSES['low_coh_water'],
+        ],
     'water_edge_klasses':[
-        PIXC_CLASSES['water_near_land'],],
+        PIXC_CLASSES['water_near_land'],
+        ],
     'land_edge_klasses':[
-        PIXC_CLASSES['land_near_water'],],
+        PIXC_CLASSES['land_near_water'],
+        ],
     'dark_water_klasses':[
         PIXC_CLASSES['dark_water'],
         PIXC_CLASSES['land_near_dark_water'],
-        PIXC_CLASSES['dark_water_near_land'],]
+        PIXC_CLASSES['dark_water_near_land'],
+        PIXC_CLASSES['dark_water_legacy'],
+        ]
     }
 
 GDEM_PIXC_CLASSES = {
