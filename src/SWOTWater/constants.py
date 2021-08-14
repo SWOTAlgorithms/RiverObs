@@ -16,13 +16,22 @@ PIXC_CLASSES = {
     'dark_water_legacy': 24 # legacy/depreciated
     }
 
+# TODO: figure out how we want to aggregate low-coherence water near shore
+#       When coherence is low, but it is bright it is likley due to layover
+#       in which case the water fraction may be bad, but so is the total area
+#       since there is water from two areas on the ground...
+#       for now just aggregate the pixel area so it will only map to the one
+#       ground-plane area that it is assigned to,mwhile the other laid-over
+#       water will just be missing 
 AGG_CLASSES = {
     'interior_water_klasses':[
         PIXC_CLASSES['open_water'],
-        #PIXC_CLASSES['low_coh_water'],
+        PIXC_CLASSES['low_coh_water'],
+        PIXC_CLASSES['low_coh_water_near_land'], # TODO: do we want this?
         ],
     'water_edge_klasses':[
         PIXC_CLASSES['water_near_land'],
+        #PIXC_CLASSES['low_coh_water_near_land'], # TODO: do we want this?
         ],
     'land_edge_klasses':[
         PIXC_CLASSES['land_near_water'],
