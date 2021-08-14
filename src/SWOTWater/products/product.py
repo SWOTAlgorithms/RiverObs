@@ -70,9 +70,10 @@ class Product(object):
     DIMENSIONS = odict()
     VARIABLES = odict()
     GROUPS = odict()
+    DEFAULT_COMPLEVEL = None
     ATTRS = [
         'ATTRIBUTES', 'DIMENSIONS', 'VARIABLES', 'GROUPS', '_attributes',
-        '_variables', '_groups']
+        '_variables', '_groups', 'DEFAULT_COMPLEVEL']
 
     def __init__(self):
         # These hold what actually exists in memory
@@ -278,8 +279,9 @@ class Product(object):
 
     def to_ncfile(self, filename):
         """Write self to a netCDF file."""
+        default_complevel = getattr(self, 'DEFAULT_COMPLEVEL', None)
         dataset = nc.Dataset(filename, 'w')
-        self.to_dataset(dataset)
+        self.to_dataset(dataset, default_complevel=default_complevel)
         dataset.sync()
         dataset.close()
 
@@ -310,14 +312,15 @@ class Product(object):
             else:
                 variable.data.tofile(os.path.join(folder, key))
 
-    def to_dataset(self, dataset):
+    def to_dataset(self, dataset, default_complevel=None):
         """Store self in a NetCDF dataset/group.
 
         Will recursively store groups in self under dataset."""
         for key in self.GROUPS:
             netcdf_group = dataset.createGroup(key)
             # Recursively add the group members
-            self[key].to_dataset(netcdf_group)
+            self[key].to_dataset(
+                netcdf_group, default_complevel=default_complevel)
         for key in self.ATTRIBUTES:
             value = self[key]
             if value is None:
@@ -332,7 +335,7 @@ class Product(object):
             # Use a helper function to deal with complex numbers
             netcdf.set_variable(
                 dataset, key, variable, list(form['dimensions']),
-                attributes=form)
+                attributes=form, default_complevel=default_complevel)
 
     def get_biggest_var(self):
         var_names = [key for key, attr in self.VARIABLES.items()
@@ -441,8 +444,8 @@ class Product(object):
                     continue
 
                 if dset in ['reach_id', 'node_id', 'rch_id_dn',
-                            'rch_id_up', 'time_str', 't_str_avg', 't_str_min',
-                            't_str_max', 't_str_med']:
+                            'rch_id_up', 'time_str', 't_str_avg', 't_str_hmin',
+                            't_str_hmax', 't_str_hmed']:
                     attrs['type'] = 'text'
                     if dset in ['reach_id', 'node_id']:
                         attrs.pop("_FillValue", None)
@@ -536,7 +539,7 @@ class Product(object):
                     5*INDENT+'<annotation app="conformance" %s/>' % annotations,
                     4*INDENT+'</char>\n'])
 
-            elif type_str[1] == 'S':
+            elif type_str[1] in ('S', 'U'):
                 width = int(type_str[2])
                 string = '\n'.join([
                     4*INDENT+'<string name="%s" shape="%s" width="%d">' % (
@@ -627,12 +630,26 @@ class Product(object):
 
         valid = np.logical_and(value != fill, ~np.isnan(value))
         quantized_values = quantized_fill * np.ones(value.shape)
-        quantized_values[valid] = (
-            (value[valid]-add_offset) / scale_factor).astype(dtype)
+
+        if dtype[0] in ['i', 'u']:
+            # round integers to nearest int versus just typecast
+            quantized_values[valid] = np.round(
+                (value[valid]-add_offset) / scale_factor).astype(dtype)
+        else:
+            quantized_values[valid] = (
+                (value[valid]-add_offset) / scale_factor).astype(dtype)
+
         out_value = np.ma.masked_array(
             data=quantized_values, dtype=dtype, fill_value=quantized_fill,
             mask=np.logical_not(valid))
         self[my_var] = out_value
+
+    def requantize(self):
+        """Calls quantize_from on all variables that are quantized"""
+        for var in self.VARIABLES:
+            scale_factor = self.VARIABLES[var].get('scale_factor', 1)
+            if scale_factor != 1:
+                self.quantize_from(var, self[var])
 
     def cast(self):
         for group in self.GROUPS:

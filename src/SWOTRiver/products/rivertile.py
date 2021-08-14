@@ -68,8 +68,10 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': 'Cycle number of the product granule.'}],
     ['pass_number', {'dtype': 'i2',
         'docstr': 'Pass number of the product granule.'}],
-    ['continent', {'dtype': 'str',
-        'docstr': 'Continent the product belongs to.'}],
+    ['continent_id', {'dtype': 'str',
+        'docstr': 'Continent identifier of the product granule.'}],
+    ['continent_code', {'dtype': 'str',
+        'docstr': 'Continent code of the product granule.'}],
     ['tile_number', {'dtype': 'i2',
         'docstr': 'Tile number in the pass of the product granule.'}],
     ['swath_side', {'dtype': 'str',
@@ -99,13 +101,21 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
         'docstr': textjoin("""
             Version identifier of the product generation executable (PGE)
             that created this file""")}],
+    ['time_granule_start', {'dtype': 'str',
+        'docstr': textjoin("""
+            Nominal starting UTC time of product granule.
+            Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
+    ['time_granule_end', {'dtype': 'str',
+        'docstr': textjoin("""
+            Nominal ending UTC time of product granule.
+            Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
     ['time_coverage_start', {'dtype': 'str',
         'docstr': textjoin("""
-            UTC time of first measurement.
+            UTC time of first measurement in product granule.
             Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
     ['time_coverage_end', {'dtype': 'str',
         'docstr': textjoin("""
-            UTC time of last measurement.
+            UTC time of last measurement in product granule.
             Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
     ['geospatial_lon_min',  {'dtype': 'f8',
         'docstr': "Westernmost longitude (deg) of granule bounding box"}],
@@ -199,7 +209,7 @@ RIVER_PRODUCT_ATTRIBUTES = odict([
 ATTRIBUTE_KEYS2POP = [
     "_".join([a, b, c]) for a in ['right', 'left'] for b in ['first', 'last']
     for c in ['latitude', 'longitude']] + [
-        'xref_l2_hr_rivertile_files', 'continent']
+        'xref_l2_hr_rivertile_files', 'continent_id', 'continent_code']
 
 RIVERTILE_ATTRIBUTES = RIVER_PRODUCT_ATTRIBUTES.copy()
 
@@ -521,13 +531,9 @@ class ShapeWriterMixIn(object):
                         pass
 
                 my_vars[key] = value.copy()
-                if key in ['time_str', 't_str_avg', 't_str_min', 't_str_med',
-                           't_str_max']:
+                if key in ['time_str', 't_str_avg', 't_str_hmin', 't_str_hmed',
+                           't_str_hmax']:
                     my_vars[key]['fill_value'] = 'no_data'
-
-                # remove these fill values
-                if key in ['rdr_pol',]:
-                    my_vars[key].pop('fill_value')
 
             for dset, attr_dict in my_vars.items():
                 ofp.write('    <{}>\n'.format(dset))
@@ -546,7 +552,7 @@ class ShapeWriterMixIn(object):
 
         properties = odict()
         for key, var in self.VARIABLES.items():
-            if key in ['rdr_pol', 'reach_id', 'node_id']:
+            if key in ['rdr_pol', 'reach_id', 'node_id', 'river_name']:
                 schema = 'str'
             else:
                 schema = self.get_schema(
@@ -566,8 +572,8 @@ class ShapeWriterMixIn(object):
 
         # add time-string
         properties_ = properties.copy()
-        for key in ['time_str', 't_str_avg', 't_str_med', 't_str_min',
-                    't_str_max']:
+        for key in ['time_str', 't_str_avg', 't_str_hmed', 't_str_hmin',
+                    't_str_hmax']:
             if key in properties:
                 properties[key] = 'str'
 
@@ -606,9 +612,9 @@ class ShapeWriterMixIn(object):
 
                         this_property[key] = ' '.join(strings)
 
-                    elif key in ['reach_id', 'node_id']:
+                    elif key in ['reach_id', 'node_id', 'river_name']:
                         if this_item[ii] == self.VARIABLES[key]['_FillValue']:
-                            this_item[ii] = 'no_data'
+                            this_property[key] = 'no_data'
                         else:
                             this_property[key] = str(this_item[ii])
 
@@ -637,8 +643,8 @@ class ShapeWriterMixIn(object):
                 # add time-string
                 time_string_vars = {
                     'time': 'time_str', 't_avg': 't_str_avg',
-                    't_hmin': 't_str_min', 't_hmax': 't_str_max',
-                    't_hmed': 't_str_med'}
+                    't_hmin': 't_str_hmin', 't_hmax': 't_str_hmax',
+                    't_hmed': 't_str_hmed'}
                 for in_dset, out_dset in time_string_vars.items():
                     if in_dset in this_property:
                         try:
@@ -800,6 +806,17 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Total one-sigma uncertainty in the longitude of the
                     centroid of water-detected pixels assigned to the node.
                     """)],
+                ])],
+        ['river_name',
+         odict([['dtype', 'U254'],
+                ['long_name', 'river name(s)'],
+                ['_FillValue', 'no_data'],
+                ['tag_basic_expert','Basic'],
+                ['comment', textjoin("""
+                    English language name(s) of the river from the prior river
+                    database, which adapts the name(s) from Open Street Map.
+                    If there are multiple names, they are separated by a
+                    forward slash.""")],
                 ])],
         ['lat_prior',
          odict([['dtype', 'f8'],
@@ -1692,6 +1709,17 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     to the east and more negative to the west of the Prime
                     Meridian.""")],
                 ])],
+        ['river_name',
+         odict([['dtype', 'U100'],
+                ['long_name', 'river name(s)'],
+                ['_FillValue', 'no_data'],
+                ['tag_basic_expert','Basic'],
+                ['comment', textjoin("""
+                    English language name(s) of the river from the prior river
+                    database, which adapts the name(s) from Open Street Map.
+                    If there are multiple names, they are separated by a
+                    forward slash.""")],
+                ])],
         ['wse',
          odict([['dtype', 'f8'],
                 ['long_name',
@@ -2034,8 +2062,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the
-                    consensus algorithm.""")],
+                    Total uncertainty in the discharge from the consensus
+                    algorithm as an absolute quantity.""")],
+                ])],
+        ['dschg_csf',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'fractional systematic uncertainty in consensus discharge'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the consensus algorithm as a fractional quantity.""")],
                 ])],
         ['dschg_c_q',
          odict([['dtype', 'i4'],
@@ -2078,8 +2120,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the gauge-constrained
-                    consensus algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    gauge-constrained consensus algorithm as an absolute
+                    quantity.""")],
+                ])],
+        ['dschg_gcsf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    consensus discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained consensus algorithm as a
+                    fractional quantity.""")],
                 ])],
         ['dschg_gc_q',
          odict([['dtype', 'i4'],
@@ -2122,8 +2181,23 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the
-                    MetroMan algorithm.""")],
+                    Total uncertainty in the discharge from the MetroMan
+                    algorithm as an absolute quanitty.""")],
+                ])],
+        ['dschg_msf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in MetroMan discharge
+                    """)],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the MetroMan algorithm as a fractional quantity.""")],
                 ])],
         ['dschg_m_q',
          odict([['dtype', 'i4'],
@@ -2166,8 +2240,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the gauge-constrained
-                    MetroMan algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    gauge-constrained MetroMan algorithm as an absolute
+                    quantity.""")],
+                ])],
+        ['dschg_gmsf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    MetroMan discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained MetroMan algorithm as a
+                    fractional quantity.""")],
                 ])],
         ['dschg_gm_q',
          odict([['dtype', 'i4'],
@@ -2210,8 +2301,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the
-                    BAM algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    BAM algorithm as an absolute quantity.""")],
+                ])],
+        ['dschg_bsf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in BAM discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the BAM algorithm as a fractional quantity.""")],
                 ])],
         ['dschg_b_q',
          odict([['dtype', 'i4'],
@@ -2254,8 +2359,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the gauge-constrained
-                    BAM algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    gauge-constrained BAM algorithm as an absolute quantity.
+                    """)],
+                ])],
+        ['dschg_gbsf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    BAM discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained BAM algorithm as a fractional
+                    quantity.""")],
                 ])],
         ['dschg_gb_q',
          odict([['dtype', 'i4'],
@@ -2298,8 +2420,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the
-                    HiVDI algorithm.""")],
+                    Total uncertainty in the discharge from the HiVDI
+                    algorithm as an absolute quantity.""")],
+                ])],
+        ['dschg_hsf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in HiVDI discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the HiVDI algorithm as a fractional quantity.""")],
                 ])],
         ['dschg_h_q',
          odict([['dtype', 'i4'],
@@ -2342,8 +2478,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the gauge-constrained
-                    HiVDI algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    gauge-constrained HiVDI algorithm as an absolute
+                    quantity.""")],
+                ])],
+        ['dschg_ghsf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    HiVDI discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained HiVDI algorithm as a fractional
+                    quantity.""")],
                 ])],
         ['dschg_gh_q',
          odict([['dtype', 'i4'],
@@ -2386,8 +2539,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the
-                    MOMMA algorithm.""")],
+                    Total uncertainty in the discharge from the MOMMA algorithm
+                    as an absolute quantity.""")],
+                ])],
+        ['dschg_osf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in MOMMA discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the MOMMA algorithm as a fractional quantity.""")],
                 ])],
         ['dschg_o_q',
          odict([['dtype', 'i4'],
@@ -2430,8 +2597,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the gauge-constrained
-                    MOMMA algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    gauge-constrained MOMMA algorithm as an absolute
+                    quantity.""")],
+                ])],
+        ['dschg_gosf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    MOMMA discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained MOMMA algorithm as a fractional
+                    quantity.""")],
                 ])],
         ['dschg_go_q',
          odict([['dtype', 'i4'],
@@ -2474,8 +2658,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the
-                    SADS algorithm.""")],
+                    Total uncertainty in the discharge from the SADS algorithm
+                    as an absolute quantity.""")],
+                ])],
+        ['dschg_ssf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in SADS discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the SADS algorithm as a fractional quantity.""")],
                 ])],
         ['dschg_s_q',
          odict([['dtype', 'i4'],
@@ -2518,8 +2716,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Uncertainty in the discharge from the gauge-constrained
-                    SADS algorithm.""")],
+                    Total uncertainty in the discharge from the
+                    gauge-constrained SADS algorithm as an absolute
+                    quantity.""")],
+                ])],
+        ['dschg_gssf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    SADS discharge""")],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained SADS algorithm as a fractional
+                    quantity.""")],
                 ])],
         ['dschg_gs_q',
          odict([['dtype', 'i4'],

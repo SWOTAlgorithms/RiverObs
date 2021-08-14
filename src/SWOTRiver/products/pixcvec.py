@@ -50,7 +50,7 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                 UTC time when file generated. Format is:
                 'YYYY-MM-DD hh:mm:ss : Creation' """)}],
-        ['platform', {'dtype': 'str' ,'value':'SWOT','docstr': 'SWOT'}],
+        ['platform', {'dtype': 'str' ,'value':'SWOT', 'docstr': 'SWOT'}],
         ['references', {'dtype': 'str',
             'docstr': textjoin("""
                 Published or web-based references that describe
@@ -80,12 +80,36 @@ class L2PIXCVector(Product):
                 pass number with leading zeros, TTT is a 3 digit tile number
                 within the pass, and S is a character 'L' or 'R' for the left
                 and right swath, respectively.""")}],
+        ['short_name', {'dtype': 'str',
+            'docstr': 'L2_HR_PIXCVecRiver', 'value': 'L2_HR_PIXCVecRiver'}],
         ['near_range', {'dtype': 'f8',
             'docstr': 'The slant range (m) for the first image pixel.'}],
         ['nominal_slant_range_spacing', {'dtype': 'f8',
             'docstr': textjoin("""
                 The range spacing (m) corresponding to the 200 MHz
                 sampling frequency""")}],
+        ['crid', {'dtype': 'str',
+            'docstr': textjoin("""
+                Composite release identifier (CRID) of the data system used to
+                generate this file""")}],
+        ['product_version', {'dtype': 'str',
+            'docstr': 'Version identifier of this data file'}],
+        ['pge_name', {'dtype': 'str',
+            'docstr': textjoin("""
+                Name of the product generation executable (PGE) that created
+                this file""")}],
+        ['pge_version', {'dtype': 'str',
+            'docstr': textjoin("""
+                Version identifier of the product generation executable (PGE)
+                that created this file""")}],
+        ['time_granule_start', {'dtype': 'str',
+            'docstr': textjoin("""
+                Nominal starting UTC time of product granule.
+                Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
+        ['time_granule_end', {'dtype': 'str',
+            'docstr': textjoin("""
+                Nominal ending UTC time of product granule.
+                Format is: YYYY-MM-DDThh:mm:ss.ssssssZ""")}],
         ['time_coverage_start', {'dtype': 'str',
             'docstr': textjoin("""
                 UTC time of first measurement.
@@ -338,6 +362,7 @@ class L2PIXCVector(Product):
             'outer_last_latitude', 'outer_last_longitude',
             'ellipsoid_semi_major_axis', 'ellipsoid_flattening',
             'near_range', 'nominal_slant_range_spacing',
+            'time_granule_start', 'time_granule_end',
             'time_coverage_start', 'time_coverage_end',
             'geospatial_lon_min', 'geospatial_lon_max',
             'geospatial_lat_min', 'geospatial_lat_max']

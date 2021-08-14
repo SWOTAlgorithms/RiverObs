@@ -246,7 +246,6 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     if title is not None:
         axis.set_title(title)
 
-
 def plot_pix_assgn(data, reach_id, axis, style='.'):
     # plot the pixel assignment
     # to do: find a way to either loop colourmap or find one with one colour per node
@@ -326,6 +325,7 @@ def plot_locations(data, truth, reach_id, axis, plot_prior=True, gdem_dem_file=N
     axis.set_ylabel('latitude')
     if title is not None:
         axis.set_title(title)
+
 
 
 def get_passfail_color(error_value, parameter):

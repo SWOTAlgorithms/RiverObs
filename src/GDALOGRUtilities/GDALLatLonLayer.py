@@ -234,7 +234,7 @@ class GDALLatLonLayer:
                 if i < 0: i = 0
                 if j < 0: j = 0
                 if i >= self.data.shape[0]: i = self.data.shape[0] - 1
-                if j >= self.data.shape[1]: i = self.data.shape[1] - 1
+                if j >= self.data.shape[1]: j = self.data.shape[1] - 1
 
         return i, j
 

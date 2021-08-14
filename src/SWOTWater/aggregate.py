@@ -12,11 +12,14 @@ All rights reserved.
 Author (s): Brent Williams
 '''
 
+import sys
 import numpy as np
 import scipy.stats
+
 from scipy import interpolate
 
 from SWOTWater.constants import AGG_CLASSES
+FLOAT_EPS = sys.float_info.epsilon
 
 def simple(in_var, metric='mean', pcnt=68):
     """
@@ -47,7 +50,7 @@ def sig0_with_uncerts(
         num_rare_looks=1.0, num_med_looks=1.0,  method='rare'):
     """
     Return the aggregate sig0, sample std, and estimate of uncert
-    implements methods: rare (default), medium which is the assumtption
+    implements methods: rare (default), medium which is the assumption
     of the kind of sig0 input from the pixel cloud.
 
     INPUTS:
@@ -133,7 +136,7 @@ def height_uncert_std(
         height, good, num_rare_looks, num_med_looks, height_std=1.0,
         method='weight'):
     """
-    Compute the sample standard devieation of the heights and scale by the
+    Compute the sample standard deviation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
     correlated
 
@@ -149,7 +152,7 @@ def height_uncert_std(
     """
     # need to do a weighted sample std when aggregating with weights
     # TODO: for median, should probably throw out outliers...
-    weight = np.ones(np.shape(height))# default to uniform
+    weight = np.ones(np.shape(height))  # default to uniform
     if method == 'weight':
         weight = np.ones(np.shape(height))/(height_std)**2
     height_agg = simple(weight[good]*height[good], metric='sum')
@@ -158,12 +161,13 @@ def height_uncert_std(
     height_agg2 = simple(
         weight[good]*(height[good]-height_mean)**2.0, metric='sum')
     h_std = np.sqrt(height_agg2/weight_sum)
-    
+
     num_pixels = simple(height[good], metric='count')
     # num_med_looks is rare_looks*num_pix_in_adaptive_window,
     # so need to normalize out rare to get number of independent pixels
     num_ind_pixels = simple(num_med_looks[good]/num_rare_looks[good],'mean')
     height_std_out = h_std * np.sqrt(num_ind_pixels/num_pixels)
+
     return height_std_out
 
 def height_uncert_multilook(
@@ -189,11 +193,11 @@ def height_uncert_multilook(
                         method
 
     Reference: implements square root of Eq. (7) in
-    "SWOT Hydrology Height and Area Uncertainty Estimation," 
+    "SWOT Hydrology Height and Area Uncertainty Estimation,"
     Brent Williams, 2018, JPL Memo
     """
     # multilook the rare interferogram over the raster bin
-    #  by averaging cerain fields
+    #  by averaging certain fields
     agg_real = simple(np.real(ifgram[good])*weight_norm[good])
     agg_imag = simple(np.imag(ifgram[good])*weight_norm[good])
     agg_p1 = simple(power1[good]*weight_norm[good])
@@ -211,6 +215,9 @@ def height_uncert_multilook(
 
     # get phase noise variance using CRB
     phase_var = (0.5 / num_looks) * (1.0-coh**2)/(coh**2)
+    # TODO: Probably want to set a more reasonable phase variance
+    if phase_var < FLOAT_EPS: phase_var = FLOAT_EPS
+
     agg_dh_dphi = simple(dh_dphi[good]*weight_norm[good])
     agg_dh_dphi2 = simple(dh_dphi[good]**2*weight_norm[good])
 
@@ -309,7 +316,7 @@ def area_only(
         Idw[klass == dark_water_klass] = 1.0
 
     I = np.zeros(np.shape(pixel_area))
-    I[(Idw + Idw_in+ Ide) > 0] = 1.0 #all pixels near water
+    I[(Idw + Idw_in+ Ide) > 0] = 1.0  # all pixels near water
 
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
@@ -351,6 +358,7 @@ def area_uncert(
     Brent Williams, 2018, JPL Memo
     
     TODO: add dark water uncertainty estimate
+    TODO: add low coherence uncertainty estimate
     '''
     # get indicator functions
     Ide = np.zeros(np.shape(pixel_area))
@@ -407,7 +415,7 @@ def area_uncert(
         var_pix_area_dw_bar = simple(
             var_pix_area_dw[good]*I[good], metric='sum')
 
-        # the detection and assignement rate uncertainty to be aggregated
+        # the detection and assignment rate uncertainty to be aggregated
         # 3rd term in Eq. 12
         var_area_dw = pixel_area**2 * V_dwf
         var_area_dw_bar = simple(var_area_dw[good] * I[good], metric='sum')
@@ -514,6 +522,7 @@ def area_with_uncert(
         water_edge_klasses=water_edge_klasses,
         land_edge_klasses=land_edge_klasses, 
         dark_water_klasses=dark_water_klasses,
+        low_coherence_klasses=low_coherence_klasses,
         method=method)
 
     # normalize to get area percent error
