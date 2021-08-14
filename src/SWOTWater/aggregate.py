@@ -16,7 +16,7 @@ import numpy as np
 import scipy.stats
 from scipy import interpolate
 
-from SWOTWater.constants import PIXC_CLASSES
+from SWOTWater.constants import AGG_CLASSES
 
 def simple(in_var, metric='mean', pcnt=68):
     """
@@ -259,10 +259,10 @@ def height_with_uncerts(
 
 def area_only(
         pixel_area, water_fraction, klass, good,
-        interior_water_klass=PIXC_CLASSES['open_water'],
-        water_edge_klass=PIXC_CLASSES['water_near_land'],
-        land_edge_klass=PIXC_CLASSES['land_near_water'],
-        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+        water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+        land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+        dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
     """
     Return the aggregate height
@@ -286,23 +286,27 @@ def area_only(
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
     
-    Updated to handle dark classes like interior water
+    Updated to handle multiple class mappings for interior, edges, and dark
     """
     Idw_in = np.zeros(np.shape(pixel_area))
-    Idw_in[klass == interior_water_klass] = 1.0
-
     Idw = np.zeros(np.shape(pixel_area))
-    Idw[klass == interior_water_klass] = 1.0
-    Idw[klass == water_edge_klass] = 1.0
+    Ide = np.zeros(np.shape(pixel_area))
+
+    for interior_water_klass in interior_water_klasses:
+        # these should include all pixels aggregated as entirely water
+        # including: dark water, low-coherence water etc...
+        Idw_in[klass == interior_water_klass] = 1.0
+        Idw[klass == interior_water_klass] = 1.0
+    for water_edge_klass in water_edge_klasses:
+        Idw[klass == water_edge_klass] = 1.0
+        Ide[klass == water_edge_klass] = 1.0
+    for land_edge_klass in land_edge_klasses:
+        Ide[klass == land_edge_klass] = 1.0
 
     # handle current and legacy dark water classes like interior water
     for dark_water_klass in dark_water_klasses:
         Idw_in[klass == dark_water_klass] = 1.0
         Idw[klass == dark_water_klass] = 1.0
-
-    Ide = np.zeros(np.shape(pixel_area))
-    Ide[klass == water_edge_klass] = 1.0
-    Ide[klass == land_edge_klass] = 1.0
 
     I = np.zeros(np.shape(pixel_area))
     I[(Idw + Idw_in+ Ide) > 0] = 1.0 #all pixels near water
@@ -327,10 +331,10 @@ def area_only(
 def area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5,Ptf=0.5, ref_dem_std=10,
-        interior_water_klass=PIXC_CLASSES['open_water'],
-        water_edge_klass=PIXC_CLASSES['water_near_land'],
-        land_edge_klass=PIXC_CLASSES['land_near_water'],
-        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+        water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+        land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+        dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
     '''
     Ie  = mask for edge pixels
@@ -350,13 +354,17 @@ def area_uncert(
     '''
     # get indicator functions
     Ide = np.zeros(np.shape(pixel_area))
-    Ide[klass == water_edge_klass] = 1.0
-    Ide[klass == land_edge_klass] = 1.0
+    for water_edge_klass in water_edge_klasses:
+        Ide[klass == water_edge_klass] = 1.0
+    for land_edge_klass in land_edge_klasses:
+        Ide[klass == land_edge_klass] = 1.0
+
     Pe = Ide # use detected edge asprobablity of true edge pixels...
 
     I = np.zeros(np.shape(pixel_area))
     I[Ide > 0] = 1.0
-    I[klass == interior_water_klass] = 1.0 #all pixels near water
+    for interior_water_klass in interior_water_klasses:
+        I[klass == interior_water_klass] = 1.0 #all pixels near water
 
     # get false and missed assignment rates from correct assignment rate 
     Pfa = 1 - Pca
@@ -486,24 +494,25 @@ def area_uncert(
 def area_with_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-        interior_water_klass=PIXC_CLASSES['open_water'],
-        water_edge_klass=PIXC_CLASSES['water_near_land'],
-        land_edge_klass=PIXC_CLASSES['land_near_water'],
-        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+        water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+        land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+        dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
 
     area_agg, num_pixels = area_only(
         pixel_area, water_fraction, klass, good, method=method,
-        interior_water_klass=interior_water_klass,
-        water_edge_klass=water_edge_klass,
-        land_edge_klass=land_edge_klass,
+        interior_water_klasses=interior_water_klasses,
+        water_edge_klasses=water_edge_klasses,
+        land_edge_klasses=land_edge_klasses,
         dark_water_klasses=dark_water_klasses)
 
     area_unc = area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
-        interior_water_klass=interior_water_klass,
-        water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
+        interior_water_klasses=interior_water_klasses,
+        water_edge_klasses=water_edge_klasses,
+        land_edge_klasses=land_edge_klasses, 
         dark_water_klasses=dark_water_klasses,
         method=method)
 
