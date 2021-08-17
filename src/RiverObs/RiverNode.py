@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import SWOTWater.aggregate as aggregate
-from SWOTWater.constants import PIXC_CLASSES
+from SWOTWater.constants import AGG_CLASSES
 
 class RiverNode:
     """
@@ -337,10 +337,10 @@ class RiverNode:
             self.darea_dheight, self.klass, self.false_detection_rate,
             self.missed_detection_rate, good,
             Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-            interior_water_klass=PIXC_CLASSES['open_water'],
-            water_edge_klass=PIXC_CLASSES['water_near_land'],
-            land_edge_klass=PIXC_CLASSES['land_near_water'],
-            dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+            interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+            water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+            land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+            dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
             method=method)
 
         width_area = area/self.ds
@@ -353,9 +353,9 @@ class RiverNode:
                 self.darea_dheight, self.klass, self.false_detection_rate,
                 self.missed_detection_rate, good,
                 Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-                interior_water_klass=PIXC_CLASSES['open_water'],
-                water_edge_klass=PIXC_CLASSES['water_near_land'],
-                land_edge_klass=PIXC_CLASSES['land_near_water'],
+                interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+                water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+                land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
                 dark_water_klasses=[],
                 method=method)
 
