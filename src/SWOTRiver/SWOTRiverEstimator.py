@@ -744,18 +744,20 @@ class SWOTRiverEstimator(SWOTL2):
             ireach_list.append(i_reach)
 
         # Ensure unique and optimal assignments of pixels to reach.
-        min_dist = 9999999 * np.ones(self.x.shape)
+        tile_centerline = Centerline(node_x_list, node_y_list, k=3)
+        tile_i, tile_d, tile_x, tile_y, tile_s, tile_n = tile_centerline.to_centerline(self.x, self.y)
+        # set minimum distance target to smallest distance-to-node for whole tile
+        min_dist = tile_d
         reach_ind = -1 * np.ones(self.x.shape, dtype=int)
         cnts_assigned = np.zeros(self.x.shape, dtype=int)
         for ii, river_obs in enumerate(river_obs_list):
-
-            # Get current reach assingment and min distance to node for all
+            # Get current reach assignment and min distance to node for all
             # pixels assigned to this reach.
             these_reach_inds = reach_ind[river_obs.in_channel]
             these_min_dists = min_dist[river_obs.in_channel]
 
             # Figure out which ones are better than current assignment
-            mask = river_obs.d < these_min_dists
+            mask = river_obs.d <= these_min_dists
 
             # Re-assign the pixels to reaches with a better assignment
             these_reach_inds[mask] = ii
