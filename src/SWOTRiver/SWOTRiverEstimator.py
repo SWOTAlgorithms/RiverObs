@@ -688,6 +688,8 @@ class SWOTRiverEstimator(SWOTL2):
         river_obs_list = []
         reach_idx_list = []
         ireach_list = []
+        node_x_list = []
+        node_y_list = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
@@ -742,6 +744,9 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs_list.append(river_obs)
             reach_idx_list.append(reach_idx)
             ireach_list.append(i_reach)
+            # save node x and y in list for min-dist calculation later
+            node_x_list.extend(self.reaches[i_reach].x.data.tolist())
+            node_y_list.extend(self.reaches[i_reach].y.data.tolist())
 
         # Ensure unique and optimal assignments of pixels to reach.
         tile_centerline = Centerline(node_x_list, node_y_list, k=3)
