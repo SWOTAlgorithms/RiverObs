@@ -26,7 +26,7 @@ from RiverObs import RiverReach
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
-from Centerline.Centerline import CenterLineException
+from Centerline.Centerline import Centerline, CenterLineException
 from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
