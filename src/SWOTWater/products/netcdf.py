@@ -11,6 +11,7 @@ from __future__ import print_function
 import os
 import netCDF4 as nc
 import numpy as np
+import warnings
 
 from SWOTWater.products.constants import FILL_VALUES
 
@@ -144,7 +145,10 @@ def get_variable(dataset, key):
             if mask is not None:
                 tmp[mask] = np.ma.masked
             return tmp
-    variable = variable[:]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        variable = variable[:]
+
     if isinstance(variable, np.ma.MaskedArray):
         return variable
     variable = variable.view(np.ma.MaskedArray)
