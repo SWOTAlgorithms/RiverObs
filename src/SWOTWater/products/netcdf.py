@@ -39,13 +39,13 @@ def set_variable(
     # np.ma.mask_array has fill_value attr, else use default fill value
     if attributes is None:
         fill_value = getattr(array, 'fill_value', get_fill(array.dtype))
+        complevel = default_complevel
     else:
+        complevel = attributes.get('complevel', default_complevel)
         fill_value = attributes.get('_FillValue', get_fill(array.dtype))
         # drop complex part of fill_value
         if 'complex' in array.dtype.name:
             fill_value = np.real(fill_value)
-
-    complevel = attributes.get('complevel', default_complevel)
 
     def _make_variable(key, data, dimensions, attributes=None, complevel=None):
         dtype = data.dtype
