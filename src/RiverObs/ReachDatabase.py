@@ -821,6 +821,7 @@ class ReachDatabaseReachMOMMA(Product):
         ['B', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['H', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ['Save', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
         ])
     GROUPS = odict([])
 

@@ -412,10 +412,10 @@ class L2HRRiverTile(Product):
                 reach_outputs['dschg_ghsf'] = np.append(
                     reach_outputs['dschg_ghsf'], dsch_m_c['HiVDI']['sbQ_rel'])
 
-#                 reach_outputs['dschg_osf'] = np.append(
-#                     reach_outputs['dschg_osf'], dsch_m_uc['MOMMA']['sbQ_rel'])
-#                 reach_outputs['dschg_gosf'] = np.append(
-#                     reach_outputs['dschg_gosf'], dsch_m_c['MOMMA']['sbQ_rel'])
+                reach_outputs['dschg_osf'] = np.append(
+                    reach_outputs['dschg_osf'], dsch_m_uc['MOMMA']['sbQ_rel'])
+                reach_outputs['dschg_gosf'] = np.append(
+                    reach_outputs['dschg_gosf'], dsch_m_c['MOMMA']['sbQ_rel'])
 
                 reach_outputs['dschg_ssf'] = np.append(
                     reach_outputs['dschg_ssf'], dsch_m_uc['SADS']['sbQ_rel'])
@@ -3373,11 +3373,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['dschg_s'] = reach_outputs['momma_q_uc']
 #             klass['dschg_s_u'] = ...
 #             klass['dschg_s_q'] = ...
-#             klass['dschg_osf'] = reach_outputs['dschg_osf']
+            klass['dschg_osf'] = reach_outputs['dschg_osf']
+
             klass['dschg_gs'] = reach_outputs['momma_q_c']
 #             klass['dschg_gs_u'] = ...
 #             klass['dschg_gs_q'] = ...
-#             klass['dschg_gosf'] = reach_outputs['dschg_gosf']
+            klass['dschg_gosf'] = reach_outputs['dschg_gosf']
 
             klass['dschg_s'] = reach_outputs['sads_q_uc']
 #             klass['dschg_s_u'] = ...
