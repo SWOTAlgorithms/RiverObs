@@ -11,6 +11,7 @@ import scipy.interpolate
 from .RiverObs import RiverObs
 from Centerline import Centerline
 from .RiverNode import RiverNode
+from SWOTRiver.errors import RiverObsException
 
 class CenterlineObs:
     """
@@ -70,7 +71,7 @@ class IteratedRiverObs(RiverObs):
         # Right now, things do not work for width observations along the
         # reach, due to ambiguities when the true reach is far from the original
         if np.iterable(max_width):
-            raise Exception(
+            raise RiverObsException(
                 'maximum_width arrays must be added using add_maximum_width_array'
             )
 

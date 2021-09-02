@@ -9,6 +9,8 @@ import netCDF4
 import pyproj
 import logging
 
+from SWOTRiver.errors import RiverObsException
+
 LOGGER = logging.getLogger(__name__)
 
 class SWOTL2:
@@ -115,7 +117,7 @@ class SWOTL2:
 
         # If not enough good points are found, raise Exception
         if len(self.lat) < min_points:
-            raise Exception(
+            raise RiverObsException(
                 'number of good points: %d smaller than required: %d' %
                 (len(self.lat), min_points))
 
@@ -214,7 +216,8 @@ class SWOTL2:
                 data = data[::self.subsample_factor, :]
 
             else:
-                raise Exception('Unexpected size of input data in SWOTL2::get')
+                raise RiverObsException(
+                    'Unexpected size of input data in SWOTL2::get')
 
         # self.index already subsampled in set_index_and_bounding_box
         if use_index:
