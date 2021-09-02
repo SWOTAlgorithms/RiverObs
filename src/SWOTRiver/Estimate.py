@@ -146,55 +146,58 @@ class L2PixcToRiverTile(object):
         river_estimator.get_reaches(
             self.config['reach_db_path'], day_of_year=self.day_of_year)
 
-        self.reach_collection = river_estimator.process_reaches(
-            minobs=self.config['minobs'],
-            min_fit_points=self.config['min_fit_points'],
-            ds=self.config['ds'],
-            refine_centerline=self.config['refine_centerline'],
-            smooth=self.config['smooth'],
-            alpha=self.config['alpha'],
-            max_iter=self.config['max_iter'],
-            enhanced=True)
-
-        if len(self.reach_collection) > 0:
-            reach_variables = list(self.reach_collection[0].metadata.keys())
-            node_variables = list(self.reach_collection[0].__dict__.keys())
-            node_variables.remove('ds')
-            node_variables.remove('metadata')
-
-            num_nodes_per_reach = [
-                len(item.lat) for item in self.reach_collection]
-            num_nodes = sum(num_nodes_per_reach)
-
-            self.node_outputs = {}
-            self.reach_outputs = {}
-            for node_variable in node_variables:
-                self.node_outputs[node_variable] = np.concatenate(
-                    [getattr(reach, node_variable) for reach in
-                     self.reach_collection])
-
-            for reach_variable in reach_variables:
-                self.reach_outputs[reach_variable] = np.array(
-                    [reach.metadata[reach_variable] for reach in
-                     self.reach_collection])
-
-            self.node_outputs['reach_idx'] = np.zeros(
-                self.node_outputs['lat'].shape).astype('int32')
-            i_start = 0
-            for ireach, num_nodes in enumerate(num_nodes_per_reach):
-                self.node_outputs['reach_idx'][
-                    i_start:i_start + num_nodes] = ireach
-                i_start = i_start + num_nodes
+        if len(river_estimator.reaches) == 0:
+            LOGGER.info('No valid reaches in PRD for this PIXC data')
         else:
-            warnings.warn('Reach collection has zero entries')
+            self.reach_collection = river_estimator.process_reaches(
+                minobs=self.config['minobs'],
+                min_fit_points=self.config['min_fit_points'],
+                ds=self.config['ds'],
+                refine_centerline=self.config['refine_centerline'],
+                smooth=self.config['smooth'],
+                alpha=self.config['alpha'],
+                max_iter=self.config['max_iter'],
+                enhanced=True)
 
-        # add attributes from pixc to pixcvecriver file
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
-        pixcvec.update_from_pixc(self.pixc_file)
-        pixcvec.to_ncfile(self.index_file)
+            if len(self.reach_collection) > 0:
+                reach_variables = list(self.reach_collection[0].metadata.keys())
+                node_variables = list(self.reach_collection[0].__dict__.keys())
+                node_variables.remove('ds')
+                node_variables.remove('metadata')
+
+                num_nodes_per_reach = [
+                    len(item.lat) for item in self.reach_collection]
+                num_nodes = sum(num_nodes_per_reach)
+
+                self.node_outputs = {}
+                self.reach_outputs = {}
+                for node_variable in node_variables:
+                    self.node_outputs[node_variable] = np.concatenate(
+                        [getattr(reach, node_variable) for reach in
+                         self.reach_collection])
+
+                for reach_variable in reach_variables:
+                    self.reach_outputs[reach_variable] = np.array(
+                        [reach.metadata[reach_variable] for reach in
+                         self.reach_collection])
+
+                self.node_outputs['reach_idx'] = np.zeros(
+                    self.node_outputs['lat'].shape).astype('int32')
+                i_start = 0
+                for ireach, num_nodes in enumerate(num_nodes_per_reach):
+                    self.node_outputs['reach_idx'][
+                        i_start:i_start + num_nodes] = ireach
+                    i_start = i_start + num_nodes
+            else:
+                LOGGER.info('Reach collection has zero entries')
 
         # save for use later to fill in missing nodes/reaches
         self.prd_reaches = river_estimator.reaches
+
+        # reformat index file to L2PIXCVector format
+        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec.update_from_pixc(self.pixc_file)
+        pixcvec.to_ncfile(self.index_file)
 
     def do_improved_geolocation(self):
         """
