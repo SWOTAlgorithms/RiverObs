@@ -697,6 +697,10 @@ class SWOTRiverEstimator(SWOTL2):
 
             seg_label = self.seg_label.copy()
 
+            # save node x and y in list for min-dist calculation later
+            node_x_list.extend(self.reaches[i_reach].x.data.tolist())
+            node_y_list.extend(self.reaches[i_reach].y.data.tolist())
+
             try:
                 this_idx = np.where(reach_idx == all_ids)[0][0]
                 adjacent_ids = np.concatenate([
@@ -744,13 +748,11 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs_list.append(river_obs)
             reach_idx_list.append(reach_idx)
             ireach_list.append(i_reach)
-            # save node x and y in list for min-dist calculation later
-            node_x_list.extend(self.reaches[i_reach].x.data.tolist())
-            node_y_list.extend(self.reaches[i_reach].y.data.tolist())
 
         # Ensure unique and optimal assignments of pixels to reach.
         tile_centerline = Centerline(node_x_list, node_y_list, k=3)
-        tile_i, tile_d, tile_x, tile_y, tile_s, tile_n = tile_centerline.to_centerline(self.x, self.y)
+        tile_i, tile_d, tile_x, tile_y, tile_s, tile_n = \
+            tile_centerline.to_centerline(self.x, self.y)
         # set minimum distance target to smallest distance-to-node for whole tile
         min_dist = tile_d
         reach_ind = -1 * np.ones(self.x.shape, dtype=int)
