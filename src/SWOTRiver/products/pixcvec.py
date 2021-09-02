@@ -355,8 +355,7 @@ class L2PIXCVector(Product):
 
         ATTRS_2COPY_FROM_PIXC = [
             'cycle_number', 'pass_number', 'tile_number', 'swath_side',
-            'tile_name', 'start_time', 'stop_time',
-            'inner_first_latitude', 'inner_first_longitude',
+            'tile_name', 'inner_first_latitude', 'inner_first_longitude',
             'inner_last_latitude', 'inner_last_longitude',
             'outer_first_latitude', 'outer_first_longitude',
             'outer_last_latitude', 'outer_last_longitude',
@@ -367,13 +366,10 @@ class L2PIXCVector(Product):
             'geospatial_lon_min', 'geospatial_lon_max',
             'geospatial_lat_min', 'geospatial_lat_max']
 
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-
-            with netCDF4.Dataset(pixc_file, 'r') as ifp:
-                for attr in ATTRS_2COPY_FROM_PIXC:
-                    try:
-                        value = getattr(ifp, attr)
-                    except AttributeError:
-                        value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
-                    self[attr] = value
+        with netCDF4.Dataset(pixc_file, 'r') as ifp:
+            for attr in ATTRS_2COPY_FROM_PIXC:
+                try:
+                    value = getattr(ifp, attr)
+                except AttributeError:
+                    value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
+                self[attr] = value
