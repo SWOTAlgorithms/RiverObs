@@ -8,7 +8,7 @@ import logging
 
 from Centerline import Centerline
 from .RiverNode import RiverNode
-from SWOTRiver.errors import RiverObsException
+from SWOTRiver.errors import RiverObsUseageException
 
 LOGGER = logging.getLogger(__name__)
 
@@ -275,7 +275,7 @@ class RiverObs:
         """
 
         if len(obs) != self.ndata and len(obs) != self.nedited_data:
-            raise RiverObsException(
+            raise RiverObsUseageException(
                 'Observation size incompatible with initial observations')
 
         if self.max_width is not None and len(obs) == self.ndata:

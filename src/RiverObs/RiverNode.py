@@ -8,7 +8,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 import SWOTWater.aggregate as aggregate
 from SWOTWater.constants import AGG_CLASSES
-from SWOTRiver.errors import RiverObsException
+from SWOTRiver.errors import RiverObsUseageException
 
 class RiverNode:
     """
@@ -84,7 +84,7 @@ class RiverNode:
         """
 
         if len(obs) != self.ndata:
-            raise RiverObsException(
+            raise RiverObsUseageException(
                 'length of observations not consistent with number of node points'
             )
 
@@ -230,7 +230,7 @@ class RiverNode:
         need to be trimmed.
         """
         if not self.sorted:
-            raise RiverObsException('Run sort before calling trim')
+            raise RiverObsUseageException('Run sort before calling trim')
 
         if mode == 'both':
             fraction = fraction / 2.
