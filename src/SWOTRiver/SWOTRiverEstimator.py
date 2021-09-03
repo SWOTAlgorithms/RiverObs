@@ -406,13 +406,13 @@ class SWOTRiverEstimator(SWOTL2):
 
         try:
             tvp_plus_y_antenna_xyz = (
-                self.nc['tvp']['plus_y_antenna_x'][:][self.img_y],
-                self.nc['tvp']['plus_y_antenna_y'][:][self.img_y],
-                self.nc['tvp']['plus_y_antenna_z'][:][self.img_y])
+                self.nc['tvp']['plus_y_antenna_x'][:],
+                self.nc['tvp']['plus_y_antenna_y'][:],
+                self.nc['tvp']['plus_y_antenna_z'][:])
             tvp_minus_y_antenna_xyz = (
-                self.nc['tvp']['minus_y_antenna_x'][:][self.img_y],
-                self.nc['tvp']['minus_y_antenna_y'][:][self.img_y],
-                self.nc['tvp']['minus_y_antenna_z'][:][self.img_y])
+                self.nc['tvp']['minus_y_antenna_x'][:],
+                self.nc['tvp']['minus_y_antenna_y'][:],
+                self.nc['tvp']['minus_y_antenna_z'][:])
             pixc = {'tvp': {'time': self.nc['tvp']['time'][:]},
                     'pixel_cloud': {'illumination_time': 
                      self.nc['pixel_cloud']['illumination_time'][:]}}
@@ -430,12 +430,11 @@ class SWOTRiverEstimator(SWOTL2):
             self.lat, self.lon, hgt_filt[self.img_y, self.img_x],
             GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE)
 
-
         pixc_tvp_index = SWOTWater.aggregate.get_sensor_index(pixc)
         pixc_wavelength = self.nc.wavelength
         flat_ifgram = SWOTWater.aggregate.flatten_interferogram(
             self.ifgram, tvp_plus_y_antenna_xyz, tvp_minus_y_antenna_xyz,
-            target_xyz, pixc_tvp_index[self.img_y], pixc_wavelength)
+            target_xyz, pixc_tvp_index[self.index], pixc_wavelength)
 
         self.ifgram = flat_ifgram
 
