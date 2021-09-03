@@ -316,6 +316,7 @@ class L2PixcToRiverTile(object):
 
         pixcvec = L2PIXCVector.from_ncfile(self.index_file)
         pixcvec.update_from_rivertile(self.rivertile_product)
+        pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.history = history_string
         pixcvec.to_ncfile(self.index_file)
 
