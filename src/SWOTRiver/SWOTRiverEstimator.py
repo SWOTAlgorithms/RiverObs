@@ -1339,6 +1339,16 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         if mask.sum() >= min_fit_points:
+            # first, compute and remove wse outliers using iterative linear fit
+            # hard code these for now
+            abs_thresh = 2
+            rel_thresh = 68
+            upr_thresh = 90
+            iter_num = 3
+            mask = self.flag_outliers(hh[mask], SS[mask], ww[mask],
+                                      abs_thresh, rel_thresh, upr_thresh,
+                                      iter_num, mask)
+
             if self.slope_method == 'first_to_last':
                 reach_stats['slope'] = (
                     hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
@@ -1448,6 +1458,59 @@ class SWOTRiverEstimator(SWOTL2):
 
         river_reach.metadata = reach_stats
         return river_reach
+
+    @staticmethod
+    def flag_outliers(wse, flow_dist, weights, abs_thresh, rel_thresh,
+                      upr_thresh, iter_num, mask):
+
+        """
+        Flag wse outliers within a reach using iterative WLS slope algorithm
+        wse: node wse
+        flow_dist: node flow distance
+        abs_thresh: absolute threshold, default 2[m]
+        rel_thresh: relative threshold, default 68% percentile
+        upr_thresh: upper limit, how many percent of node will be kept at
+            the last iteration, default 80%
+        iter_num: number of iterations
+        outputs:
+        wse : reach height
+        slope : reach slope
+        """
+        # initial fit OLS
+        fit = statsmodels.api.OLS(wse, flow_dist).fit()
+        r_slp = fit.params[0]
+        r_wse = fit.params[1]
+        wse_fit = r_wse + r_slp * flow_dist[:, 0]
+
+        for i in range(iter_num):
+            metric = abs(wse_fit - wse)
+            metric_one_sigma = np.percentile(metric, rel_thresh)
+            upr_threshs = np.zeros(iter_num)
+            upr_threshs[-1] = upr_thresh
+            frac_keep = np.percentile(metric, upr_threshs[i])
+            icond = np.logical_or(metric < abs_thresh,
+                                  metric < metric_one_sigma)
+
+            if sum(icond) / len(metric) * 100 <= upr_threshs[i]:
+                current_ind = metric < frac_keep
+            else:
+                current_ind = icond
+            if i == iter_num - 1 and all(np.isfinite(weights)):
+                # last iteration use WLS
+                fit = statsmodels.api.WLS(wse[current_ind],
+                                          flow_dist[current_ind],
+                                          weights=weights[current_ind]).fit()
+                r_slp = fit.params[0]
+                r_wse = fit.params[1]
+            else:
+                fit = statsmodels.api.OLS(wse[current_ind],
+                                          flow_dist[current_ind]).fit()
+                r_slp = fit.params[0]
+                r_wse = fit.params[1]
+
+            wse_fit = r_wse + r_slp * flow_dist[:, 0]
+        mask[mask] = current_ind
+        return mask
 
     def create_index_file(self):
         """Initializes the pixel cloud vector file"""
