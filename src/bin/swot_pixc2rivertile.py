@@ -96,7 +96,7 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if key in ['geolocation_method', 'reach_db_path', 'height_agg_method',
-                   'area_agg_method', 'slope_method']:
+                   'area_agg_method', 'slope_method', 'outlier_method']:
             continue
         config[key] = ast.literal_eval(config[key])
 

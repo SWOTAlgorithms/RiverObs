@@ -200,6 +200,11 @@ class SWOTRiverEstimator(SWOTL2):
                  preseg_dilation_iter=0,
                  slope_method='weighted',
                  use_ext_dist_coef=True,
+                 outlier_method=None,
+                 outlier_abs_thresh=None,
+                 outlier_rel_thresh=None,
+                 outlier_upr_thresh=None,
+                 outlier_iter_num=None,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -210,6 +215,11 @@ class SWOTRiverEstimator(SWOTL2):
         self.subsample_factor = subsample_factor
         self.slope_method = slope_method
         self.use_ext_dist_coef = use_ext_dist_coef
+        self.outlier_method = outlier_method
+        self.outlier_abs_thresh = outlier_abs_thresh
+        self.outlier_rel_thresh = outlier_rel_thresh
+        self.outlier_upr_thresh = outlier_upr_thresh
+        self.outlier_iter_num = outlier_iter_num
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -1341,13 +1351,8 @@ class SWOTRiverEstimator(SWOTL2):
         if mask.sum() >= min_fit_points:
             # first, compute and remove wse outliers using iterative linear fit
             # hard code these for now
-            abs_thresh = 2
-            rel_thresh = 68
-            upr_thresh = 90
-            iter_num = 3
-            mask = self.flag_outliers(hh[mask], SS[mask], ww[mask],
-                                      abs_thresh, rel_thresh, upr_thresh,
-                                      iter_num, mask)
+            if self.outlier_method is not None:
+                mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
 
             if self.slope_method == 'first_to_last':
                 reach_stats['slope'] = (
@@ -1459,57 +1464,67 @@ class SWOTRiverEstimator(SWOTL2):
         river_reach.metadata = reach_stats
         return river_reach
 
-    @staticmethod
-    def flag_outliers(wse, flow_dist, weights, abs_thresh, rel_thresh,
-                      upr_thresh, iter_num, mask):
-
+    def flag_outliers(self, wse, flow_dist, weights, mask):
         """
         Flag wse outliers within a reach using iterative WLS slope algorithm
         wse: node wse
         flow_dist: node flow distance
-        abs_thresh: absolute threshold, default 2[m]
-        rel_thresh: relative threshold, default 68% percentile
-        upr_thresh: upper limit, how many percent of node will be kept at
-            the last iteration, default 80%
-        iter_num: number of iterations
-        outputs:
-        wse : reach height
-        slope : reach slope
+        mask: overall mask that wse and flow_dist are subset using
+
+        valid methods: ['iterative_linear',]
+
+        iterative_linear outlier flagging method uses these class attributes:
+        - self.outlier_abs_thresh: absolute threshold, default 2[m]
+        - self.outlier_rel_thresh: relative threshold, default 68% percentile
+        - self.outlier_upr_thresh: upper limit, how many percent of node will be
+                                   kept at the last iteration, default 80%
+        - self.outlier_iter_num:   number of iterations
+
+        outputs: returns the input mask array, further subset using the
+                 outlier flagging method.
         """
-        # initial fit OLS
-        fit = statsmodels.api.OLS(wse, flow_dist).fit()
-        r_slp = fit.params[0]
-        r_wse = fit.params[1]
-        wse_fit = r_wse + r_slp * flow_dist[:, 0]
-
-        for i in range(iter_num):
-            metric = abs(wse_fit - wse)
-            metric_one_sigma = np.percentile(metric, rel_thresh)
-            upr_threshs = np.zeros(iter_num)
-            upr_threshs[-1] = upr_thresh
-            frac_keep = np.percentile(metric, upr_threshs[i])
-            icond = np.logical_or(metric < abs_thresh,
-                                  metric < metric_one_sigma)
-
-            if sum(icond) / len(metric) * 100 <= upr_threshs[i]:
-                current_ind = metric < frac_keep
-            else:
-                current_ind = icond
-            if i == iter_num - 1 and all(np.isfinite(weights)):
-                # last iteration use WLS
-                fit = statsmodels.api.WLS(wse[current_ind],
-                                          flow_dist[current_ind],
-                                          weights=weights[current_ind]).fit()
-                r_slp = fit.params[0]
-                r_wse = fit.params[1]
-            else:
-                fit = statsmodels.api.OLS(wse[current_ind],
-                                          flow_dist[current_ind]).fit()
-                r_slp = fit.params[0]
-                r_wse = fit.params[1]
-
+        if self.outlier_method == 'iterative_linear':
+            # initial fit OLS
+            fit = statsmodels.api.OLS(wse, flow_dist).fit()
+            r_slp = fit.params[0]
+            r_wse = fit.params[1]
             wse_fit = r_wse + r_slp * flow_dist[:, 0]
-        mask[mask] = current_ind
+
+            for i in range(self.outlier_iter_num):
+                metric = abs(wse_fit - wse)
+                metric_one_sigma = np.percentile(
+                    metric, self.outlier_rel_thresh)
+                upr_threshs = np.zeros(self.outlier_iter_num)
+                upr_threshs[-1] = self.outlier_upr_thresh
+                frac_keep = np.percentile(metric, upr_threshs[i])
+                icond = np.logical_or(metric < self.outlier_abs_thresh,
+                                      metric < metric_one_sigma)
+
+                if sum(icond) / len(metric) * 100 <= upr_threshs[i]:
+                    current_ind = metric < frac_keep
+                else:
+                    current_ind = icond
+                if i == self.outlier_iter_num - 1 and all(np.isfinite(weights)):
+                    # last iteration use WLS
+                    fit = statsmodels.api.WLS(wse[current_ind],
+                                              flow_dist[current_ind],
+                                              weights=weights[current_ind]).fit()
+                    r_slp = fit.params[0]
+                    r_wse = fit.params[1]
+                else:
+                    fit = statsmodels.api.OLS(wse[current_ind],
+                                              flow_dist[current_ind]).fit()
+                    r_slp = fit.params[0]
+                    r_wse = fit.params[1]
+
+                wse_fit = r_wse + r_slp * flow_dist[:, 0]
+            mask[mask] = current_ind
+
+        else:
+            raise NotImplementedError(
+                'Outlier flagging method %s is not supported!'%
+                self.outlier_method)
+
         return mask
 
     def create_index_file(self):
