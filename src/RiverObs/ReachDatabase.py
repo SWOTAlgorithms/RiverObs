@@ -427,7 +427,11 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['n_chan_mod',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+        ['obstr_type',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['grod_id',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+        ['hfalls_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['dist_out',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
@@ -435,6 +439,18 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
         ['ext_dist_coef',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['facc',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['lakeflag',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
+        ['max_width',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['meander_length',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['sinuosity',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_NODES]])],
+        ['manual_add',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['river_name',
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_NODES]])],
         ])
@@ -483,11 +499,12 @@ class ReachDatabaseReaches(Product):
 
     DIMENSIONS = odict([
         ['centerlines', 2], ['reach_neighbors', 4], ['julian_day', 0],
-        ['reaches', 0]])
+        ['reaches', 0], ['orbits', 0]])
     DIMENSIONS_CLIDS = odict([['centerlines', 2], ['reaches', 0]])
     DIMENSIONS_REACH_UPDOWN = odict([['reach_neighbors', 4], ['reaches', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
     DIMENSIONS_ICEFLAG = odict([['julian_day', 0], ['reaches', 0]])
+    DIMENSIONS_ORBITS = odict([['orbits', 0], ['reaches', 0]])
     VARIABLES = odict([
         ['x',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
@@ -515,11 +532,17 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['width_var',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['facc',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ['n_chan_max',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['n_chan_mod',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['obstr_type',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['grod_id',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['hfalls_id',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['slope',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
@@ -537,10 +560,16 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['iceflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ICEFLAG]])],
+        ['swot_obs',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['swot_orbits',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ORBITS]])],
         ['cl_ids',
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_CLIDS]])],
         ['river_name',
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['max_width',
+         odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
 
     for var in VARIABLES:
