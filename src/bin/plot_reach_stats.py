@@ -16,7 +16,6 @@ import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
 from pathlib import Path
-import pdb
 
 def handle_bad_reaches(truth_tmp, data_tmp):
     """
@@ -51,14 +50,17 @@ def handle_bad_reaches(truth_tmp, data_tmp):
         # setting all variables to nans for bad reaches
         # makes them be excluded when matching
         # reach ids later between the data and truth
-        if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
-            tmp = truth_tmp.reaches[key].data.astype(np.double)
-            tmp[msk_t]=np.nan
-            truth_tmp.reaches[key] = tmp
-        if isinstance(data_tmp.reaches[key], np.ma.MaskedArray):
-            tmp = data_tmp.reaches[key].data.astype(np.double)
-            tmp[msk_d]=np.nan
-            data_tmp.reaches[key] = tmp
+
+        # need to check if truth variables also in data for backwards SWORD compatibility
+        if (key in data_tmp.reaches.variables) and ('no_data' not in truth_tmp.reaches[key].data):
+            if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
+                tmp = truth_tmp.reaches[key].data.astype(np.double)
+                tmp[msk_t]=np.nan
+                truth_tmp.reaches[key] = tmp
+            if isinstance(data_tmp.reaches[key], np.ma.MaskedArray):
+                tmp = data_tmp.reaches[key].data.astype(np.double)
+                tmp[msk_d]=np.nan
+                data_tmp.reaches[key] = tmp
     return truth_tmp, data_tmp
 
 def load_and_accumulate(
@@ -122,6 +124,8 @@ def main():
                         help='truth rivertile file (or basename)')
     parser.add_argument('--basedir', type=str, default=None,
                         help='base directory of processing')
+    parser.add_argument('--truth_basedir', type=str, default=None,
+                        help='base directory of truth files (only use if different than processing basedir)')
     parser.add_argument('-sb', '--slc_basename', type=str, default=None,
                         help='slc directory basename')
     parser.add_argument('-pb', '--pixc_basename', type=str, default=None,
@@ -175,20 +179,44 @@ def main():
         proc_rivertile_list = [os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
                                if os.path.isdir(proc_rivertile) else proc_rivertile
                                for proc_rivertile in proc_rivertile_list]
-
-        if args.pixc_errors_basename is not None:
-            truth_rivertile_list = \
-                [os.path.join(*Path(proc_rivertile).parts[:-5], args.truth_rivertile)
-                 for proc_rivertile in proc_rivertile_list]
-        else:
-            truth_rivertile_list = \
-                [os.path.join(*Path(proc_rivertile).parts[:-4], args.truth_rivertile)
-                 for proc_rivertile in proc_rivertile_list]
+        if args.truth_basedir is not None:
+            len_basedir = len(Path(args.basedir).parts)
+            if args.pixc_errors_basename is not None:
+                truth_rivertile_list = \
+                    [os.path.join(args.truth_basedir, *Path(proc_rivertile).parts[len_basedir:-5], args.truth_rivertile)
+                     for proc_rivertile in proc_rivertile_list]
+            else:
+                truth_rivertile_list = \
+                    [os.path.join(args.truth_basedir, *Path(proc_rivertile).parts[len_basedir:-4], args.truth_rivertile)
+                     for proc_rivertile in proc_rivertile_list]
+        else:  # truth basedir same as nominal basedir
+            if args.pixc_errors_basename is not None:
+                truth_rivertile_list = \
+                    [os.path.join(*Path(proc_rivertile).parts[:-5], args.truth_rivertile)
+                     for proc_rivertile in proc_rivertile_list]
+            else:
+                truth_rivertile_list = \
+                    [os.path.join(*Path(proc_rivertile).parts[:-4], args.truth_rivertile)
+                     for proc_rivertile in proc_rivertile_list]
 
         # If truth_rivertile input is a basename, get the actual rivertile
         truth_rivertile_list = [os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
-                                if os.path.isdir(truth_rivertile) else truth_rivertile
-                                for truth_rivertile in truth_rivertile_list]
+                                    if os.path.isdir(truth_rivertile) else truth_rivertile
+                                    for truth_rivertile in truth_rivertile_list]
+
+        # error checking
+        truth_sum = 0
+        nominal_sum = 0
+        for truth_rivertile in truth_rivertile_list:
+            if os.path.isfile(truth_rivertile):
+                truth_sum+=1
+        if truth_sum==0:
+            print('No truth files found. Check input variable names.')
+        for nominal_rivertile in proc_rivertile_list:
+            if os.path.isfile(nominal_rivertile):
+                nominal_sum+=1
+        if nominal_sum==0:
+            print('No nominal tiles found. Check input variable names.')
 
         for proc_rivertile, truth_rivertile in zip(proc_rivertile_list, truth_rivertile_list):
             if os.path.isfile(proc_rivertile) and os.path.isfile(truth_rivertile):

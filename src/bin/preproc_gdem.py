@@ -4,6 +4,8 @@ Pre-processes a GDEM for use with RiverObs validation studies
 
 Author (s): Alex Fore
 """
+import SWOTRiver
+
 import shutil
 import netCDF4
 import argparse

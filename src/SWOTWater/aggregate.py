@@ -15,9 +15,10 @@ Author (s): Brent Williams
 import sys
 import numpy as np
 import scipy.stats
+
 from scipy import interpolate
 
-from SWOTWater.constants import PIXC_CLASSES
+from SWOTWater.constants import AGG_CLASSES
 FLOAT_EPS = sys.float_info.epsilon
 
 def simple(in_var, metric='mean', pcnt=68):
@@ -49,7 +50,7 @@ def sig0_with_uncerts(
         num_rare_looks=1.0, num_med_looks=1.0,  method='rare'):
     """
     Return the aggregate sig0, sample std, and estimate of uncert
-    implements methods: rare (default), medium which is the assumtption
+    implements methods: rare (default), medium which is the assumption
     of the kind of sig0 input from the pixel cloud.
 
     INPUTS:
@@ -135,7 +136,7 @@ def height_uncert_std(
         height, good, num_rare_looks, num_med_looks, height_std=1.0,
         method='weight'):
     """
-    Compute the sample standard devieation of the heights and scale by the
+    Compute the sample standard deviation of the heights and scale by the
     appropriate factor instead of 1/sqrt(N), since the medium pixels are
     correlated
 
@@ -151,7 +152,7 @@ def height_uncert_std(
     """
     # need to do a weighted sample std when aggregating with weights
     # TODO: for median, should probably throw out outliers...
-    weight = np.ones(np.shape(height))# default to uniform
+    weight = np.ones(np.shape(height))  # default to uniform
     if method == 'weight':
         weight = np.ones(np.shape(height))/(height_std)**2
     height_agg = simple(weight[good]*height[good], metric='sum')
@@ -196,7 +197,7 @@ def height_uncert_multilook(
     Brent Williams, 2018, JPL Memo
     """
     # multilook the rare interferogram over the raster bin
-    #  by averaging cerain fields
+    #  by averaging certain fields
     agg_real = simple(np.real(ifgram[good])*weight_norm[good])
     agg_imag = simple(np.imag(ifgram[good])*weight_norm[good])
     agg_p1 = simple(power1[good]*weight_norm[good])
@@ -265,10 +266,10 @@ def height_with_uncerts(
 
 def area_only(
         pixel_area, water_fraction, klass, good,
-        interior_water_klass=PIXC_CLASSES['open_water'],
-        water_edge_klass=PIXC_CLASSES['water_near_land'],
-        land_edge_klass=PIXC_CLASSES['land_near_water'],
-        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+        water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+        land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+        dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
     """
     Return the aggregate height
@@ -292,26 +293,30 @@ def area_only(
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
     Brent Williams, 2018, JPL Memo
     
-    Updated to handle dark classes like interior water
+    Updated to handle multiple class mappings for interior, edges, and dark
     """
     Idw_in = np.zeros(np.shape(pixel_area))
-    Idw_in[klass == interior_water_klass] = 1.0
-
     Idw = np.zeros(np.shape(pixel_area))
-    Idw[klass == interior_water_klass] = 1.0
-    Idw[klass == water_edge_klass] = 1.0
+    Ide = np.zeros(np.shape(pixel_area))
+
+    for interior_water_klass in interior_water_klasses:
+        # these should include all pixels aggregated as entirely water
+        # including: dark water, low-coherence water etc...
+        Idw_in[klass == interior_water_klass] = 1.0
+        Idw[klass == interior_water_klass] = 1.0
+    for water_edge_klass in water_edge_klasses:
+        Idw[klass == water_edge_klass] = 1.0
+        Ide[klass == water_edge_klass] = 1.0
+    for land_edge_klass in land_edge_klasses:
+        Ide[klass == land_edge_klass] = 1.0
 
     # handle current and legacy dark water classes like interior water
     for dark_water_klass in dark_water_klasses:
         Idw_in[klass == dark_water_klass] = 1.0
         Idw[klass == dark_water_klass] = 1.0
 
-    Ide = np.zeros(np.shape(pixel_area))
-    Ide[klass == water_edge_klass] = 1.0
-    Ide[klass == land_edge_klass] = 1.0
-
     I = np.zeros(np.shape(pixel_area))
-    I[(Idw + Idw_in+ Ide) > 0] = 1.0 #all pixels near water
+    I[(Idw + Idw_in+ Ide) > 0] = 1.0  # all pixels near water
 
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
@@ -333,10 +338,10 @@ def area_only(
 def area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5,Ptf=0.5, ref_dem_std=10,
-        interior_water_klass=PIXC_CLASSES['open_water'],
-        water_edge_klass=PIXC_CLASSES['water_near_land'],
-        land_edge_klass=PIXC_CLASSES['land_near_water'],
-        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+        water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+        land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+        dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
     '''
     Ie  = mask for edge pixels
@@ -353,16 +358,21 @@ def area_uncert(
     Brent Williams, 2018, JPL Memo
     
     TODO: add dark water uncertainty estimate
+    TODO: add low coherence uncertainty estimate
     '''
     # get indicator functions
     Ide = np.zeros(np.shape(pixel_area))
-    Ide[klass == water_edge_klass] = 1.0
-    Ide[klass == land_edge_klass] = 1.0
+    for water_edge_klass in water_edge_klasses:
+        Ide[klass == water_edge_klass] = 1.0
+    for land_edge_klass in land_edge_klasses:
+        Ide[klass == land_edge_klass] = 1.0
+
     Pe = Ide # use detected edge asprobablity of true edge pixels...
 
     I = np.zeros(np.shape(pixel_area))
     I[Ide > 0] = 1.0
-    I[klass == interior_water_klass] = 1.0 #all pixels near water
+    for interior_water_klass in interior_water_klasses:
+        I[klass == interior_water_klass] = 1.0 #all pixels near water
 
     # get false and missed assignment rates from correct assignment rate 
     Pfa = 1 - Pca
@@ -405,7 +415,7 @@ def area_uncert(
         var_pix_area_dw_bar = simple(
             var_pix_area_dw[good]*I[good], metric='sum')
 
-        # the detection and assignement rate uncertainty to be aggregated
+        # the detection and assignment rate uncertainty to be aggregated
         # 3rd term in Eq. 12
         var_area_dw = pixel_area**2 * V_dwf
         var_area_dw_bar = simple(var_area_dw[good] * I[good], metric='sum')
@@ -492,24 +502,25 @@ def area_uncert(
 def area_with_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
-        interior_water_klass=PIXC_CLASSES['open_water'],
-        water_edge_klass=PIXC_CLASSES['water_near_land'],
-        land_edge_klass=PIXC_CLASSES['land_near_water'],
-        dark_water_klasses=PIXC_CLASSES['dark_water_klasses'],
+        interior_water_klasses=AGG_CLASSES['interior_water_klasses'],
+        water_edge_klasses=AGG_CLASSES['water_edge_klasses'],
+        land_edge_klasses=AGG_CLASSES['land_edge_klasses'],
+        dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
 
     area_agg, num_pixels = area_only(
         pixel_area, water_fraction, klass, good, method=method,
-        interior_water_klass=interior_water_klass,
-        water_edge_klass=water_edge_klass,
-        land_edge_klass=land_edge_klass,
+        interior_water_klasses=interior_water_klasses,
+        water_edge_klasses=water_edge_klasses,
+        land_edge_klasses=land_edge_klasses,
         dark_water_klasses=dark_water_klasses)
 
     area_unc = area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=Pca, Pw=Pw, Ptf=Ptf, ref_dem_std=ref_dem_std,
-        interior_water_klass=interior_water_klass,
-        water_edge_klass=water_edge_klass, land_edge_klass=land_edge_klass,
+        interior_water_klasses=interior_water_klasses,
+        water_edge_klasses=water_edge_klasses,
+        land_edge_klasses=land_edge_klasses, 
         dark_water_klasses=dark_water_klasses,
         method=method)
 

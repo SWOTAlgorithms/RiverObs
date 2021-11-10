@@ -386,10 +386,15 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         'max_dark_frac': 1
     }
     msk=[]
-    bad_reaches = [73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
-                   73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
-                   74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271]  # from Rui
-    if truth.reaches is not None:
+    bad_reaches = [74292100201, 74292200011, 74291800011, 74100600041, 74100600051, 74100600051, 74100600071,
+                   74100600381, 74100600391, 73260300021, 73270200051, 73270200071, 81130400041, 74267600131,
+                   74267600121, 74265000121, 74267100031, 81140300021, 81140300031, 81140300041, 81140300061,
+                   81140200011, 73240300011, 73240300011, 73240200421, 73218000031, 73218000301, 73218000201,
+                   73218000341, 74262700401, 74262700291, 73240500171, 74269900311, 74269900721, 74269900421,
+                   74269800011, 74269900011, 73160200091, 73216000171, 73214000011, 73150600451, 73150600131,
+                   73150600011, 73150600081, 73150600081, 73150600121, 73150600131, 73150600791, 73150600091,
+                   73150600101, 73220700251, 73220700263, 73240200051, 73218000291, 73214000121]  # from Rui & Cassie
+    if truth:
         msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])>bounds['min_xtrk']),#),
               np.logical_and((np.abs(truth.reaches['xtrk_dist'])<bounds['max_xtrk']),#),
               np.logical_and((truth.reaches['width']>bounds['min_width']),#100),
@@ -398,7 +403,10 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
               np.logical_and((truth.reaches['p_length']>=bounds['min_length']),               #1e4),#'p_n_nodes']>=1e4/200.0),#p_length not populated so use p_n_nodes assuming spaced by 200m to get only 10km reaches#np.logical_and(np.abs(fit_error) < 150.0,
               np.logical_and(data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
                   truth.reaches['dark_frac'] <= bounds['max_dark_frac'])))))))
-    return msk, fit_error, bounds, truth.reaches['dark_frac'], truth.reaches['p_length']#truth.reaches['p_n_nodes']*200.0
+        return msk, fit_error, bounds, truth.reaches['dark_frac'], truth.reaches['p_length']
+    else:
+        return msk, fit_error, bounds, [], []
+
 #
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
@@ -464,7 +472,6 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True, 
         table['50%ile'].append(slope_50)
         table['mean'].append(slope_mean)
         table['count'].append(slope_num)
-    
     SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, fname=fname, precision=8)
     return table
 
@@ -506,6 +513,7 @@ def print_metrics(
         table['dark_frac'] = np.array(dark_frac)[msk]
     if reach_len is not None:
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
+
 
     SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, precision=5, passfail=passfail, fname=fname)
     return table

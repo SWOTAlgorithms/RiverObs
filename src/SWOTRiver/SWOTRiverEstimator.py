@@ -26,7 +26,7 @@ from RiverObs import RiverReach
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
-from Centerline.Centerline import CenterLineException
+from Centerline.Centerline import Centerline, CenterLineException
 from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
@@ -406,13 +406,13 @@ class SWOTRiverEstimator(SWOTL2):
 
         try:
             tvp_plus_y_antenna_xyz = (
-                self.nc['tvp']['plus_y_antenna_x'][:][self.img_y],
-                self.nc['tvp']['plus_y_antenna_y'][:][self.img_y],
-                self.nc['tvp']['plus_y_antenna_z'][:][self.img_y])
+                self.nc['tvp']['plus_y_antenna_x'][:],
+                self.nc['tvp']['plus_y_antenna_y'][:],
+                self.nc['tvp']['plus_y_antenna_z'][:])
             tvp_minus_y_antenna_xyz = (
-                self.nc['tvp']['minus_y_antenna_x'][:][self.img_y],
-                self.nc['tvp']['minus_y_antenna_y'][:][self.img_y],
-                self.nc['tvp']['minus_y_antenna_z'][:][self.img_y])
+                self.nc['tvp']['minus_y_antenna_x'][:],
+                self.nc['tvp']['minus_y_antenna_y'][:],
+                self.nc['tvp']['minus_y_antenna_z'][:])
             pixc = {'tvp': {'time': self.nc['tvp']['time'][:]},
                     'pixel_cloud': {'illumination_time': 
                      self.nc['pixel_cloud']['illumination_time'][:]}}
@@ -430,12 +430,11 @@ class SWOTRiverEstimator(SWOTL2):
             self.lat, self.lon, hgt_filt[self.img_y, self.img_x],
             GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE)
 
-
         pixc_tvp_index = SWOTWater.aggregate.get_sensor_index(pixc)
         pixc_wavelength = self.nc.wavelength
         flat_ifgram = SWOTWater.aggregate.flatten_interferogram(
             self.ifgram, tvp_plus_y_antenna_xyz, tvp_minus_y_antenna_xyz,
-            target_xyz, pixc_tvp_index[self.img_y], pixc_wavelength)
+            target_xyz, pixc_tvp_index[self.index], pixc_wavelength)
 
         self.ifgram = flat_ifgram
 
@@ -688,12 +687,18 @@ class SWOTRiverEstimator(SWOTL2):
         river_obs_list = []
         reach_idx_list = []
         ireach_list = []
+        node_x_list = []
+        node_y_list = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
 
             seg_label = self.seg_label.copy()
+
+            # save node x and y in list for min-dist calculation later
+            node_x_list.extend(self.reaches[i_reach].x.data.tolist())
+            node_y_list.extend(self.reaches[i_reach].y.data.tolist())
 
             try:
                 this_idx = np.where(reach_idx == all_ids)[0][0]
@@ -744,18 +749,21 @@ class SWOTRiverEstimator(SWOTL2):
             ireach_list.append(i_reach)
 
         # Ensure unique and optimal assignments of pixels to reach.
-        min_dist = 9999999 * np.ones(self.x.shape)
+        tile_centerline = Centerline(node_x_list, node_y_list, k=3)
+        tile_i, tile_d, tile_x, tile_y, tile_s, tile_n = \
+            tile_centerline.to_centerline(self.x, self.y)
+        # set minimum distance target to smallest distance-to-node for whole tile
+        min_dist = tile_d
         reach_ind = -1 * np.ones(self.x.shape, dtype=int)
         cnts_assigned = np.zeros(self.x.shape, dtype=int)
         for ii, river_obs in enumerate(river_obs_list):
-
-            # Get current reach assingment and min distance to node for all
+            # Get current reach assignment and min distance to node for all
             # pixels assigned to this reach.
             these_reach_inds = reach_ind[river_obs.in_channel]
             these_min_dists = min_dist[river_obs.in_channel]
 
             # Figure out which ones are better than current assignment
-            mask = river_obs.d < these_min_dists
+            mask = river_obs.d <= these_min_dists
 
             # Re-assign the pixels to reaches with a better assignment
             these_reach_inds[mask] = ii
@@ -1332,6 +1340,16 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         if mask.sum() >= min_fit_points:
+            # first, compute and remove wse outliers using iterative linear fit
+            # hard code these for now
+            abs_thresh = 2
+            rel_thresh = 68
+            upr_thresh = 90
+            iter_num = 3
+            mask = self.flag_outliers(hh[mask], SS[mask], ww[mask],
+                                      abs_thresh, rel_thresh, upr_thresh,
+                                      iter_num, mask)
+
             if self.slope_method == 'first_to_last':
                 reach_stats['slope'] = (
                     hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
@@ -1456,6 +1474,59 @@ class SWOTRiverEstimator(SWOTL2):
 
         river_reach.metadata = reach_stats
         return river_reach
+
+    @staticmethod
+    def flag_outliers(wse, flow_dist, weights, abs_thresh, rel_thresh,
+                      upr_thresh, iter_num, mask):
+
+        """
+        Flag wse outliers within a reach using iterative WLS slope algorithm
+        wse: node wse
+        flow_dist: node flow distance
+        abs_thresh: absolute threshold, default 2[m]
+        rel_thresh: relative threshold, default 68% percentile
+        upr_thresh: upper limit, how many percent of node will be kept at
+            the last iteration, default 80%
+        iter_num: number of iterations
+        outputs:
+        wse : reach height
+        slope : reach slope
+        """
+        # initial fit OLS
+        fit = statsmodels.api.OLS(wse, flow_dist).fit()
+        r_slp = fit.params[0]
+        r_wse = fit.params[1]
+        wse_fit = r_wse + r_slp * flow_dist[:, 0]
+
+        for i in range(iter_num):
+            metric = abs(wse_fit - wse)
+            metric_one_sigma = np.percentile(metric, rel_thresh)
+            upr_threshs = np.zeros(iter_num)
+            upr_threshs[-1] = upr_thresh
+            frac_keep = np.percentile(metric, upr_threshs[i])
+            icond = np.logical_or(metric < abs_thresh,
+                                  metric < metric_one_sigma)
+
+            if sum(icond) / len(metric) * 100 <= upr_threshs[i]:
+                current_ind = metric < frac_keep
+            else:
+                current_ind = icond
+            if i == iter_num - 1 and all(np.isfinite(weights)):
+                # last iteration use WLS
+                fit = statsmodels.api.WLS(wse[current_ind],
+                                          flow_dist[current_ind],
+                                          weights=weights[current_ind]).fit()
+                r_slp = fit.params[0]
+                r_wse = fit.params[1]
+            else:
+                fit = statsmodels.api.OLS(wse[current_ind],
+                                          flow_dist[current_ind]).fit()
+                r_slp = fit.params[0]
+                r_wse = fit.params[1]
+
+            wse_fit = r_wse + r_slp * flow_dist[:, 0]
+        mask[mask] = current_ind
+        return mask
 
     def create_index_file(self):
         """Initializes the pixel cloud vector file"""

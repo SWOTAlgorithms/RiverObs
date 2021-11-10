@@ -63,6 +63,7 @@ import subprocess
 import RDF
 import SWOTRiver.Estimate
 from SWOTRiver.products.pixcvec import L2PIXCVector
+from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger('swot_pixc2rivertile')
 
@@ -118,7 +119,7 @@ def main():
         l2pixc_to_rivertile.match_pixc_idx()
         l2pixc_to_rivertile.do_improved_geolocation()
 
-    except Exception as exception:
+    except RiverObsException as exception:
         LOGGER.error(
             'Unable to continue river processing: {}'.format(exception))
 
