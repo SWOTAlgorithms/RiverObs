@@ -265,6 +265,21 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
+        # skip NaNs in dheight_dphase
+        good = ~mask
+        for key in ['lat', 'lon', 'x', 'y', 'klass', 'h_noise',
+                    'img_x', 'img_y']:
+            try:
+                setattr(self, key, getattr(self, key)[good])
+            except TypeError:
+                pass
+
+        # modify self.index for subsetting of good pixels
+        indicies = np.where(self.index)[0]
+        indicies = indicies[good]
+        self.index[:] = False
+        self.index[indicies] = True
+
         datasets2load = [
             ['xtrack', xtrack_kwd], ['sig0', sig0_kwd],
             ['sig0_uncert', sig0_uncert_kwd],
@@ -304,23 +319,6 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             self.looks_to_efflooks = None
 
-        # skip NaNs in dheight_dphase
-        good = ~mask
-
-        for key in [
-            'lat', 'lon', 'x', 'y', 'klass', 'h_noise', 'xtrack', 'ifgram',
-            'power1', 'power2', 'phase_noise_std', 'dh_dphi', 'dlat_dphi',
-            'dlon_dphi', 'num_rare_looks', 'num_med_looks',
-            'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
-            'water_frac', 'water_frac_uncert', 'img_x',
-            'img_y', 'geoid', 'solid_earth_tide', 'load_tide_fes',
-            'load_tide_got', 'pole_tide']:
-
-            try:
-                setattr(self, key, getattr(self, key)[good])
-            except TypeError:
-                pass
-
         # Try to read the pixel area from the L2 file, or compute it
         # from look angle and azimuth spacing, or from azimuth spacing
         # and ground spacing
@@ -331,7 +329,7 @@ class SWOTRiverEstimator(SWOTL2):
         except KeyError:
             try:
                 # try compute with look angle
-                look_angle = self.get('no_layover_look_angle')[good]
+                look_angle = self.get('no_layover_look_angle')
                 incidence_angle = (look_angle) * (
                     1. + self.platform_height / self.earth_radius)
                 range_resolution = float(self.getatt('range_resolution'))
