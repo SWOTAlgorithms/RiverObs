@@ -96,8 +96,9 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if key in ['geolocation_method', 'reach_db_path', 'height_agg_method',
-                   'area_agg_method', 'slope_method']:
-            continue
+                   'area_agg_method', 'slope_method', 'outlier_method']:
+            if config[key].lower() != 'none':
+                continue
         config[key] = ast.literal_eval(config[key])
 
     pixc_file = args.pixc_file

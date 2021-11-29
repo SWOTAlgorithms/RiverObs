@@ -7,7 +7,7 @@ import numpy as np
 import logging
 
 from Centerline import Centerline
-from .RiverNode import RiverNode
+from RiverObs import RiverNode
 from SWOTRiver.errors import RiverObsUseageException
 
 LOGGER = logging.getLogger(__name__)

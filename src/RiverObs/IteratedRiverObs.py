@@ -8,9 +8,9 @@ import collections
 import numpy as np
 import scipy.interpolate
 
-from .RiverObs import RiverObs
+from RiverObs.RiverObs import RiverObs
 from Centerline import Centerline
-from .RiverNode import RiverNode
+from RiverObs import RiverNode
 from SWOTRiver.errors import RiverObsUseageException
 
 class CenterlineObs:
