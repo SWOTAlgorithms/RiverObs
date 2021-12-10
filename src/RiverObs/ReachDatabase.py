@@ -319,6 +319,7 @@ class ReachDatabase(Product):
         ['y_min', {'dtype': 'f8' , 'value': None}],
         ['y_max', {'dtype': 'f8' , 'value': None}],
         ['Name', {}], ['production_date', {}],
+        ['pass_number', {}], ['tile_number', {}], ['swath_side', {}],
         ])
     GROUPS = odict([
         ['nodes', 'ReachDatabaseNodes'],
