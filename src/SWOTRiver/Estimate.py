@@ -190,9 +190,9 @@ class L2PixcToRiverTile(object):
                          self.reach_collection])
 
                 for reach_variable in reach_variables:
-                    self.reach_outputs[reach_variable] = np.array(
+                    self.reach_outputs[reach_variable] = np.squeeze(np.array(
                         [reach.metadata[reach_variable] for reach in
-                         self.reach_collection])
+                         self.reach_collection]))
 
                 self.node_outputs['reach_idx'] = np.zeros(
                     self.node_outputs['lat'].shape).astype('int32')
@@ -201,6 +201,7 @@ class L2PixcToRiverTile(object):
                     self.node_outputs['reach_idx'][
                         i_start:i_start + num_nodes] = ireach
                     i_start = i_start + num_nodes
+
             else:
                 LOGGER.info('Reach collection has zero entries')
 
