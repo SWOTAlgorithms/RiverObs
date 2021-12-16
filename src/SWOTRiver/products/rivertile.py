@@ -318,6 +318,9 @@ class L2HRRiverTile(Product):
                     node_outputs['ice_clim_f'] = np.insert(
                         node_outputs['ice_clim_f'], insert_idx,
                         reach.metadata['iceflag'])
+                    node_outputs['river_name'] = np.insert(
+                        node_outputs['river_name'], insert_idx,
+                        reach.river_name[rch_idx])
 
                     for key in ['nobs', 'nobs_h', 'node_blocked']:
                         node_outputs[key] = np.insert(
@@ -386,6 +389,38 @@ class L2HRRiverTile(Product):
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
+                reach_outputs['river_name'] = np.append(
+                    reach_outputs['river_name'], reach.metadata['river_name'])
+
+                dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
+                dsch_m_c = reach.metadata['discharge_models']['constrained']
+
+                reach_outputs['dschg_msf'] = np.append(
+                    reach_outputs['dschg_msf'],
+                    dsch_m_uc['MetroMan']['sbQ_rel'])
+                reach_outputs['dschg_gmsf'] = np.append(
+                    reach_outputs['dschg_gmsf'],
+                    dsch_m_c['MetroMan']['sbQ_rel'])
+
+                reach_outputs['dschg_bsf'] = np.append(
+                    reach_outputs['dschg_bsf'], dsch_m_uc['BAM']['sbQ_rel'])
+                reach_outputs['dschg_gbsf'] = np.append(
+                    reach_outputs['dschg_gbsf'], dsch_m_c['BAM']['sbQ_rel'])
+
+                reach_outputs['dschg_hsf'] = np.append(
+                    reach_outputs['dschg_hsf'], dsch_m_uc['HiVDI']['sbQ_rel'])
+                reach_outputs['dschg_ghsf'] = np.append(
+                    reach_outputs['dschg_ghsf'], dsch_m_c['HiVDI']['sbQ_rel'])
+
+                reach_outputs['dschg_osf'] = np.append(
+                    reach_outputs['dschg_osf'], dsch_m_uc['MOMMA']['sbQ_rel'])
+                reach_outputs['dschg_gosf'] = np.append(
+                    reach_outputs['dschg_gosf'], dsch_m_c['MOMMA']['sbQ_rel'])
+
+                reach_outputs['dschg_ssf'] = np.append(
+                    reach_outputs['dschg_ssf'], dsch_m_uc['SADS']['sbQ_rel'])
+                reach_outputs['dschg_gssf'] = np.append(
+                    reach_outputs['dschg_gssf'], dsch_m_c['SADS']['sbQ_rel'])
 
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
@@ -1512,6 +1547,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['p_n_ch_max'] = node_outputs['n_chan_max']
             klass['p_n_ch_mod'] = node_outputs['n_chan_mod']
             klass['ice_clim_f'] = node_outputs['ice_clim_f']
+            klass['river_name'] = node_outputs['river_name']
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length']:
@@ -1710,7 +1746,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Meridian.""")],
                 ])],
         ['river_name',
-         odict([['dtype', 'U100'],
+         odict([['dtype', 'U254'],
                 ['long_name', 'river name(s)'],
                 ['_FillValue', 'no_data'],
                 ['tag_basic_expert','Basic'],
@@ -3291,6 +3327,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
+            klass['river_name'] = reach_outputs['river_name']
+
+            for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
+                        'p_dist_out', 'p_length', 'p_n_nodes',
+                        'p_lat', 'p_lon', 'ice_clim_f', 'river_name']:
+                klass[key] = reach_outputs[key]
+
 
 #             klass['dschg_c'] = ...
 #             klass['dschg_c_u'] = ...
@@ -3302,42 +3345,49 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['dschg_m'] = reach_outputs['metro_q_uc']
 #             klass['dschg_m_u'] = ...
 #             klass['dschg_m_q'] = ...
+            klass['dschg_msf'] = reach_outputs['dschg_msf']
             klass['dschg_gm'] = reach_outputs['metro_q_c']
 #             klass['dschg_gm_u'] = ...
 #             klass['dschg_gm_q'] = ...
+            klass['dschg_gmsf'] = reach_outputs['dschg_gmsf']
 
             klass['dschg_b'] = reach_outputs['bam_q_uc']
 #             klass['dschg_b_u'] = ...
 #             klass['dschg_b_q'] = ...
+            klass['dschg_bsf'] = reach_outputs['dschg_bsf']
             klass['dschg_gb'] = reach_outputs['bam_q_c']
 #             klass['dschg_gb_u'] = ...
 #             klass['dschg_gb_q'] = ...
+            klass['dschg_gbsf'] = reach_outputs['dschg_gbsf']
 
             klass['dschg_h'] = reach_outputs['hivdi_q_uc']
 #             klass['dschg_h_u'] = ...
 #             klass['dschg_h_q'] = ...
+            klass['dschg_hsf'] = reach_outputs['dschg_hsf']
+
             klass['dschg_gh'] = reach_outputs['hivdi_q_c']
 #             klass['dschg_gh_u'] = ...
 #             klass['dschg_gh_q'] = ...
+            klass['dschg_ghsf'] = reach_outputs['dschg_ghsf']
 
             klass['dschg_s'] = reach_outputs['momma_q_uc']
 #             klass['dschg_s_u'] = ...
 #             klass['dschg_s_q'] = ...
+            klass['dschg_osf'] = reach_outputs['dschg_osf']
+
             klass['dschg_gs'] = reach_outputs['momma_q_c']
 #             klass['dschg_gs_u'] = ...
 #             klass['dschg_gs_q'] = ...
+            klass['dschg_gosf'] = reach_outputs['dschg_gosf']
 
             klass['dschg_s'] = reach_outputs['sads_q_uc']
 #             klass['dschg_s_u'] = ...
 #             klass['dschg_s_q'] = ...
+            klass['dschg_ssf'] = reach_outputs['dschg_ssf']
             klass['dschg_gs'] = reach_outputs['sads_q_c']
 #             klass['dschg_gs_u'] = ...
 #             klass['dschg_gs_q'] = ...
-
-            for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
-                        'p_dist_out', 'p_length', 'p_n_nodes',
-                        'p_lat', 'p_lon']:
-                klass[key] = reach_outputs[key]
+            klass['dschg_gssf'] = reach_outputs['dschg_gssf']
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]
