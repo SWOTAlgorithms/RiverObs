@@ -45,6 +45,9 @@ cmap_custom = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
             'cmyc', cmap_custom)
 
+def get_simple_node_id(node_id, reach_id):
+    return np.floor((node_id.astype(int) - (reach_id-1)*1000)/10).astype(int)
+
 def plot_wse(data, truth, errors, reach_id, axis, outclip=False, reach_fit=True, title=None, prd_heights=False):
     # plots the water surface elevation (wse) for each node, for the observed and truth data, and the fit for the reach
     reach_id = int(reach_id)
@@ -196,9 +199,11 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
                             np.logical_not(data.nodes['area_total'].mask))
     node_id = data.nodes['node_id'][node_i]
+    node_id = get_simple_node_id(node_id, reach_id)#np.floor((node_id.astype(int) - (reach_id-1)*1000)/10).astype(int)
     node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
                                   np.logical_not(truth.nodes['wse'].mask))
     node_id_truth = truth.nodes['node_id'][node_i_truth]
+    node_id_truth = get_simple_node_id(node_id_truth, reach_id)#np.floor((node_id_truth.astype(int) - (reach_id-1)*1000)/10).astype(int)
 
     area_detct = data.nodes['area_detct'][node_i]
     area_total = data.nodes['area_total'][node_i]  # includes dark water flag
@@ -371,14 +376,14 @@ def make_plots(rivertile_file, truth_file, pixcvec, pixc,
     # mngr.window.setGeometry(0, 0, 1500, 500)
     if pixc and pixcvec_data:
         pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
-        plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes)
+        plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes, reach_data=data)
     else:
         print('Missing pixc or pixcvec file, skipping pixel assignment plot')
 
     if pixc and truth_pixc:# only plot these if pixc was also given
         truth_pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixcvec)
         truth_pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixc)
-        plot_pixcs(truth_pixcvec_data, truth_pixc_data, reach_id, nodes, title_tag='(truth)')
+        plot_pixcs(truth_pixcvec_data, truth_pixc_data, reach_id, nodes, title_tag='(truth)', reach_data=truth)
 
     return figure, axes
 
@@ -400,7 +405,8 @@ def get_reach_error(errors, reach_id):
     return reach_error
 
 
-def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
+def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', reach_data=None):
+    reach_data = None
     reach_id = int(reach_id)
     # get only the reach_id for pixels in pixc_vec
     pix_i = (pixc_vec['reach_id'] == reach_id)
@@ -408,7 +414,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
     reach_i = pixc_vec['reach_id'] == reach_id
     #print('node0: ', node_id0[0])
     #print('reach_id: ', reach_id)
-    node_id = node_id0.astype('int') - (reach_id-1)*1000
+    node_id = get_simple_node_id(node_id0, reach_id)#np.floor((node_id0.astype('int') - (reach_id-1)*1000)/10).astype(int)
     #print('node[0]: ', node_id[0])
 
     aziv = pixc_vec['azimuth_index'][pix_i]
@@ -439,23 +445,39 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
     height = pixc.pixel_cloud['height']
     geoid = pixc.pixel_cloud['geoid']
     cls = pixc.pixel_cloud['classification']
+    wf = pixc.pixel_cloud['water_frac']
+    pxarea = pixc.pixel_cloud['pixel_area']
     m = np.max(azi)+1
     n = np.max(ri)+1
     Height = np.zeros((m,n)) + np.nan
     Geoid = np.zeros((m,n)) + np.nan
     Cls = np.zeros((m,n)) + np.nan
+    Wf = np.zeros((m,n)) + np.nan
+    Pxarea = np.zeros((m,n)) + np.nan
     Height[azi,ri] = height[:]
     Geoid[azi,ri] = geoid[:]
     Cls[azi,ri] = cls[:]
+    Wf[azi,ri] = wf[:]
+    Pxarea[azi,ri] = pxarea[:]
 
     # now crop it to pixcvec size
     Height1 = Height[M0:M1,N0:N1]
     Geoid1 = Geoid[M0:M1,N0:N1]
     Cls1 = Cls[M0:M1,N0:N1]
+    Wf1 = Wf[M0:M1,N0:N1]
+    Pxarea1 = Pxarea[M0:M1,N0:N1]
     # exclude non-pixcvec things in theis reach
     Height1[np.isnan(Heightv)] = np.nan
     Geoid1[np.isnan(Heightv)] = np.nan
     Cls1[np.isnan(Node_id)] = np.nan
+    Wf1[np.isnan(Node_id)] = np.nan
+    Pxarea1[np.isnan(Node_id)] = np.nan
+    Warea1 = Pxarea1.copy()
+    #Warea1[Cls1==2] = Pxarea1[Cls1==2]*Wf1[Cls1==2]
+    #Warea1[Cls1==3] = Pxarea1[Cls1==3]*Wf1[Cls1==3]
+    Warea1[Cls1==2] = Pxarea1[Cls1==2]*0
+    Warea1[Cls1==1] = Pxarea1[Cls1==1]*0
+    Warea1[Cls1==3] = Pxarea1[Cls1==3]*0
     # now plot them
     c1 = np.nanpercentile(Height1,80)
     c0 = np.nanpercentile(Height1,20)
@@ -474,23 +496,46 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
     ax2.set_title('classification '+title_tag)
     plt.colorbar(pt2,ax=ax2)
 
-    ax3 = plt.subplot(2,3,4, sharex=ax1, sharey=ax1)
-    pt3 = ax3.imshow(Heightv, interpolation='none', aspect='auto',
-        cmap=cmaph, clim=(c0,c1))
-    ax3.set_title('height_vectorproc (m) '+title_tag)
-    plt.colorbar(pt3,ax=ax3)
+    if reach_data is not None:
+        NodeArea = Node_id.copy()
+        node_i = np.logical_and(reach_data.nodes['reach_id'] == reach_id,
+            np.logical_not(reach_data.nodes['area_total'].mask))
+        node_id = reach_data.nodes['node_id'][node_i]
+        area_tot = reach_data.nodes['area_total'][node_i]
+        for node_id1 in node_id0:
+            id0 = get_simple_node_id(node_id1,reach_id)
+            #print(id0, node_id1)
+            NodeArea[Node_id==id0] = area_tot[node_id==node_id1]
+        NodeArea = NodeArea
+        ax3 = plt.subplot(2,3,3, sharex=ax1, sharey=ax1)
+        pt3 = ax3.imshow(NodeArea, interpolation='none', aspect='auto',
+            cmap='jet', clim=(np.nanpercentile(NodeArea,10),np.nanpercentile(NodeArea,90)))
+        ax3.set_title('width'+title_tag)
+        plt.colorbar(pt3,ax=ax3)
+    else:
+        ax3 = plt.subplot(2,3,3, sharex=ax1, sharey=ax1)
+        pt3 = ax3.imshow(Warea1, interpolation='none', aspect='auto',
+            cmap='jet', clim=(0,np.nanpercentile(Warea1,90)))
+        ax3.set_title('water area (pixel-level)'+title_tag)
+        plt.colorbar(pt3,ax=ax3)
 
-    ax4 = plt.subplot(2,3,5, sharex=ax1, sharey=ax1)
-    pt4 = ax4.imshow(Height1, interpolation='none', aspect='auto',
+    ax4 = plt.subplot(2,3,4, sharex=ax1, sharey=ax1)
+    pt4 = ax4.imshow(Heightv, interpolation='none', aspect='auto',
         cmap=cmaph, clim=(c0,c1))
-    ax4.set_title('height (m) '+title_tag)
+    ax4.set_title('height_vectorproc (m) '+title_tag)
     plt.colorbar(pt4,ax=ax4)
 
-    ax5 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
-    pt5 = ax5.imshow(Geoid1, interpolation='none', aspect='auto',
-        cmap=cmaph)#, clim=(c0,c1))
-    ax5.set_title('geoid height (m) '+title_tag)
+    ax5 = plt.subplot(2,3,5, sharex=ax1, sharey=ax1)
+    pt5 = ax5.imshow(Height1, interpolation='none', aspect='auto',
+        cmap=cmaph, clim=(c0,c1))
+    ax5.set_title('height (m) '+title_tag)
     plt.colorbar(pt5,ax=ax5)
+
+    ax6 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
+    pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
+        cmap=cmaph)#, clim=(c0,c1))
+    ax6.set_title('geoid height (m) '+title_tag)
+    plt.colorbar(pt6,ax=ax6)
 
     if nodes:
         for node in nodes:
@@ -525,7 +570,11 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)'):
             plt.plot(binc, h3)#, linewidth=2)
             plt.plot(binc, h2,'--')#, linewidth=2)
             plt.plot(binc, hd, ':')#, linewidth=2)
-            plt.title('node %d, mean=%3.2f, std=%3.2f'%(int(node), mn, sd))
+            if reach_data is not None:
+                ar = np.nanmedian(NodeArea[idx])
+            else:
+                ar = np.nansum(Warea1[idx])
+            plt.title('node %d, mean=%3.2f, std=%3.2f, area=%3.2f'%(int(node), mn, sd, ar))
             plt.xlabel('height (m)')
             plt.grid()
             plt.legend(['pixc', 'pixc_vec',

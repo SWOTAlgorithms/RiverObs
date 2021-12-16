@@ -72,7 +72,9 @@ class Table():
         """Fit minimum width for each column using self.data and self.width.
 
         This is called automatically in __init__()."""
-        n_columns = len(self.data[0])
+        n_columns = 0
+        if len(self.data)>0:
+            n_columns = len(self.data[0])
         self.widths = np.zeros(n_columns, dtype='i4')
         self.formats = ['']*n_columns
         for i in range(n_columns):

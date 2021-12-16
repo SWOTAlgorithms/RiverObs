@@ -3447,8 +3447,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 mask = np.logical_and(
                     node_reach_ids == reach_id, nodes.n_good_pix > 0)
                 if mask.sum() > 0:
-                    reach_value[ii] = np.mean(
-                        node_value[mask])
+                    try:
+                        reach_value[ii] = np.mean(
+                            node_value[mask])
+                    except OverflowError:
+                        reach_value[ii] = MISSING_VALUE_FLT
                 else:
                     reach_value[ii] = MISSING_VALUE_FLT
             self[key] = reach_value
