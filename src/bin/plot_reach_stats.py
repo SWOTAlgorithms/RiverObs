@@ -22,9 +22,9 @@ def handle_bad_reaches(truth_tmp, data_tmp):
     only keep reaches that all the pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
-    # bad_reaches = np.array([73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
-    #                73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
-    #                74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271])  # from Rui
+    bad_reaches = np.array([73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
+                   73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
+                   74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271])  # from Rui
     main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire
@@ -50,26 +50,31 @@ def handle_bad_reaches(truth_tmp, data_tmp):
         # setting all variables to nans for bad reaches
         # makes them be excluded when matching
         # reach ids later between the data and truth
-
         # need to check if truth variables also in data for backwards SWORD compatibility
-        if (key in data_tmp.reaches.variables) and ('no_data' not in truth_tmp.reaches[key].data):
-            if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
-                tmp = truth_tmp.reaches[key].data.astype(np.double)
-                tmp[msk_t]=np.nan
-                truth_tmp.reaches[key] = tmp
-            if isinstance(data_tmp.reaches[key], np.ma.MaskedArray):
-                tmp = data_tmp.reaches[key].data.astype(np.double)
-                tmp[msk_d]=np.nan
-                data_tmp.reaches[key] = tmp
+        try:
+            if (key in data_tmp.reaches.variables) and ('no_data' not in truth_tmp.reaches[key].data):
+                if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
+                    tmp = truth_tmp.reaches[key].data.astype(np.double)
+                    tmp[msk_t]=np.nan
+                    truth_tmp.reaches[key] = tmp
+                if isinstance(data_tmp.reaches[key], np.ma.MaskedArray):
+                    tmp = data_tmp.reaches[key].data.astype(np.double)
+                    tmp[msk_d]=np.nan
+                    data_tmp.reaches[key] = tmp
+        except ValueError:  # occurs if data is not a number
+            continue
     return truth_tmp, data_tmp
 
 def load_and_accumulate(
         pixc_rivertile, gdem_rivertile, metrics=None,
-        truth=None, data=None, scene=None, scene_nodes=None, sig0=None, bad_scenes=[]):
+        truth=None, data=None, scene=None, scene_nodes=None, sig0=None,
+        bad_scenes=None):
     '''
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
     '''
+    if bad_scenes is None:
+        bad_scenes = []
     truth_tmp, data_tmp = SWOTRiver.analysis.riverobs.load_rivertiles(
         gdem_rivertile, pixc_rivertile)
     # do nothing if truth or data file have no reach data
@@ -83,7 +88,8 @@ def load_and_accumulate(
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp)
     #
     SWOTRiver.analysis.riverobs.match_reaches(truth_tmp, data_tmp)
-    wse_node_avg, sig0_avg = SWOTRiver.analysis.riverobs.compute_average_node_error(data_tmp, truth_tmp)
+    wse_node_avg, sig0_avg = SWOTRiver.analysis.riverobs.\
+        compute_average_node_error(data_tmp, truth_tmp)
     tmp = SWOTRiver.analysis.riverobs.get_metrics(
         truth_tmp.reaches, data_tmp.reaches, wse_node_avg=wse_node_avg)
     # get the scene
@@ -132,6 +138,9 @@ def main():
                         help='pixc directory basename')
     parser.add_argument('-eb','--pixc_errors_basename', type=str, default=None,
                         help = "pixc systematic errors basename")
+    parser.add_argument('-sf', '--scene_filter',
+                        type=str, help='keep scenes matching this name '
+                                       '(e.g. 3607, tanana)')
     parser.add_argument('-o', '--outdir', type=str,help='output directory for print files')
     parser.add_argument('-tf','--table_fname', type=str, default=None, help='output filename for summary table')
     parser.add_argument('-t', '--title')
@@ -145,7 +154,12 @@ def main():
     scene_nodes = None
     sig0 = None
 
-    bad_scenes = [] # e.g. ['3356',...] these scenes will be excluded from analysis
+    bad_scenes = []
+    # bad_scenes = ['platte_0036_0012', 'platte_0120_0290',
+    #                'sacramento_0221_0264', 'sacramento_0314_0264',
+    #                'sacramento_0220_0249', 'tanana_HighSim', 'tanana_LowSim',
+    #                'tanana_MeanSim', 'yukonflats']
+                    # e.g. [3356',...] these scenes will be excluded from analysis
     # bad_scenes = ['1782', '1793', '1830', '1847',
     #               '2367', '2447', '2800', '2801', '2819', '298', '3007', '3024', '316',
     #               '3356', '3376', '3379', '3382', '3396',
@@ -174,6 +188,9 @@ def main():
             proc_rivertile_list = glob.glob(os.path.join(
                 args.basedir, '*', '*', args.slc_basename, args.pixc_basename,
                 args.proc_rivertile))
+        if args.scene_filter:  # only keep tiles matching the input scene
+            proc_rivertile_list = [k for k in proc_rivertile_list
+                                   if args.scene_filter in k]
 
         # If proc_rivertile input is a basename, get the actual rivertile
         proc_rivertile_list = [os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
