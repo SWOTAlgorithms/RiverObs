@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-# This goes through all reaches in all lidar scenes and finds the best and worst scene/pass/side scenes and reaches
-# It then plots all reaches, reach by reach, ranked from highest slope error to lowest slope error
-
-# To do: clean this up to be an actual functions dump rather than a railroad, and create a separate railroad script
+# This goes through all reaches in all rivertiles and finds the best and
+# worst scene/pass/side scenes and reaches.
+#
+# It then plots all reaches, reach by reach, ranked from highest error to
+# lowest error. The user may specify which type of error to sort by, e.g. wse,
+# area, slope. Written for performance assessment and troubleshooting of SWOT
+# rivertiles generated using simulated data.
 
 # Copyright (c) 2020-, California Institute of Technology ("Caltech"). U.S.
 # Government sponsorship acknowledged.
@@ -27,32 +30,43 @@ import pdb
 import matplotlib.pyplot as plt
 
 
-def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir, truth_only=False):
+def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
+                    truth_only=False, scene_filter=None):
     # get all pixc files 'rivertile.nc' and find associated truth file
     if truth_only:
         print('doing truth-to-truth file aggregation...')
-        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, proc_rivertile,
-                                                     'river_data', 'rivertile.nc'))
+        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*',
+                                                     slc_dir,
+                                                     proc_rivertile,
+                                                     'river_data',
+                                                     'rivertile.nc'))
     else:
-        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*', slc_dir, pixc_dir, proc_rivertile,
-                                                     'river_data', 'rivertile.nc'))
-    # uncomment below if you want to keep only some scenes or passes
-    # keep = ['3824']
-    # proc_rivertile_list[:] = [file for file in proc_rivertile_list if any(sub in file for sub in keep)]
+        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*',
+                                                     slc_dir,
+                                                     pixc_dir,
+                                                     proc_rivertile,
+                                                     'river_data',
+                                                     'rivertile.nc'))
+    if scene_filter:  # only keep tiles matching the input scene
+        proc_rivertile_list = [k for k in proc_rivertile_list
+                               if scene_filter in k]
     if len(proc_rivertile_list) == 0:
         raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
     for rivertile in proc_rivertile_list:
-        truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile, truth_dir, truth_only)
+        truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile,
+                                    truth_dir, truth_only)
         truth_rivertile_list.append(truth_file)
     return proc_rivertile_list, truth_rivertile_list
 
 
-def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_dir, truth_only=False):
+def get_truth_file(proc_dir, pixc_dir, proc_rivertile,
+                   truth_dir, truth_only=False):
     if truth_only:
         n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc')
     else:
-        n_char = len(proc_dir) + len(pixc_dir) + 1 + len('river_data/rivertile.nc') + 1
+        n_char = len(proc_dir) + len(pixc_dir) \
+                 + 1 + len('river_data/rivertile.nc') + 1
     path = proc_rivertile[0:-n_char]
     truth_file = path + truth_dir + '/river_data/rivertile.nc'
     return truth_file
@@ -95,18 +109,20 @@ def get_errors(pixc_list, gdem_list, test, verbose=True):
     good_pixc_list = []
     good_truth_list = []
 
-    test_count = 0                      # this only increases if we're in script testing mode
+    test_count = 0  # this only increases if we're in script 'test' mode
     if type(pixc_list) is not list:
         # function was called for a single file
         print('Retrieving errors for single file...')
         try:
-            metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(pixc_list, gdem_list,
-                                                                                 bad_scenes=bad_scene)
+            metrics, truth, data, \
+            scene, scene_nodes, sig0 = load_and_accumulate(
+                pixc_list, gdem_list, bad_scenes=bad_scene)
         except FileNotFoundError:
             print('Pixc rivertile has no matching gdem rivertile')
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
         if truth:
-            msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+            msk, fit_error, bounds, dark_frac,\
+            reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                 metrics, truth, data, scene, sig0=sig0)
             preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                        + str(bounds['max_xtrk']) + " km and width>" \
@@ -324,12 +340,19 @@ def main():
                         help='slc directory basename')
     parser.add_argument('pixc_basename', type=str, default=None,
                         help='pixc directory basename')
-    parser.add_argument('--test_boolean', help='set to "True" if testing script', default=False, required=False)
+    parser.add_argument('--test_boolean',
+                        help='set to "True" if testing script', default=False,
+                        required=False)
     parser.add_argument('--percentile', type=int, default=100, required=False,
-                        help='%%ile along the distribution of errors where you want to begin the analysis, 0-100')
-    parser.add_argument('--sort_by', type=str, default='wse', help='Which error class to sort by: wse, area, or slope')
+                        help='%%ile along the distribution of errors where you'
+                             ' want to begin the analysis, 0-100')
+    parser.add_argument('--sort_by', type=str, default='wse',
+                        help='Which error class to sort by: wse area or slope')
     parser.add_argument('-t', '--truth_only', type=bool, default=False,
                         help='Compare truth rivertiles to truth rivertile, True or False')
+    parser.add_argument('-sf', '--scene_filter', type=str,
+                        help='keep scenes matching this name e.g 3607, tanana')
+
     args = parser.parse_args()
 
     # check validity of input sort parameter
@@ -338,9 +361,15 @@ def main():
         raise Exception('Input sort string must be wse, area, or slope.')
 
     print('base directory is', args.basedir)
-    proc_list, truth_list = get_input_files(args.basedir, args.slc_basename, args.pixc_basename,
-                                            args.proc_rivertile, args.truth_rivertile, args.truth_only)
-    scene_errors, reach_errors, proc_list, truth_list = get_errors(proc_list, truth_list, args.test_boolean)
+    proc_list, truth_list = get_input_files(args.basedir,
+                                            args.slc_basename,
+                                            args.pixc_basename,
+                                            args.proc_rivertile,
+                                            args.truth_rivertile,
+                                            args.truth_only,
+                                            args.scene_filter)
+    scene_errors, reach_errors, proc_list, truth_list = get_errors(
+        proc_list, truth_list, args.test_boolean)
 
     # Uncomment below if you want scene-level error summaries
     #
