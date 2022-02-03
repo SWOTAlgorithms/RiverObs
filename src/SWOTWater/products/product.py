@@ -126,10 +126,15 @@ class Product(object):
         dictionary.update(self.dimensions)
         return dictionary
 
-    def copy_attributes(self, other_product):
+    def copy_attributes(self, other_product, nowarn=False):
         """Copy the attributes of given product into this one"""
         for key, value in other_product.attributes.items():
-            self[key] = value
+            if nowarn:
+                # explicitly only set common items and dont print out warning
+                if key in self.ATTRIBUTES.keys():
+                    self[key] = value
+            else:
+                self[key] = value
 
     def copy(self, **kwargs):
         """Return a deep copy of self, optionally without variable data."""
@@ -282,6 +287,8 @@ class Product(object):
         default_complevel = getattr(self, 'DEFAULT_COMPLEVEL', None)
         dataset = nc.Dataset(filename, 'w')
         self.to_dataset(dataset, default_complevel=default_complevel)
+        # By default dont scale variables by the scale_factor attribute on write
+        #dataset.set_auto_scale(False)
         dataset.sync()
         dataset.close()
 
