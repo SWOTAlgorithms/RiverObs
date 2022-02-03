@@ -45,5 +45,5 @@ AGG_CLASSES = {
     }
 
 GDEM_PIXC_CLASSES = {
-    'open_water': 4, 'dark_water': 24,
-    'open_water_lake': 34, 'dark_water_lake': 54}
+    'open_water': 4, 'dark_water': 5, #
+    'open_water_lake': 34, 'dark_water_lake': 5} # 54
