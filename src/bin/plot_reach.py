@@ -30,6 +30,9 @@ from reach_comparison import *
 FIGSIZE = (6, 3)
 DPI = 200
 
+CHMIN = None
+CHMAX = None
+
 matplotlib.rcParams.update({'font.size': 6})
 
 CUSTOM_COLORS = {
@@ -44,6 +47,7 @@ cmap_custom = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
                 CUSTOM_COLORS['y'], CUSTOM_COLORS['c']]
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
             'cmyc', cmap_custom)
+
 
 def get_simple_node_id(node_id, reach_id):
     return np.floor((node_id.astype(int) - (reach_id-1)*1000)/10).astype(int)
@@ -346,7 +350,7 @@ def get_passfail_color(error_value, parameter):
 
 def make_plots(rivertile_file, truth_file, pixcvec, pixc,
         truth_pixcvec, truth_pixc, reach_id,
-        gdem_dem_file, errors=None, scene=None, nodes=None):
+        gdem_dem_file, errors=None, scene=None, nodes=None, pixc_truth=None):
     reach_id = int(reach_id)
 
     # create MutableProduct objects using input files
@@ -376,7 +380,10 @@ def make_plots(rivertile_file, truth_file, pixcvec, pixc,
     # mngr.window.setGeometry(0, 0, 1500, 500)
     if pixc and pixcvec_data:
         pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
-        plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes, reach_data=data)
+        pixc_truth_data = None
+        if pixc_truth is not None:
+            pixc_truth_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc_truth)
+        plot_pixcs(pixcvec_data, pixc_data, reach_id, nodes, reach_data=data, pixc_truth=pixc_truth_data)
     else:
         print('Missing pixc or pixcvec file, skipping pixel assignment plot')
 
@@ -405,8 +412,8 @@ def get_reach_error(errors, reach_id):
     return reach_error
 
 
-def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', reach_data=None):
-    reach_data = None
+def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', reach_data=None, pixc_truth=None, apply_corr=True):
+    #reach_data = None
     reach_id = int(reach_id)
     # get only the reach_id for pixels in pixc_vec
     pix_i = (pixc_vec['reach_id'] == reach_id)
@@ -444,18 +451,34 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', 
     ri = pixc.pixel_cloud['range_index']
     height = pixc.pixel_cloud['height']
     geoid = pixc.pixel_cloud['geoid']
+    solid_tide = pixc.pixel_cloud['solid_earth_tide']
+    load_tide_fes = pixc.pixel_cloud['load_tide_fes']
+    load_tide_got = pixc.pixel_cloud['load_tide_got']
+    pole_tide = pixc.pixel_cloud['pole_tide']
     cls = pixc.pixel_cloud['classification']
     wf = pixc.pixel_cloud['water_frac']
     pxarea = pixc.pixel_cloud['pixel_area']
+    cls_t = None
+    if pixc_truth is not None:
+        cls_t = pixc_truth['classification'][M0:M1,N0:N1]
     m = np.max(azi)+1
     n = np.max(ri)+1
     Height = np.zeros((m,n)) + np.nan
     Geoid = np.zeros((m,n)) + np.nan
+    Solid_tide = np.zeros((m,n)) + np.nan
+    Load_tide_fes = np.zeros((m,n)) + np.nan
+    Load_tide_got = np.zeros((m,n)) + np.nan
+    Pole_tide = np.zeros((m,n)) + np.nan
     Cls = np.zeros((m,n)) + np.nan
     Wf = np.zeros((m,n)) + np.nan
     Pxarea = np.zeros((m,n)) + np.nan
+
     Height[azi,ri] = height[:]
     Geoid[azi,ri] = geoid[:]
+    Solid_tide[azi,ri] = solid_tide[:]
+    Load_tide_fes[azi,ri] = load_tide_fes[:]
+    Load_tide_got[azi,ri] = load_tide_got[:]
+    Pole_tide[azi,ri] = pole_tide[:]
     Cls[azi,ri] = cls[:]
     Wf[azi,ri] = wf[:]
     Pxarea[azi,ri] = pxarea[:]
@@ -463,12 +486,20 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', 
     # now crop it to pixcvec size
     Height1 = Height[M0:M1,N0:N1]
     Geoid1 = Geoid[M0:M1,N0:N1]
+    Solid_tide1 = Solid_tide[M0:M1,N0:N1]
+    Load_tide_fes1 = Load_tide_fes[M0:M1,N0:N1]
+    Load_tide_got1 = Load_tide_got[M0:M1,N0:N1]
+    Pole_tide1 = Pole_tide[M0:M1,N0:N1]
     Cls1 = Cls[M0:M1,N0:N1]
     Wf1 = Wf[M0:M1,N0:N1]
     Pxarea1 = Pxarea[M0:M1,N0:N1]
     # exclude non-pixcvec things in theis reach
     Height1[np.isnan(Heightv)] = np.nan
     Geoid1[np.isnan(Heightv)] = np.nan
+    Solid_tide1[np.isnan(Heightv)] = np.nan
+    Load_tide_fes1[np.isnan(Heightv)] = np.nan
+    Load_tide_got1[np.isnan(Heightv)] = np.nan
+    Pole_tide1[np.isnan(Heightv)] = np.nan
     Cls1[np.isnan(Node_id)] = np.nan
     Wf1[np.isnan(Node_id)] = np.nan
     Pxarea1[np.isnan(Node_id)] = np.nan
@@ -478,9 +509,19 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', 
     Warea1[Cls1==2] = Pxarea1[Cls1==2]*0
     Warea1[Cls1==1] = Pxarea1[Cls1==1]*0
     Warea1[Cls1==3] = Pxarea1[Cls1==3]*0
+    
+    if apply_corr:
+        Height1 -= (Geoid1 + Solid_tide1+ Load_tide_fes1 + Pole_tide1)
+        Heightv -= (Geoid1 + Solid_tide1+ Load_tide_fes1 + Pole_tide1)
+        #Height1 -= (Geoid1 + Load_tide_fes1 + Pole_tide1)
+        #Heightv -= (Geoid1 + Load_tide_fes1 + Pole_tide1) 
     # now plot them
-    c1 = np.nanpercentile(Height1,80)
-    c0 = np.nanpercentile(Height1,20)
+    global CHMAX
+    global CHMIN
+    if CHMAX is None:
+        CHMAX = np.nanpercentile(Height1,80)
+    if CHMIN is None:
+        CHMIN = np.nanpercentile(Height1,20)
 
     plt.figure(figsize=FIGSIZE, dpi=DPI)
     ax1 = plt.subplot(2,3,1)
@@ -495,47 +536,144 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None, title_tag='(slant-plane)', 
         cmap='tab10', clim=(0,5))
     ax2.set_title('classification '+title_tag)
     plt.colorbar(pt2,ax=ax2)
-
+    ha = None
+    hat = None
+    a_cmax = 500
+    a_cmin = 50
     if reach_data is not None:
         NodeArea = Node_id.copy()
+        NodeArea_det = Node_id.copy()
         node_i = np.logical_and(reach_data.nodes['reach_id'] == reach_id,
             np.logical_not(reach_data.nodes['area_total'].mask))
         node_id = reach_data.nodes['node_id'][node_i]
         area_tot = reach_data.nodes['area_total'][node_i]
+        area_det = reach_data.nodes['area_detct'][node_i]
+        p_width = reach_data.nodes['p_width'][node_i]
+        a_cmax = np.max(p_width)*1.1
+        a_cmin = np.min(p_width)*0.9
         for node_id1 in node_id0:
             id0 = get_simple_node_id(node_id1,reach_id)
             #print(id0, node_id1)
             NodeArea[Node_id==id0] = area_tot[node_id==node_id1]
-        NodeArea = NodeArea
+            NodeArea_det[Node_id==id0] = area_det[node_id==node_id1]
+        NodeArea = NodeArea / 200
+        NodeArea_det = NodeArea_det / 200
         ax3 = plt.subplot(2,3,3, sharex=ax1, sharey=ax1)
         pt3 = ax3.imshow(NodeArea, interpolation='none', aspect='auto',
-            cmap='jet', clim=(np.nanpercentile(NodeArea,10),np.nanpercentile(NodeArea,90)))
-        ax3.set_title('width'+title_tag)
+            cmap='jet', clim=(a_cmin, a_cmax))# clim=(np.nanpercentile(NodeArea,10),np.nanpercentile(NodeArea,90)))
+        ax3.set_title('Node Area (m^2)'+title_tag)
         plt.colorbar(pt3,ax=ax3)
+        abins0 = np.linspace(50,450,100)
+        amsk = NodeArea > -100
+        ha, abins = np.histogram(NodeArea[amsk],abins0)
+        amn = np.mean(NodeArea[amsk])
+        amed = np.median(NodeArea[amsk])
+        asd = np.std(NodeArea[amsk])
+        #
+        ax6 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
+        pt6 = ax6.imshow(NodeArea_det, interpolation='none', aspect='auto',
+            cmap='jet', clim=(a_cmin, a_cmax))#, clim=(c0,c1))
+        ax6.set_title('Node Area det. '+title_tag)
+        plt.colorbar(pt6,ax=ax6)
     else:
         ax3 = plt.subplot(2,3,3, sharex=ax1, sharey=ax1)
         pt3 = ax3.imshow(Warea1, interpolation='none', aspect='auto',
             cmap='jet', clim=(0,np.nanpercentile(Warea1,90)))
         ax3.set_title('water area (pixel-level)'+title_tag)
         plt.colorbar(pt3,ax=ax3)
+        #
+        ax6 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
+        pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
+            cmap=cmaph)#, clim=(c0,c1))
+        ax6.set_title('geoid height (m) '+title_tag)
+        plt.colorbar(pt6,ax=ax6)
 
     ax4 = plt.subplot(2,3,4, sharex=ax1, sharey=ax1)
     pt4 = ax4.imshow(Heightv, interpolation='none', aspect='auto',
-        cmap=cmaph, clim=(c0,c1))
+        cmap=cmaph, clim=(CHMIN,CHMAX))
     ax4.set_title('height_vectorproc (m) '+title_tag)
     plt.colorbar(pt4,ax=ax4)
 
     ax5 = plt.subplot(2,3,5, sharex=ax1, sharey=ax1)
     pt5 = ax5.imshow(Height1, interpolation='none', aspect='auto',
-        cmap=cmaph, clim=(c0,c1))
+        cmap=cmaph, clim=(CHMIN,CHMAX))
     ax5.set_title('height (m) '+title_tag)
     plt.colorbar(pt5,ax=ax5)
 
-    ax6 = plt.subplot(2,3,6, sharex=ax1, sharey=ax1)
-    pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
-        cmap=cmaph)#, clim=(c0,c1))
-    ax6.set_title('geoid height (m) '+title_tag)
-    plt.colorbar(pt6,ax=ax6)
+    if cls_t is not None:
+        # plot an extra set of figures for truth classification
+        plt.figure(figsize=FIGSIZE, dpi=DPI)
+        ax_1 = plt.subplot(2,3,1)
+        pt_1 =ax_1.imshow(cls_t, interpolation='none',aspect='auto',
+            cmap=plt.cm.get_cmap('tab10'), clim=(0,5))
+        plt.colorbar(pt_1,ax=ax_1)
+        ax_1.set_title('classification pixc_true'+title_tag)
+        # map the classification to the pixcvec
+        Cls_t = np.zeros_like(cls_t) + np.nan
+        Area_t = np.zeros_like(cls_t) + np.nan
+        Nid = np.unique(Node_id[Node_id>-1])
+        print(Nid)
+        clsw_t = np.zeros_like(cls_t)
+        clsw_t[cls_t==4] = 1
+        clsw_t[cls_t==3] = 1
+        clsw_t[cls_t==5] = 1
+        
+        for nid in Nid:
+            #print(cls_t[Node_id==nid])
+            Cls_t[Node_id==nid] = cls_t[Node_id==nid]
+            Area_t[Node_id==nid] = np.nansum(Pxarea1[Node_id==nid]*clsw_t[Node_id==nid])
+        Cls_t[Cls_t==0] = np.nan
+        Area_t = Area_t/200
+        ax_2 = plt.subplot(2,3,2, sharex=ax_1, sharey=ax_1)
+        pt_2 =ax_2.imshow(Cls_t, interpolation='none',aspect='auto',
+            cmap=plt.cm.get_cmap('tab10'), clim=(0,5))
+        plt.colorbar(pt_2,ax=ax_2)
+        ax_2.set_title('classification pixc_true'+title_tag)
+        #
+        Cls_t2 = np.zeros(np.shape(Cls_t))
+        Cls_t2[np.logical_and(Cls_t>0,Cls1>0)] = 3
+        Cls_t2[np.logical_and(Cls_t>0,np.isnan(Cls1))] = 2
+        Cls_t2[np.logical_and(Cls1>0,np.isnan(Cls_t))] = 1
+        ax_3 = plt.subplot(2,3,3, sharex=ax_1, sharey=ax_1)
+        pt_3 =ax_3.imshow(Cls_t2, interpolation='none',aspect='auto',
+            cmap=plt.cm.get_cmap('tab10'), clim=(0,5))
+        plt.colorbar(pt_3,ax=ax_3)
+        ax_3.set_title('classification '+title_tag)
+        #
+        ax_4 = plt.subplot(2,3,4, sharex=ax_1, sharey=ax_1)
+        pt_4 =ax_4.imshow(Cls1, interpolation='none',aspect='auto',
+            cmap=plt.cm.get_cmap('tab10'), clim=(0,5))
+        plt.colorbar(pt_4,ax=ax_4)
+        ax_4.set_title('classification diff '+title_tag)
+        #
+        ax_5 = plt.subplot(2,3,5, sharex=ax_1, sharey=ax_1)
+        pt_5 =ax_5.imshow(Area_t, interpolation='none',aspect='auto',
+            cmap='jet', clim=(a_cmin, a_cmax))
+        plt.colorbar(pt_5,ax=ax_5)
+        ax_5.set_title('NodeArea pixc_true '+title_tag)
+        #
+        ax_6 = plt.subplot(2,3,6, sharex=ax_1, sharey=ax_1)
+        pt_6 =ax_6.imshow((NodeArea-Area_t)/Area_t*100, interpolation='none',aspect='auto',
+            cmap='jet')
+        plt.colorbar(pt_6,ax=ax_6)
+        ax_6.set_title('node area % error '+title_tag)
+        if ha is not None:
+            amsk = Area_t > -100
+            hat, abinst = np.histogram(Area_t[amsk],abins0)
+            amnt = np.mean(Area_t[amsk])
+            amedt = np.median(Area_t[amsk])
+            asdt = np.std(Area_t[amsk])
+
+    # plot area histograms
+    if ha is not None:
+        plt.figure()
+        plt.plot(abins[:-1] + (abins[1]-abins[0])/2, ha)
+        if hat is not None:
+            plt.plot(abinst[:-1] + (abinst[1]-abinst[0])/2, hat)
+            plt.title('mean=%3.2f:%3.2f, med=%3.2f:%3.2f, std=%3.2f:%3.2f'%(amn,amnt, amed,amedt, asd,asdt))
+        else:
+            plt.title('mean=%3.2f, med=%3.2f, std=%3.2f'%(amn, amed, asd))
+        plt.xlabel('Node Area (m^2)')
 
     if nodes:
         for node in nodes:
@@ -590,6 +728,7 @@ def main():
     parser.add_argument('reach_id', help='reach id', type=int)
     parser.add_argument('--pixcvec', help='pixcvec.nc, defaults to river_data/pixcvec.nc', default=None)
     parser.add_argument('--pixc', help='pixel_cloud.nc', default=None)
+    parser.add_argument('--pixc_truth', help='pixel_cloud.nc (2D-grid truth)', default=None)
     parser.add_argument('--truth_pixcvec', default=None,
         help='river_truth*/river_data/pixcvec.nc, defaults to river_truth*/river_data/pixcvec.nc')
     parser.add_argument('--truth_pixc', help='gdem_pixc.nc', default=None)
@@ -617,12 +756,15 @@ def main():
         truth_pixc = truth_tile[0:-12] + '/gdem_pixc.nc'
     else:
         truth_pixc = os.path.abspath(args.truth_pixc)
+    pixc_truth = None
+    if args.pixc_truth is not None:
+        pixc_truth = os.path.abspath(args.pixc_truth)
     errors = get_errors(proc_tile, truth_tile, test=False, verbose=False)
     reach_error = get_reach_error(errors, args.reach_id)
     #make_plots(args.proc_tile, args.truth_tile, args.reach_id, gdem_dem, reach_error)
     make_plots(proc_tile, truth_tile, pixcvec, pixc,
         truth_pixcvec, truth_pixc, args.reach_id,
-        gdem_dem, reach_error, nodes=args.nodes)
+        gdem_dem, reach_error, nodes=args.nodes, pixc_truth=pixc_truth)
     plt.show()
 
 
