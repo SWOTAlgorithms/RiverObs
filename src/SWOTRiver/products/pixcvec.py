@@ -33,6 +33,8 @@ class L2PIXCVector(Product):
                 Level 2 KaRIn high rate pixel cloud vector river product."""),
             'value': textjoin("""
                 Level 2 KaRIn high rate pixel cloud vector river product.""")}],
+        ['short_name', {'dtype': 'str',
+            'docstr': 'L2_HR_PIXCVecRiver', 'value': 'L2_HR_PIXCVecRiver'}],
         ['institution', {
             'dtype': 'str', 'docstr': textjoin("""
                 Name of producing agency."""), 'value': 'JPL'}],
@@ -57,6 +59,20 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                 Name and version of Product Description Document
                 to use as reference for product.""")}],
+        ['product_version', {'dtype': 'str',
+            'docstr': 'Version identifier of this data file'}],
+        ['crid', {'dtype': 'str',
+            'docstr': textjoin("""
+                Composite release identifier (CRID) of the data system used to
+                generate this file""")}],
+        ['pge_name', {'dtype': 'str',
+            'docstr': textjoin("""
+                Name of the product generation executable (PGE) that created
+                this file""")}],
+        ['pge_version', {'dtype': 'str',
+            'docstr': textjoin("""
+                Version identifier of the product generation executable (PGE)
+                that created this file""")}],
         ['contact', {'dtype': 'str',
             'docstr': textjoin("""
                 Contact information for producer of product.
@@ -77,28 +93,10 @@ class L2PIXCVector(Product):
                 pass number with leading zeros, TTT is a 3 digit tile number
                 within the pass, and S is a character 'L' or 'R' for the left
                 and right swath, respectively.""")}],
-        ['short_name', {'dtype': 'str',
-            'docstr': 'L2_HR_PIXCVecRiver', 'value': 'L2_HR_PIXCVecRiver'}],
-        ['near_range', {'dtype': 'f8',
-            'docstr': 'The slant range (m) for the first image pixel.'}],
-        ['nominal_slant_range_spacing', {'dtype': 'f8',
-            'docstr': textjoin("""
-                The range spacing (m) corresponding to the 200 MHz
-                sampling frequency""")}],
-        ['crid', {'dtype': 'str',
-            'docstr': textjoin("""
-                Composite release identifier (CRID) of the data system used to
-                generate this file""")}],
-        ['product_version', {'dtype': 'str',
-            'docstr': 'Version identifier of this data file'}],
-        ['pge_name', {'dtype': 'str',
-            'docstr': textjoin("""
-                Name of the product generation executable (PGE) that created
-                this file""")}],
-        ['pge_version', {'dtype': 'str',
-            'docstr': textjoin("""
-                Version identifier of the product generation executable (PGE)
-                that created this file""")}],
+        ['continent_id', {'dtype': 'str',
+            'docstr': 'Two-letter continent identifier of the product granule.'}],
+        ['continent_code', {'dtype': 'str',
+            'docstr': 'One-digit (C) continent code of the product granule.'}],
         ['time_granule_start', {'dtype': 'str',
             'docstr': textjoin("""
                 Nominal starting UTC time of product granule.
@@ -155,10 +153,12 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the last
                  range line and outer part of the swath""")}],
-        ['ellipsoid_semi_major_axis', {'dtype': 'f8',
-            'docstr': 'Semi-major axis of reference ellipsoid in meters.'}],
-        ['ellipsoid_flattening', {'dtype': 'f8',
-            'docstr': 'Flattening of reference ellipsoid'}],
+        ['near_range', {'dtype': 'f8',
+            'docstr': 'The slant range (m) for the first image pixel.'}],
+        ['nominal_slant_range_spacing', {'dtype': 'f8',
+            'docstr': textjoin("""
+                The range spacing (m) corresponding to the 200 MHz
+                sampling frequency""")}],
         ['xref_l2_hr_pixc_files',
          RIVER_PRODUCT_ATTRIBUTES['xref_l2_hr_pixc_files']],
         ['xref_param_l2_hr_rivertile_files',
@@ -167,6 +167,10 @@ class L2PIXCVector(Product):
          RIVER_PRODUCT_ATTRIBUTES['xref_prior_river_db_files']],
         ['xref_reforbittrack_files',
          RIVER_PRODUCT_ATTRIBUTES['xref_reforbittrack_files']],
+        ['ellipsoid_semi_major_axis', {'dtype': 'f8',
+            'docstr': 'Semi-major axis of reference ellipsoid in meters.'}],
+        ['ellipsoid_flattening', {'dtype': 'f8',
+            'docstr': 'Flattening of reference ellipsoid'}],
         ])
 
 
