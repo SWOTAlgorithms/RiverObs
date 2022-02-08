@@ -27,10 +27,7 @@ class L2PIXCVector(Product):
                 NetCDF-4 conventions adopted in this product. This attribute
                 should be set to CF-1.7 to indicate that the group is compliant
                 with the Climate and Forecast NetCDF conventions."""),
-            'value': textjoin("""
-                NetCDF-4 conventions adopted in this product. This attribute
-                should be set to CF-1.7 to indicate that the group is compliant
-                with the Climate and Forecast NetCDF conventions.""")}],
+            'value': 'CF-1.7'}],
         ['title', {
             'dtype': 'str', 'docstr': textjoin("""
                 Level 2 KaRIn high rate pixel cloud vector river product."""),
@@ -45,7 +42,7 @@ class L2PIXCVector(Product):
                 model-generated, source should name the model and its version,
                 as specifically as could be useful. If it is observational,
                 source should characterize it (e.g., 'radiometer')."""),
-            'value': ''}],
+            'value': 'Ka-band radar interferometer'}],
         ['history', {'dtype': 'str',
             'docstr': textjoin("""
                 UTC time when file generated. Format is:
@@ -181,7 +178,9 @@ class L2PIXCVector(Product):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
-                ['comment', 'Rare interferogram azimuth index.'],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+                ['comment',
+                 'Rare interferogram azimuth index (indexed from 0).'],
                 ])],
         ['range_index',
          odict([['dtype', 'i4'],
@@ -189,48 +188,53 @@ class L2PIXCVector(Product):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
-                ['comment', 'Rare interferogram range index.'],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+                ['comment',
+                 'Rare interferogram range index (indexed from 0).'],
                 ])],
         ['latitude_vectorproc',
          odict([['dtype', 'f8'],
                 ['long_name', 'latitude'],
-                ['standard_name', 'improved geolocation latitude'],
+                ['standard_name', 'height-constrained geolocation latitude'],
                 ['units', 'degrees_north'],
-                ['valid_min', -90],
-                ['valid_max', 90],
+                ['valid_min', -80],
+                ['valid_max', 80],
                 ['comment', textjoin("""
-                    Improved geodetic latitude of the pixel. Units are in
-                    degrees north of the equator.""")],
+                    Height-constrained geodetic latitude of the pixel.
+                    Units are in degrees north of the equator.""")],
                 ])],
         ['longitude_vectorproc',
          odict([['dtype', 'f8'],
                 ['long_name', 'longitude'],
-                ['standard_name', 'improved geolocation longitude'],
+                ['standard_name', 'height-constrained geolocation longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', -180],
                 ['valid_max', 180],
                 ['comment', textjoin("""
-                    Improved geodetic longitude of the pixel. Positive=degrees
-                    east of the Prime Meridian. Negative=degrees west of the
-                    Prime Meridian.""")],
+                    Height-constrained geodetic longitude of the pixel.
+                    Positive=degrees east of the Greenwich meridian.
+                    Negative=degrees west of the Greenwich meridian.""")],
                 ])],
         ['height_vectorproc',
          odict([['dtype', 'f4'],
                 ['long_name', 'height above reference ellipsoid'],
                 ['units', 'm'],
-                ['valid_min', -999999],
-                ['valid_max', 999999],
-                ['comment',
-                 'Improved height of the pixel above the reference ellipsoid.'],
+                ['valid_min', -1500.0],
+                ['valid_max', 15000.0],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+                ['comment', textjoin("""
+                    'Height-constrained height of the pixel above the
+                    reference ellipsoid.""")],
                 ])],
         ['reach_id',
          odict([['dtype', 'i8'],
                 ['long_name', 'identifier of the associated prior river reach'],
                 ['valid_min', 0],
                 ['valid_max', 9223372036854775807],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Unique reach identifier from the prior river database.
-                    The format of the identifier is CBBBBBRRRT, where
+                    The format of the identifier is CBBBBBRRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
         ['node_id',
@@ -239,44 +243,50 @@ class L2PIXCVector(Product):
                  "identifier of the associated prior river node"],
                 ['valid_min', 0],
                 ['valid_max', 9223372036854775807],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
-                    Unique node identifier from the prior river database. The
-                    format of the identifier is CBBBBBRRRNNNT, where
+                    Unique node identifier from the prior river database.
+                    The format of the identifier is CBBBBBRRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type of water
                     body.""")],
                 ])],
         ['ice_clim_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i1'],
                 ['long_name', 'climatological ice cover flag'],
-                ['source', 'UNC'],
+                ['source', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i1')],
                 ['valid_min', 0],
                 ['valid_max', 2],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
-                    Climatological ice cover flag indicating whether the reach
-                    is ice-covered on the day of the observation based on
-                    external climatological information (not the
-                    SWOT measurement).  Values of 0, 1, and 2 indicate that the
-                    reach is likely not ice covered, likely partially ice
-                    covered, and likely fully ice covered, respectively.""")],
+                    Climatological ice cover flag indicating whether the
+                    pixel is ice-covered on the day of the observation based
+                    on external climatological information (not the SWOT
+                    measurement). Values of 0, 1, and 2 indicate that the
+                    surface is not ice covered, partially ice covered, and
+                    fully ice covered, respectively. A value of 255 indicates
+                    that this flag is not available.""")],
                 ])],
         ['ice_dyn_f',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i1'],
                 ['long_name', 'dynamical ice cover flag'],
-                ['source', 'UNC'],
+                ['source', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
-                ['flag_values', np.array([0, 1, 2]).astype('u1')],
+                ['flag_values', np.array([0, 1, 2]).astype('i1')],
                 ['valid_min', 0],
                 ['valid_max', 2],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
-                    Dynamic ice cover flag indicating whether the surface is
-                    ice-covered on the day of the observation based on analysis
-                    of external satellite optical data.  Values of 0, 1, and 2
-                    indicate that the reach is not ice covered, partially ice
-                    covered, and fully ice covered, respectively.""")],
+                    Dynamic ice cover flag indicating whether the pixel is
+                    ice-covered on the day of the observation based on
+                    analysis of external satellite optical data. Values of
+                    0, 1, and 2 indicate that the surface is not ice covered,
+                    partially ice covered, and fully ice covered,
+                    respectively. A value of 255 indicates that this flag is
+                    not available.""")],
                 ])],
         ['pixc_index',
          odict([['dtype', 'i4'],
@@ -284,6 +294,7 @@ class L2PIXCVector(Product):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Index of the data in the pixel_cloud group of the
                     L2_HR_PIXC file that is associated with the pixel. This
@@ -295,6 +306,7 @@ class L2PIXCVector(Product):
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 2147483647],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     A unique number of identifying which connected water
                     segment the pixel was assigned to.""")],
@@ -305,6 +317,7 @@ class L2PIXCVector(Product):
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 9999],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Distance from the non-improved pixel location to the PRD
                     node that it is associated with.""")],
@@ -315,6 +328,7 @@ class L2PIXCVector(Product):
                 ['units', 'm'],
                 ['valid_min', -999999],
                 ['valid_max', 999999],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Along-reach component of non-improved pixel location
                     relative to PRD node location. Negative=nominally upstream
@@ -326,6 +340,7 @@ class L2PIXCVector(Product):
                 ['units', 'm'],
                 ['valid_min', -999999],
                 ['valid_max', 999999],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Cross-reach component of non-improved pixel location
                     relative to PRD node location. Negative= left side of
