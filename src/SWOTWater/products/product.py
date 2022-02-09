@@ -18,10 +18,6 @@ import netCDF4 as nc
 import SWOTWater.products.netcdf as netcdf
 from SWOTWater.products.constants import FILL_VALUES
 
-import logging
-
-LOGGER = logging.getLogger(__name__)
-
 FIELD_WARNING = "I'm afraid I can't do that. {} is not in {}"
 
 def textjoin(text):
@@ -210,7 +206,6 @@ class Product(object):
             return
         # We couldn't set anything!
         warnings.warn(FIELD_WARNING.format(key, type(self).__name__))
-        LOGGER.warn(FIELD_WARNING.format(key, type(self).__name__))
 
     def __getattr__(self, key):
         if key in self._attributes:
@@ -379,7 +374,7 @@ class Product(object):
                 setattr(self, key, dataset.getncattr(key))
             else:
                 warnings.warn(FIELD_WARNING.format(key, type(self).__name__))
-                LOGGER.warn(FIELD_WARNING.format(key, type(self).__name__))
+
         for key in netcdf.get_variable_keys(dataset):
             if key in self.VARIABLES:
                 # Use a helper function to deal with complex numbers
@@ -387,7 +382,7 @@ class Product(object):
                 setattr(self, key, variable)
             else:
                 warnings.warn(FIELD_WARNING.format(key, type(self).__name__))
-                LOGGER.warn(FIELD_WARNING.format(key, type(self).__name__))
+
         for key, group in dataset.groups.items():
             if key in self.GROUPS:
                 # Recursively load NetCDF groups into self groups
