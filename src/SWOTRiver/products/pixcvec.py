@@ -198,8 +198,8 @@ class L2PIXCVector(Product):
                 ])],
         ['latitude_vectorproc',
          odict([['dtype', 'f8'],
-                ['long_name', 'latitude'],
-                ['standard_name', 'height-constrained geolocation latitude'],
+                ['long_name', 'height-constrained geolocation latitude'],
+                ['standard_name', 'latitude'],
                 ['units', 'degrees_north'],
                 ['valid_min', -80],
                 ['valid_max', 80],
@@ -209,8 +209,8 @@ class L2PIXCVector(Product):
                 ])],
         ['longitude_vectorproc',
          odict([['dtype', 'f8'],
-                ['long_name', 'longitude'],
-                ['standard_name', 'height-constrained geolocation longitude'],
+                ['long_name', 'height-constrained geolocation longitude'],
+                ['standard_name', 'longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', -180],
                 ['valid_max', 180],
@@ -257,9 +257,9 @@ class L2PIXCVector(Product):
         ['ice_clim_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'climatological ice cover flag'],
-                ['source', 'University of North Carolina'],
+                ['institution', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                    no_ice_cover uncertain_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i1')],
                 ['valid_min', 0],
                 ['valid_max', 2],
@@ -269,14 +269,15 @@ class L2PIXCVector(Product):
                     pixel is ice-covered on the day of the observation based
                     on external climatological information (not the SWOT
                     measurement). Values of 0, 1, and 2 indicate that the
-                    surface is not ice covered, partially ice covered, and
-                    fully ice covered, respectively. A value of 255 indicates
-                    that this flag is not available.""")],
+                    surface is not ice covered, may or may not be partially
+                    or fully ice covered, and fully ice covered, respectively.
+                    A value of 255 indicates that this flag is not available.
+                    """)],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'dynamical ice cover flag'],
-                ['source', 'University of North Carolina'],
+                ['institution', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i1')],
