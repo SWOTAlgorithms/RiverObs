@@ -95,7 +95,7 @@ class L2PIXCVector(Product):
                 and right swath, respectively.""")}],
         ['continent_id', {'dtype': 'str',
             'docstr': 'Two-letter continent identifier of the product granule.'}],
-        ['continent_code', {'dtype': 'str',
+        ['continent_code', {'dtype': 'i2',
             'docstr': 'One-digit (C) continent code of the product granule.'}],
         ['time_granule_start', {'dtype': 'str',
             'docstr': textjoin("""
@@ -121,37 +121,37 @@ class L2PIXCVector(Product):
             'docstr': "Southernmost latitude (deg) of granule bounding box"}],
         ['geospatial_lat_max',  {'dtype': 'f8',
             'docstr': "Northernmost latitude (deg) of granule bounding box"}],
-        ['inner_first_latitude', {'dtype': 'str',
-            'docstr': textjoin("""
-                 Nominal swath corner latitude (degrees_north) for the first
-                 range line and inner part of the swath""")}],
-        ['inner_first_longitude', {'dtype': 'f4',
+        ['inner_first_longitude', {'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the first
                  range line and inner part of the swath""")}],
-        ['inner_last_latitude', {'dtype': 'f4',
+        ['inner_first_latitude', {'dtype': 'f8',
+            'docstr': textjoin("""
+                 Nominal swath corner latitude (degrees_north) for the first
+                 range line and inner part of the swath""")}],
+        ['inner_last_longitude', {'dtype': 'f8',
+            'docstr': textjoin("""
+                 Nominal swath corner longitude (degrees_east) for the last
+                 range line and inner part of the swath""")}],
+        ['inner_last_latitude', {'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner latitude (degrees_north)  for the last
                  range line and inner part of the swath""")}],
-        ['inner_last_longitude', {'dtype': 'f4',
-            'docstr': textjoin("""
-                 Nominal swath corner longitude (degrees_east) for the last
-                 range line and inner part of the swath""")}],
-        ['outer_first_latitude', {'dtype': 'f4',
-            'docstr': textjoin("""
-                 Nominal swath corner latitude (degrees_north) for the first
-                 range line and outer part of the swath""")}],
-        ['outer_first_longitude', {'dtype': 'f4',
+        ['outer_first_longitude', {'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the first
                  range line and outer part of the swath""")}],
-        ['outer_last_latitude', {'dtype': 'f4',
+        ['outer_first_latitude', {'dtype': 'f8',
             'docstr': textjoin("""
-                 Nominal swath corner latitude (degrees_north) for the last
+                 Nominal swath corner latitude (degrees_north) for the first
                  range line and outer part of the swath""")}],
-        ['outer_last_longitude',{'dtype': 'f4',
+        ['outer_last_longitude',{'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the last
+                 range line and outer part of the swath""")}],
+        ['outer_last_latitude', {'dtype': 'f8',
+            'docstr': textjoin("""
+                 Nominal swath corner latitude (degrees_north) for the last
                  range line and outer part of the swath""")}],
         ['near_range', {'dtype': 'f8',
             'docstr': 'The slant range (m) for the first image pixel.'}],
