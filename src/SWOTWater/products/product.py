@@ -650,6 +650,8 @@ class Product(object):
 
     def requantize(self):
         """Calls quantize_from on all variables that are quantized"""
+        for group in self.GROUPS:
+            self[group].requantize()
         for var in self.VARIABLES:
             scale_factor = self.VARIABLES[var].get('scale_factor', 1)
             if scale_factor != 1:
