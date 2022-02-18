@@ -17,14 +17,15 @@ import SWOTRiver.analysis.tabley
 import glob
 from pathlib import Path
 
-def handle_bad_reaches(truth_tmp, data_tmp):
+def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
     """
     only keep reaches that all the pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
-    bad_reaches = np.array([73150600041, 73150600551, 73150600581, 73160300011, 73216000261, 73218000071, 73218000251,
-                   73220700271, 73220900221, 73240100201, 73240200041, 74230900181, 74230900191, 74230900251,
-                   74262700251, 74266300011, 74269800121, 74291700071, 74291900011, 74292100271])  # from Rui
+    if truth_filter:
+        truth_classes = SWOTRiver.analysis.riverobs.get_truth_classes()
+        for key in truth_filter:
+            bad_reaches = np.concatenate([bad_reaches, truth_classes.get(key)])
     main_keys = ['area_total','wse','slope','width']
     for key in main_keys:
         # if any of these are masked, throw out the entire
@@ -68,7 +69,7 @@ def handle_bad_reaches(truth_tmp, data_tmp):
 def load_and_accumulate(
         pixc_rivertile, gdem_rivertile, metrics=None,
         truth=None, data=None, scene=None, scene_nodes=None, sig0=None,
-        bad_scenes=None):
+        bad_scenes=None, truth_filter=None):
     '''
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
@@ -85,7 +86,7 @@ def load_and_accumulate(
         print('File', pixc_rivertile, 'has no reach data.')
         return metrics, truth, data, scene, scene_nodes, sig0
     # handle masked arrays here
-    truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp)
+    truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp, truth_filter)
     #
     SWOTRiver.analysis.riverobs.match_reaches(truth_tmp, data_tmp)
     wse_node_avg, sig0_avg = SWOTRiver.analysis.riverobs.\
@@ -131,7 +132,8 @@ def main():
     parser.add_argument('--basedir', type=str, default=None,
                         help='base directory of processing')
     parser.add_argument('--truth_basedir', type=str, default=None,
-                        help='base directory of truth files (only use if different than processing basedir)')
+                        help='base directory of truth files (only use if '
+                             'different than processing basedir)')
     parser.add_argument('-sb', '--slc_basename', type=str, default=None,
                         help='slc directory basename')
     parser.add_argument('-pb', '--pixc_basename', type=str, default=None,
@@ -141,8 +143,15 @@ def main():
     parser.add_argument('-sf', '--scene_filter',
                         type=str, help='keep scenes matching this name '
                                        '(e.g. 3607, tanana)')
-    parser.add_argument('-o', '--outdir', type=str,help='output directory for print files')
-    parser.add_argument('-tf','--table_fname', type=str, default=None, help='output filename for summary table')
+    parser.add_argument('-trf', '--truth_filter', type=str, default=None,
+                        nargs='+',
+                        help='filter out reaches by truth class. Options are '
+                             'tribs, non_linear, edge_node, partial_truth,'
+                             'multi_chn, bad_reach, wrong_dir, linear.')
+    parser.add_argument('-o', '--outdir', type=str,
+                        help='output directory for print files')
+    parser.add_argument('-tf', '--table_fname', type=str, default=None,
+                        help='output filename for summary table')
     parser.add_argument('-t', '--title')
     parser.add_argument('-p', '--print', action='store_true')
     args = parser.parse_args()
@@ -155,6 +164,7 @@ def main():
     sig0 = None
 
     bad_scenes = []
+    truth_filter = args.truth_filter
     # bad_scenes = ['platte_0036_0012', 'platte_0120_0290',
     #                'sacramento_0221_0264', 'sacramento_0314_0264',
     #                'sacramento_0220_0249', 'tanana_HighSim', 'tanana_LowSim',
@@ -235,11 +245,13 @@ def main():
         if nominal_sum==0:
             print('No nominal tiles found. Check input variable names.')
 
-        for proc_rivertile, truth_rivertile in zip(proc_rivertile_list, truth_rivertile_list):
-            if os.path.isfile(proc_rivertile) and os.path.isfile(truth_rivertile):
+        for proc_rivertile, truth_rivertile in zip(proc_rivertile_list,
+                                                   truth_rivertile_list):
+            if os.path.isfile(proc_rivertile) and os.path.isfile(
+                    truth_rivertile):
                 metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
-                    proc_rivertile, truth_rivertile,
-                    metrics, truth, data, scene, scene_nodes, sig0, bad_scenes)
+                    proc_rivertile, truth_rivertile, metrics, truth, data,
+                    scene, scene_nodes, sig0, bad_scenes, truth_filter)
 
     else:
         # Inputs can be either rivertile files, or basenames
