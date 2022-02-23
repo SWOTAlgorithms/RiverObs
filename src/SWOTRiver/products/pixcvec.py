@@ -33,6 +33,8 @@ class L2PIXCVector(Product):
                 Level 2 KaRIn high rate pixel cloud vector river product."""),
             'value': textjoin("""
                 Level 2 KaRIn high rate pixel cloud vector river product.""")}],
+        ['short_name', {'dtype': 'str',
+            'docstr': 'L2_HR_PIXCVecRiver', 'value': 'L2_HR_PIXCVecRiver'}],
         ['institution', {
             'dtype': 'str', 'docstr': textjoin("""
                 Name of producing agency."""), 'value': 'JPL'}],
@@ -57,6 +59,20 @@ class L2PIXCVector(Product):
             'docstr': textjoin("""
                 Name and version of Product Description Document
                 to use as reference for product.""")}],
+        ['product_version', {'dtype': 'str',
+            'docstr': 'Version identifier of this data file'}],
+        ['crid', {'dtype': 'str',
+            'docstr': textjoin("""
+                Composite release identifier (CRID) of the data system used to
+                generate this file""")}],
+        ['pge_name', {'dtype': 'str',
+            'docstr': textjoin("""
+                Name of the product generation executable (PGE) that created
+                this file""")}],
+        ['pge_version', {'dtype': 'str',
+            'docstr': textjoin("""
+                Version identifier of the product generation executable (PGE)
+                that created this file""")}],
         ['contact', {'dtype': 'str',
             'docstr': textjoin("""
                 Contact information for producer of product.
@@ -77,28 +93,10 @@ class L2PIXCVector(Product):
                 pass number with leading zeros, TTT is a 3 digit tile number
                 within the pass, and S is a character 'L' or 'R' for the left
                 and right swath, respectively.""")}],
-        ['short_name', {'dtype': 'str',
-            'docstr': 'L2_HR_PIXCVecRiver', 'value': 'L2_HR_PIXCVecRiver'}],
-        ['near_range', {'dtype': 'f8',
-            'docstr': 'The slant range (m) for the first image pixel.'}],
-        ['nominal_slant_range_spacing', {'dtype': 'f8',
-            'docstr': textjoin("""
-                The range spacing (m) corresponding to the 200 MHz
-                sampling frequency""")}],
-        ['crid', {'dtype': 'str',
-            'docstr': textjoin("""
-                Composite release identifier (CRID) of the data system used to
-                generate this file""")}],
-        ['product_version', {'dtype': 'str',
-            'docstr': 'Version identifier of this data file'}],
-        ['pge_name', {'dtype': 'str',
-            'docstr': textjoin("""
-                Name of the product generation executable (PGE) that created
-                this file""")}],
-        ['pge_version', {'dtype': 'str',
-            'docstr': textjoin("""
-                Version identifier of the product generation executable (PGE)
-                that created this file""")}],
+        ['continent_id', {'dtype': 'str',
+            'docstr': 'Two-letter continent identifier of the product granule.'}],
+        ['continent_code', {'dtype': 'i2',
+            'docstr': 'One-digit (C) continent code of the product granule.'}],
         ['time_granule_start', {'dtype': 'str',
             'docstr': textjoin("""
                 Nominal starting UTC time of product granule.
@@ -123,42 +121,44 @@ class L2PIXCVector(Product):
             'docstr': "Southernmost latitude (deg) of granule bounding box"}],
         ['geospatial_lat_max',  {'dtype': 'f8',
             'docstr': "Northernmost latitude (deg) of granule bounding box"}],
-        ['inner_first_latitude', {'dtype': 'str',
-            'docstr': textjoin("""
-                 Nominal swath corner latitude (degrees_north) for the first
-                 range line and inner part of the swath""")}],
-        ['inner_first_longitude', {'dtype': 'f4',
+        ['inner_first_longitude', {'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the first
                  range line and inner part of the swath""")}],
-        ['inner_last_latitude', {'dtype': 'f4',
+        ['inner_first_latitude', {'dtype': 'f8',
+            'docstr': textjoin("""
+                 Nominal swath corner latitude (degrees_north) for the first
+                 range line and inner part of the swath""")}],
+        ['inner_last_longitude', {'dtype': 'f8',
+            'docstr': textjoin("""
+                 Nominal swath corner longitude (degrees_east) for the last
+                 range line and inner part of the swath""")}],
+        ['inner_last_latitude', {'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner latitude (degrees_north)  for the last
                  range line and inner part of the swath""")}],
-        ['inner_last_longitude', {'dtype': 'f4',
-            'docstr': textjoin("""
-                 Nominal swath corner longitude (degrees_east) for the last
-                 range line and inner part of the swath""")}],
-        ['outer_first_latitude', {'dtype': 'f4',
-            'docstr': textjoin("""
-                 Nominal swath corner latitude (degrees_north) for the first
-                 range line and outer part of the swath""")}],
-        ['outer_first_longitude', {'dtype': 'f4',
+        ['outer_first_longitude', {'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the first
                  range line and outer part of the swath""")}],
-        ['outer_last_latitude', {'dtype': 'f4',
+        ['outer_first_latitude', {'dtype': 'f8',
             'docstr': textjoin("""
-                 Nominal swath corner latitude (degrees_north) for the last
+                 Nominal swath corner latitude (degrees_north) for the first
                  range line and outer part of the swath""")}],
-        ['outer_last_longitude',{'dtype': 'f4',
+        ['outer_last_longitude',{'dtype': 'f8',
             'docstr': textjoin("""
                  Nominal swath corner longitude (degrees_east) for the last
                  range line and outer part of the swath""")}],
-        ['ellipsoid_semi_major_axis', {'dtype': 'f8',
-            'docstr': 'Semi-major axis of reference ellipsoid in meters.'}],
-        ['ellipsoid_flattening', {'dtype': 'f8',
-            'docstr': 'Flattening of reference ellipsoid'}],
+        ['outer_last_latitude', {'dtype': 'f8',
+            'docstr': textjoin("""
+                 Nominal swath corner latitude (degrees_north) for the last
+                 range line and outer part of the swath""")}],
+        ['near_range', {'dtype': 'f8',
+            'docstr': 'The slant range (m) for the first image pixel.'}],
+        ['nominal_slant_range_spacing', {'dtype': 'f8',
+            'docstr': textjoin("""
+                The range spacing (m) corresponding to the 200 MHz
+                sampling frequency""")}],
         ['xref_l2_hr_pixc_files',
          RIVER_PRODUCT_ATTRIBUTES['xref_l2_hr_pixc_files']],
         ['xref_param_l2_hr_rivertile_files',
@@ -167,6 +167,10 @@ class L2PIXCVector(Product):
          RIVER_PRODUCT_ATTRIBUTES['xref_prior_river_db_files']],
         ['xref_reforbittrack_files',
          RIVER_PRODUCT_ATTRIBUTES['xref_reforbittrack_files']],
+        ['ellipsoid_semi_major_axis', {'dtype': 'f8',
+            'docstr': 'Semi-major axis of reference ellipsoid in meters.'}],
+        ['ellipsoid_flattening', {'dtype': 'f8',
+            'docstr': 'Flattening of reference ellipsoid'}],
         ])
 
 
@@ -194,8 +198,8 @@ class L2PIXCVector(Product):
                 ])],
         ['latitude_vectorproc',
          odict([['dtype', 'f8'],
-                ['long_name', 'latitude'],
-                ['standard_name', 'height-constrained geolocation latitude'],
+                ['long_name', 'height-constrained geolocation latitude'],
+                ['standard_name', 'latitude'],
                 ['units', 'degrees_north'],
                 ['valid_min', -80],
                 ['valid_max', 80],
@@ -205,8 +209,8 @@ class L2PIXCVector(Product):
                 ])],
         ['longitude_vectorproc',
          odict([['dtype', 'f8'],
-                ['long_name', 'longitude'],
-                ['standard_name', 'height-constrained geolocation longitude'],
+                ['long_name', 'height-constrained geolocation longitude'],
+                ['standard_name', 'longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', -180],
                 ['valid_max', 180],
@@ -253,9 +257,9 @@ class L2PIXCVector(Product):
         ['ice_clim_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'climatological ice cover flag'],
-                ['source', 'University of North Carolina'],
+                ['institution', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
-                    no_ice_cover partial_ice_cover full_ice_cover""")],
+                    no_ice_cover uncertain_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i1')],
                 ['valid_min', 0],
                 ['valid_max', 2],
@@ -265,14 +269,15 @@ class L2PIXCVector(Product):
                     pixel is ice-covered on the day of the observation based
                     on external climatological information (not the SWOT
                     measurement). Values of 0, 1, and 2 indicate that the
-                    surface is not ice covered, partially ice covered, and
-                    fully ice covered, respectively. A value of 255 indicates
-                    that this flag is not available.""")],
+                    surface is not ice covered, may or may not be partially
+                    or fully ice covered, and fully ice covered, respectively.
+                    A value of 255 indicates that this flag is not available.
+                    """)],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'dynamical ice cover flag'],
-                ['source', 'University of North Carolina'],
+                ['institution', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i1')],

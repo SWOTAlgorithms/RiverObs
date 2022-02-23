@@ -374,6 +374,7 @@ class Product(object):
                 setattr(self, key, dataset.getncattr(key))
             else:
                 warnings.warn(FIELD_WARNING.format(key, type(self).__name__))
+
         for key in netcdf.get_variable_keys(dataset):
             if key in self.VARIABLES:
                 # Use a helper function to deal with complex numbers
@@ -381,6 +382,7 @@ class Product(object):
                 setattr(self, key, variable)
             else:
                 warnings.warn(FIELD_WARNING.format(key, type(self).__name__))
+
         for key, group in dataset.groups.items():
             if key in self.GROUPS:
                 # Recursively load NetCDF groups into self groups
@@ -648,6 +650,8 @@ class Product(object):
 
     def requantize(self):
         """Calls quantize_from on all variables that are quantized"""
+        for group in self.GROUPS:
+            self[group].requantize()
         for var in self.VARIABLES:
             scale_factor = self.VARIABLES[var].get('scale_factor', 1)
             if scale_factor != 1:
