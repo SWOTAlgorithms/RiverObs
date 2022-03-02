@@ -63,8 +63,7 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False,
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
                             np.logical_not(data.nodes['wse'].mask))
     node_id = data.nodes['node_id'][node_i]
-    node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
-                                  np.logical_not(truth.nodes['wse'].mask))
+    node_i_truth = truth.nodes['reach_id'] == reach_id
     data_df = data_df[node_i]
     truth_df = truth_df[node_i_truth]
     data_df.set_index('node_id')
@@ -119,9 +118,9 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False,
         obs_fit_y = [reach_wse + ss_min*reach_slope,
                      reach_wse,
                      reach_wse + ss_max*reach_slope]
-        truth_fit_y = [truth_reach_wse + ss_min*reach_slope,
+        truth_fit_y = [truth_reach_wse + ss_min*truth_slope,
                        truth_reach_wse,
-                       truth_reach_wse + ss_max*reach_slope]
+                       truth_reach_wse + ss_max*truth_slope]
         axis.plot(fit_x, truth_fit_y, '--', markersize=10,
                   color='r', label='truth fit')
         axis.plot(fit_x, obs_fit_y, '--', markersize=10,
