@@ -270,9 +270,9 @@ def area_only(
         dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
     """
-    Return the aggregate height
-    implements methods: weight (default), median, uniform 
-    good is a mask used to filter out heights that are expected to be bad 
+    Return the aggregate area
+    implements methods: simple, water_fraction, composite (default)
+    good is a mask used to filter out pixels that are expected to be bad
     or outliers, if desired
 
     INPUTS:
@@ -281,6 +281,12 @@ def area_only(
     klass          = classification, with edges
     good           = mask for filtering out some pixels
     method         = type of aggregator('simple', 'water_fraction', 'composite')
+
+    VARIABLES:
+    Idw    = Binary detected-water mask representing pixels detected as water
+    Idw_in = Binary detected-water mask for pixels detected as interior water
+    Ide    = Binary detected-water mask for pixels detected as edge water
+    I      = Binary mask for pixels detected as water or land-near-water
 
     OUTPUTS:
     area_out  = aggregated height
@@ -312,7 +318,7 @@ def area_only(
         Idw[klass == dark_water_klass] = 1.0
 
     I = np.zeros(np.shape(pixel_area))
-    I[(Idw + Idw_in+ Ide) > 0] = 1.0  # all pixels near water
+    I[(Idw + Idw_in + Ide) > 0] = 1.0  # all pixels near water
 
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')

@@ -129,6 +129,38 @@ class SWOTRiverEstimator(SWOTL2):
         If True, store each RiverObs instance in a dictionary.
     store_reaches : bool, default True
         If True, store each RiverRiver instance in a dictionary.
+    height_agg_method : str, default 'weight'
+        Method for aggregating pixel heights to node. By default, pixels are
+        weighted using a weighted mean using the inverse height variance from
+        the pixel cloud as the weights.
+    area_agg_method : str, default 'composite'
+        Method for aggregating pixel-level areas to node. The default
+        'composite' method uses the full pixel area for interior water and the
+        water fraction for edge water pixels.
+    slope_method : str, default 'weighted'
+        Algorithm for computing reach-level slope. Default is 'weighted'. May
+        also compute using 'first_to_last' or 'unweighted' fit to the reach.
+    use_ext_dist_coef : bool, default True
+        Flag for using the extreme distance coefficient to define
+        search thresholds for the pixel assignment. This value is defined in
+        the prior river database (SWORD) for river reaches near water bodies.
+    outlier_method : str, default 'None'.
+        This describes which method to use for reach-level wse outlier
+        rejection. Options are 'None' and 'iterative_linear'.
+    outlier_abs_thresh : float, default 2
+        The threshold for absolute error in outlier rejection. Nodes with error
+        greater than this value will be detected as outliers. Default is 2 m.
+    outlier_rel_thresh : float (0-100), default 68
+        The threshold for relative error in outlier rejection. Nodes with error
+        greater than this value will be detected as outliers. Default is 68%.
+    outlier_upr_thresh : float (0-100), default 80
+        The percentage of nodes that must be kept for a given reach following
+        outlier detection and masking. By default, 80% of nodes must not be
+        masked (i.e. the maximum proportion of nodes that may be masked is
+        20%, so 80% of the reach node information is preserved).
+    outlier_iter_num   : int, default 2
+        The number of iterations of fitting, residual checking, and outlier
+        masking that will be performed by the outlier detection algorithm.
     The final set of keywords are projection options for pyproj. See Notes.
 
     Notes
@@ -166,7 +198,7 @@ class SWOTRiverEstimator(SWOTL2):
                                             False, False, False],
                  use_segmentation=[False, True, True, True, True, True],
                  use_heights=[False, False, True, False, True, True],
-                 min_points=100,
+                 min_points=0,
                  height_kwd='height',
                  trim_ends=False,
                  store_obs=True,
