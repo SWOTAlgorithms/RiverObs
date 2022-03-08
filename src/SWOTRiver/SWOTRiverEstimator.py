@@ -38,7 +38,7 @@ class SWOTRiverEstimator(SWOTL2):
     This class is derived from the SWOTL2 class.
 
     This class contains four basic components:
-    1. It is a subclass of the SWOTL2, and therefor is a LatLonRegion and
+    1. It is a subclass of the SWOTL2, and therefore is a LatLonRegion and
     also contains SWOT data.
     2. For each reach of interest, it keeps a dictionary RiverObs instances
     for each reach.
@@ -75,15 +75,15 @@ class SWOTRiverEstimator(SWOTL2):
         the netcdf name of the classification layer to use.
         'classification' will return the result of applying a classifier
         to the simulated data. 'no_layover_classification' can be used as the
-        thruth
-    class_list : list, default [2,3,4,5]
+        truth
+    class_list : list, default [2,3,4,5,6,7]
         a list of the class labels for what is considered good water data.
-        This should be piched as any classes that might contain water, even
-        if partially. If truth data are desired (class_kwd =
+        This should be defined as any classes that might contain water, even
+        if only partially. If truth data are desired (class_kwd =
         'no_layover_classification'), the this should be set to [1].
         The default has interior water pixels(4), border water pixels (3),
-        and border land pixels (2). This should be used with
-        inundation_fraction turned on.
+        border land pixels (2), dark water (5), low-coherence edge water (6),
+        and low-coherence interior water (7).
     fractional_inundation_kwd : str, default 'continuous_classification'
         Netcdf keyword containing the inundation fraction. If None, the no
         inundation fraction is used. The inundation fraction is, in theory,
@@ -91,19 +91,26 @@ class SWOTRiverEstimator(SWOTL2):
         with water. In practice, because of noise, it can be outside the
         bounds and even be negative! It will produced an ensemble
         unbiased estimate if the class mean cross sections are known.
-    use_fractional_inundation : bool list, default [True, True, False, False]
+    use_fractional_inundation : bool list,
+        default [True, True, False, False, False, False]
         For which classes should the inundation fraction be used instead of a
-        binary classification? the default is to assume that interior pixels
+        binary classification. The default is to assume that interior pixels
         are 100% water, but to use both land and water edge pixels partially
-        by using the fractional inundation kwd.
-    use_segmentation :  bool list, default [False, True, True, True]
-        Selects which classes to assume as water for segmentation purposes
-    use_heights : bool list, default [False, False, True, False]
+        by using the fractional inundation kwd. Low-coherence classes (6,7) may
+        have spurious water fractions and thus the fractional inundation is not
+        used.
+    use_segmentation :  bool list,
+        default [False, True, True, True, True, True]
+        Selects which classes to assume as water for segmentation purposes.
+    use_heights : bool list,
+    default [False, True, True, True, True, True]
         Selects which classes to use for estimating heights
+        TO-DO: validate low-coherence class heights for this parameter
     min_points : int
-        If the number of good points is less than this, raise an exception.
+        Minimum number of good PIXC pixels required in order for the RiverTile
+        processor to output a populated RiverTile product. Default is 0.
     height_kwd : str, default 'height'
-        These are the heights to exract from the water file.
+        These are the heights to extract from the water file.
     true_height_kwd : str, default 'water_height'
         These are the reference heights to use for performance assessment
     no_noise_height_kwd : str, default 'no_noise_height'
@@ -122,9 +129,6 @@ class SWOTRiverEstimator(SWOTL2):
         If True, store each RiverObs instance in a dictionary.
     store_reaches : bool, default True
         If True, store each RiverRiver instance in a dictionary.
-    use_segmentation : bool list, default [False, True, True, True]
-        Defines which classes should the assumed as water for segmatation
-        algorithm to label disjoint features
     The final set of keywords are projection options for pyproj. See Notes.
 
     Notes
@@ -152,15 +156,16 @@ class SWOTRiverEstimator(SWOTL2):
                  bounding_box=None,
                  lat_kwd='no_layover_latitude',
                  lon_kwd='no_layover_longitude',
-                 class_list=[2, 3, 4, 5],
+                 class_list=[2, 3, 4, 5, 6, 7],
                  class_kwd='classification',
                  rngidx_kwd='range_index',
                  aziidx_kwd='azimuth_index',
                  fractional_inundation_kwd='water_frac',
                  fractional_inundation_uncert_kwd='water_frac_uncert',
-                 use_fractional_inundation=[True, True, False, False],
-                 use_segmentation=[False, True, True, True],
-                 use_heights=[False, False, True, False],
+                 use_fractional_inundation=[True, True, False,
+                                            False, False, False],
+                 use_segmentation=[False, True, True, True, True, True],
+                 use_heights=[False, False, True, False, True, True],
                  min_points=100,
                  height_kwd='height',
                  trim_ends=False,
@@ -315,7 +320,7 @@ class SWOTRiverEstimator(SWOTL2):
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
             if self.looks_to_efflooks == 'None':
-                self.looks_to_efflooks = 1.75 # set to default value
+                self.looks_to_efflooks = 1.75  # set to default value
         except KeyError:
             self.looks_to_efflooks = None
 
@@ -495,8 +500,8 @@ class SWOTRiverEstimator(SWOTL2):
         # create the segmentation label variable
         self.seg_label = lbl_out[self.img_y, self.img_x]
 
-    def get_reaches(
-        self, reach_db_path, clip=False, clip_buffer=0.1, day_of_year=None):
+    def get_reaches(self, reach_db_path, clip=False, clip_buffer=0.1,
+                    day_of_year=None):
         """Get all of the reaches using a ReachExtractor."""
         self.clip = clip
         self.clip_buffer = clip_buffer
@@ -573,7 +578,7 @@ class SWOTRiverEstimator(SWOTL2):
         Returns
         -------
 
-        Returns a list containg a RiverReach instance for each reach in the
+        Returns a list containing a RiverReach instance for each reach in the
         bounding box.
         """
         # assign the reaches
@@ -666,7 +671,7 @@ class SWOTRiverEstimator(SWOTL2):
         """
         Assigns pixels to nodes for every reach.
         """
-        # First extract the segmentation lables to keep
+        # First extract the segmentation labels to keep
         all_dominant_labels = []
         all_ids = []
         all_up_ids = []
@@ -760,7 +765,7 @@ class SWOTRiverEstimator(SWOTL2):
         tile_centerline = Centerline(node_x_list, node_y_list, k=3)
         tile_i, tile_d, tile_x, tile_y, tile_s, tile_n = \
             tile_centerline.to_centerline(self.x, self.y)
-        # set minimum distance target to smallest distance-to-node for whole tile
+        # set min distance target to smallest distance-to-node for whole tile
         min_dist = tile_d
         reach_ind = -1 * np.ones(self.x.shape, dtype=int)
         cnts_assigned = np.zeros(self.x.shape, dtype=int)
@@ -798,7 +803,8 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.n = river_obs.n[mask_keep]
             river_obs.nedited_data = len(river_obs.d)
             river_obs.populated_nodes, river_obs.obs_to_node_map = \
-                river_obs.get_obs_to_node_map(river_obs.index, river_obs.minobs)
+                river_obs.get_obs_to_node_map(river_obs.index,
+                                              river_obs.minobs)
 
             # Recompute things set in IteratedRiverObs constructor
             river_obs.add_obs('xo', river_obs.xobs)
@@ -825,7 +831,7 @@ class SWOTRiverEstimator(SWOTL2):
         return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
     def assign_reaches_two_pass(
-        self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
+            self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
         """
         Does the second pass of reach assignments using the results from the
         first pass.
@@ -1039,7 +1045,7 @@ class SWOTRiverEstimator(SWOTL2):
             if self.use_fractional_inundation[i]:
                 # this is actually both land and water edges,
                 # but setting to water edge
-                edge_water[self.klass==k] = 1
+                edge_water[self.klass == k] = 1
 
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
@@ -1085,9 +1091,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # heights using only "good" heights
         wse = np.asarray(self.river_obs.get_node_stat(
-                'median', 'h_noise', good_flag='h_flg'))
+                'median', 'h_noise', goodvar='h_flg'))
         wse_r_u = np.asarray(
-            self.river_obs.get_node_stat('std', 'h_noise', good_flag='h_flg'))
+            self.river_obs.get_node_stat('std', 'h_noise', goodvar='h_flg'))
         wse_std = wse_r_u
 
         # The following are estimates of river width
@@ -1099,38 +1105,29 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.get_node_stat('sum', 'inundated_area'))
 
         rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
-            'median', 'sig0', good_flag='h_flg'))
+            'median', 'sig0', goodvar='h_flg'))
 
         # area of pixels used to compute heights
         area_of_ht = np.asarray(self.river_obs.get_node_stat(
-            'sum', 'inundated_area', good_flag='h_flg'))
+            'sum', 'inundated_area', goodvar='h_flg'))
         width_area = np.asarray(
             self.river_obs.get_node_stat('width_area', 'inundated_area'))
-        geoid_hght = np.asarray(self.river_obs.get_node_stat('mean', 'geoid'))
-        solid_tide = np.asarray(
-            self.river_obs.get_node_stat('mean', 'solid_earth_tide'))
-        load_tidef = np.asarray(
-            self.river_obs.get_node_stat('mean', 'load_tide_fes'))
-        load_tideg = np.asarray(
-            self.river_obs.get_node_stat('mean', 'load_tide_got'))
-        pole_tide = np.asarray(
-            self.river_obs.get_node_stat('mean', 'pole_tide'))
 
-        # get the aggregated heights and widths with their corrosponding 
+        # get the aggregated heights and widths with their corresponding
         # uncertainty estimates all in one shot
-        if ((self.height_agg_method is not 'orig') or 
-            (self.area_agg_method is not 'orig')):
-
+        if self.height_agg_method is 'orig' and self.area_agg_method is 'orig':
+            pass
+        else:
             node_aggs = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
-                area_method=self.area_agg_method, good_flag='h_flg')
+                area_method=self.area_agg_method, goodvar='h_flg')
 
             latitude_u = node_aggs['lat_u']
             longitud_u = node_aggs['lon_u']
             rdr_sig0 = node_aggs['sig0']
             rdr_sig0_u = node_aggs['sig0_u']
 
-            if (self.area_agg_method is not 'orig'):
+            if self.area_agg_method is not 'orig':
                 width_area = node_aggs['width_area']
                 width_u = node_aggs['width_area_u']
                 area = node_aggs['area']
@@ -1139,11 +1136,37 @@ class SWOTRiverEstimator(SWOTL2):
                 area_det_u = node_aggs['area_det_u']
                 area_of_ht = node_aggs['area']
 
-            if (self.height_agg_method is not 'orig'):
+            if self.height_agg_method is not 'orig':
                 wse = node_aggs['h']
                 wse_std = node_aggs['h_std']
                 wse_r_u = node_aggs['h_u']
                 area_of_ht = area
+
+        # geoid heights and tide corrections weighted by height uncertainty
+        geoid_hght = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
+                                         goodvar = 'h_flg',
+                                         method = self.height_agg_method))
+        solid_tide = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'solid_earth_tide',
+                                         goodvar='h_flg',
+                                         method = self.height_agg_method))
+        load_tidef = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'load_tide_fes',
+                                         goodvar='h_flg',
+                                         method = self.height_agg_method))
+        load_tideg = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'load_tide_got',
+                                         goodvar='h_flg',
+                                         method = self.height_agg_method))
+        pole_tide = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'pole_tide',
+                                         goodvar='h_flg',
+                                         method = self.height_agg_method))
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1165,7 +1188,6 @@ class SWOTRiverEstimator(SWOTL2):
         max_n = self.river_obs.get_node_stat('max', 'n')
 
         blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
-
         # test at 5% inside of blocking width
         test_width = blocking_width * 0.90
 
@@ -1349,8 +1371,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         if mask.sum() >= min_fit_points:
             # first, compute and remove wse outliers using iterative linear fit
-            # hard code these for now
-            if self.outlier_method is not None:
+            if self.outlier_method:
                 mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
 
             if self.slope_method == 'first_to_last':
@@ -1366,7 +1387,8 @@ class SWOTRiverEstimator(SWOTL2):
 
             elif self.slope_method in ['unweighted', 'weighted']:
                 # use weighted fit if commanded and all weights are good
-                if self.slope_method == 'weighted' and all(np.isfinite(ww[mask])):
+                if self.slope_method == 'weighted' \
+                        and all(np.isfinite(ww[mask])):
                     fit = statsmodels.api.WLS(
                         hh[mask], SS[mask], weights=ww[mask]).fit()
 
@@ -1380,7 +1402,7 @@ class SWOTRiverEstimator(SWOTL2):
 
                 # use White’s (1980) heteroskedasticity robust standard errors.
                 # https://www.statsmodels.org/dev/generated/
-                #        statsmodels.regression.linear_model.RegressionResults.html
+                #    statsmodels.regression.linear_model.RegressionResults.html
                 reach_stats['slope_u'] = fit.HC0_se[0]
                 reach_stats['height_u'] = fit.HC0_se[1]
 
@@ -1390,7 +1412,8 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['height'] = MISSING_VALUE_FLT
             reach_stats['height_u'] = MISSING_VALUE_FLT
 
-        # do fit on geoid heights
+        # do fit on geoid heights for reach-level outputs
+        # TO-DO: should this be weighted fit?
         gg = river_reach.geoid_hght
         mask = np.logical_and(gg > -500, gg < 8000)
         if mask.sum() >= min_fit_points:
@@ -1440,8 +1463,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['dark_frac'] = (
             1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
 
-        reach_stats['n_reach_up'] = (reach_stats['rch_id_up']>0).sum()
-        reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn']>0).sum()
+        reach_stats['n_reach_up'] = (reach_stats['rch_id_up'] > 0).sum()
+        reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn'] > 0).sum()
 
         reach_stats['p_lon'] = reach.metadata['lon']
         reach_stats['p_lat'] = reach.metadata['lat']
@@ -1472,6 +1495,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['dschg_ghsf'] = dsch_m_c['HiVDI']['sbQ_rel']
         reach_stats['dschg_gosf'] = dsch_m_c['MOMMA']['sbQ_rel']
         reach_stats['dschg_gssf'] = dsch_m_c['SADS']['sbQ_rel']
+
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
 
@@ -1490,7 +1514,7 @@ class SWOTRiverEstimator(SWOTL2):
         iterative_linear outlier flagging method uses these class attributes:
         - self.outlier_abs_thresh: absolute threshold, default 2[m]
         - self.outlier_rel_thresh: relative threshold, default 68% percentile
-        - self.outlier_upr_thresh: upper limit, how many percent of node will be
+        - self.outlier_upr_thresh: upper limit, i.e. what percent of nodes are
                                    kept at the last iteration, default 80%
         - self.outlier_iter_num:   number of iterations
 
@@ -1605,7 +1629,7 @@ class SWOTRiverEstimator(SWOTL2):
         """
         This function calculate enhanced reach slope from smoothed
         node height using Gaussian moving average.
-        For more information, pleasec see Dr. Renato Frasson's paper:
+        For more information, please see Dr. Renato Frasson's paper:
         https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017WR020887
 
         Inputs:
@@ -1684,7 +1708,7 @@ class SWOTRiverEstimator(SWOTL2):
         distances = np.array([])
         heights = np.array([])
 
-        # if upstream PRD reach is useable
+        # if upstream PRD reach is usable
         if prd_is_good[1]:
             mask = np.logical_and(adj_rch[1].wse > -500, adj_rch[1].wse < 8000)
             distances = np.concatenate([adj_rch[1].node_ss[mask], distances])
@@ -1696,7 +1720,7 @@ class SWOTRiverEstimator(SWOTL2):
         heights = np.concatenate([river_reach.wse[mask], heights])
         this_len = len(river_reach.wse[mask])
 
-        # if downstream PRD reach is useable
+        # if downstream PRD reach is usable
         if prd_is_good[-1]:
             downstream_prior_s = adj_rch[-1].prior_node_ss
             mask = np.logical_and(
