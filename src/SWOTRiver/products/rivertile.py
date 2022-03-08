@@ -645,7 +645,7 @@ class ShapeWriterMixIn(object):
                                 thisstr = str(item)
                             strings.append(thisstr)
 
-                        this_property[key] = ' '.join(strings)
+                        this_property[key] = ', '.join(strings)
 
                     elif key in ['reach_id', 'node_id', 'river_name']:
                         if this_item[ii] == self.VARIABLES[key]['_FillValue']:
