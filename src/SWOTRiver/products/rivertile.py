@@ -1557,10 +1557,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             # if blocking widths are bad
             klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
                 klass.VARIABLES['node_q']['dtype'])
-            klass['node_q'][node_outputs['node_blocked']==1] |= 1
+            klass['node_q'][node_outputs['node_blocked'] == 1] |= 1
             # if node-level heights are bad
             klass['node_q'][node_outputs['wse'] < -500] |= 1
             klass['node_q'][node_outputs['wse'] > 8000] |= 1
+            # if xtrk is too near/far
+            klass['node_q'][node_outputs['xtrack'] < 10000] |= 1
+            klass['node_q'][node_outputs['xtrack'] > 60000] |= 1
 
         return klass
 
