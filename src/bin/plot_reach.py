@@ -53,8 +53,8 @@ def get_simple_node_id(node_id, reach_id):
     return np.floor((node_id.astype(int) - (reach_id-1)*1000)/10).astype(int)
 
 
-def plot_wse(data, truth, errors, reach_id, axis, outclip=False,
-             reach_fit=True, title=None, prd_heights=False):
+def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
+             title=None, prd_heights=False):
     # plots the water surface elevation (wse) for each node, for the observed
     # and truth data, and the fit for the reach
     reach_id = int(reach_id)
@@ -63,6 +63,7 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False,
     node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
                             np.logical_not(data.nodes['wse'].mask))
     node_id = data.nodes['node_id'][node_i]
+    node_q = data.nodes['node_q'][node_i]
     node_i_truth = truth.nodes['reach_id'] == reach_id
     data_df = data_df[node_i]
     truth_df = truth_df[node_i_truth]
@@ -91,11 +92,16 @@ def plot_wse(data, truth, errors, reach_id, axis, outclip=False,
 
     axis.errorbar(node_p_dist, wse, wse_r_u, fmt='o',
                   markersize=2, label='node wse', zorder=0)
+    # plot the bad quality nodes in different colour
+    qual_mask = node_q == 1
+    axis.errorbar(node_p_dist[qual_mask], wse[qual_mask], wse_r_u[qual_mask],
+                  fmt='o',
+                  markersize=2,
+                  markerfacecolor='red',
+                  label='bad qual node',
+                  zorder=1)
     axis.plot(node_p_dist_truth, truth_wse, 'kx',
               markersize=2, label='truth', zorder=10)
-    if outclip:
-        axis.errorbar(node_p_dist, data_df['wse'], data_df['wse_r_u'],
-                      fmt='gx', markersize=2, label='outclip wse', zorder=1)
     axis2 = axis.twiny()
     node_id = node_id - node_id[0] + 11  # no reach in node_id, for readability
     axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
