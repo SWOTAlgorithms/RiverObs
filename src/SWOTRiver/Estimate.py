@@ -165,11 +165,6 @@ class L2PixcToRiverTile(object):
             self.reach_collection = river_estimator.process_reaches(
                 minobs=self.config['minobs'],
                 min_fit_points=self.config['min_fit_points'],
-                ds=self.config['ds'],
-                refine_centerline=self.config['refine_centerline'],
-                smooth=self.config['smooth'],
-                alpha=self.config['alpha'],
-                max_iter=self.config['max_iter'],
                 enhanced=True)
 
             if len(self.reach_collection) > 0:
