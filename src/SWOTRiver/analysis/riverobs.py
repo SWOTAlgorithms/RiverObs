@@ -292,8 +292,8 @@ def compute_average_node_error(data, truth):
         sig0_out[ind] = np.nanmean(np.array(sig0))
     return err_out, sig0_out
 
-def get_metrics(truth, data, msk=None,
-                with_slope=True, with_width=True, with_wse_r_u=True, wse_node_avg=None):
+def get_metrics(truth, data, msk=None, with_slope=True, with_width=True,
+                with_wse_r_u=True, with_slope2=True, wse_node_avg=None):
     if msk is None:
         msk = np.ones(np.shape(data.wse),dtype=bool)
     metrics = {
@@ -310,6 +310,10 @@ def get_metrics(truth, data, msk=None,
     if with_slope:
         metrics['slope'] = (data.slope[msk] - truth.slope[msk]) * 1e5#convert from m/m to cm/km
         metrics['slope_t'] = (truth.slope[msk]) * 1e5#convert from m/m to cm/km
+    if with_slope2:
+        metrics['slope2'] = (data.slope2[msk] - truth.slope2[msk]) * 1e5#convert from m/m to cm/km
+        metrics['slope2_t'] = (truth.slope2[msk]) * 1e5#convert from m/m to cm/km
+
     if with_width:
         metrics['width'] = data.width[msk] - truth.width[msk]
     if with_wse_r_u:
@@ -504,7 +508,8 @@ def get_scene_from_fnamedir(fnamedir):
                 + cycle_pass_tile[4]
     return scene
 #
-def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True, with_node_avg=False):
+def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
+                 with_slope2=True, with_node_avg=False):
     # get statistics of area error
     area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)
     area_50 = np.nanpercentile(metrics['area_total'][msk], 50)
@@ -551,6 +556,17 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True, 
         table['50%ile'].append(slope_50)
         table['mean'].append(slope_mean)
         table['count'].append(slope_num)
+    if with_slope2:
+        slope2_68 = np.nanpercentile(abs(metrics['slope2'][msk]), 68)
+        slope2_50 = np.nanpercentile(metrics['slope2'][msk], 50)
+        slope2_mean = np.nanmean(metrics['slope2'][msk])
+        slope2_num = np.count_nonzero(~np.isnan(metrics['slope2'][msk]))
+
+        table['metric'].append('slope2 (cm/km)')
+        table['|68%ile|'].append(slope2_68)
+        table['50%ile'].append(slope2_50)
+        table['mean'].append(slope2_mean)
+        table['count'].append(slope2_num)
     SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, fname=fname, precision=8)
     return table
 

@@ -20,14 +20,14 @@ import warnings
 
 def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
     """
-    only keep reaches that all the pertinent data is good for both truth and measured
+    only keep reaches where pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
     if truth_filter:
         truth_classes = SWOTRiver.analysis.riverobs.get_truth_classes()
         for key in truth_filter:
             bad_reaches = np.concatenate([bad_reaches, truth_classes.get(key)])
-    main_keys = ['area_total','wse','slope','width']
+    main_keys = ['area_total','wse','slope','width', 'slope2']
     for key in main_keys:
         # if any of these are masked, throw out the entire
         # reach by setting all elements to nan
@@ -49,12 +49,13 @@ def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
         if reach in bad_reaches:
             msk_d[i] = True
     for key in truth_tmp.reaches.variables:
-        # setting all variables to nans for bad reaches
-        # makes them be excluded when matching
-        # reach ids later between the data and truth
-        # need to check if truth variables also in data for backwards SWORD compatibility
+        # setting all variables to nans for bad reaches makes them be excluded
+        # when matching reach ids later between the data and truth.
+        # Must check if truth variables also in data for backwards SWORD
+        # compatibility.
         try:
-            if (key in data_tmp.reaches.variables) and ('no_data' not in truth_tmp.reaches[key].data):
+            if (key in data_tmp.reaches.variables) and \
+                    ('no_data' not in truth_tmp.reaches[key].data):
                 if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
                     tmp = truth_tmp.reaches[key].data.astype(np.double)
                     tmp[msk_t]=np.nan
@@ -261,8 +262,9 @@ def main():
 
     # get pass/fail and mask for science requirements
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene, scene_nodes, sig0=sig0)
+    msk, fit_error, bounds, dark_frac, reach_len = \
+        SWOTRiver.analysis.riverobs.mask_for_sci_req(
+            metrics, truth, data, scene, scene_nodes, sig0=sig0)
 
     # generate output filenames for metric tables and images
     if args.print_me:
@@ -298,8 +300,10 @@ def main():
                                              preamble = 'For All Data',
                                              with_node_avg=True)
     # printing masked data to table
-    preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" + str(bounds['max_xtrk']) + " km and width>" \
-               + str(bounds['min_width']) + " m and area>" + str(bounds['min_area']) + " m^2 and reach len>=" \
+    preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+               + str(bounds['max_xtrk']) + " km and width>" \
+               + str(bounds['min_width']) + " m and area>" \
+               + str(bounds['min_area']) + " m^2 and reach len>=" \
                + str(bounds['min_length']) + " m"
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
