@@ -303,8 +303,12 @@ def main():
     preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                + str(bounds['max_xtrk']) + " km and width>" \
                + str(bounds['min_width']) + " m and area>" \
-               + str(bounds['min_area']) + " m^2 and reach len>=" \
-               + str(bounds['min_length']) + " m"
+               + str(bounds['min_area']) + " m^2 \n and reach len>=" \
+               + str(bounds['min_length']) + " m and obs frac >" \
+               + str(bounds['min_obs_frac']) + " and truth ratio > "\
+               + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
+               + str(bounds['min_xtrk_ratio'])
+
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
         metrics, truth, scene, msk, fit_error,
@@ -396,7 +400,6 @@ def main():
     f = open(file + '_errors.txt', 'r')
     file_contents = f.read()
     print(file_contents)
-    plt.show()
     if args.print_me is None:
         os.remove('temp.txt')
         os.remove('temp_all.txt')
