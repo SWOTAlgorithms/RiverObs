@@ -71,13 +71,15 @@ def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
 def load_and_accumulate(
         pixc_rivertile, gdem_rivertile, metrics=None,
         truth=None, data=None, scene=None, scene_nodes=None, sig0=None,
-        bad_scenes=None, truth_filter=None):
+        bad_scenes=None, yukon_good_tiles=None, truth_filter=None):
     '''
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
     '''
     if bad_scenes is None:
         bad_scenes = []
+    if yukon_good_tiles is None:
+        yukon_good_tiles = []
     truth_tmp, data_tmp = SWOTRiver.analysis.riverobs.load_rivertiles(
         gdem_rivertile, pixc_rivertile)
     # do nothing if truth or data file have no reach data
@@ -98,6 +100,10 @@ def load_and_accumulate(
     # get the scene
     scene1 = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
     scene_tmp = [scene1 for item in data_tmp.reaches.reach_id]
+    scene_splits = scene1.split('_')
+    if scene_splits[0] == 'yukonflats' and scene1 not in yukon_good_tiles:
+        print('File', pixc_rivertile, 'not in Yukon good list.')
+        return metrics, truth, data, scene, scene_nodes, sig0
     #print("data_tmp:",data_tmp.nodes.reach_id)
     scene_tmp2 = [scene1 for item in data_tmp.nodes.reach_id]
     # accumulate if needed
@@ -168,6 +174,7 @@ def main():
     sig0 = None
 
     bad_scenes = []
+    yukon_good_tiles = ['yukonflats_0358_035R', 'yukonflats_0358_035L', 'yukonflats_0515_274R']
     truth_filter = args.truth_filter
 
     print("args.basedir: ", args.basedir)
@@ -246,7 +253,7 @@ def main():
                     truth_rivertile):
                 metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
                     proc_rivertile, truth_rivertile, metrics, truth, data,
-                    scene, scene_nodes, sig0, bad_scenes, truth_filter)
+                    scene, scene_nodes, sig0, bad_scenes, yukon_good_tiles, truth_filter)
 
     else:
         # Inputs can be either rivertile files, or basenames
