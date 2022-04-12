@@ -1562,8 +1562,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_q'][node_outputs['wse'] < -500] |= 1
             klass['node_q'][node_outputs['wse'] > 8000] |= 1
             # if xtrk is too near/far
-            klass['node_q'][node_outputs['xtrack'] < 10000] |= 1
-            klass['node_q'][node_outputs['xtrack'] > 60000] |= 1
+            klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
+            klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
 
         return klass
 
