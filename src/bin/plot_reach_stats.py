@@ -17,6 +17,7 @@ import SWOTRiver.analysis.tabley
 import glob
 from pathlib import Path
 import warnings
+import pdb
 
 def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
     """
@@ -54,8 +55,7 @@ def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
         # Must check if truth variables also in data for backwards SWORD
         # compatibility.
         try:
-            if (key in data_tmp.reaches.variables) and \
-                    ('no_data' not in truth_tmp.reaches[key].data):
+            if key in data_tmp.reaches.variables:
                 if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
                     tmp = truth_tmp.reaches[key].data.astype(np.double)
                     tmp[msk_t]=np.nan
@@ -76,6 +76,7 @@ def load_and_accumulate(
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
     '''
+
     if bad_scenes is None:
         bad_scenes = []
     truth_tmp, data_tmp = SWOTRiver.analysis.riverobs.load_rivertiles(
@@ -83,10 +84,12 @@ def load_and_accumulate(
     # do nothing if truth or data file have no reach data
     if len(truth_tmp.reaches.reach_id)<=0:
         print('File', gdem_rivertile, 'has no reach data.')
-        return metrics, truth, data, scene, scene_nodes, sig0
+        has_reach_data = False
+        return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
     if len(data_tmp.reaches.reach_id) <= 0:
         print('File', pixc_rivertile, 'has no reach data.')
-        return metrics, truth, data, scene, scene_nodes, sig0
+        has_reach_data = False
+        return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
     # handle masked arrays here
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp, truth_filter)
     #
@@ -123,7 +126,8 @@ def load_and_accumulate(
         scene = np.append(scene, scene_tmp)
         scene_nodes = np.append(scene_nodes, scene_tmp2)
         sig0 = np.append(sig0, sig0_avg)
-    return metrics, truth, data, scene, scene_nodes, sig0
+    has_reach_data = True
+    return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
 
 def main():
     parser = argparse.ArgumentParser()
@@ -244,9 +248,14 @@ def main():
                                                    truth_rivertile_list):
             if os.path.isfile(proc_rivertile) and os.path.isfile(
                     truth_rivertile):
-                metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
-                    proc_rivertile, truth_rivertile, metrics, truth, data,
-                    scene, scene_nodes, sig0, bad_scenes, truth_filter)
+                metrics, truth, data, scene, scene_nodes, \
+                sig0, has_reach_data = load_and_accumulate(proc_rivertile,
+                                                           truth_rivertile,
+                                                           metrics, truth,
+                                                           data, scene,
+                                                           scene_nodes,
+                                                           sig0, bad_scenes,
+                                                           truth_filter)
 
     else:
         # Inputs can be either rivertile files, or basenames
