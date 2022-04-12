@@ -106,7 +106,8 @@ def load_and_accumulate(
     scene_splits = scene1.split('_')
     if scene_splits[0] == 'yukonflats' and scene1 not in yukon_good_tiles:
         print('File', pixc_rivertile, 'not in Yukon good list.')
-        return metrics, truth, data, scene, scene_nodes, sig0
+        has_reach_data = False
+        return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
     #print("data_tmp:",data_tmp.nodes.reach_id)
     scene_tmp2 = [scene1 for item in data_tmp.nodes.reach_id]
     # accumulate if needed
@@ -178,7 +179,9 @@ def main():
     sig0 = None
 
     bad_scenes = []
-    yukon_good_tiles = ['yukonflats_0358_035R', 'yukonflats_0358_035L', 'yukonflats_0515_274R']
+    yukon_good_tiles = ['yukonflats_0358_035R',
+                        'yukonflats_0358_035L',
+                        'yukonflats_0515_274R']
     truth_filter = args.truth_filter
 
     print("args.basedir: ", args.basedir)
@@ -274,7 +277,8 @@ def main():
         if os.path.isdir(truth_rivertile):
             truth_rivertile = os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
 
-        metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
+        metrics, truth, data, scene, \
+        scene_nodes, sig0, has_reach_data = load_and_accumulate(
             proc_rivertile, truth_rivertile)
 
     # get pass/fail and mask for science requirements
