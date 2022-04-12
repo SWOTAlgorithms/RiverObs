@@ -284,7 +284,9 @@ def compute_average_node_error(data, truth):
         diff_wse = np.array(diff_wse)
         diff_wse = diff_wse.flatten()
         diff_wse[abs(diff_wse) > 1.0e+11] = np.nan # remove fill values
-        outlier_msk = np.abs(diff_wse) > p_68 * 3  # 3-sigma is outlier
+        # 3-sigma is outlier
+        outlier_msk = np.array([np.abs(d) > p_68 * 3 if ~np.isnan(d)
+                                else False for d in diff_wse])
         weight = np.array(weight)
         diff_wse[outlier_msk] = np.nan
         weight[outlier_msk] = np.nan
@@ -468,9 +470,9 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         'min_length': 8000,
         'min_obs_frac': 0.5,
         'max_dark_frac': 1,
-        'min_area_obs_frac': 0.5,
-        'min_truth_ratio': 0.8,
-        'min_xtrk_ratio': 0.89
+        'min_area_obs_frac': 0.2,
+        'min_truth_ratio': 0.2,
+        'min_xtrk_ratio': 0.5
     }
     msk=[]
 
