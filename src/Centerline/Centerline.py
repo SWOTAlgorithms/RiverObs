@@ -14,10 +14,10 @@ class CenterLineException(Exception):
 class Centerline:
     """
     A class for computing the location of a point or set of points
-    relative to a curved line defined by a series of two dimentional
+    relative to a curved line defined by a series of two dimensional
     points.
 
-    As an option, a set of ovservations (e.g., width) can be associated
+    As an option, a set of observations (e.g., width) can be associated
     with the center line.
 
     Parameters
@@ -208,7 +208,7 @@ class Centerline:
         d : array_like
             the distance to nearest point (from cKDTree query)
         x, y : array_like
-               The coordiantes of the nearest point
+               The coordinates of the nearest point
         s,n : array_like
               The along and across track coordinates of the point
               relative to the nearest point coordinate system.
