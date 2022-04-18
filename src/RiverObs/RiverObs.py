@@ -364,7 +364,10 @@ class RiverObs:
         for node in self.all_nodes:
             if node in self.populated_nodes:
                 river_node = self.river_nodes[node]
-                result.append(getattr(river_node, stat)(var, **kwargs))
+                node_stat = getattr(river_node, stat)(var, **kwargs)
+                if np.isnan(node_stat):
+                    node_stat = self.missing_value
+                result.append(node_stat)
             elif all_nodes:
                 result.append(self.missing_value)
 
