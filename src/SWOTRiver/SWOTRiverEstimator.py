@@ -292,12 +292,10 @@ class SWOTRiverEstimator(SWOTL2):
             **proj_kwds)
 
         self.create_index_file()
-
         if np.ma.is_masked(self.lat):
             mask = self.lat.mask
         else:
             mask = np.zeros(len(self.lat), dtype=np.bool)
-
         self.h_noise = self.get(height_kwd)
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
@@ -401,6 +399,7 @@ class SWOTRiverEstimator(SWOTL2):
             self.inundated_area = self.pixel_area
             for i, k in enumerate(class_list):
                 if use_fractional_inundation[i]:
+                    # TO-DO: validate fractional inundation result here
                     index = self.klass == k
                     self.inundated_area[index] = (self.pixel_area[
                         index] * self.fractional_inundation[index])
@@ -964,7 +963,7 @@ class SWOTRiverEstimator(SWOTL2):
         not the reach quantities.
         """
         # Refine the centerline, if desired
-        # get the number of node inthe reach and only refine if there are
+        # get the number of node in the reach and only refine if there are
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes - 1 > self.river_obs.k else False
@@ -1170,8 +1169,8 @@ class SWOTRiverEstimator(SWOTL2):
 
             if self.height_agg_method is not 'orig':
                 wse = node_aggs['h']
-                wse_std = node_aggs['h_std']
-                wse_r_u = node_aggs['h_u']
+                wse_std = node_aggs['h_std']  # height_uncert_std
+                wse_r_u = node_aggs['h_u']    # height_uncert_multilook
                 area_of_ht = area
 
         # geoid heights and tide corrections weighted by height uncertainty
@@ -1230,7 +1229,10 @@ class SWOTRiverEstimator(SWOTL2):
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
 
-        dark_frac = 1-area_det/area
+        if area == 0:
+            dark_frac = MISSING_VALUE_FLT
+        else:
+            dark_frac = 1-area_det/area
 
         # Compute flow direction relative to along-track
         tangent = self.river_obs.centerline.tangent[
