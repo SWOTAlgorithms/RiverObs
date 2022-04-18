@@ -42,11 +42,13 @@ CUSTOM_COLORS = {
     'c': '#00ffff',
     'm': '#ff00ff',
     'y': '#ffff00',
+    'w': '#ffffff'
 }
-cmap_custom = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
-                CUSTOM_COLORS['y'], CUSTOM_COLORS['c']]
+
+cmap_custom = [CUSTOM_COLORS['b'], CUSTOM_COLORS['w'],
+                CUSTOM_COLORS['r']]
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
-            'cmyc', cmap_custom)
+            'bwr', cmap_custom)
 
 
 def get_simple_node_id(node_id, reach_id):
@@ -58,10 +60,12 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
     # plots the water surface elevation (wse) for each node, for the observed
     # and truth data, and the fit for the reach
     reach_id = int(reach_id)
+
     data_df = pd.DataFrame.from_dict(data['nodes'].variables)
     truth_df = pd.DataFrame.from_dict(truth['nodes'].variables)
-    node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
-                            np.logical_not(data.nodes['wse'].mask))
+    # node_i = np.logical_and(data.nodes['reach_id'] == reach_id,
+    #                         np.logical_not(data.nodes['wse'].mask))
+    node_i = data.nodes['reach_id'] == reach_id
     node_id = data.nodes['node_id'][node_i]
     node_q = data.nodes['node_q'][node_i]
     node_i_truth = truth.nodes['reach_id'] == reach_id
@@ -86,7 +90,6 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
     truth_slope = truth.reaches['slope'][reach_i_truth]
     reach_width = data.reaches['width'][reach_i]
     truth_width = truth.reaches['width'][reach_i_truth]
-    reach_width = str(round(reach_width[0], 1))
     reach_xtrk = data.reaches['xtrk_dist'][reach_i]
     reach_xtrk = str(round(reach_xtrk[0] / 1000, 1))
 
@@ -131,10 +134,10 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
                   color='r', label='truth fit')
         axis.plot(fit_x, obs_fit_y, '--', markersize=10,
                   color='b', label='obs fit')
-        axis.plot(np.mean(node_p_dist_truth), reach_wse, '*', markersize=5,
+        axis.plot(np.mean(node_p_dist_truth), reach_wse, 'b*', markersize=5,
                   color='g', label='obs wse', zorder=1)
         axis.plot(np.mean(node_p_dist_truth), truth_reach_wse,
-                  '*', markersize=5, label='truth wse', zorder=0)
+                  'r*', markersize=5, label='truth wse', zorder=0)
         axis.axvline(x=reach_center_dist, ls='--', lw=0.2)
         # plot the wse_r_u shading
         axis.fill_between(node_p_dist, wse + 3*wse_r_u, wse - 3*wse_r_u,
@@ -147,23 +150,22 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
     left, width = .05, .5
     bottom, height = .02, .82
     top = bottom + height
-
-    if errors:
-        str1 = 'slope_e=' + str(round(errors[0], 2)) + 'cm/km\n'
-        axis.text(left + 0.1, top, str1,
-                  horizontalalignment='left',
-                  verticalalignment='bottom',
-                  fontsize=5,
-                  color=get_passfail_color(errors[0], 'slp e (cm/km)'),
-                  transform=axis.transAxes)
-        str2 = 'wse_e=' + str(round(errors[1], 2)) + ' cm\n'
-        axis.text(left + 0.1, top - 0.1, str2,
-                  horizontalalignment='left',
-                  verticalalignment='bottom',
-                  fontsize=5,
-                  color=get_passfail_color(errors[1], 'wse e (cm)'),
-                  transform=axis.transAxes)
-    summary_string = 'w = ' + reach_width + ' m\n' + 'x-trk =' + reach_xtrk + ' km'
+    str1 = 'slope_e=' + str(round(errors['slp e (cm/km)'], 2)) + 'cm/km\n'
+    axis.text(left + 0.1, top, str1,
+              horizontalalignment='left',
+              verticalalignment='bottom',
+              fontsize=5,
+              color=get_passfail_color(errors['slp e (cm/km)'], 'slp e (cm/km)'),
+              transform=axis.transAxes)
+    str2 = 'wse_e=' + str(round(errors['wse e (cm)'], 2)) + ' cm\n'
+    axis.text(left + 0.1, top - 0.1, str2,
+              horizontalalignment='left',
+              verticalalignment='bottom',
+              fontsize=5,
+              color=get_passfail_color(errors['wse e (cm)'], 'wse e (cm)'),
+              transform=axis.transAxes)
+    summary_string = 'w = ' + str(reach_width[0]) + ' m\n' \
+                     + 'x-trk =' + str(reach_xtrk) + ' km'
     axis.text(left, bottom, summary_string,
               horizontalalignment='left',
               verticalalignment='bottom',
@@ -204,26 +206,25 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
     bottom, height = .1, .8
     right = left + width
     top = bottom + height
-    if errors:
-        str1 = 'Area detect e=' + str(round(errors[3], 1)) + '%\n'
-        str2 = 'Area total e=' + str(round(errors[2], 1)) + '%'
-        str3 = 'Width e=' + str(round(errors[4], 1)) + ' m'
-        axis.text(left, top, str1,
-                  horizontalalignment='left',
-                  verticalalignment='top',
-                  fontsize=5,
-                  transform=axis.transAxes)
-        axis.text(left, top - 0.06, str2,
-                  horizontalalignment='left',
-                  verticalalignment='top',
-                  fontsize=5,
-                  color=get_passfail_color(errors[2], 'area_tot e (%)'),
-                  transform=axis.transAxes)
-        axis.text(left, top - 0.12, str3,
-                  horizontalalignment='left',
-                  verticalalignment='top',
-                  fontsize=5,
-                  transform=axis.transAxes)
+    str1 = 'Area detect e=' + str(round(errors['area_det e (%)'], 1)) + '%\n'
+    str2 = 'Area total e=' + str(round(errors['area_tot e (%)'], 1)) + '%'
+    str3 = 'Width e=' + str(round(errors['width e (m)'], 1)) + ' m'
+    axis.text(left, top, str1,
+              horizontalalignment='left',
+              verticalalignment='top',
+              fontsize=5,
+              transform=axis.transAxes)
+    axis.text(left, top - 0.06, str2,
+              horizontalalignment='left',
+              verticalalignment='top',
+              fontsize=5,
+              color=get_passfail_color(errors['area_tot e (%)'], 'area_tot e (%)'),
+              transform=axis.transAxes)
+    axis.text(left, top - 0.12, str3,
+              horizontalalignment='left',
+              verticalalignment='top',
+              fontsize=5,
+              transform=axis.transAxes)
 
     axis.grid()
     axis.set_xlabel('node_id')
@@ -300,7 +301,7 @@ def plot_locations(data, truth, reach_id, axis, plot_prior=True,
         cmap = [CUSTOM_COLORS['c'], CUSTOM_COLORS['m'],
                 CUSTOM_COLORS['y'], CUSTOM_COLORS['c']]
         color_map = matplotlib.colors.LinearSegmentedColormap.from_list(
-            'cmyc', cmap)
+            'bwr', cmap)
         axis.imshow(gdem_dem_el, origin='lower', cmap=color_map,
                     extent=[np.min(gdem_dem_lon[lon_mask]),
                             np.max(gdem_dem_lon[lon_mask]),
@@ -382,28 +383,16 @@ def make_plots(rivertile_file, truth_file, pixcvec, pixc,
         truth_pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixcvec)
         truth_pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(truth_pixc)
         plot_pixcs(truth_pixcvec_data, truth_pixc_data, reach_id, nodes, title_tag='(truth)', reach_data=truth)
-
     return figure, axes
 
 
 def get_reach_error(errors, reach_id):
     # this gets the slope, wse, and area errors for the reach of interest
-    scene = 0
-    for reach_index, reach in enumerate(errors[0]['reach']):
-        if int(reach) == int(reach_id):
-            slope_error = errors[0]['slp e (cm/km)'][reach_index]
-            wse_error = errors[0]['wse e (cm)'][reach_index]
-            area_error = errors[0]['area_tot e (%)'][reach_index]
-            area_dtct_error = errors[0]['area_det e (%)'][reach_index]
-            width_error = errors[0]['width e (m)'][reach_index]
-            scene = errors[0]['scene_pass_tile'][reach_index]
-    if not scene:
-        raise Exception('Reach ID is not found in this scene/pass/side')
-    reach_error = [slope_error,
-                   wse_error,
-                   area_error,
-                   area_dtct_error,
-                   width_error]
+    reach_error = {}
+    index = errors[0]['reach'].index(str(reach_id))
+    for key in errors[0].keys():
+        reach_error[key] = errors[0][key][index]
+
     return reach_error
 
 
@@ -733,7 +722,7 @@ def main():
 
     proc_tile = os.path.abspath(args.proc_tile)
     truth_tile = os.path.abspath(args.truth_tile)
-    gdem_dem = get_gdem_from_pixc(args.proc_tile)
+    gdem_dem = get_gdem_from_rivertile(args.proc_tile)
     gdem_tile = args.truth_tile
     pixcvec = args.pixcvec
     truth_pixcvec = args.truth_pixcvec
@@ -752,12 +741,15 @@ def main():
     pixc_truth = None
     if args.pixc_truth is not None:
         pixc_truth = os.path.abspath(args.pixc_truth)
-    errors = get_errors(proc_tile, truth_tile, test=False, verbose=False)
-    reach_error = get_reach_error(errors, args.reach_id)
-    make_plots(proc_tile, truth_tile, pixcvec, pixc,
-        truth_pixcvec, truth_pixc, args.reach_id,
-        gdem_dem, reach_error, nodes=args.nodes, pixc_truth=pixc_truth)
-    plt.show()
+    if os.path.isfile(truth_tile) and os.path.isfile(proc_tile):
+        errors = get_errors(proc_tile, truth_tile, test=False, truth_filter=None)
+        reach_error = get_reach_error(errors, args.reach_id)
+        make_plots(proc_tile, truth_tile, pixcvec, pixc,
+            truth_pixcvec, truth_pixc, args.reach_id,
+            gdem_dem, reach_error, nodes=args.nodes, pixc_truth=pixc_truth)
+        plt.show()
+    else:
+        print('Input file', proc_tile, 'or', truth_tile, 'does not exist')
 
 
 if __name__ == "__main__":
