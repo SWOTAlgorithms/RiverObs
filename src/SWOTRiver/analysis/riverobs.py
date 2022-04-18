@@ -454,7 +454,8 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
             fit_error.append(err)
     return np.array(fit_error)
         
-def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
+def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
+                     print_table=False):
     # find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
     fit_error = []#compute_reach_fit_error(truth, scene, scene_nodes)
@@ -483,10 +484,11 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
     for index, reach in enumerate(data.reaches['reach_id']):
         reach_scene = scene[index]
         # can have multiple reaches with same reach id in dataset
+        scene_mask = [s == reach_scene for s in scene_nodes]
         node_mask = np.logical_and(data.nodes['reach_id'] == reach,
-                                   scene_nodes == reach_scene)
+                                   scene_mask)
         node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
-                                         scene_nodes == reach_scene)
+                                         scene_mask)
         n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
         n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
         n_prd = len(data.nodes['node_id'][node_mask])
@@ -497,6 +499,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         obs_area_frac[index] = n_good_data / n_prd
         truth_ratio[index] = n_good_data / n_good_truth
         xtrk_ratio[index] = n_good_xtrk / n_prd
+
     # some quick plots
     # plt.hist(obs_area_frac)
     # plt.xlabel('Observed fraction for area')
@@ -550,6 +553,44 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         msk = np.logical_and(msk, obs_area_frac > bounds['min_area_obs_frac'])
         msk = np.logical_and(msk, truth_ratio > bounds['min_truth_ratio'])
         msk = np.logical_and(msk, xtrk_ratio > bounds['min_xtrk_ratio'])
+        if print_table:
+            passfail = {
+                'Truth width (m)': [bounds['min_width'], 'flip'],
+                'Truth area_t (m^2)': [bounds['min_area'], 'flip'],
+                'Prior length (m)': [bounds['min_length'], 'flip'],
+                'Obs fraction (%)': [bounds['min_obs_frac'] * 100, 'flip'],
+                'Xtrk dist (km)': [bounds['min_xtrk'], 'flip'],
+                'Dark frac (%)':[bounds['max_dark_frac'] * 100,
+                                 bounds['max_dark_frac'] * 100],
+                'obs frac area (%)': [bounds['min_area_obs_frac']*100, 'flip'],
+                'xtrk_ratio (%)': [bounds['min_xtrk_ratio']*100, 'flip']
+            }
+            preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+                   + str(bounds['max_xtrk']) + " km and width>" \
+                   + str(bounds['min_width']) + " m and area>" \
+                   + str(bounds['min_area']) + " m^2 \n and reach len>=" \
+                   + str(bounds['min_length']) + " m and obs frac >" \
+                   + str(bounds['min_obs_frac']) + " and truth ratio > "\
+                   + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
+                   + str(bounds['min_xtrk_ratio'])
+            table = {
+                'Reach ID': data.reaches['reach_id'].astype(str),
+                'Truth width (m)': truth.reaches['width'],
+                'Truth area_t (m^2)': truth.reaches['area_total'],
+                'Prior length (m)': truth.reaches['p_length'],
+                'Obs fraction (%)': data.reaches['obs_frac_n']*100,
+                'Xtrk dist (km)': truth.reaches['xtrk_dist'],
+                'Dark frac (%)': data.reaches['dark_frac']*100,
+                'River Name': data.reaches['river_name'],
+                'sci req msk': msk,
+                'obs frac area (%)': obs_area_frac*100,
+                'xtrk_ratio (%)': xtrk_ratio*100
+            }
+
+            SWOTRiver.analysis.tabley.print_table(table, preamble=preamble,
+                                                  fname=None, precision=6,
+                                                  passfail=passfail)
+
         return msk, fit_error, bounds, truth.reaches['dark_frac'],\
                truth.reaches['p_length']
     else:
