@@ -11,7 +11,6 @@ All rights reserved.
 
 Author (s): Brent Williams
 '''
-
 import sys
 import numpy as np
 import scipy.stats
@@ -289,7 +288,7 @@ def area_only(
     I      = Binary mask for pixels detected as water or land-near-water
 
     OUTPUTS:
-    area_out  = aggregated height
+    area_out  = aggregated area
 
     Reference: implements Eq.s (15), (16), and (17) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
