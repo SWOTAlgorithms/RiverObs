@@ -119,7 +119,10 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
     good_truth_list = []
 
     test_count = 0  # this only increases if we're in script 'test' mode
-    print('Retrieving errors for all rivertiles...')
+    print('Retrieving rivertile errors...')
+    if type(rivertile_list) is not list:  # only one input file. Make it a list
+        rivertile_list = [rivertile_list]
+        truth_list = [truth_list]
     for index, filename in enumerate(rivertile_list):
         if test_count <= 10:
             # get the error of that scene
@@ -152,16 +155,19 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
                    + str(bounds['min_area']) + " m^2 and reach len>=" \
                    + str(bounds['min_length']) + " m\n"
         print(preamble)
-        table = SWOTRiver.analysis.riverobs.print_errors(metrics,
-                                                         msk,
-                                                         with_node_avg=True)
-        metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
-            metrics, truth, scene,
-            msk,
-            with_node_avg=True,
-            passfail=passfail,
-            reach_len=reach_len,
-            preamble=preamble)
+        if any(msk):
+            table = SWOTRiver.analysis.riverobs.print_errors(metrics,
+                                                             with_node_avg=True)
+            metrics_table = SWOTRiver.analysis.riverobs.print_metrics(
+                metrics, truth, scene,
+                msk,
+                with_node_avg=True,
+                passfail=passfail,
+                reach_len=reach_len,
+                preamble=preamble)
+        else:
+            print('No reaches in tile', filename,
+                  'meet the science requirements.')
     else:
         print('No metrics obtainable.')
         metrics_table = []
