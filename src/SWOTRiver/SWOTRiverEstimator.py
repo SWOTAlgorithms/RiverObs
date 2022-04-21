@@ -307,6 +307,10 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
+        if pixc_qual_handling not in [None, ]:
+            raise Exception('AUX Param key: pixc_qual_handling has unexpected '+
+                            'value: %s'%pixc_qual_handling)
+
         bright_land_flag = self.get(bright_land_flag_kwd)
         # TODO use bright_land_flag to set mask here
         # ..etc
