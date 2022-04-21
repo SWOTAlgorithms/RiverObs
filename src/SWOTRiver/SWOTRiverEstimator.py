@@ -426,6 +426,11 @@ class SWOTRiverEstimator(SWOTL2):
                     index = self.klass == k
                     self.isWater[index] = 1
             self.segment_water_class(self.preseg_dilation_iter)
+
+            # TODO: Modify self.isWater using classification_qual and
+            # geolocation_qual (use_segmentation)
+            # ...etc
+
         else:
             self.seg_label = None
 
@@ -437,6 +442,11 @@ class SWOTRiverEstimator(SWOTL2):
                 if self.use_heights[i]:
                     index = self.klass == k
                     self.h_flg[index] = 1
+
+            # TODO: Modify self.h_flag using classification_qual and
+            # geolocation_qual (use_heights)
+            # ...etc
+
         else:
             self.h_flg = None
 
