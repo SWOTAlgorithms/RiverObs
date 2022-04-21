@@ -224,6 +224,10 @@ class SWOTRiverEstimator(SWOTL2):
                  load_tide_fes_kwd='load_tide_fes',
                  load_tide_got_kwd='load_tide_got',
                  pole_tide_kwd='pole_tide',
+                 bright_land_flag_kwd='bright_land_flag',
+                 classification_qual_kwd='classification_qual',
+                 geolocation_qual_kwd='geolocation_qual',
+                 layover_impact_kwd='layover_impact',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -242,6 +246,7 @@ class SWOTRiverEstimator(SWOTL2):
                  outlier_rel_thresh=None,
                  outlier_upr_thresh=None,
                  outlier_iter_num=None,
+                 pixc_qual_handling=None,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -292,6 +297,8 @@ class SWOTRiverEstimator(SWOTL2):
             **proj_kwds)
 
         self.create_index_file()
+
+
         if np.ma.is_masked(self.lat):
             mask = self.lat.mask
         else:
@@ -299,6 +306,10 @@ class SWOTRiverEstimator(SWOTL2):
         self.h_noise = self.get(height_kwd)
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
+
+        bright_land_flag = self.get(bright_land_flag_kwd)
+        # TODO use bright_land_flag to set mask here
+        # ..etc
 
         # skip NaNs in dheight_dphase
         good = ~mask
@@ -335,7 +346,10 @@ class SWOTRiverEstimator(SWOTL2):
             ['geoid', geoid_kwd], ['solid_earth_tide', solid_earth_tide_kwd],
             ['load_tide_fes', load_tide_fes_kwd],
             ['load_tide_got', load_tide_got_kwd],
-            ['pole_tide', pole_tide_kwd]]
+            ['pole_tide', pole_tide_kwd],
+            ['layover_impact', layover_impact_kwd],
+            ['geolocation_qual', geolocation_qual_kwd],
+            ['classification_qual', classification_qual_kwd],]
 
         for dset_name, keyword in datasets2load:
             try:
