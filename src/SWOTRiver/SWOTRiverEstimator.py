@@ -1229,10 +1229,8 @@ class SWOTRiverEstimator(SWOTL2):
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
 
-        if area == 0:
-            dark_frac = MISSING_VALUE_FLT
-        else:
-            dark_frac = 1-area_det/area
+        dark_frac = MISSING_VALUE_FLT * np.ones(area.shape)
+        dark_frac[area > 0] = 1 -area_det[area > 0] / area[area > 0]
 
         # Compute flow direction relative to along-track
         tangent = self.river_obs.centerline.tangent[
