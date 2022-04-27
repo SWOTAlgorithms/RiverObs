@@ -660,7 +660,7 @@ class SWOTRiverEstimator(SWOTL2):
             if self.store_reaches:
                 self.river_reach_collection[ireach] = river_reach
 
-            LOGGER.debug('reach pocessed')
+            LOGGER.debug('reach processed')
 
         out_river_reach_collection = []
         # Now iterate over reaches again and do reach average computations
@@ -1339,7 +1339,7 @@ class SWOTRiverEstimator(SWOTL2):
             collection). If using a width database, the retrieved width will
             be associated with this reach index. If None, it will be set equal
             to the reach_id.
-        min_fit_points : int, default 3
+        min_fit_points : int, default 2
             Minimum number of populated nodes required for height/slope fit
 
         Returns
