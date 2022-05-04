@@ -235,7 +235,9 @@ class SWOTRiverEstimator(SWOTL2):
                  height_agg_method='weight',#[weight, median, uniform, orig]
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
-                 slope_method='weighted',
+                 slope_method='bayes',
+                 prior_unc_alpha=1.5,
+                 char_length_tau=10000,
                  use_ext_dist_coef=True,
                  outlier_method=None,
                  outlier_abs_thresh=None,
@@ -251,6 +253,8 @@ class SWOTRiverEstimator(SWOTL2):
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
         self.slope_method = slope_method
+        self.prior_unc_alpha = prior_unc_alpha
+        self.char_length_tau = char_length_tau
         self.use_ext_dist_coef = use_ext_dist_coef
         self.outlier_method = outlier_method
         self.outlier_abs_thresh = outlier_abs_thresh
@@ -1437,7 +1441,64 @@ class SWOTRiverEstimator(SWOTL2):
                 #    statsmodels.regression.linear_model.RegressionResults.html
                 reach_stats['slope_u'] = fit.HC0_se[0]
                 reach_stats['height_u'] = fit.HC0_se[1]
+            elif self.slope_method == 'bayes':
+                if mask.sum() > 4:
+                    # create linear fit prior
+                    wse_fit = statsmodels.api.WLS(hh[mask], SS[mask],
+                                                  weights=ww[mask]).fit()
+                    wse_wle = wse_fit.predict(SS)
+                    # now get the optimal reconstruction (Bayes estimate)
+                    # using the offset linear weighted fit as the prior
+                    wse_opt = self.optimal_reconstruct(ss, hh,
+                                                       np.sqrt(1.0 / ww),
+                                                       ~mask, wse_wle,
+                                                       method='Bayes')
+                    #
+                    # TO-DO: determine if we should use/remove outlier Bayes
+                    #
+                    # flag outliers more than 3-sigma from the optimal fit
+                    # outliers = (np.abs(hh - wse_opt) > 3 * np.sqrt(1.0 / ww))
+                    # ww[outliers] = 1.0 / (np.abs(
+                    #     hh[outliers] - wse_opt[outliers]) * 2) ** 2
 
+                    # if 0 < outliers.sum():
+                    #     # refit the wle with outlier rejection
+                    #     ole.fit(X, hh[mask], ww[mask])
+                    #     wse_wle_out = ole.predict(ss.reshape(len(ss), 1))
+                    #     wse_opt = optimal_reconstruct(ss, hh,
+                    #         np.sqrt(1.0 / ww), ~mask, wse_wle_offset)
+
+                    # take first-to-last of reconstruction for slope
+                    # mean of reconstruction wse (for observed nodes) as wse
+                    dx = ss[0] - ss[-1]  # along-reach dist
+                    reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
+                    reach_stats['height'] = \
+                        np.mean(wse_opt[mask]) \
+                        + reach_stats['slope'] * (np.mean(all_ss)
+                                                  - np.mean(ss[mask]))
+                    # TBD unc quantities for bayes method
+                    reach_stats['slope_u'] = MISSING_VALUE_FLT
+                    reach_stats['height_u'] = MISSING_VALUE_FLT
+
+                else:
+                    # not enough points for Bayes method. Try first-to-last fit
+                    if mask.sum() > 1:
+                        reach_stats['slope'] = (hh[mask][0] - hh[mask][-1]) / (
+                                    ss[mask][0] - ss[mask][-1])
+                        reach_stats['height'] = (
+                                np.mean(hh[mask])
+                                + reach_stats['slope'] * (np.mean(all_ss)
+                                                          - np.mean(ss[mask])))
+
+                        # TBD on unc quantities for ftl method
+                        reach_stats['slope_u'] = MISSING_VALUE_FLT
+                        reach_stats['height_u'] = MISSING_VALUE_FLT
+
+                    else:  # only one node, fill values for reach slope/wse
+                        reach_stats['slope'] = MISSING_VALUE_FLT
+                        reach_stats['slope_u'] = MISSING_VALUE_FLT
+                        reach_stats['height'] = MISSING_VALUE_FLT
+                        reach_stats['height_u'] = MISSING_VALUE_FLT
         else:
             reach_stats['slope'] = MISSING_VALUE_FLT
             reach_stats['slope_u'] = MISSING_VALUE_FLT
@@ -1815,3 +1876,122 @@ class SWOTRiverEstimator(SWOTL2):
                 weights.sum())
 
         return smooth_heights
+
+    def optimal_reconstruct(
+            self,
+            p_dist_out,
+            wse,
+            wse_r_u,
+            mask,
+            prior_wse=None,
+            prior_cov_method='exponential',
+            full_noise_cov=False,
+            method='Bayes'):
+        """
+        This function estimates the optimal reconstruction estimator under
+        certain assumptions given by the options.
+        Inputs:
+        p_dist_out = Distance to outlet for each node (from prior database)
+        wse        = Measured Node wse (with masked values for missing nodes)
+        wse_r_u    = Node-wise wse uncertainty
+        Options:
+        method = Bayes
+           Bayes        = Bayes estimate of wse given prior and
+                          prior_cov method.
+        full_noise_cov = True, or False
+                         This option sets the noise covariance and the sampling
+                         operator to assume that all nodes are observed (but
+                         weighted appropriately for the unobserved nodes).
+        prior_wse = The mean wse of the prior we want to impose (defaults to the
+                    zero vector if not input)
+        prior_cov_method = independent, exponential
+                           This option controls how spatial structure is imposed
+                           by the prior.  Ignored if method=Bayes_linear
+        """
+        if prior_wse is None:
+            prior_wse = np.zeros(np.shape(wse))
+        # get the sampling operator
+        # find where the data is not masked or nan
+        ind = np.where(np.logical_not(np.logical_and(~mask, np.isfinite(wse))))
+        # get vector with 1 for valid data elements
+        h = np.ones(np.shape(wse))
+        h[ind] = 0
+        # make full sampling matrix
+        H = np.diag(h)
+        # now remove the zero rows
+        num_removed = 0
+        for k, val in enumerate(h):
+            if val == 0:
+                row = k - num_removed
+                H = np.delete(H, row, 0)
+                num_removed = num_removed + 1
+        # get the covariance matrices
+        msk = np.logical_and(~mask, np.isfinite(wse))
+        Rv = self.get_noise_autocov(wse, wse_r_u, mask, full_noise_cov)
+        if prior_cov_method == 'independent':
+            # assume no spatial structure
+            Ry0 = np.identity(len(p_dist_out))
+        elif prior_cov_method == 'exponential':
+            # get the signal covariance assuming an exponential random process
+            Ry0 = np.zeros((len(p_dist_out), len(p_dist_out)))
+            for k, d0 in enumerate(p_dist_out):
+                t = p_dist_out - d0
+                Ry0[k, :] = np.exp(-np.abs(t) / self.char_length_tau)
+        else:
+            # TODO: Raise unimplemented option exception
+            pass
+        # scale the covariance to trade-off noise.vs "spectral resolution"
+        Ry = Ry0 / np.max(Ry0) * self.prior_unc_alpha ** 2
+        # compute the optimal wse reconstruction filter
+        if method == 'Bayes':
+            # get the bayes estimate
+            K, K_bar = self.compute_bayes_estimator(Ry, Rv, H)
+        else:
+            # TODO: Raise unimplemented option exception here
+            pass
+        # handle the missing node wse measurements
+        if full_noise_cov:
+            # wse_reg = prior_wse.copy()
+            wse_reg = np.zeros(np.shape(wse))
+            wse_reg[msk] = wse[msk]
+        else:
+            wse_reg = wse[msk]
+        # apply the wse estimator(s) to the measurement term
+        wse_out0 = np.matmul(K, wse_reg)
+        # apply the prior term
+        wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
+
+        return wse_out
+
+    @staticmethod
+    def compute_bayes_estimator(Ry, Rv, H):
+        """
+        Implements the bayes estimator of the signal/parameters
+        Ry is the signal (or parameter) covariance
+        Rv is the measurement noise covariance
+        H is the sampling operator (or sampling then basis projection operator)
+        These are the equation implemented
+        K = (Ry^-1 + H.T Rv^-1 H)^-1 H.T Rv^-1
+        K_bar = (Ry^-1 + H.T Rv^-1 H)^-1 Ry^-1 (if non-zero mean of prior wse)
+        """
+        Ry_inv = np.linalg.pinv(Ry)
+        Rv_inv = np.linalg.pinv(Rv)
+        post_cov_inv = Ry_inv + np.matmul(np.matmul(H.T, Rv_inv), H)
+        post_cov = np.linalg.pinv(post_cov_inv)
+        # print('post_cov_inv', post_cov_inv)
+        # print('post_cov', post_cov)
+        K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
+        K_bar = np.matmul(post_cov, Ry_inv)
+        return K, K_bar
+
+    @staticmethod
+    def get_noise_autocov(wse, wse_r_u, mask, full=False):
+        msk = np.logical_and(~mask, np.isfinite(wse))
+        if full:
+            reg_inf = 1e10
+            wse_r_u_reg = np.zeros(np.shape(wse_r_u)) + reg_inf
+            wse_r_u_reg[msk] = wse_r_u[msk]
+            wse_r_u_reg[wse_r_u_reg < 0] = reg_inf
+        else:
+            wse_r_u_reg = wse_r_u[msk]
+        return np.diag(wse_r_u_reg)
