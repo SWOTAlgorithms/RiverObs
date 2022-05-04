@@ -98,7 +98,7 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
                   fmt='o',
                   markersize=2,
                   markerfacecolor='red',
-                  label='bad qual node',
+                  label='bad qual',
                   zorder=1)
     axis.plot(node_p_dist_truth, truth_wse, 'kx',
               markersize=2, label='truth', zorder=10)
@@ -172,7 +172,8 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
     axis.grid()
     axis.set_xlabel('dist from outlet (m)')
     axis.set_ylabel('wse (m)')
-    leg = axis.legend(loc='lower right', fontsize=5, ncol=2)
+    leg = axis.legend(
+        bbox_to_anchor=(1.05, 1.0), loc='upper left', fontsize=5, ncol=1)
     leg.set_draggable(1)
 
     if title is not None:
