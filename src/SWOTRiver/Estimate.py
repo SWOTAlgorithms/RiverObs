@@ -120,6 +120,9 @@ class L2PixcToRiverTile(object):
         if 'char_length_tau' not in self.config:
             self.config['char_length_tau'] = 10000
 
+        if 'use_multiple_reaches' not in self.config:
+            self.config['use_multiple_reaches'] = False
+
         if 'use_ext_dist_coef' not in self.config:
             self.config['use_ext_dist_coef'] = True
 
@@ -153,6 +156,7 @@ class L2PixcToRiverTile(object):
             'slope_method': self.config['slope_method'],
             'prior_unc_alpha': self.config['prior_unc_alpha'],
             'char_length_tau': self.config['char_length_tau'],
+            'use_multiple_reaches': self.config['use_multiple_reaches'],
             'use_ext_dist_coef': self.config['use_ext_dist_coef'],
             'outlier_method': self.config['outlier_method'],
             'outlier_abs_thresh': self.config['outlier_abs_thresh'],
