@@ -11,29 +11,11 @@ from plotnine import *
 from plot_reach_stats import load_and_accumulate
 from reach_comparison import *
 
-
-def mask_for_sci_req_local(metrics, truth, data, scene, scene_nodes=None, sig0=None):
-    # This function masks for the scientific requirements locally (i.e. reach_collection_stats.py ONLY),
-    # so we can tweak the histograms independent of the defaults set in SWOTRiver/analysis/riverobs.py
-
-    # uncomment below line to find reaches where the height profile linear fit is not that good
-    # so we can filter out bogus/non-realistic reaches from the analysis
-    bad_reaches = []  # from Rui
-    fit_error = []  # SWOTRiver.analysis.riverobs.compute_reach_fit_error(truth, scene, scene_nodes)
-    msk = np.logical_and((np.abs(truth.reaches['xtrk_dist']) > 10000),
-                         np.logical_and((np.abs(truth.reaches['xtrk_dist']) < 60000),
-                         np.logical_and((truth.reaches['width'] > 80),
-                         np.logical_and((truth.reaches['area_total'] > 8e5),
-                         np.logical_and(np.isin(truth.reaches['reach_id'], bad_reaches, invert=True),
-                         np.logical_and((truth.reaches['p_length'] >= 8000),
-                         np.logical_and(truth.reaches['obs_frac_n'] >= 0.5,
-                         truth.reaches['dark_frac'] < 1.0)))))))
-    return msk, fit_error, truth.reaches['dark_frac']
-
-
 def load_data_df(data_files, truth_files=None, test_bool=None):
-    # takes all input filenames and forms some dataframes out of their data and metrics
-    # TO DO: make an independent to_dataframe or dictionary method for the mutable products and use that instead
+    # takes all input filenames and forms some dataframes out of their data
+    # and metrics
+    # TO DO: make an independent to_dataframe or dictionary method for the
+    # mutable products and use that instead
     data_nodes_df = pd.DataFrame()
     data_reaches_df = pd.DataFrame()
     truth_nodes_df = pd.DataFrame()
@@ -48,27 +30,20 @@ def load_data_df(data_files, truth_files=None, test_bool=None):
         if test_counter < 5:
             # get the error of that scene
             try:
-                metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(filename, truth_files[index])
+                metrics, truth, data, scene, scene_nodes, sig0 = \
+                    load_and_accumulate(filename, truth_files[index])
             except FileNotFoundError:
-                print('\032[93mData rivertile', filename, 'has no matching truth rivertile',
-                      truth_files[index], '\032[0m')
+                print('\032[93mData rivertile', filename,
+                      'has no matching truth rivertile', truth_files[index],
+                      '\032[0m')
             if truth:
-                msk, fit_error, dark_frac = mask_for_sci_req_local(metrics, truth, data, scene, sig0=sig0)
-                if not any(msk):
-                    print('\n\033[93mNo reaches in file', filename, 'are within sci req bounds\n')
-                    try:
-                        print('For reach_ids', int(truth.reaches['reach_id']),
-                              '\nTruth xtrks', truth.reaches['xtrk_dist'],
-                              '\nWidths', truth.reaches['width'], 'm',
-                              '\nArea tots', truth.reaches['area_total'], 'm^2',
-                              '\nReach lengths', truth.reaches['p_length'], 'm',
-                              '\nObserved fracs', truth.reaches['obs_frac_n'],
-                              '\nDark fracs', truth.reaches['dark_frac'], '\033[0m')
-                    except TypeError:
-                        print('No reaches in file.\033[0m')
-                else:
+                msk, fit_error, bounds, dark_frac, p_length = \
+                    SWOTRiver.analysis.riverobs.mask_for_sci_req(
+                        metrics, truth, data, scene, sig0=sig0)
+                if any(msk):
                     print('\nload and accumulate successful for', filename)
-                    # struggled with the product object here, so I restructured into a pandas dataframe  -- Cassie
+                    # struggled with the product object here, so I
+                    # restructured into a pandas dataframe  -- Cassie
                     print('populating variables for dataframes...')
                     temp_node_data = pd.DataFrame()
                     temp_node_truth = pd.DataFrame()
@@ -80,14 +55,19 @@ def load_data_df(data_files, truth_files=None, test_bool=None):
                     temp_node_data['msk'] = data.nodes['wse'].mask
                     temp_node_truth['scene'] = scene_nodes
                     temp_node_truth['msk'] = truth.nodes['wse'].mask
-                    data_nodes_df = data_nodes_df.append(temp_node_data, ignore_index=True)
-                    truth_nodes_df = truth_nodes_df.append(temp_node_truth, ignore_index=True)
+                    data_nodes_df = pd.concat((data_nodes_df,
+                                               temp_node_data),
+                                              ignore_index=True)
+                    truth_nodes_df = pd.concat((truth_nodes_df,
+                                                temp_node_truth),
+                                                ignore_index=True)
 
                     temp_reach_data = pd.DataFrame()
                     temp_reach_truth = pd.DataFrame()
                     for var in data.reaches.variables:
                         # get data for reaches
-                        if var not in ['centerline_lat', 'centerline_lon', 'rch_id_up', 'rch_id_dn']:
+                        if var not in ['centerline_lat', 'centerline_lon',
+                                       'rch_id_up', 'rch_id_dn']:
                             temp_reach_truth[var] = truth.reaches[var]
                             temp_reach_data[var] = data.reaches[var]
 
@@ -96,23 +76,44 @@ def load_data_df(data_files, truth_files=None, test_bool=None):
                     temp_reach_truth['msk'] = msk
                     temp_reach_truth['scene'] = scene
                     temp_reach_data['sig0'] = sig0
-                    data_reaches_df = data_reaches_df.append(temp_reach_data, ignore_index=True)
-                    truth_reaches_df = truth_reaches_df.append(temp_reach_truth, ignore_index=True)
+                    data_reaches_df = pd.concat((data_reaches_df,
+                                                 temp_reach_data),
+                                                 ignore_index=True)
+                    truth_reaches_df = pd.concat((truth_reaches_df,
+                                                 temp_reach_truth),
+                                                 ignore_index=True)
 
                     metrics_tmp_df = pd.DataFrame(metrics)
                     metrics_tmp_df['reach_id'] = data.reaches['reach_id']
                     metrics_tmp_df['scene'] = scene
-                    metrics_df = metrics_df.append(metrics_tmp_df, ignore_index=True)
-            if test_bool:  # only increment this counter if user is in 'test' mode
+                    metrics_df = pd.concat((metrics_df, metrics_tmp_df),
+                                           axis=0, ignore_index=True)
+                else:
+                    print('\n\033[93mNo reaches in file', filename,
+                          'are within sci req bounds\n')
+                    try:
+                        print('For reach_ids', int(truth.reaches['reach_id']),
+                              '\nTruth xtrks', truth.reaches['xtrk_dist'],
+                              '\nWidths', truth.reaches['width'], 'm',
+                              '\nArea tots', truth.reaches['area_total'], 'm^2',
+                              '\nReach lengths', truth.reaches['p_length'], 'm',
+                              '\nObserved fracs', truth.reaches['obs_frac_n'],
+                              '\nDark fracs', truth.reaches['dark_frac'],
+                              '\033[0m')
+                    except TypeError:
+                        print('No reaches in file.\033[0m')
+
+            if test_bool:  # only increment counter if user is in 'test' mode
                 test_counter = index
 
-    return data_nodes_df, truth_nodes_df, data_reaches_df, truth_reaches_df, metrics_df
+    return (data_nodes_df, truth_nodes_df, data_reaches_df,
+            truth_reaches_df, metrics_df)
 
 
 def combine_truth_and_data(data_df, truth_df):
     data_df['type'] = 'data'
     truth_df['type'] = 'truth'
-    df = data_df.append(truth_df, ignore_index=True)
+    df = pd.concat((data_df, truth_df), ignore_index=True)
     # clean up fill values
     df = df[(df['wse'] > -999999999999) &
             (df['area_detct'] > -999999999999) &
@@ -120,9 +121,11 @@ def combine_truth_and_data(data_df, truth_df):
     return df
 
 
-def make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df, node_metrics_df, variables,
-              title_str):
-    # creates histograms for the distribution of data at the node and the reach level
+def make_hist(node_df, node_df_truth, reach_df, reach_df_truth,
+              reach_metrics_df, node_metrics_df, variables, title_str):
+    # creates histograms for the distribution of data at the node and the
+    # reach level
+
     # use sci req mask only
     reach_df = reach_df[reach_df['msk'] == True]
     reach_df_truth = reach_df_truth[reach_df_truth['msk'] == True]
@@ -131,20 +134,33 @@ def make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df
 
     reach_df_comb = combine_truth_and_data(reach_df, reach_df_truth)
     node_df_comb = combine_truth_and_data(node_df, node_df_truth)
-    node_metrics_df['truth_category'] = node_metrics_df.apply(lambda row: label_truth_category(row), axis=1)
-    reach_metrics_df['truth_category'] = reach_metrics_df.apply(lambda row: label_truth_category(row), axis=1)
-
+    node_metrics_df['truth_category'] = node_metrics_df.apply(
+        lambda row: label_truth_category(row), axis=1)
+    reach_metrics_df['truth_category'] = reach_metrics_df.apply(
+        lambda row: label_truth_category(row), axis=1)
+    variables = ['geoid_hght',
+                 'solid_tide',
+                 'load_tidef',
+                 'load_tideg',
+                 'pole_tide']
+    for var in variables:
+        print('68%ile error for', var, 'is',
+              node_metrics_df[var].abs().quantile(0.68))
+        print('num good for', var, 'is', node_metrics_df[var].count())
     for var in variables:
         print('Creating', var, 'histogram...')
         if var in reach_df.columns:
-            anno_text = "data median is " + str(reach_df[var].quantile(0.5)) + \
-                        "\ntruth median is " + str(reach_df_truth[var].quantile(0.5))
+            anno_text = "data median is " \
+                        + str(reach_df[var].quantile(0.5)) \
+                        + "\ntruth median is " \
+                        + str(reach_df_truth[var].quantile(0.5))
             print(anno_text)
             g = (
                     ggplot(reach_df_comb)
                     + aes(x=var, fill='type')
                     + geom_histogram(alpha=0.5, bins=50)
-                    + geom_vline(xintercept=[reach_df[var].quantile(0.5), reach_df_truth[var].quantile(0.5)],
+                    + geom_vline(xintercept=[reach_df[var].quantile(0.5),
+                                             reach_df_truth[var].quantile(0.5)],
                                  colour=['red', 'green'],
                                  linetype='dotted')
                     + labs(title=title_str + " Reach-level " + var)
@@ -152,9 +168,12 @@ def make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df
             )
             print(g)
         if var in node_df.columns:
-            anno_text = "data median is " + str(node_df[var].quantile(0.5)) + \
-                        "\ntruth median is " + str(node_df_truth[var].quantile(0.5))
-            node_df_subselect = node_df_comb[node_df_comb[var].abs() < node_df_comb[var].abs().quantile(0.95)]
+            anno_text = "data median is " \
+                        + str(node_df[var].quantile(0.5)) \
+                        + "\ntruth median is " \
+                        + str(node_df_truth[var].quantile(0.5))
+            node_df_subselect = node_df_comb[node_df_comb[var].abs() <
+                                             node_df_comb[var].abs().quantile(0.95)]
             g = (
                     ggplot(node_df_subselect)
                     + aes(x=var, fill='type')
@@ -166,17 +185,22 @@ def make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df
             print(g)
         if var in reach_metrics_df.columns:
             g = (
-                    ggplot(reach_metrics_df[reach_metrics_df[var].abs() < reach_metrics_df[var].quantile(0.95)])
+                    ggplot(reach_metrics_df[reach_metrics_df[var].abs() <
+                                            reach_metrics_df[var].quantile(0.95)])
                     + aes(x=var, fill='truth_category')
                     + geom_histogram(alpha=0.5, bins=100)
-                    + labs(title=title_str + " Reach-level " + var + " error by truth category")
+                    + labs(title=title_str
+                                 + " Reach-level "
+                                 + var
+                                 + " error by truth category")
             )
             print(g)
         if var in node_metrics_df.columns:
             var_metrics_df = node_metrics_df[node_metrics_df[var].abs() > 0]
             # x_bound = var_metrics_df[var].abs().quantile(0.9)
             g = (
-                    ggplot(var_metrics_df[var_metrics_df[var].abs() < var_metrics_df[var].quantile(0.95)])
+                    ggplot(var_metrics_df[var_metrics_df[var].abs() <
+                                          var_metrics_df[var].quantile(0.95)])
                     + aes(x=var, fill='truth_category')
                     + geom_histogram(alpha=0.5, bins=100)
                     + labs(title=title_str + " Node-level " + var + " error")
@@ -197,6 +221,13 @@ def get_node_errors(node_df, node_df_truth):
     node_metrics['width'] = node_df['width'] - node_df_truth['width']
     node_metrics['lat'] = node_df['lat'] - node_df_truth['lat']
     node_metrics['lon'] = node_df['lon'] - node_df_truth['lon']
+    node_metrics['geoid_hght'] = node_df['geoid_hght'] - node_df_truth['geoid_hght']
+    node_metrics['pole_tide'] = node_df['pole_tide'] - node_df_truth['pole_tide']
+    node_metrics['load_tidef'] = node_df['load_tidef'] - node_df_truth['load_tidef']
+    node_metrics['load_tideg'] = node_df['load_tideg'] - node_df_truth[
+        'load_tideg']
+    node_metrics['solid_tide'] = node_df['solid_tide'] - node_df_truth['solid_tide']
+
     # remove very large error values
     node_metrics = node_metrics[(abs(node_metrics['wse']) < 3000) &
                                 (abs(node_metrics['area_total']) < 999) &
@@ -204,7 +235,8 @@ def get_node_errors(node_df, node_df_truth):
     return node_metrics
 
 
-def combine_metrics(node_df, node_df_truth, reach_df, reach_df_truth, node_metrics, reach_metrics):
+def combine_metrics(node_df, node_df_truth, reach_df, reach_df_truth,
+                    node_metrics, reach_metrics):
     print('combining all river dataframes...')
     # remove masked reaches/nodes
     reach_df = reach_df[reach_df['msk'] == True]
@@ -226,8 +258,15 @@ def combine_metrics(node_df, node_df_truth, reach_df, reach_df_truth, node_metri
                                                   'lat': 'reach_lat_e',
                                                   'lon': 'reach_lon_e'})
     # combine all dataframes
-    all_metrics = pd.merge(node_metrics, reach_metrics, on=['reach_id', 'scene'])
-    all_data = pd.merge(left=node_df, right=reach_df, on=['reach_id', 'scene'], suffixes=('_node', '_reach'))
+    for colname in ['reach_id']:
+        node_df[colname] = node_df[colname].astype(int)
+        reach_df[colname] = reach_df[colname].astype(int)
+    all_metrics = pd.merge(node_metrics, reach_metrics,
+                           on=['reach_id', 'scene'])
+
+    all_data = pd.merge(left=node_df, right=reach_df,
+                        on=['reach_id', 'scene'], suffixes=('_node', '_reach'))
+
     all_truth = pd.merge(left=node_df_truth, right=reach_df_truth,
                          on=['reach_id', 'scene'], suffixes=('_node', '_reach'))
     data_and_truth = pd.merge(left=all_data, right=all_truth, on=['reach_id', 'node_id', 'scene'],
@@ -301,7 +340,8 @@ def get_collection_node_error(datas, truths, title_str):
         data = datas[index]
         truth = truths[index]
         scene_node_errors = np.append(scene_node_errors,
-                                      SWOTRiver.analysis.riverobs.compute_average_node_error(data, truth))
+                                      SWOTRiver.analysis.riverobs.
+                                      compute_average_node_error(data, truth))
     collection_avg_node_error = np.mean(abs(scene_node_errors))
     collection_med_node_error = np.median(scene_node_errors)
     plt.figure()
@@ -625,7 +665,8 @@ def main():
 
     # get or create title for rivertile set
     if args.title is None:
-        title_str = args.basedir + '_' + args.slc_basename + '_' + args.pixc_basename + '_' + args.proc_rivertile
+        title_str = args.basedir + '_' + args.slc_basename + '_' \
+                    + args.pixc_basename + '_' + args.proc_rivertile
         print('Title is', title_str)
     else:
         title_str = args.title
@@ -641,19 +682,24 @@ def main():
     # get node-level errors
     node_metrics_df = get_node_errors(node_df, node_df_truth)
 
-    # combine data and error dataframes
-    river_metrics = combine_metrics(node_df, node_df_truth, reach_df, reach_df_truth, node_metrics_df, reach_metrics_df)
+    # get distribution of each result
+    make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df,
+              node_metrics_df, args.show_vars, title_str)
 
-    # add the truth categories
-    river_metrics['truth_category'] = river_metrics.apply(lambda row: label_truth_category(row), axis=1)
-    # count unique truth categories and print to console
-    print('Reach count for each truth category:\n',
-          river_metrics.reach_id.drop_duplicates().to_frame().apply(
-              lambda row: label_truth_category(row), axis=1).value_counts())
-
-    # plot correlation matrix
-    if args.corr:
-        corr_matrix = plot_correlation_matrix(river_metrics)
+    # # combine data and error dataframes
+    # river_metrics = combine_metrics(node_df, node_df_truth, reach_df, reach_df_truth, node_metrics_df, reach_metrics_df)
+    #
+    # # add the truth categories
+    # river_metrics['truth_category'] = river_metrics.apply(
+    #     lambda row: label_truth_category(row), axis=1)
+    # # count unique truth categories and print to console
+    # print('Reach count for each truth category:\n',
+    #       river_metrics.reach_id.drop_duplicates().to_frame().apply(
+    #           lambda row: label_truth_category(row), axis=1).value_counts())
+    #
+    # # plot correlation matrix
+    # if args.corr:
+    #     corr_matrix = plot_correlation_matrix(river_metrics)
 
     if args.plot_cdf:
         cdf_by_category(river_metrics)
@@ -664,10 +710,6 @@ def main():
             if index % 2 == 0:
                 var2 = args.plot_xy[index + 1]
                 plot_xy(river_metrics, var1, var2, title_str)
-
-    # get distribution of each result
-    make_hist(node_df, node_df_truth, reach_df, reach_df_truth, reach_metrics_df,
-              node_metrics_df, args.show_vars, title_str)
 
     # print general stats
     # get_collection_node_error(node_df, node_df_truth, title_str)

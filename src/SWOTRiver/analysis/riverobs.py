@@ -284,7 +284,9 @@ def compute_average_node_error(data, truth):
         diff_wse = np.array(diff_wse)
         diff_wse = diff_wse.flatten()
         diff_wse[abs(diff_wse) > 1.0e+11] = np.nan # remove fill values
-        outlier_msk = np.abs(diff_wse) > p_68 * 3  # 3-sigma is outlier
+        # 3-sigma is outlier
+        outlier_msk = np.array([np.abs(d) > p_68 * 3 if ~np.isnan(d)
+                                else False for d in diff_wse])
         weight = np.array(weight)
         diff_wse[outlier_msk] = np.nan
         weight[outlier_msk] = np.nan
@@ -292,8 +294,8 @@ def compute_average_node_error(data, truth):
         sig0_out[ind] = np.nanmean(np.array(sig0))
     return err_out, sig0_out
 
-def get_metrics(truth, data, msk=None,
-                with_slope=True, with_width=True, with_wse_r_u=True, wse_node_avg=None):
+def get_metrics(truth, data, msk=None, with_slope=True, with_width=True,
+                with_wse_r_u=True, with_slope2=True, wse_node_avg=None):
     if msk is None:
         msk = np.ones(np.shape(data.wse),dtype=bool)
     metrics = {
@@ -310,6 +312,10 @@ def get_metrics(truth, data, msk=None,
     if with_slope:
         metrics['slope'] = (data.slope[msk] - truth.slope[msk]) * 1e5#convert from m/m to cm/km
         metrics['slope_t'] = (truth.slope[msk]) * 1e5#convert from m/m to cm/km
+    if with_slope2:
+        metrics['slope2'] = (data.slope2[msk] - truth.slope2[msk]) * 1e5#convert from m/m to cm/km
+        metrics['slope2_t'] = (truth.slope2[msk]) * 1e5#convert from m/m to cm/km
+
     if with_width:
         metrics['width'] = data.width[msk] - truth.width[msk]
     if with_wse_r_u:
@@ -345,7 +351,11 @@ def get_truth_classes():
                       74269900011, 73160200101, 73216000211, 73214000011,
                       73150600541, 73150600171, 73150600031, 73150600011,
                       73150600021, 73150600151, 73150600161, 73150600951,
-                      73150600111],
+                      73150600111, 21602100101, 21602600131, 21602600191,
+                      21602600311, 21602600371, 21602600871, 21602600891,
+                      21602601451, 21602700051, 21602700071, 23221000021,
+                      23267000111, 23267000131, 23267000201, 23267000271,
+                      23267000371, 21602600241],
         'tribs': [74230900151, 74291800111, 74291700051, 74291800081,
                   74284300051, 74284300061, 74100600051, 74100600061,
                   74100600071, 74100600081, 74100600551, 74100600561,
@@ -364,7 +374,8 @@ def get_truth_classes():
                   73150600221, 73150600241, 73150600251, 73150600541,
                   73150600561, 73150600181, 73160100161, 73160100181,
                   73160100101, 73150600031, 73150600061, 73150600011,
-                  73150600161, 73160100071, 78210000261],
+                  73150600161, 73160100071, 78210000261, 23221000061,
+                  21602100565, 21602700081, 21602600191],
         'non_linear': [74292300011, 74292100221, 74230900141, 74230900161,
                        74230900261, 74291900051, 74291700061, 74291800051,
                        74100600081, 74100600091, 73260300071, 73260200021,
@@ -388,7 +399,7 @@ def get_truth_classes():
         'edge_node': [74291800111, 81140300051, 81140300061, 81140300081,
                       73240900141, 74262700231, 73240200301, 74269900281,
                       74269900781, 74269700041, 73160200071, 73214000011,
-                      73150600101, 73160100091],
+                      73150600101, 73160100091, 23230200041, 21602100565],
         'partial_truth': [74292100221, 74292100251, 74292100261],
         'wrong_dir': [74292200061, 74230900241, 74230900261, 74230900271,
                       74291800011, 73260100045, 73270200031, 74267600131,
@@ -400,14 +411,17 @@ def get_truth_classes():
                       73216000021, 73216000211, 73216000051, 73213000011,
                       73214000021, 73150600021, 73150600111],
         'multi_chn': [74230900151, 74230900241, 74230900221, 81130400051,
-                      74267100071, 74269700031, 73214000021],
+                      74267100071, 74269700031, 73214000021, 21602600191,
+                      21602300011],
         'linear': [73150600011, 73150600061, 73150600251, 73160100091,
                    73160100191, 73160200101, 73160300021, 73218000371,
                    73218000471, 73220700281, 73220700291, 73220900211,
                    73240200301, 74269800021, 74269800061, 74269800081,
                    74269800101, 74269800261, 74269900301, 74269900341,
                    74291900051, 74291900071, 81130400021, 81130400061,
-                   81130400071, 81130400111, 81140300011, 81140300071]}
+                   81130400071, 81130400111, 81140300011, 81140300071,
+                   21602600171, 21602100565, 23221000021, 23221000061,
+                   21602600121, 21602600111]}
     return truth_classes
 
 
@@ -448,7 +462,8 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
             fit_error.append(err)
     return np.array(fit_error)
         
-def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
+def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
+                     print_table=False):
     # find reaches where the height profile linear fit is not that good
     # so we can filter out bogus/non-realistic reaches from the analysis
     fit_error = []#compute_reach_fit_error(truth, scene, scene_nodes)
@@ -463,9 +478,70 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
         'min_area': 800000,
         'min_length': 8000,
         'min_obs_frac': 0.5,
-        'max_dark_frac': 1
+        'max_dark_frac': 1,
+        'min_area_obs_frac': 0.2,
+        'min_truth_ratio': 0.2,
+        'min_xtrk_ratio': 0.5
     }
     msk=[]
+
+    # define some extra masking criteria for each reach based on node values
+    obs_area_frac = np.empty(np.size(data.reaches['reach_id']))
+    truth_ratio = np.empty(np.size(data.reaches['reach_id']))
+    xtrk_ratio = np.empty(np.size(data.reaches['reach_id']))
+    for index, reach in enumerate(data.reaches['reach_id']):
+        reach_scene = scene[index]
+        # can have multiple reaches with same reach id in dataset
+        scene_mask = [s == reach_scene for s in scene_nodes]
+        node_mask = np.logical_and(data.nodes['reach_id'] == reach,
+                                   scene_mask)
+        node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
+                                         scene_mask)
+        n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
+        n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
+        n_prd = len(data.nodes['node_id'][node_mask])
+        n_good_xtrk = np.sum(
+            np.logical_and(np.abs(data.nodes['xtrk_dist'][node_mask]) > 10000,
+                           np.abs(data.nodes['xtrk_dist'][node_mask]) < 60000))
+
+        obs_area_frac[index] = n_good_data / n_prd
+        truth_ratio[index] = n_good_data / n_good_truth
+        xtrk_ratio[index] = n_good_xtrk / n_prd
+
+    # some quick plots
+    # plt.hist(obs_area_frac)
+    # plt.xlabel('Observed fraction for area')
+    # plt.show()
+    # plt.hist(truth_ratio)
+    # plt.xlabel('n_good_nom / n_good_truth')
+    # plt.show()
+    # plt.hist(xtrk_ratio)
+    # plt.xlabel('Proportion of nodes within xtrk bounds')
+    # plt.show()
+    # sc = plt.scatter(obs_area_frac, truth_ratio, c=metrics['area_total'],
+    #                  cmap=plt.cm.coolwarm)
+    # cbar = plt.colorbar(sc)
+    # plt.clim(-40, 40)
+    # cbar.set_label('area total error', rotation=270)
+    # plt.xlabel('Observed fraction for area')
+    # plt.ylabel('n_good_nom / n_good_truth')
+    # plt.title('Truth ratio vs obs frac with area total error')
+    # plt.show()
+    # plt.scatter(truth_ratio, metrics['area_total'], cmap=plt.cm.coolwarm)
+    # plt.clim(-40, 40)
+    # plt.xlabel('n_good_nom / n_good_truth')
+    # plt.ylabel('area total error (%)')
+    # plt.title('Truth ratio vs area total error')
+    # plt.ylim(-40, 40)
+    # plt.show()
+    # plt.scatter(obs_area_frac, metrics['area_total'], cmap=plt.cm.coolwarm)
+    # plt.clim(-40, 40)
+    # plt.xlabel('Area observed fraction')
+    # plt.ylabel('area total error (%)')
+    # plt.title('Area observed frac vs area total error')
+    # plt.ylim(-40,40)
+    # plt.show()
+
     if truth:
         msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])
                               > bounds['min_xtrk']),#),
@@ -481,6 +557,48 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None):
                              >= bounds['min_obs_frac'],
                   truth.reaches['dark_frac']
                              <= bounds['max_dark_frac']))))))
+        # add the node-level filters to the mask
+        msk = np.logical_and(msk, obs_area_frac > bounds['min_area_obs_frac'])
+        msk = np.logical_and(msk, truth_ratio > bounds['min_truth_ratio'])
+        msk = np.logical_and(msk, xtrk_ratio > bounds['min_xtrk_ratio'])
+        if print_table:
+            passfail = {
+                'Truth width (m)': [bounds['min_width'], 'flip'],
+                'Truth area_t (m^2)': [bounds['min_area'], 'flip'],
+                'Prior length (m)': [bounds['min_length'], 'flip'],
+                'Obs fraction (%)': [bounds['min_obs_frac'] * 100, 'flip'],
+                'Xtrk dist (km)': [bounds['min_xtrk'], 'flip'],
+                'Dark frac (%)':[bounds['max_dark_frac'] * 100,
+                                 bounds['max_dark_frac'] * 100],
+                'obs frac area (%)': [bounds['min_area_obs_frac']*100, 'flip'],
+                'xtrk_ratio (%)': [bounds['min_xtrk_ratio']*100, 'flip']
+            }
+            preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+                   + str(bounds['max_xtrk']) + " km and width>" \
+                   + str(bounds['min_width']) + " m and area>" \
+                   + str(bounds['min_area']) + " m^2 \n and reach len>=" \
+                   + str(bounds['min_length']) + " m and obs frac >" \
+                   + str(bounds['min_obs_frac']) + " and truth ratio > "\
+                   + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
+                   + str(bounds['min_xtrk_ratio'])
+            table = {
+                'Reach ID': data.reaches['reach_id'].astype(str),
+                'Truth width (m)': truth.reaches['width'],
+                'Truth area_t (m^2)': truth.reaches['area_total'],
+                'Prior length (m)': truth.reaches['p_length'],
+                'Obs fraction (%)': data.reaches['obs_frac_n']*100,
+                'Xtrk dist (km)': truth.reaches['xtrk_dist'],
+                'Dark frac (%)': data.reaches['dark_frac']*100,
+                'River Name': data.reaches['river_name'],
+                'sci req msk': msk,
+                'obs frac area (%)': obs_area_frac*100,
+                'xtrk_ratio (%)': xtrk_ratio*100
+            }
+
+            SWOTRiver.analysis.tabley.print_table(table, preamble=preamble,
+                                                  fname=None, precision=6,
+                                                  passfail=passfail)
+
         return msk, fit_error, bounds, truth.reaches['dark_frac'],\
                truth.reaches['p_length']
     else:
@@ -504,7 +622,8 @@ def get_scene_from_fnamedir(fnamedir):
                 + cycle_pass_tile[4]
     return scene
 #
-def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True, with_node_avg=False):
+def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
+                 with_slope2=True, with_node_avg=False):
     # get statistics of area error
     area_68 = np.nanpercentile(abs(metrics['area_total'][msk]), 68)
     area_50 = np.nanpercentile(metrics['area_total'][msk], 50)
@@ -551,6 +670,17 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True, 
         table['50%ile'].append(slope_50)
         table['mean'].append(slope_mean)
         table['count'].append(slope_num)
+    if with_slope2:
+        slope2_68 = np.nanpercentile(abs(metrics['slope2'][msk]), 68)
+        slope2_50 = np.nanpercentile(metrics['slope2'][msk], 50)
+        slope2_mean = np.nanmean(metrics['slope2'][msk])
+        slope2_num = np.count_nonzero(~np.isnan(metrics['slope2'][msk]))
+
+        table['metric'].append('slope2 (cm/km)')
+        table['|68%ile|'].append(slope2_68)
+        table['50%ile'].append(slope2_50)
+        table['mean'].append(slope2_mean)
+        table['count'].append(slope2_num)
     SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, fname=fname, precision=8)
     return table
 

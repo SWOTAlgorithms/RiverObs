@@ -11,7 +11,6 @@ All rights reserved.
 
 Author (s): Brent Williams
 '''
-
 import sys
 import numpy as np
 import scipy.stats
@@ -120,7 +119,6 @@ def height_only(height, good, height_std=1.0, method='weight'):
         weight = np.ones(np.shape(height))/(height_std)**2
     else:
         raise Exception("Unknown height aggregation method: {}".format(method))
-
     height_agg = simple(weight[good]*height[good], metric='sum')
     weight_sum = simple(weight[good], metric='sum')
     num_pixels = simple(height[good], metric='count')
@@ -154,7 +152,7 @@ def height_uncert_std(
     # TODO: for median, should probably throw out outliers...
     weight = np.ones(np.shape(height))  # default to uniform
     if method == 'weight':
-        weight = np.ones(np.shape(height))/(height_std)**2
+        weight = np.ones(np.shape(height)) / height_std ** 2
     height_agg = simple(weight[good]*height[good], metric='sum')
     weight_sum = simple(weight[good], metric='sum')
     height_mean = height_agg/weight_sum
@@ -181,7 +179,7 @@ def height_uncert_multilook(
 
     INPUTS (all arrays are 1d lists for a given feature) 
     ifgram            = rare complex flattened interferogram
-    power(1,2)        = the rare two channel interferpgram powers
+    power(1,2)        = the rare two channel interferogram powers
     good              = mask for filtering out some pixels if desired
     weight_norm       = the normalized weighting function
     num_rare_looks    = rare looks array
@@ -260,7 +258,6 @@ def height_with_uncerts(
     height_uncert_out, lat_uncert_out, lon_uncert_out = height_uncert_multilook(
         ifgram, power1, power2, weight_norm, good,
         num_rare_looks, look_to_efflooks, dh_dphi, dlat_dphi, dlon_dphi)
-
     return (height_out, height_std_out, height_uncert_out, lat_uncert_out,
             lon_uncert_out)
 
@@ -272,9 +269,9 @@ def area_only(
         dark_water_klasses=AGG_CLASSES['dark_water_klasses'],
         method='composite'):
     """
-    Return the aggregate height
-    implements methods: weight (default), median, uniform 
-    good is a mask used to filter out heights that are expected to be bad 
+    Return the aggregate area
+    implements methods: simple, water_fraction, composite (default)
+    good is a mask used to filter out pixels that are expected to be bad
     or outliers, if desired
 
     INPUTS:
@@ -284,10 +281,14 @@ def area_only(
     good           = mask for filtering out some pixels
     method         = type of aggregator('simple', 'water_fraction', 'composite')
 
-    OUTPUTS:
-    area_out  = aggregated height
+    VARIABLES:
+    Idw    = Binary detected-water mask representing pixels detected as water
+    Idw_in = Binary detected-water mask for pixels detected as interior water
+    Ide    = Binary detected-water mask for pixels detected as edge water
+    I      = Binary mask for pixels detected as water or land-near-water
 
-    TODO: handle dark water
+    OUTPUTS:
+    area_out  = aggregated area
 
     Reference: implements Eq.s (15), (16), and (17) in 
     "SWOT Hydrology Height and Area Uncertainty Estimation," 
@@ -316,7 +317,7 @@ def area_only(
         Idw[klass == dark_water_klass] = 1.0
 
     I = np.zeros(np.shape(pixel_area))
-    I[(Idw + Idw_in+ Ide) > 0] = 1.0  # all pixels near water
+    I[(Idw + Idw_in + Ide) > 0] = 1.0  # all pixels near water
 
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
@@ -367,12 +368,12 @@ def area_uncert(
     for land_edge_klass in land_edge_klasses:
         Ide[klass == land_edge_klass] = 1.0
 
-    Pe = Ide # use detected edge asprobablity of true edge pixels...
+    Pe = Ide  # use detected edge as probability of true edge pixels...
 
     I = np.zeros(np.shape(pixel_area))
     I[Ide > 0] = 1.0
     for interior_water_klass in interior_water_klasses:
-        I[klass == interior_water_klass] = 1.0 #all pixels near water
+        I[klass == interior_water_klass] = 1.0  # all pixels near water
 
     # get false and missed assignment rates from correct assignment rate 
     Pfa = 1 - Pca
@@ -386,7 +387,7 @@ def area_uncert(
 
     # handle pixel size uncertainty
     #ref_dem_std = 10 # m
-    sigma_a = darea_dheight*ref_dem_std*pixel_area #0.05* pixel_area
+    sigma_a = darea_dheight*ref_dem_std*pixel_area # 0.05* pixel_area
 
     # handle the sampling error
     sigma_s2 = 1.0/12.0

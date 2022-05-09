@@ -141,7 +141,14 @@ class Table():
                 if self.headers[i] in self.passfail:
                     passes, fails = self.passfail[self.headers[i]]
                     if not(isinstance(item, str)):
-                        if np.abs(item) > fails:
+                        if fails == 'flip':
+                            # input values fail below threshold
+                            if np.abs(item) < passes:
+                                my_format = '\033[91m'+this_format+'\033[00m'
+                            else:
+                                my_format = '\033[92m' + this_format + '\033[00m'
+                        elif np.abs(item) > fails:
+                            # input values fail above threshold
                             my_format = '\033[91m'+this_format+'\033[00m'
                         elif np.abs(item) < passes:
                             my_format = '\033[92m'+this_format+'\033[00m'

@@ -83,7 +83,6 @@ class RiverObs:
 
         self.ndata = len(xobs)
         # Calculate the centerline for this reach
-
         if max_width is None or not np.iterable(max_width):
             self.centerline = Centerline(reach.x, reach.y, k=k, ds=ds)
             self.centerline.max_width = max_width
@@ -339,7 +338,7 @@ class RiverObs:
                 obs = self.obs_to_node(getattr(self, var), node)
                 self.river_nodes[node].add_obs(var, obs, sort=False)
 
-    def get_node_stat(self, stat, var, all_nodes=False, good_flag=None):
+    def get_node_stat(self, stat, var, all_nodes=False, **kwargs):
         """
         Get a list of results of applying a given stat to a river node
         variable.
@@ -348,9 +347,10 @@ class RiverObs:
         instance variable for the river node.
 
         A stat is a member function of the river node which returns a
-        result given the variable name.
+        result given the variable name. Keyword arguments can vary depending on
+        which stat is being called.
 
-        Example statfns are: 'mean', 'std', 'cdf'
+        Example statfns are: 'mean', 'std', 'cdf', 'height_weighted_mean'
 
         If all_nodes is True, populated and unpopulated nodes are returned.
         Otherwise, only populated nodes are returned.
@@ -360,15 +360,14 @@ class RiverObs:
         the missing_value.
         """
         result = []
+
         for node in self.all_nodes:
             if node in self.populated_nodes:
                 river_node = self.river_nodes[node]
-                if good_flag is None:
-                    result.append(getattr(river_node, stat)(var))
-
-                else:
-                    result.append(getattr(river_node, stat)(var, good_flag))
-
+                node_stat = getattr(river_node, stat)(var, **kwargs)
+                if np.isnan(node_stat):
+                    node_stat = self.missing_value
+                result.append(node_stat)
             elif all_nodes:
                 result.append(self.missing_value)
 
@@ -376,7 +375,7 @@ class RiverObs:
 
     def get_node_agg(
         self, height_method='weight', area_method='composite',
-        all_nodes=False, good_flag='good'):
+        all_nodes=False, goodvar='good'):
         """
         Get lists of height, areas, and uncertainties
 
@@ -397,10 +396,10 @@ class RiverObs:
                 river_node = self.river_nodes[node]
 
                 h, h_std, h_u, lat_u, lon_u = river_node.height_with_uncert(
-                        method=height_method, goodvar=good_flag)
+                    method=height_method, goodvar=goodvar)
 
                 sig0, sig0_std, sig0_u = river_node.sig0_with_uncert(
-                    goodvar=good_flag)
+                    goodvar=goodvar)
 
                 area, width_area, area_u, width_area_u, area_det, area_det_u =\
                     river_node.area_with_uncert(method=area_method)

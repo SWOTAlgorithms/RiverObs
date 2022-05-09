@@ -16,17 +16,19 @@ import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
 import glob
 from pathlib import Path
+import warnings
+import pdb
 
 def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
     """
-    only keep reaches that all the pertinent data is good for both truth and measured
+    only keep reaches where pertinent data is good for both truth and measured
     """
     bad_reaches = np.array([])
     if truth_filter:
         truth_classes = SWOTRiver.analysis.riverobs.get_truth_classes()
         for key in truth_filter:
             bad_reaches = np.concatenate([bad_reaches, truth_classes.get(key)])
-    main_keys = ['area_total','wse','slope','width']
+    main_keys = ['area_total','wse','slope','width', 'slope2']
     for key in main_keys:
         # if any of these are masked, throw out the entire
         # reach by setting all elements to nan
@@ -48,12 +50,12 @@ def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
         if reach in bad_reaches:
             msk_d[i] = True
     for key in truth_tmp.reaches.variables:
-        # setting all variables to nans for bad reaches
-        # makes them be excluded when matching
-        # reach ids later between the data and truth
-        # need to check if truth variables also in data for backwards SWORD compatibility
+        # setting all variables to nans for bad reaches makes them be excluded
+        # when matching reach ids later between the data and truth.
+        # Must check if truth variables also in data for backwards SWORD
+        # compatibility.
         try:
-            if (key in data_tmp.reaches.variables) and ('no_data' not in truth_tmp.reaches[key].data):
+            if key in data_tmp.reaches.variables:
                 if isinstance(truth_tmp.reaches[key], np.ma.MaskedArray):
                     tmp = truth_tmp.reaches[key].data.astype(np.double)
                     tmp[msk_t]=np.nan
@@ -69,22 +71,27 @@ def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
 def load_and_accumulate(
         pixc_rivertile, gdem_rivertile, metrics=None,
         truth=None, data=None, scene=None, scene_nodes=None, sig0=None,
-        bad_scenes=None, truth_filter=None):
+        bad_scenes=None, yukon_good_tiles=None, truth_filter=None):
     '''
     load reaches from a particular scene/tile, compute metrics,
     and accumulate the data, truth and metrics (if input)
     '''
+
     if bad_scenes is None:
         bad_scenes = []
+    if yukon_good_tiles is None:
+        yukon_good_tiles = []
     truth_tmp, data_tmp = SWOTRiver.analysis.riverobs.load_rivertiles(
         gdem_rivertile, pixc_rivertile)
     # do nothing if truth or data file have no reach data
     if len(truth_tmp.reaches.reach_id)<=0:
         print('File', gdem_rivertile, 'has no reach data.')
-        return metrics, truth, data, scene, scene_nodes, sig0
+        has_reach_data = False
+        return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
     if len(data_tmp.reaches.reach_id) <= 0:
         print('File', pixc_rivertile, 'has no reach data.')
-        return metrics, truth, data, scene, scene_nodes, sig0
+        has_reach_data = False
+        return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
     # handle masked arrays here
     truth_tmp, data_tmp = handle_bad_reaches(truth_tmp, data_tmp, truth_filter)
     #
@@ -96,6 +103,11 @@ def load_and_accumulate(
     # get the scene
     scene1 = SWOTRiver.analysis.riverobs.get_scene_from_fnamedir(pixc_rivertile)
     scene_tmp = [scene1 for item in data_tmp.reaches.reach_id]
+    scene_splits = scene1.split('_')
+    if scene_splits[0] == 'yukonflats' and scene1 not in yukon_good_tiles:
+        print('File', pixc_rivertile, 'not in Yukon good list.')
+        has_reach_data = False
+        return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
     #print("data_tmp:",data_tmp.nodes.reach_id)
     scene_tmp2 = [scene1 for item in data_tmp.nodes.reach_id]
     # accumulate if needed
@@ -121,7 +133,8 @@ def load_and_accumulate(
         scene = np.append(scene, scene_tmp)
         scene_nodes = np.append(scene_nodes, scene_tmp2)
         sig0 = np.append(sig0, sig0_avg)
-    return metrics, truth, data, scene, scene_nodes, sig0
+    has_reach_data = True
+    return metrics, truth, data, scene, scene_nodes, sig0, has_reach_data
 
 def main():
     parser = argparse.ArgumentParser()
@@ -150,10 +163,12 @@ def main():
                              'multi_chn, bad_reach, wrong_dir, linear.')
     parser.add_argument('-o', '--outdir', type=str,
                         help='output directory for print files')
-    parser.add_argument('-tf', '--table_fname', type=str, default=None,
-                        help='output filename for summary table')
-    parser.add_argument('-t', '--title')
-    parser.add_argument('-p', '--print', action='store_true')
+    parser.add_argument('-t', '--title', type=str, default=None,
+                        help='output filename for figure/table files')
+    parser.add_argument('-p', '--print_me', action='store_true', default=None,
+                        help='Add -p if you want to save the output files.'
+                             'If you flag -p, it is recommended that you also'
+                             ' specify --outdir and --title')
     args = parser.parse_args()
 
     metrics = None
@@ -164,29 +179,23 @@ def main():
     sig0 = None
 
     bad_scenes = []
+    yukon_good_tiles = ['yukonflats_0358_035R',
+                        'yukonflats_0358_035L',
+                        'yukonflats_0515_274R']
     truth_filter = args.truth_filter
-    # bad_scenes = ['platte_0036_0012', 'platte_0120_0290',
-    #                'sacramento_0221_0264', 'sacramento_0314_0264',
-    #                'sacramento_0220_0249', 'tanana_HighSim', 'tanana_LowSim',
-    #                'tanana_MeanSim', 'yukonflats']
-                    # e.g. [3356',...] these scenes will be excluded from analysis
-    # bad_scenes = ['1782', '1793', '1830', '1847',
-    #               '2367', '2447', '2800', '2801', '2819', '298', '3007', '3024', '316',
-    #               '3356', '3376', '3379', '3382', '3396',
-    #               '3413', '3421', '3424', '3442', '3455', '3487', '3574', '3575', '3579', '3586', '3596', '3607',
-    #               '3769', '3770', '3781', '3783', '3787', '3815',  '3821',
-    #               '730', 'platte_0036_0012', 'platte_0120_0290',
-    #               'sacramento_0221_0264', 'sacramento_0314_0264', 'sacramento_0220_0249',
-    #               'tanana_0434_0002', 'tanana_0156_0001']
-    # 2543, 3454, 3583, 3824, 3836,
-    # subset [2543 3454 3583 3824 3836]
-    # bad_scenes = [316, 730, 1782, 3376]
+
     print("args.basedir: ", args.basedir)
-    if args.basedir is not None:
+    if args.basedir:
         if args.slc_basename is None or args.pixc_basename is None:
             print('Must specify at least slc_basename and pixc_basename '
                   + 'if aggregating stats')
             return
+
+        if args.outdir or args.title:
+            if args.print_me is None:
+                warnings.warn('You have provided an output directory or '
+                              'filename with no --print_me flag. Tables '
+                              'will not be saved.')
 
         # TODO: Right now it's hardcoded that the truth data lives under the slc
         # base directory, and the proc data lives under the pixc base directory
@@ -249,9 +258,15 @@ def main():
                                                    truth_rivertile_list):
             if os.path.isfile(proc_rivertile) and os.path.isfile(
                     truth_rivertile):
-                metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
-                    proc_rivertile, truth_rivertile, metrics, truth, data,
-                    scene, scene_nodes, sig0, bad_scenes, truth_filter)
+                metrics, truth, data, scene, scene_nodes, \
+                sig0, has_reach_data = load_and_accumulate(proc_rivertile,
+                                                           truth_rivertile,
+                                                           metrics, truth,
+                                                           data, scene,
+                                                           scene_nodes,
+                                                           sig0, bad_scenes,
+                                                           yukon_good_tiles,
+                                                           truth_filter)
 
     else:
         # Inputs can be either rivertile files, or basenames
@@ -262,25 +277,26 @@ def main():
         if os.path.isdir(truth_rivertile):
             truth_rivertile = os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
 
-        metrics, truth, data, scene, scene_nodes, sig0 = load_and_accumulate(
+        metrics, truth, data, scene, \
+        scene_nodes, sig0, has_reach_data = load_and_accumulate(
             proc_rivertile, truth_rivertile)
 
     # get pass/fail and mask for science requirements
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, bounds, dark_frac, reach_len = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-        metrics, truth, data, scene, scene_nodes, sig0=sig0)
+    msk, fit_error, bounds, dark_frac, reach_len = \
+        SWOTRiver.analysis.riverobs.mask_for_sci_req(
+            metrics, truth, data, scene, scene_nodes, sig0=sig0)
 
     # generate output filenames for metric tables and images
-    if args.print:
+    if args.print_me:
         filenames = ['reach-area.png', 'reach-wse.png',
                      'reach-slope.png','reach-wse-vs-area.png']
-        if args.table_fname is None:
-            args.table_fname = 'table'
-        table_fname = args.table_fname
-        if args.title is not None:
+        if args.title:
             filenames = [args.title + '-' + name for name in filenames]
-            table_fname = args.title + '_' + table_fname
-        if args.outdir is not None:
+            table_fname = args.title
+        else:
+            table_fname = 'table'
+        if args.outdir:
             filenames = [args.outdir + '/' + name for name in filenames]
             table_fname = args.outdir + '/' + table_fname
             # if the directory doesnt exist create it
@@ -305,9 +321,15 @@ def main():
                                              preamble = 'For All Data',
                                              with_node_avg=True)
     # printing masked data to table
-    preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" + str(bounds['max_xtrk']) + " km and width>" \
-               + str(bounds['min_width']) + " m and area>" + str(bounds['min_area']) + " m^2 and reach len>=" \
-               + str(bounds['min_length']) + " m"
+    preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+               + str(bounds['max_xtrk']) + " km and width>" \
+               + str(bounds['min_width']) + " m and area>" \
+               + str(bounds['min_area']) + " m^2 \n and reach len>=" \
+               + str(bounds['min_length']) + " m and obs frac >" \
+               + str(bounds['min_obs_frac']) + " and truth ratio > "\
+               + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
+               + str(bounds['min_xtrk_ratio'])
+
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
         metrics, truth, scene, msk, fit_error,
@@ -324,23 +346,24 @@ def main():
 
     # plot slope error vs reach length
     fig, (ax1, ax2, ax3) = plt.subplots(1,3)
-    ax1.scatter(metrics['slope_t'][msk], metrics['slope'][msk], c=reach_len[msk]/1e3)
-    c = reach_len[msk]/1e3
+    ax1.scatter(metrics['slope_t'][msk], metrics['slope'][msk],
+                c=reach_len[msk]/1e3)
     ax1.set(xlabel='slope (cm/km)', ylabel='slope error (cm/km)')
     ax1.set_title('reach length (km)')
     #ax1.colorbar()
     #fig.colorbar(reach_len[msk]/1e3, ax=ax1)
     ax1.grid()
 
-    ax2.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk], c=metrics['slope'][msk])
+    ax2.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk],
+                c=metrics['slope'][msk])
     ax2.set(xlabel='reach length (km)', ylabel='slope error (cm/km)')
-    c = metrics['slope'][msk]
     ax2.set_title('slope (cm/km)')
     #fig.colorbar(metrics['slope'][msk], ax=ax2)
     #ax2.colorbar()
     ax2.grid()
 
-    ax3.scatter(metrics['slope'][msk], metrics['wse'][msk], c=reach_len[msk]/1e3)
+    ax3.scatter(metrics['slope'][msk], metrics['wse'][msk],
+                c=reach_len[msk]/1e3)
     ax3.set(xlabel='slope error (cm/km)', ylabel='height error (cm)')
     ax3.set_title('reach length (km)')
     c = reach_len[msk]/1e3
@@ -385,20 +408,24 @@ def main():
         truth.reaches, data.reaches, metrics, args.title, filenames[2], msk=msk)
     SWOTRiver.analysis.riverobs.HeightVsAreaPlot(
         truth.reaches, data.reaches, metrics, args.title, filenames[3], msk=msk)
-    if not args.print:
+    if args.print_me:
+        file = table_fname
+        print('showing stats and saving to file...')
+    else:
+        file = 'temp'
         print('showing stats...')
-        f = open('temp.txt', 'r')
-        file_contents = f.read()
-        print(file_contents)
-        f = open('temp_errors.txt', 'r')
-        file_contents = f.read()
-        print(file_contents)
-        plt.show()
+
+    f = open(file + '.txt', 'r')
+    file_contents = f.read()
+    print(file_contents)
+    f = open(file + '_errors.txt', 'r')
+    file_contents = f.read()
+    print(file_contents)
+    if args.print_me is None:
         os.remove('temp.txt')
         os.remove('temp_all.txt')
         os.remove('temp_errors.txt')
         os.remove('temp_errors_all.txt')
-
 
 
 if __name__ == '__main__':

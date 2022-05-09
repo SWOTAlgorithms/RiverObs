@@ -645,7 +645,7 @@ class ShapeWriterMixIn(object):
                                 thisstr = str(item)
                             strings.append(thisstr)
 
-                        this_property[key] = ' '.join(strings)
+                        this_property[key] = ', '.join(strings)
 
                     elif key in ['reach_id', 'node_id', 'river_name']:
                         if this_item[ii] == self.VARIABLES[key]['_FillValue']:
@@ -1557,10 +1557,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             # if blocking widths are bad
             klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
                 klass.VARIABLES['node_q']['dtype'])
-            klass['node_q'][node_outputs['node_blocked']==1] |= 1
+            klass['node_q'][node_outputs['node_blocked'] == 1] |= 1
             # if node-level heights are bad
             klass['node_q'][node_outputs['wse'] < -500] |= 1
             klass['node_q'][node_outputs['wse'] > 8000] |= 1
+            # if xtrk is too near/far
+            klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
+            klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
 
         return klass
 
@@ -3368,20 +3371,18 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
 #             klass['dschg_h_u'] = ...
 #             klass['dschg_h_q'] = ...
             klass['dschg_hsf'] = reach_outputs['dschg_hsf']
-
             klass['dschg_gh'] = reach_outputs['hivdi_q_c']
 #             klass['dschg_gh_u'] = ...
 #             klass['dschg_gh_q'] = ...
             klass['dschg_ghsf'] = reach_outputs['dschg_ghsf']
 
-            klass['dschg_s'] = reach_outputs['momma_q_uc']
-#             klass['dschg_s_u'] = ...
-#             klass['dschg_s_q'] = ...
+            klass['dschg_o'] = reach_outputs['momma_q_uc']
+#             klass['dschg_o_u'] = ...
+#             klass['dschg_o_q'] = ...
             klass['dschg_osf'] = reach_outputs['dschg_osf']
-
-            klass['dschg_gs'] = reach_outputs['momma_q_c']
-#             klass['dschg_gs_u'] = ...
-#             klass['dschg_gs_q'] = ...
+            klass['dschg_go'] = reach_outputs['momma_q_c']
+#             klass['dschg_go_u'] = ...
+#             klass['dschg_go_q'] = ...
             klass['dschg_gosf'] = reach_outputs['dschg_gosf']
 
             klass['dschg_s'] = reach_outputs['sads_q_uc']

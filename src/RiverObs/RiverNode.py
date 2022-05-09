@@ -73,6 +73,7 @@ class RiverNode:
         self.ndata = len(self.x)
         self.good = np.ones(self.ndata, dtype=np.bool)
         self.sorted = False
+        self.height_std_pix = None
 
     def add_obs(self, obs_name, obs, sort=True):
         """
@@ -115,13 +116,29 @@ class RiverNode:
         return getattr(self, var)
 
     def mean(self, var, goodvar='good'):
-        """Return mean of a variable"""
+        """
+        Return mean of a variable.
+        """
         good = getattr(self, goodvar)
         mean = np.mean(getattr(self, var)[good])
         return mean
 
+    def height_weighted_mean(self, var, goodvar='good', method='weight'):
+        """
+        Return weighted mean of a variable, using same weights as pixel heights
+        """
+        good = getattr(self, goodvar)
+        if self.height_std_pix is None:
+            getattr(self, 'pix_height_std')()
+
+        var_out, weight_norm = aggregate.height_only(getattr(self, var), good,
+                                                     self.height_std_pix,
+                                                     method=method)
+
+        return var_out
+
     def median(self, var, goodvar='good'):
-        """Return mean of a variable"""
+        """Return median of a variable"""
         return np.median(getattr(self, var)[getattr(self, goodvar)])
 
     def sincos_median(self, var, goodvar='good'):
@@ -136,7 +153,7 @@ class RiverNode:
         return np.std(getattr(self, var)[getattr(self, goodvar)])
 
     def stderr(self, var, goodvar='good'):
-        """Return standrad error of a variable"""
+        """Return standard error of a variable"""
         good = getattr(self, goodvar)
         scale = 1. / np.sqrt(np.sum(good).astype(np.float))
         stderr = scale * np.std(getattr(self, var)[good])
@@ -296,23 +313,32 @@ class RiverNode:
         good = getattr(self, goodvar)
         return aggregate.sig0_with_uncerts(self.sig0, good, self.sig0_uncert)
 
+    def pix_height_std(self):
+        """
+        Returns the pixel-level height uncertainties
+        """
+        height_std_pix = np.abs(self.phase_noise_std * self.dh_dphi)
+        # set bad pix height std to high number to de-weight
+        # instead of giving infs/nans
+        bad_num = 1.0e5
+        height_std_pix[height_std_pix <= 0] = bad_num
+        height_std_pix[np.isinf(height_std_pix)] = bad_num
+        height_std_pix[np.isnan(height_std_pix)] = bad_num
+        self.height_std_pix = height_std_pix
+
     def height_with_uncert(self, goodvar='good', method='weight'):
         """
         Return the aggregate height with corresponding uncertainty 
         """
         good = getattr(self, goodvar)
-        height_std_pix = np.abs(self.phase_noise_std * self.dh_dphi)
-        # set bad pix height std to high number to deweight 
-        # instead of giving infs/nans
-        bad_num = 1.0e5
-        height_std_pix[height_std_pix<=0] = bad_num
-        height_std_pix[np.isinf(height_std_pix)] = bad_num
-        height_std_pix[np.isnan(height_std_pix)] = bad_num
+        if self.height_std_pix is None:
+            getattr(self, 'pix_height_std')()
+
         # call the general function
         return aggregate.height_with_uncerts(
             self.h_noise,  good, self.num_rare_looks, self.num_med_looks,
             self.ifgram, self.power1, self.power2, self.looks_to_efflooks,
-            self.dh_dphi, self.dlat_dphi, self.dlon_dphi, height_std_pix,
+            self.dh_dphi, self.dlat_dphi, self.dlon_dphi, self.height_std_pix,
             method=method)
 
     def area_with_uncert(self, goodvar='good', method='composite'):
