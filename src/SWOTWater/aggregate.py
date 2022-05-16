@@ -67,22 +67,27 @@ def sig0_with_uncerts(
     # just do a simple average of sig0, nothing fancy
     sig0_agg = simple(sig0[good], metric='mean')
 
-    sig0_std_out = None
+    sig_std_out = None
     sig_uncert = None
-    if method == 'rare':
-        # rare method assumes sig0 is the rare sig0 and all pixels are indep
-        # compute uncertainty as the std assuming
-        # all sig0 measurements are independent
-        num_pixels = simple(sig0[good], metric='count')
-        sig_uncert = np.sqrt(simple(
-            sig0_std[good]**2, metric='sum')) / num_pixels
-        sig_std_out = simple(sig0[good], metric='std') 
-    elif method == 'medium':
-        # assumes that sig0 is the medium sig0 and computes the
-        # uncert using the sample std scaled by rare and medium looks
-        sig_uncert = None # may want to implement this if we want to use med sig0
-        sig_std_out = height_uncert_std(
-            sig0, good, num_rare_looks, num_med_looks)
+    if good.any():
+        if method == 'rare':
+            # rare method assumes sig0 is the rare sig0 and all pixels are
+            # independent. Compute uncertainty as the std assuming all sig0
+            # measurements are independent.
+            num_pixels = simple(sig0[good], metric='count')
+            sig_uncert = np.sqrt(simple(
+                sig0_std[good]**2, metric='sum')) / num_pixels
+            sig_std_out = simple(sig0[good], metric='std')
+        elif method == 'medium':
+            # assumes that sig0 is the medium sig0 and computes the
+            # uncert using the sample std scaled by rare and medium looks
+            sig_uncert = None  # may want to implement this if we use med sig0
+            sig_std_out = height_uncert_std(
+                sig0, good, num_rare_looks, num_med_looks)
+    else:
+        # no good pixels were aggregated; return NaN
+        sig_uncert = np.nan
+        sig_std_out = np.nan
     return sig0_agg, sig_std_out, sig_uncert
 
 def height_only(height, good, height_std=1.0, method='weight'):
@@ -157,18 +162,22 @@ def height_uncert_std(
     weight = np.ones(np.shape(height))  # default to uniform
     if method == 'weight':
         weight = np.ones(np.shape(height)) / height_std ** 2
-    height_agg = simple(weight[good]*height[good], metric='sum')
-    weight_sum = simple(weight[good], metric='sum')
-    height_mean = height_agg/weight_sum
-    height_agg2 = simple(
-        weight[good]*(height[good]-height_mean)**2.0, metric='sum')
-    h_std = np.sqrt(height_agg2/weight_sum)
-
-    num_pixels = simple(height[good], metric='count')
-    # num_med_looks is rare_looks*num_pix_in_adaptive_window,
-    # so need to normalize out rare to get number of independent pixels
-    num_ind_pixels = simple(num_med_looks[good]/num_rare_looks[good],'mean')
-    height_std_out = h_std * np.sqrt(num_ind_pixels/num_pixels)
+    if good.any():
+        height_agg = simple(weight[good] * height[good], metric='sum')
+        weight_sum = simple(weight[good], metric='sum')
+        height_mean = height_agg/weight_sum
+        height_agg2 = simple(
+            weight[good] * (height[good] - height_mean) ** 2.0, metric='sum')
+        h_std = np.sqrt(height_agg2 / weight_sum)
+        num_pixels = simple(height[good], metric='count')
+        # num_med_looks is rare_looks*num_pix_in_adaptive_window,
+        # so need to normalize out rare to get number of independent pixels
+        num_ind_pixels = simple(num_med_looks[good] / num_rare_looks[good],
+                                'mean')
+        height_std_out = h_std * np.sqrt(num_ind_pixels / num_pixels)
+    else:
+        # no good pixels in aggregation, return NaN
+        height_std_out = np.nan
 
     return height_std_out
 
