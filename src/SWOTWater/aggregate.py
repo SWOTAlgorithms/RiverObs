@@ -125,9 +125,13 @@ def height_only(height, good, height_std=1.0, method='weight'):
 
     weight_sum_pixc = np.ones(np.shape(weight))
     weight_sum_pixc[good] = weight_sum
+    if good.any():
+        height_out = height_agg/weight_sum
+    else:
+        # no good pixels to aggregate, so we return NaN
+        height_out = np.nan
+    weight_norm = weight / weight_sum_pixc
 
-    height_out = height_agg/weight_sum
-    weight_norm = weight/weight_sum_pixc
     return height_out, weight_norm
 
 def height_uncert_std(
