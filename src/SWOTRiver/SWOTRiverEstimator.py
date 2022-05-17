@@ -5,6 +5,7 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
+
 import scipy.ndimage
 import numpy as np
 import netCDF4 as nc
@@ -1386,7 +1387,7 @@ class SWOTRiverEstimator(SWOTL2):
         hh = river_reach.wse
         ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
-        mask = self.get_reach_mask(SS, hh, ww)
+        mask = self.get_reach_mask(SS, hh, ww, min_fit_points)
 
         if mask.sum() >= min_fit_points:
             # first, compute and remove wse outliers using iterative linear fit
@@ -1422,62 +1423,62 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['slope_u'] = fit.HC0_se[0]
                 reach_stats['height_u'] = fit.HC0_se[1]
             elif self.slope_method == 'bayes':
-                if mask.sum() > 4:
-                    # get the optimal reconstruction (Bayes estimate)
-                    # using the offset linear weighted fit as the prior
-                    wse_opt = self.optimal_reconstruct(river_reach_collection,
-                                                       river_reach, reach_id,
-                                                       ss, hh,
-                                                       np.sqrt(1.0 / ww),
-                                                       mask,
-                                                       method='Bayes')
-                    #
-                    # TO-DO: determine if we should use outlier Bayes method
-                    #
-                    # flag outliers more than 3-sigma from the optimal fit
-                    # outliers = (np.abs(hh - wse_opt) > 3 * np.sqrt(1.0 / ww))
-                    # ww[outliers] = 1.0 / (np.abs(
-                    #     hh[outliers] - wse_opt[outliers]) * 2) ** 2
+                # get the optimal reconstruction (Bayes estimate)
+                # using the offset linear weighted fit as the prior
+                wse_opt = self.optimal_reconstruct(river_reach_collection,
+                                                   river_reach, reach_id,
+                                                   ss, hh,
+                                                   np.sqrt(1.0 / ww),
+                                                   mask,
+                                                   min_fit_points,
+                                                   method='Bayes')
+                #
+                # TO-DO: determine if we should use outlier Bayes method
+                #
+                # flag outliers more than 3-sigma from the optimal fit
+                # outliers = (np.abs(hh - wse_opt) > 3 * np.sqrt(1.0 / ww))
+                # ww[outliers] = 1.0 / (np.abs(
+                #     hh[outliers] - wse_opt[outliers]) * 2) ** 2
 
-                    # if 0 < outliers.sum():
-                    #     # refit the wle with outlier rejection
-                    #     ole.fit(X, hh[mask], ww[mask])
-                    #     wse_wle_out = ole.predict(ss.reshape(len(ss), 1))
-                    #     wse_opt = optimal_reconstruct(ss, hh,
-                    #         np.sqrt(1.0 / ww), ~mask, wse_wle_offset)
+                # if 0 < outliers.sum():
+                #     # refit the wle with outlier rejection
+                #     ole.fit(X, hh[mask], ww[mask])
+                #     wse_wle_out = ole.predict(ss.reshape(len(ss), 1))
+                #     wse_opt = optimal_reconstruct(ss, hh,
+                #         np.sqrt(1.0 / ww), ~mask, wse_wle_offset)
 
-                    # take first-to-last of reconstruction for slope
-                    # mean of reconstruction wse (for observed nodes) as wse
-                    dx = ss[0] - ss[-1]  # along-reach dist
-                    reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
+                # take first-to-last of reconstruction for slope
+                # mean of reconstruction wse (for observed nodes) as wse
+                dx = ss[0] - ss[-1]  # along-reach dist
+                reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
 
-                    reach_stats['height'] = np.mean(wse_opt[mask]) \
-                        + reach_stats['slope'] * (np.mean(all_ss)
-                                                  - np.mean(ss[mask]))
-                    # TBD unc quantities for bayes method
-                    reach_stats['slope_u'] = MISSING_VALUE_FLT
-                    reach_stats['height_u'] = MISSING_VALUE_FLT
+                reach_stats['height'] = np.mean(wse_opt[mask]) \
+                    + reach_stats['slope'] * (np.mean(all_ss)
+                                              - np.mean(ss[mask]))
+                # TBD unc quantities for bayes method
+                reach_stats['slope_u'] = MISSING_VALUE_FLT
+                reach_stats['height_u'] = MISSING_VALUE_FLT
 
-                else:
-                    # not enough points for Bayes method. Try first-to-last
-                    if mask.sum() > 1:
-                        reach_stats['slope'] = (hh[mask][0] - hh[mask][-1]) / (
-                                    ss[mask][0] - ss[mask][-1])
-                        reach_stats['height'] = (
-                                np.mean(hh[mask])
-                                + reach_stats['slope'] * (np.mean(all_ss)
-                                                          - np.mean(ss[mask])))
-
-                        # TBD on unc quantities for ftl method
-                        reach_stats['slope_u'] = MISSING_VALUE_FLT
-                        reach_stats['height_u'] = MISSING_VALUE_FLT
-
-                    else:  # only one node, fill values for reach slope/wse
-                        reach_stats['slope'] = MISSING_VALUE_FLT
-                        reach_stats['slope_u'] = MISSING_VALUE_FLT
-                        reach_stats['height'] = MISSING_VALUE_FLT
-                        reach_stats['height_u'] = MISSING_VALUE_FLT
+                # # not enough points for Bayes method. Try first-to-last
+                # if mask.sum() > 1:
+                #     reach_stats['slope'] = (hh[mask][0] - hh[mask][-1]) / (
+                #                 ss[mask][0] - ss[mask][-1])
+                #     reach_stats['height'] = (
+                #             np.mean(hh[mask])
+                #             + reach_stats['slope'] * (np.mean(all_ss)
+                #                                       - np.mean(ss[mask])))
+                #
+                #     # TBD on unc quantities for ftl method
+                #     reach_stats['slope_u'] = MISSING_VALUE_FLT
+                #     reach_stats['height_u'] = MISSING_VALUE_FLT
+                #
+                # else:  # only one node, fill values for reach slope/wse
+                #     reach_stats['slope'] = MISSING_VALUE_FLT
+                #     reach_stats['slope_u'] = MISSING_VALUE_FLT
+                #     reach_stats['height'] = MISSING_VALUE_FLT
+                #     reach_stats['height_u'] = MISSING_VALUE_FLT
         else:
+            # insufficient node heights for fit to reach
             reach_stats['slope'] = MISSING_VALUE_FLT
             reach_stats['slope_u'] = MISSING_VALUE_FLT
             reach_stats['height'] = MISSING_VALUE_FLT
@@ -1777,9 +1778,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         return smooth_heights
 
-    def get_reach_mask(self, SS, hh, ww):
+    def get_reach_mask(self, SS, hh, ww, min_fit_points):
         mask = np.logical_and(hh > -500, hh < 8000)
-        if self.outlier_method:
+        if self.outlier_method and mask.sum() > min_fit_points:
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
         return mask
 
@@ -1911,6 +1912,7 @@ class SWOTRiverEstimator(SWOTL2):
             wse,
             wse_r_u,
             mask,
+            min_fit_points=2,
             prior_wse=None,
             prior_cov_method='exponential',
             full_noise_cov=False,
@@ -1949,7 +1951,7 @@ class SWOTRiverEstimator(SWOTL2):
             # get the multi-reach mask
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             ww = 1 / (wse_r_u ** 2)
-            mask = self.get_reach_mask(SS, wse, ww)
+            mask = self.get_reach_mask(SS, wse, ww, min_fit_points)
             ss = ss - np.mean(ss)
         if prior_wse is None:
             # create linear fit prior
