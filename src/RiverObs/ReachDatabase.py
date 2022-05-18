@@ -485,7 +485,8 @@ class ReachDatabaseNodes(Product):
                 'x', 'y', 'node_id', 'reach_id', 'node_length', 'wse',
                 'wse_var', 'width', 'width_var', 'n_chan_max', 'n_chan_mod',
                 'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef',
-                'river_name']:
+                'river_name', 'obstr_type', 'hfalls_id', 'facc', 'lakeflag',
+                'max_width', 'meander_length', 'sinuosity', 'manual_add']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.ma.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -606,11 +607,13 @@ class ReachDatabaseReaches(Product):
                     'reach_length', 'n_nodes', 'wse', 'wse_var', 'width',
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
                     'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag',
-                    'river_name']:
+                    'river_name', 'facc', 'obstr_type', 'hfalls_id',
+                    'swot_obs', 'max_width']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
-        for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn', 'iceflag']:
+        for dset in [
+                'cl_ids', 'rch_id_up', 'rch_id_dn', 'iceflag', 'swot_orbits']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
 
