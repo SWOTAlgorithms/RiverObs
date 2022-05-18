@@ -19,7 +19,7 @@ from SWOTRiver.products.rivertile import L2HRRiverTile
 from SWOTRiver.products.pixcvec import L2PIXCVector
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
-
+from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +93,19 @@ class L2PixcToRiverTile(object):
         mask = ~np.isnan(lat)
         return (lon[mask].min(), lat[mask].min(), lon[mask].max(),
                 lat[mask].max())
+
+    def validate_inputs(self):
+        """Validates that the input products meet requirements"""
+        LOGGER.info('validate_inputs')
+        # Check for empty PIXC file (dimension points in /pixel_cloud/ group
+        # is zero).
+        with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
+            if ifp.groups['pixel_cloud'].dimensions['points'].size == 0:
+                LOGGER.error('Input L2_HR_PIXC product has zero valid pixels!')
+                raise RiverObsException(
+                    'Input L2_HR_PIXC product has zero valid pixels!')
+
+        # ...etc for more validation tests
 
     def do_river_processing(self):
         """Does the river processing"""
