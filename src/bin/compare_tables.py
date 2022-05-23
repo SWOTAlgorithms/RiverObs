@@ -7,32 +7,39 @@ All rights reserved.
 Author(s): Brent Williams
 '''
 import argparse
+import pdb
+
 import SWOTRiver.analysis.tabley
+
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('table_file1', type=str)
     parser.add_argument('table_file2', type=str)
-    parser.add_argument('--output_file','-o', type=str, default=None)
+    parser.add_argument('--output_file', '-o', type=str, default=None)
     args = parser.parse_args()
     print(args)
 
     # read in each file
     table1 = SWOTRiver.analysis.tabley.Table.from_file(args.table_file1)
     table2 = SWOTRiver.analysis.tabley.Table.from_file(args.table_file2)
+    n_missing = 0
     #print(table1)
     #print(table2)
     # match-up lines
-    if not (table1.headers==table2.headers):
+    if not (table1.headers == table2.headers):
         print("tables are not comparable, headers dont match")
         return
     #print(table1.headers)
+    print('Total reaches in', args.table_file1, 'is', len(table1.data))
+    print('Total reaches in', args.table_file2, 'is', len(table2.data))
+
     tile_ind = -1
     reach_ind = -1
     for k, hdr in enumerate(table1.headers):
         if 'tile' in hdr:
             tile_ind = k
-        if 'reach' in hdr:
+        if 'reach' == hdr:
             reach_ind = k
     outdata = []
     for line1 in table1.data:
@@ -69,16 +76,20 @@ def main():
             #print("***",outline)
         else:
             # no matching line in table2 for this table1 line
-            # TODO: collect these
+            print('No matching line in', args.table_file2,
+                  'for', tile1, reach1, 'in', args.table_file1)
+            n_missing += 1
             pass
     # create the difference table
     # setup preamble
+    print('total missing reaches', n_missing)
     preamble = 'Difference table: %s - %s'%(args.table_file1, args.table_file2)
     # TODO: setup passfail dictionary for difference
     SWOTRiver.analysis.tabley.print_table(
         outdata, headers=table1.headers, style=None,
         precision=table1.precision, width=table1.fixed_width,
         passfail={}, fname=args.output_file, preamble=preamble)
+
 
 if __name__ == '__main__':
     try:
