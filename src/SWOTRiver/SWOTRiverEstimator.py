@@ -5,6 +5,8 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
+import pdb # remove
+import matplotlib.pyplot as plt # remove
 
 import scipy.ndimage
 import numpy as np
@@ -429,6 +431,9 @@ class SWOTRiverEstimator(SWOTL2):
             self.h_flg = None
 
         LOGGER.debug('Data loaded')
+
+        # Initialize the list of reaches to output to product
+        self.river_reach_collection = collections.OrderedDict()
 
         self.flatten_interferogram()
         self.nc.close()
@@ -1449,6 +1454,9 @@ class SWOTRiverEstimator(SWOTL2):
 
                 # take first-to-last of reconstruction for slope
                 # mean of reconstruction wse (for observed nodes) as wse
+
+                # TO-DO: do we want to take first-to-last of entire
+                # reconstruction, or only the populated nodes?
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
 
@@ -1489,7 +1497,7 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         # do fit on geoid heights for reach-level outputs
-        # TO-DO: should this be weighted fit?
+        # TO-DO: make this a weighted fit
         gg = river_reach.geoid_hght
         mask = np.logical_and(gg > -500, gg < 8000)
         if mask.sum() >= min_fit_points:
@@ -1719,28 +1727,33 @@ class SWOTRiverEstimator(SWOTL2):
         Output:
         enhanced_slope: enhanced reach slope
         """
-        heights, wse_r_u, this_len, first_node, \
-        distances = self.get_multi_reach_height(river_reach_collection,
-                                                river_reach,
-                                                ireach)
+        wse, wse_r_u, this_len, first_node, ss = self.get_multi_reach_height(
+            river_reach_collection, river_reach, ireach)
+        # get the multi-reach mask
+        SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
+        ww = 1 / (wse_r_u ** 2)
+        mask = self.get_reach_mask(SS, wse, ww, min_fit_points)
 
-        if this_len < min_fit_points:
+        # handle indexing for masked reaches
+        end_slice = first_node + this_len
+        this_reach_mask = mask[first_node:end_slice]
+        first_node = first_node - np.sum(~mask[:first_node])
+        last_node = first_node + np.sum(this_reach_mask) - 1
+        if np.sum(this_reach_mask) < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
         else:
-            last_node = first_node + this_len - 1
-            this_reach_len = distances[last_node] - distances[first_node]
+            this_reach_len = ss[mask][last_node] - ss[mask][first_node]
 
             # window size and sigma for Gaussian averaging
             window_size = np.min([max_window_size, this_reach_len])
-            sigma = np.max([
-                min_sigma, window_size/window_size_sigma_ratio])
+            sigma = np.max([min_sigma, window_size / window_size_sigma_ratio])
 
             # smooth h_n_ave, and get slope
-            slope = np.polyfit(distances, heights, 1)[0]
-            heights_detrend = heights - slope*distances
+            slope = np.polyfit(ss[mask], wse[mask], 1)[0]
+            heights_detrend = wse[mask] - slope * ss[mask]
             heights_smooth = self.gaussian_averaging(
-                distances, heights_detrend, window_size, sigma)
-            heights_smooth = heights_smooth + slope*(distances - distances[0])
+                ss[mask], heights_detrend, window_size, sigma)
+            heights_smooth = heights_smooth + slope*(ss[mask] - ss[mask][0])
             enhanced_slope = (
                 heights_smooth[last_node] - heights_smooth[first_node]
                 ) / this_reach_len
@@ -1750,30 +1763,30 @@ class SWOTRiverEstimator(SWOTL2):
         return enhanced_slope
 
     @staticmethod
-    def gaussian_averaging(distances, heights, window_size, sigma):
+    def gaussian_averaging(ss, wse, window_size, sigma):
         """
         Gaussian smoothing of heights using distances
-        distances:   along-flow distance
-        heights:     water heights
+        ss:   along-flow distance
+        wse:     water heights
         window_size: size of data window to use for averaging
         sigma:       STD of Gaussian used for averaging
 
         outputs:
         smooth_heights : smoothed elevations
         """
-        smooth_heights = np.zeros(heights.shape)
-        for ii, this_distance in enumerate(distances):
+        smooth_heights = np.zeros(wse.shape)
+        for ii, this_distance in enumerate(ss):
 
             # get data window
             mask = np.logical_and(
-                np.abs(this_distance-distances) <= window_size / 2,
-                ~np.isnan(heights))
+                np.abs(this_distance-ss) <= window_size / 2,
+                ~np.isnan(wse))
 
             weights = scipy.stats.norm.pdf(
-                this_distance, distances[mask], sigma)
+                this_distance, ss[mask], sigma)
 
             smooth_heights[ii] = (
-                np.multiply(weights, heights[mask]).sum() /
+                np.multiply(weights, wse[mask]).sum() /
                 weights.sum())
 
         return smooth_heights
@@ -1813,7 +1826,6 @@ class SWOTRiverEstimator(SWOTL2):
         ss : node-level distance over (valid) upstream, current, and (valid)
              downstream reaches.
         '''
-
         this_id = river_reach.reach_indx[0]
         other_ids = [
             item.reach_indx[0] for item in river_reach_collection
@@ -2014,33 +2026,33 @@ class SWOTRiverEstimator(SWOTL2):
 
         # keeping this plotting code for now. good for debugging
         # TO-DO: remove this when no longer needed
-        # plotem = False
+        # plotem = True
         # if plotem:
-        #     plt.figure()
-        #     plt.imshow(Ry)
-        #     plt.colorbar()
-        #     plt.title('Ry')
-        #     plt.figure()
-        #     n = int(np.floor(len(Ry[1,:])/2))
-        #     plt.plot(Ry[n, :])
-        #     plt.title('Ry middle row')
-        #
-        #     plt.figure()
-        #     plt.imshow(H)
-        #     plt.colorbar()
-        #     plt.title('H')
-        #     plt.figure()
-        #     plt.imshow(Rv)
-        #     plt.colorbar()
-        #     plt.title('Rv')
-        #     plt.figure()
-        #     plt.imshow(K)
-        #     plt.colorbar()
-        #     plt.title('K')
-        #     plt.figure()
-        #     plt.imshow(K_bar)
-        #     plt.colorbar()
-        #     plt.title('K_bar')
+        #     # plt.figure()
+        #     # plt.imshow(Ry)
+        #     # plt.colorbar()
+        #     # plt.title('Ry')
+        #     # plt.figure()
+        #     # n = int(np.floor(len(Ry[1,:])/2))
+        #     # plt.plot(Ry[n, :])
+        #     # plt.title('Ry middle row')
+        #     #
+        #     # plt.figure()
+        #     # plt.imshow(H)
+        #     # plt.colorbar()
+        #     # plt.title('H')
+        #     # plt.figure()
+        #     # plt.imshow(Rv)
+        #     # plt.colorbar()
+        #     # plt.title('Rv')
+        #     # plt.figure()
+        #     # plt.imshow(K)
+        #     # plt.colorbar()
+        #     # plt.title('K')
+        #     # plt.figure()
+        #     # plt.imshow(K_bar)
+        #     # plt.colorbar()
+        #     # plt.title('K_bar')
         #
         #     plt.figure()
         #     plt.plot(ss[msk], wse[msk], '-x')
@@ -2060,19 +2072,20 @@ class SWOTRiverEstimator(SWOTL2):
         #         msk1 = msk[first_node:end_slice]
         #         plt.figure()
         #         plt.plot(ss_one_reach[msk1], wse_one_reach[msk1], '-x')
+        #         plt.plot(ss_in[mask_in], wse_in[mask_in], 'b')
         #         plt.errorbar(ss_one_reach[msk1], wse_one_reach[msk1],
         #                      wse_r_u_one_reach[msk1],
         #                      marker='o')
         #         plt.plot(ss_one_reach, prior_wse_one_reach, 'r')
         #         plt.plot(ss_one_reach, wse_out, ':')
         #         plt.legend(
-        #          ['measurement', 'prior used for fitting', 'reconstructed'])
+        #          ['measurement', 'wse_in',
+        #           'prior used for fitting', 'reconstructed'])
         #         plt.title('one reach only')
         #     plt.show()
         if self.use_multiple_reaches:
             end_slice = first_node + this_len
             wse_out = wse_out[first_node:end_slice]
-
         return wse_out
 
     @staticmethod
