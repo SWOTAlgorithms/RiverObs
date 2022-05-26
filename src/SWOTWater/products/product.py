@@ -632,9 +632,13 @@ class Product(object):
         quantized_fill = self._getfill(my_var)
         fill = FILL_VALUES[value.dtype.str[1:]]
 
-        valid = np.logical_and(value != fill, ~np.isnan(value))
-        quantized_values = quantized_fill * np.ones(value.shape)
+        if np.ma.isMaskedArray(value):
+            # if mask array use .data
+            valid = np.logical_and(value.data != fill, ~np.isnan(value))
+        else:
+            valid = np.logical_and(value != fill, ~np.isnan(value))
 
+        quantized_values = quantized_fill * np.ones(value.shape)
         if dtype[0] in ['i', 'u']:
             # round integers to nearest int versus just typecast
             quantized_values[valid] = np.round(
