@@ -28,7 +28,7 @@ def handle_bad_reaches(truth_tmp, data_tmp, truth_filter):
         truth_classes = SWOTRiver.analysis.riverobs.get_truth_classes()
         for key in truth_filter:
             bad_reaches = np.concatenate([bad_reaches, truth_classes.get(key)])
-    main_keys = ['area_total','wse','slope','width', 'slope2']
+    main_keys = ['area_total','wse','slope','width','slope2']
     for key in main_keys:
         # if any of these are masked, throw out the entire
         # reach by setting all elements to nan
