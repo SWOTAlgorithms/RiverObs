@@ -1123,7 +1123,7 @@ class SWOTRiverEstimator(SWOTL2):
             xtrack_median = np.asarray(
                 self.river_obs.get_node_stat('median', 'xtrack'))
         else:
-            xtrack_median = None
+            xtrack_median = np.nan*np.ones(nobs.shape)
 
         lon_median = np.asarray(
             self.river_obs.get_node_stat('sincos_median', 'lon'))
