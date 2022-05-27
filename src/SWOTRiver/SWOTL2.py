@@ -108,7 +108,7 @@ class SWOTL2:
 
             except:
                 LOGGER.warn(
-                    'WARNING: Input file does not contain range/azimuth index.'+
+                    'Input file does not contain range/azimuth index.'+
                     ' Functions relying on radar coordinates WILL break!')
                 self.img_x = None
                 self.img_y = None
