@@ -329,6 +329,7 @@ def get_passfail(is_lake = False):
             'area_tot e (%)': [15, 30],
             'wse e (cm)': [10, 20],
             'slp e (cm/km)':[1.7, 3.4],
+            'slp2 e (cm/km)': [1.7, 3.4]
         }
     else:
         passfail = {
@@ -473,7 +474,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 0.5
+        'min_xtrk_ratio': 1.0
     }
     msk=[]
 
@@ -679,8 +680,9 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
 
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, preamble=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None, passfail={}):
+        dark_frac=None, preamble=None, with_slope=True, with_slope2=True,
+        with_width=True, with_node_avg=False, reach_len=None,
+        with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
@@ -693,6 +695,9 @@ def print_metrics(
     if with_slope:
         table['slp e (cm/km)'] = metrics['slope'][msk]
         table['slope (cm/km)'] = metrics['slope_t'][msk]
+    if with_slope2:
+        table['slp2 e (cm/km)'] = metrics['slope2'][msk]
+        table['slope2 (cm/km)'] = metrics['slope2_t'][msk]
     table['area_tot e (%)'] = metrics['area_total'][msk]
     table['area_det e (%)'] = metrics['area_detct'][msk]
     if with_width:
