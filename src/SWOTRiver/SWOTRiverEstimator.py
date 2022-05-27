@@ -5,8 +5,6 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
-import pdb # remove
-import matplotlib.pyplot as plt # remove
 
 import scipy.ndimage
 import numpy as np
@@ -1733,12 +1731,12 @@ class SWOTRiverEstimator(SWOTL2):
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
         ww = 1 / (wse_r_u ** 2)
         mask = self.get_reach_mask(SS, wse, ww, min_fit_points)
-
         # handle indexing for masked reaches
         end_slice = first_node + this_len
         this_reach_mask = mask[first_node:end_slice]
         first_node = first_node - np.sum(~mask[:first_node])
         last_node = first_node + np.sum(this_reach_mask) - 1
+
         if np.sum(this_reach_mask) < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
         else:
@@ -1757,6 +1755,28 @@ class SWOTRiverEstimator(SWOTL2):
             enhanced_slope = (
                 heights_smooth[last_node] - heights_smooth[first_node]
                 ) / this_reach_len
+
+            # plt.figure()
+            # plt.errorbar(ss[mask], wse[mask], wse_r_u[mask], marker='o',
+            #              label='measured')
+            # plt.plot(ss[mask], heights_smooth, ':', label='smoothed')
+            # plt.title('multi reach enhanced slope '
+            #           + str(river_reach.reach_indx[0]))
+            # plt.legend()
+            # if self.use_multiple_reaches:
+            #     wse_out = heights_smooth[first_node:last_node+1]
+            #     ss_one_reach = ss[first_node:end_slice]
+            #     wse_one_reach = wse[first_node:end_slice]
+            #     wse_r_u_one_reach = wse_r_u[first_node:end_slice]
+            #     msk1 = mask[first_node:end_slice]
+            #     plt.figure()
+            #     plt.errorbar(ss_one_reach[msk1], wse_one_reach[msk1],
+            #                  wse_r_u_one_reach[msk1],
+            #                  marker='o', label='measured')
+            #     plt.plot(ss_one_reach[msk1], wse_out, ':', label='smoothed')
+            #     plt.legend()
+            #     plt.title('one reach only ' + str(river_reach.reach_indx[0]))
+            # plt.show()
 
         if np.isnan(enhanced_slope):
             enhanced_slope = MISSING_VALUE_FLT
@@ -2023,66 +2043,6 @@ class SWOTRiverEstimator(SWOTL2):
         wse_out0 = np.matmul(K, wse_reg)
         # apply the prior term
         wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
-
-        # keeping this plotting code for now. good for debugging
-        # TO-DO: remove this when no longer needed
-        # plotem = True
-        # if plotem:
-        #     # plt.figure()
-        #     # plt.imshow(Ry)
-        #     # plt.colorbar()
-        #     # plt.title('Ry')
-        #     # plt.figure()
-        #     # n = int(np.floor(len(Ry[1,:])/2))
-        #     # plt.plot(Ry[n, :])
-        #     # plt.title('Ry middle row')
-        #     #
-        #     # plt.figure()
-        #     # plt.imshow(H)
-        #     # plt.colorbar()
-        #     # plt.title('H')
-        #     # plt.figure()
-        #     # plt.imshow(Rv)
-        #     # plt.colorbar()
-        #     # plt.title('Rv')
-        #     # plt.figure()
-        #     # plt.imshow(K)
-        #     # plt.colorbar()
-        #     # plt.title('K')
-        #     # plt.figure()
-        #     # plt.imshow(K_bar)
-        #     # plt.colorbar()
-        #     # plt.title('K_bar')
-        #
-        #     plt.figure()
-        #     plt.plot(ss[msk], wse[msk], '-x')
-        #     plt.errorbar(ss[msk], wse[msk], wse_r_u[msk], marker='o')
-        #     plt.plot(ss, prior_wse, 'r')
-        #     plt.plot(ss, wse_out, ':')
-        #     plt.legend(
-        #         ['measurement', 'prior used for fitting', 'reconstructed'])
-        #
-        #     if self.use_multiple_reaches:
-        #         end_slice = first_node + this_len
-        #         wse_out = wse_out[first_node:end_slice]
-        #         ss_one_reach = ss[first_node:end_slice]
-        #         prior_wse_one_reach = prior_wse[first_node:end_slice]
-        #         wse_one_reach = wse[first_node:end_slice]
-        #         wse_r_u_one_reach = wse_r_u[first_node:end_slice]
-        #         msk1 = msk[first_node:end_slice]
-        #         plt.figure()
-        #         plt.plot(ss_one_reach[msk1], wse_one_reach[msk1], '-x')
-        #         plt.plot(ss_in[mask_in], wse_in[mask_in], 'b')
-        #         plt.errorbar(ss_one_reach[msk1], wse_one_reach[msk1],
-        #                      wse_r_u_one_reach[msk1],
-        #                      marker='o')
-        #         plt.plot(ss_one_reach, prior_wse_one_reach, 'r')
-        #         plt.plot(ss_one_reach, wse_out, ':')
-        #         plt.legend(
-        #          ['measurement', 'wse_in',
-        #           'prior used for fitting', 'reconstructed'])
-        #         plt.title('one reach only')
-        #     plt.show()
         if self.use_multiple_reaches:
             end_slice = first_node + this_len
             wse_out = wse_out[first_node:end_slice]
