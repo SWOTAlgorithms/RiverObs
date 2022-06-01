@@ -474,7 +474,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 1.0
+        'min_xtrk_ratio': 0.5
     }
     msk=[]
 
@@ -551,9 +551,9 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
                   truth.reaches['dark_frac']
                              <= bounds['max_dark_frac']))))))
         # add the node-level filters to the mask
-        msk = np.logical_and(msk, obs_area_frac > bounds['min_area_obs_frac'])
-        msk = np.logical_and(msk, truth_ratio > bounds['min_truth_ratio'])
-        msk = np.logical_and(msk, xtrk_ratio > bounds['min_xtrk_ratio'])
+        msk = np.logical_and(msk, obs_area_frac >= bounds['min_area_obs_frac'])
+        msk = np.logical_and(msk, truth_ratio >= bounds['min_truth_ratio'])
+        msk = np.logical_and(msk, xtrk_ratio >= bounds['min_xtrk_ratio'])
         if print_table:
             passfail = {
                 'Truth width (m)': [bounds['min_width'], 'flip'],
