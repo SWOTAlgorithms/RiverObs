@@ -5,7 +5,6 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
-
 import scipy.ndimage
 import numpy as np
 import netCDF4 as nc
@@ -1791,7 +1790,8 @@ class SWOTRiverEstimator(SWOTL2):
         :return: reach mask where good nodes are 1 and bad nodes are 0
         """
         mask = np.logical_and(hh > -500, hh < 8000)
-        if self.outlier_method and mask.sum() > min_fit_points:
+        if self.outlier_method is not None \
+                and mask.sum() > min_fit_points:
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
         return mask
@@ -2043,7 +2043,7 @@ class SWOTRiverEstimator(SWOTL2):
         post_cov = np.linalg.pinv(post_cov_inv)
         K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
         K_bar = np.matmul(post_cov, Ry_inv)
-        
+
         return K, K_bar
 
     @staticmethod
