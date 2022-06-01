@@ -1480,11 +1480,11 @@ class SWOTRiverEstimator(SWOTL2):
             mask.sum() / len(self.river_obs.centerline.s))
 
         # do fit on geoid heights for reach-level outputs
-        # TO-DO: make this a weighted fit
         gg = river_reach.geoid_hght
-        mask = np.logical_and(gg > -500, gg < 8000)
+        mask = self.get_reach_mask(ss, gg, ww, min_fit_points)
         if mask.sum() >= min_fit_points:
-            geoid_fit = statsmodels.api.OLS(gg[mask], SS[mask]).fit()
+            geoid_fit = statsmodels.api.WLS(
+                gg[mask], SS[mask], weights=ww[mask]).fit()
 
             # fit slope is meters per meter
             reach_stats['geoid_slop'] = geoid_fit.params[0]
