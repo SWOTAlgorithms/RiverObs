@@ -665,14 +665,14 @@ class SWOTRiverEstimator(SWOTL2):
         reach_zips = zip(
             river_reach_collection, river_obs_list, reach_idx_list,
             ireach_list)
-        for river_reach, river_obs, reach_idx, reach_id in reach_zips:
+        for river_reach, river_obs, reach_idx, ireach in reach_zips:
 
             # Ugly way process_reach/process_node uses the data
             self.river_obs = river_obs
 
             out_river_reach = self.process_reach(
-                river_reach_collection, river_reach, self.reaches[reach_id],
-                reach_id, reach_idx, min_fit_points=min_fit_points
+                river_reach_collection, river_reach, self.reaches[ireach],
+                ireach, reach_idx, min_fit_points=min_fit_points
             )
 
             if out_river_reach is not None:
@@ -1734,13 +1734,18 @@ class SWOTRiverEstimator(SWOTL2):
         # handle indexing for masked reaches
         end_slice = first_node + this_len
         this_reach_mask = mask[first_node:end_slice]
-        first_node = first_node - np.sum(~mask[:first_node])
-        last_node = first_node + np.sum(this_reach_mask) - 1
 
         if np.sum(this_reach_mask) < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
         else:
-            this_reach_len = ss[mask][last_node] - ss[mask][first_node]
+            this_reach_edges = np.ma.flatnotmasked_edges(
+                np.ma.masked_array(wse[first_node:end_slice],
+                                   mask=~this_reach_mask))
+            last_node = first_node + this_reach_edges[1] - 1
+            first_node = first_node + this_reach_edges[0]
+            first_node_masked = first_node - np.sum(~mask[:first_node])
+            last_node_masked = first_node_masked + np.sum(this_reach_mask) - 1
+            this_reach_len = ss[last_node] - ss[first_node]
 
             # window size and sigma for Gaussian averaging
             window_size = np.min([max_window_size, this_reach_len])
@@ -1752,31 +1757,8 @@ class SWOTRiverEstimator(SWOTL2):
             heights_smooth = self.gaussian_averaging(
                 ss[mask], heights_detrend, window_size, sigma)
             heights_smooth = heights_smooth + slope*(ss[mask] - ss[mask][0])
-            enhanced_slope = (
-                heights_smooth[last_node] - heights_smooth[first_node]
-                ) / this_reach_len
-
-            # plt.figure()
-            # plt.errorbar(ss[mask], wse[mask], wse_r_u[mask], marker='o',
-            #              label='measured')
-            # plt.plot(ss[mask], heights_smooth, ':', label='smoothed')
-            # plt.title('multi reach enhanced slope '
-            #           + str(river_reach.reach_indx[0]))
-            # plt.legend()
-            # if self.use_multiple_reaches:
-            #     wse_out = heights_smooth[first_node:last_node+1]
-            #     ss_one_reach = ss[first_node:end_slice]
-            #     wse_one_reach = wse[first_node:end_slice]
-            #     wse_r_u_one_reach = wse_r_u[first_node:end_slice]
-            #     msk1 = mask[first_node:end_slice]
-            #     plt.figure()
-            #     plt.errorbar(ss_one_reach[msk1], wse_one_reach[msk1],
-            #                  wse_r_u_one_reach[msk1],
-            #                  marker='o', label='measured')
-            #     plt.plot(ss_one_reach[msk1], wse_out, ':', label='smoothed')
-            #     plt.legend()
-            #     plt.title('one reach only ' + str(river_reach.reach_indx[0]))
-            # plt.show()
+            enhanced_slope = (heights_smooth[last_node_masked] -
+                              heights_smooth[first_node_masked])/this_reach_len
 
         if np.isnan(enhanced_slope):
             enhanced_slope = MISSING_VALUE_FLT
