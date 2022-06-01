@@ -1394,10 +1394,10 @@ class SWOTRiverEstimator(SWOTL2):
         hh = river_reach.wse
         ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
-        mask = self.get_reach_mask(SS, hh, ww, min_fit_points)
+        mask = self.get_reach_mask(ss, hh, ww, min_fit_points)
 
         if mask.sum() >= min_fit_points:
-            # first, compute and remove wse outliers using iterative linear fit
+            # compute slope according to input config method
             if self.slope_method == 'first_to_last':
                 reach_stats['slope'] = (
                     hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
@@ -1469,24 +1469,6 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['slope_u'] = MISSING_VALUE_FLT
                 reach_stats['height_u'] = MISSING_VALUE_FLT
 
-                # # not enough points for Bayes method. Try first-to-last
-                # if mask.sum() > 1:
-                #     reach_stats['slope'] = (hh[mask][0] - hh[mask][-1]) / (
-                #                 ss[mask][0] - ss[mask][-1])
-                #     reach_stats['height'] = (
-                #             np.mean(hh[mask])
-                #             + reach_stats['slope'] * (np.mean(all_ss)
-                #                                       - np.mean(ss[mask])))
-                #
-                #     # TBD on unc quantities for ftl method
-                #     reach_stats['slope_u'] = MISSING_VALUE_FLT
-                #     reach_stats['height_u'] = MISSING_VALUE_FLT
-                #
-                # else:  # only one node, fill values for reach slope/wse
-                #     reach_stats['slope'] = MISSING_VALUE_FLT
-                #     reach_stats['slope_u'] = MISSING_VALUE_FLT
-                #     reach_stats['height'] = MISSING_VALUE_FLT
-                #     reach_stats['height_u'] = MISSING_VALUE_FLT
         else:
             # insufficient node heights for fit to reach
             reach_stats['slope'] = MISSING_VALUE_FLT
@@ -1732,9 +1714,8 @@ class SWOTRiverEstimator(SWOTL2):
         wse, wse_r_u, this_len, first_node, ss = self.get_multi_reach_height(
             river_reach_collection, river_reach, ireach)
         # get the multi-reach mask
-        SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
         ww = 1 / (wse_r_u ** 2)
-        mask = self.get_reach_mask(SS, wse, ww, min_fit_points)
+        mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
         # handle indexing for masked reaches
         end_slice = first_node + this_len
         this_reach_mask = mask[first_node:end_slice]
@@ -1797,15 +1778,27 @@ class SWOTRiverEstimator(SWOTL2):
 
         return smooth_heights
 
-    def get_reach_mask(self, SS, hh, ww, min_fit_points):
+    def get_reach_mask(self, ss, hh, ww, min_fit_points):
+        """
+        Mask each node in an input reach based on whether or not it has a valid
+        wse. Then mask for node-level wse outliers, if self.outlier_method is
+        set. Returns a numpy array where good nodes are 1 and bad nodes are 0.
+
+        :param ss: along-reach distance for each node
+        :param hh: height of each node
+        :param ww: weights for each node height, to use in outlier flagging
+        :param min_fit_points: minimum number of points needed to flag outliers
+        :return: reach mask where good nodes are 1 and bad nodes are 0
+        """
         mask = np.logical_and(hh > -500, hh < 8000)
         if self.outlier_method and mask.sum() > min_fit_points:
+            SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
         return mask
 
     def get_multi_reach_height(
             self, river_reach_collection, river_reach, ireach):
-        '''
+        """
         Handles the upstream and downstream reaches from the PRD and returns
         heights and lengths over multiple reaches for enhanced/Bayes slope
         calculations. Includes checks for dam reaches and edge node proximity.
@@ -1831,7 +1824,7 @@ class SWOTRiverEstimator(SWOTL2):
                      concatenation of multiple reaches
         ss : node-level distance over (valid) upstream, current, and (valid)
              downstream reaches.
-        '''
+        """
         this_id = river_reach.reach_indx[0]
         other_ids = [
             item.reach_indx[0] for item in river_reach_collection
@@ -1967,9 +1960,8 @@ class SWOTRiverEstimator(SWOTL2):
                 self.get_multi_reach_height(
                     river_reach_collection, river_reach, ireach)
             # get the multi-reach mask
-            SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             ww = 1 / (wse_r_u ** 2)
-            mask = self.get_reach_mask(SS, wse, ww, min_fit_points)
+            mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
             ss = ss - np.mean(ss)
         if prior_wse is None:
             # create linear fit prior
@@ -2049,10 +2041,9 @@ class SWOTRiverEstimator(SWOTL2):
         Rv_inv = np.linalg.pinv(Rv)
         post_cov_inv = Ry_inv + np.matmul(np.matmul(H.T, Rv_inv), H)
         post_cov = np.linalg.pinv(post_cov_inv)
-        # print('post_cov_inv', post_cov_inv)
-        # print('post_cov', post_cov)
         K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
         K_bar = np.matmul(post_cov, Ry_inv)
+        
         return K, K_bar
 
     @staticmethod
