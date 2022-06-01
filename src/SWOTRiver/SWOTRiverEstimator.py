@@ -1215,22 +1215,26 @@ class SWOTRiverEstimator(SWOTL2):
             width_db = width_db[self.river_obs.populated_nodes]
 
         # flag for bad widths
-        min_n = self.river_obs.get_node_stat('min', 'n')
-        max_n = self.river_obs.get_node_stat('max', 'n')
-
+        min_n = np.array(self.river_obs.get_node_stat('min', 'n'))
+        max_n = np.array(self.river_obs.get_node_stat('max', 'n'))
         blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
+
         # test at 5% inside of blocking width
         test_width = blocking_width * 0.90
-
-        is_blocked = np.logical_or(
-            np.logical_and(test_width < 0, min_n < test_width),
-            np.logical_and(test_width > 0, max_n > test_width))
+        nanmask = np.isfinite(test_width)  # mask NaN's to avoid warning
+        is_blocked = np.empty_like(nanmask)
+        is_blocked[nanmask] = np.logical_or(
+            np.logical_and(test_width[nanmask] < 0,
+                           min_n[nanmask] < test_width[nanmask]),
+            np.logical_and(test_width[nanmask] > 0,
+                           max_n[nanmask] > test_width[nanmask]))
+        is_blocked = np.logical_or(is_blocked, nanmask)
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
 
         dark_frac = MISSING_VALUE_FLT * np.ones(area.shape)
-        dark_frac[area > 0] = 1 -area_det[area > 0] / area[area > 0]
+        dark_frac[area > 0] = 1 - area_det[area > 0] / area[area > 0]
 
         # Compute flow direction relative to along-track
         tangent = self.river_obs.centerline.tangent[
