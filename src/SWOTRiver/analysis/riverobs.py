@@ -544,24 +544,22 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     # plt.show()
 
     if truth:
-        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              > bounds['min_xtrk']),#),
-              np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              < bounds['max_xtrk']),#),
-              np.logical_and((truth.reaches['width']
-                              > bounds['min_width']),#100),
-              np.logical_and((truth.reaches['area_total']
-                              > bounds['min_area']),
-              np.logical_and((truth.reaches['p_length']
-                              >= bounds['min_length']),
-              np.logical_and(data.reaches['obs_frac_n']
-                             >= bounds['min_obs_frac'],
-                  truth.reaches['dark_frac']
-                             <= bounds['max_dark_frac']))))))
+        msk = np.logical_and.reduce([
+            np.abs(truth.reaches['xtrk_dist']) > bounds['min_xtrk'],
+            np.abs(truth.reaches['xtrk_dist']) < bounds['max_xtrk'],
+            truth.reaches['width'] > bounds['min_width'],
+            truth.reaches['area_total'] > bounds['min_area'],
+            truth.reaches['p_length'] >= bounds['min_length'],
+            data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+            truth.reaches['dark_frac'] <= bounds['max_dark_frac']
+        ])
         # add the node-level filters to the mask
-        msk = np.logical_and(msk, obs_area_frac >= bounds['min_area_obs_frac'])
-        msk = np.logical_and(msk, truth_ratio >= bounds['min_truth_ratio'])
-        msk = np.logical_and(msk, xtrk_ratio >= bounds['min_xtrk_ratio'])
+        msk = np.logical_and.reduce([
+            msk,
+            obs_area_frac >= bounds['min_area_obs_frac'],
+            truth_ratio >= bounds['min_truth_ratio'],
+            xtrk_ratio >= bounds['min_xtrk_ratio']
+        ])
         if print_table:
             passfail = {
                 'Truth width (m)': [bounds['min_width'], 'flip'],
