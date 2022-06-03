@@ -79,7 +79,6 @@ def main():
             print('No matching line in', args.table_file2,
                   'for', tile1, reach1, 'in', args.table_file1)
             n_missing += 1
-            pass
     # create the difference table
     # setup preamble
     print('total missing reaches', n_missing)
