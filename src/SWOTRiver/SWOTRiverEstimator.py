@@ -1175,28 +1175,28 @@ class SWOTRiverEstimator(SWOTL2):
         # geoid heights and tide corrections weighted by height uncertainty
         geoid_hght = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
-                                         goodvar = 'h_flg',
-                                         method = self.height_agg_method))
+                                         goodvar='h_flg',
+                                         method=self.height_agg_method))
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'solid_earth_tide',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
         load_tidef = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_fes',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
         load_tideg = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_got',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'pole_tide',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1838,6 +1838,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # use the first good adjacent reach that is not skipped for height
         # smoothing
+        # TO-DO: add handling for multiple upstream/downstream reaches
         for up_id_try in self.reaches[ireach].metadata['rch_id_up'][:, 0]:
             if not up_id_try % 10 in skip_types:
                 break
@@ -1995,6 +1996,8 @@ class SWOTRiverEstimator(SWOTL2):
         elif prior_cov_method == 'exponential':
             # get the signal covariance assuming an exponential random process
             Ry0 = np.zeros((len(ss), len(ss)))
+            # TO-DO: check for multiple good upstream/downstream reaches and
+            # modify Ry
             for k, d0 in enumerate(ss):
                 t = ss - d0
                 Ry0[k, :] = np.exp(-np.abs(t) / self.char_length_tau)
