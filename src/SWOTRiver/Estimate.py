@@ -125,7 +125,16 @@ class L2PixcToRiverTile(object):
             self.config['preseg_dilation_iter'] = 0
 
         if 'slope_method' not in self.config:
-            self.config['slope_method'] = 'weighted'
+            self.config['slope_method'] = 'bayes'
+
+        if 'prior_unc_alpha' not in self.config:
+            self.config['prior_unc_alpha'] = 1.5
+
+        if 'char_length_tau' not in self.config:
+            self.config['char_length_tau'] = 10000
+
+        if 'use_multiple_reaches' not in self.config:
+            self.config['use_multiple_reaches'] = False
 
         if 'use_ext_dist_coef' not in self.config:
             self.config['use_ext_dist_coef'] = True
@@ -158,6 +167,9 @@ class L2PixcToRiverTile(object):
             'area_agg_method': self.config['area_agg_method'],
             'preseg_dilation_iter': self.config['preseg_dilation_iter'],
             'slope_method': self.config['slope_method'],
+            'prior_unc_alpha': self.config['prior_unc_alpha'],
+            'char_length_tau': self.config['char_length_tau'],
+            'use_multiple_reaches': self.config['use_multiple_reaches'],
             'use_ext_dist_coef': self.config['use_ext_dist_coef'],
             'outlier_method': self.config['outlier_method'],
             'outlier_abs_thresh': self.config['outlier_abs_thresh'],

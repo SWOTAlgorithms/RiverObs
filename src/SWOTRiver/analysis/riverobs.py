@@ -329,6 +329,7 @@ def get_passfail(is_lake = False):
             'area_tot e (%)': [15, 30],
             'wse e (cm)': [10, 20],
             'slp e (cm/km)':[1.7, 3.4],
+            'slp2 e (cm/km)': [1.7, 3.4]
         }
     else:
         passfail = {
@@ -543,24 +544,22 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     # plt.show()
 
     if truth:
-        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              > bounds['min_xtrk']),#),
-              np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              < bounds['max_xtrk']),#),
-              np.logical_and((truth.reaches['width']
-                              > bounds['min_width']),#100),
-              np.logical_and((truth.reaches['area_total']
-                              > bounds['min_area']),
-              np.logical_and((truth.reaches['p_length']
-                              >= bounds['min_length']),
-              np.logical_and(data.reaches['obs_frac_n']
-                             >= bounds['min_obs_frac'],
-                  truth.reaches['dark_frac']
-                             <= bounds['max_dark_frac']))))))
+        msk = np.logical_and.reduce([
+            np.abs(truth.reaches['xtrk_dist']) > bounds['min_xtrk'],
+            np.abs(truth.reaches['xtrk_dist']) < bounds['max_xtrk'],
+            truth.reaches['width'] > bounds['min_width'],
+            truth.reaches['area_total'] > bounds['min_area'],
+            truth.reaches['p_length'] >= bounds['min_length'],
+            data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+            truth.reaches['dark_frac'] <= bounds['max_dark_frac']
+        ])
         # add the node-level filters to the mask
-        msk = np.logical_and(msk, obs_area_frac > bounds['min_area_obs_frac'])
-        msk = np.logical_and(msk, truth_ratio > bounds['min_truth_ratio'])
-        msk = np.logical_and(msk, xtrk_ratio > bounds['min_xtrk_ratio'])
+        msk = np.logical_and.reduce([
+            msk,
+            obs_area_frac >= bounds['min_area_obs_frac'],
+            truth_ratio >= bounds['min_truth_ratio'],
+            xtrk_ratio >= bounds['min_xtrk_ratio']
+        ])
         if print_table:
             passfail = {
                 'Truth width (m)': [bounds['min_width'], 'flip'],
@@ -687,8 +686,9 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
 
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, preamble=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None, passfail={}):
+        dark_frac=None, preamble=None, with_slope=True, with_slope2=True,
+        with_width=True, with_node_avg=False, reach_len=None,
+        with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
@@ -701,6 +701,9 @@ def print_metrics(
     if with_slope:
         table['slp e (cm/km)'] = metrics['slope'][msk]
         table['slope (cm/km)'] = metrics['slope_t'][msk]
+    if with_slope2:
+        table['slp2 e (cm/km)'] = metrics['slope2'][msk]
+        table['slope2 (cm/km)'] = metrics['slope2_t'][msk]
     table['area_tot e (%)'] = metrics['area_total'][msk]
     table['area_det e (%)'] = metrics['area_detct'][msk]
     if with_width:

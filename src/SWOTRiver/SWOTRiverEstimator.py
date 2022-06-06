@@ -127,8 +127,6 @@ class SWOTRiverEstimator(SWOTL2):
         edge effects.
     store_obs : bool, default True
         If True, store each RiverObs instance in a dictionary.
-    store_reaches : bool, default True
-        If True, store each RiverRiver instance in a dictionary.
     height_agg_method : str, default 'weight'
         Method for aggregating pixel heights to node. By default, pixels are
         weighted using a weighted mean using the inverse height variance from
@@ -202,7 +200,6 @@ class SWOTRiverEstimator(SWOTL2):
                  height_kwd='height',
                  trim_ends=False,
                  store_obs=True,
-                 store_reaches=True,
                  xtrack_kwd='no_layover_cross_track',
                  sig0_kwd='sig0',
                  sig0_uncert_kwd='sig0_uncert',
@@ -235,7 +232,10 @@ class SWOTRiverEstimator(SWOTL2):
                  height_agg_method='weight',#[weight, median, uniform, orig]
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
-                 slope_method='weighted',
+                 slope_method='bayes',
+                 prior_unc_alpha=1.5,
+                 char_length_tau=10000,
+                 use_multiple_reaches=False,
                  use_ext_dist_coef=True,
                  outlier_method=None,
                  outlier_abs_thresh=None,
@@ -245,12 +245,13 @@ class SWOTRiverEstimator(SWOTL2):
                  **proj_kwds):
 
         self.trim_ends = trim_ends
-        self.store_obs = store_obs
-        self.store_reaches = store_reaches
         self.input_file = os.path.split(swotL2_file)[-1]
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
         self.slope_method = slope_method
+        self.prior_unc_alpha = prior_unc_alpha
+        self.char_length_tau = char_length_tau
+        self.use_multiple_reaches = use_multiple_reaches
         self.use_ext_dist_coef = use_ext_dist_coef
         self.outlier_method = outlier_method
         self.outlier_abs_thresh = outlier_abs_thresh
@@ -387,7 +388,7 @@ class SWOTRiverEstimator(SWOTL2):
                     print("could not find correct pixel area parameters")
 
         # need to scale pixel area by the subsampling factor if subsampling
-        if (self.subsample_factor > 1):
+        if self.subsample_factor > 1:
             self.pixel_area = self.pixel_area * self.subsample_factor
 
         if fractional_inundation_kwd is None:  # all water pixels are inundated
@@ -428,10 +429,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         LOGGER.debug('Data loaded')
 
-        # Initialize the list of observations and reaches
-        self.river_obs_collection = collections.OrderedDict()
+        # Initialize the list of reaches to output to product
         self.river_reach_collection = collections.OrderedDict()
-        self.fit_collection = collections.OrderedDict()
 
         self.flatten_interferogram()
         self.nc.close()
@@ -657,10 +656,8 @@ class SWOTRiverEstimator(SWOTL2):
                 max_iter=max_iter)
 
             river_reach_collection.append(river_reach)
-            if self.store_reaches:
-                self.river_reach_collection[ireach] = river_reach
 
-            LOGGER.debug('reach pocessed')
+            LOGGER.debug('reach processed')
 
         out_river_reach_collection = []
         # Now iterate over reaches again and do reach average computations
@@ -673,17 +670,19 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs = river_obs
 
             out_river_reach = self.process_reach(
-                river_reach, self.reaches[ireach], ireach, reach_idx,
-                min_fit_points=min_fit_points)
+                river_reach_collection, river_reach, self.reaches[ireach],
+                ireach, reach_idx, min_fit_points=min_fit_points
+            )
 
             if out_river_reach is not None:
                 if enhanced:
                     enhanced_slope = self.compute_enhanced_slope(
-                        river_reach, river_reach_collection, ireach,
+                        river_reach_collection, river_reach, ireach,
                         max_window_size=max_window_size,
                         min_sigma=min_sigma,
                         window_size_sigma_ratio=window_size_sigma_ratio,
-                        min_fit_points=min_fit_points)
+                        min_fit_points=min_fit_points
+                    )
                 else:
                     enhanced_slope = MISSING_VALUE_FLT
 
@@ -967,7 +966,7 @@ class SWOTRiverEstimator(SWOTL2):
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes - 1 > self.river_obs.k else False
-        LOGGER.debug("numNodes: %d, k: %d"%(numNodes, self.river_obs.k))
+        LOGGER.debug("numNodes: %d, k: %d" % (numNodes, self.river_obs.k))
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -1176,28 +1175,28 @@ class SWOTRiverEstimator(SWOTL2):
         # geoid heights and tide corrections weighted by height uncertainty
         geoid_hght = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
-                                         goodvar = 'h_flg',
-                                         method = self.height_agg_method))
+                                         goodvar='h_flg',
+                                         method=self.height_agg_method))
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'solid_earth_tide',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
         load_tidef = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_fes',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
         load_tideg = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_got',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'pole_tide',
                                          goodvar='h_flg',
-                                         method = self.height_agg_method))
+                                         method=self.height_agg_method))
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1318,14 +1317,10 @@ class SWOTRiverEstimator(SWOTL2):
 
         river_reach = RiverReach(**river_reach_kw_args)
 
-        # Store, if desired
-        if self.store_obs:
-            self.river_obs_collection[reach_idx] = self.river_obs
-
         return river_reach
 
-    def process_reach(
-        self, river_reach, reach, reach_id, reach_idx=None, min_fit_points=3):
+    def process_reach(self, river_reach_collection, river_reach, reach,
+                      reach_id, reach_idx=None, min_fit_points=2):
         """
         Estimate the width, height, and slope for one reach.
 
@@ -1343,7 +1338,7 @@ class SWOTRiverEstimator(SWOTL2):
             collection). If using a width database, the retrieved width will
             be associated with this reach index. If None, it will be set equal
             to the reach_id.
-        min_fit_points : int, default 3
+        min_fit_points : int, default 2
             Minimum number of populated nodes required for height/slope fit
 
         Returns
@@ -1398,18 +1393,10 @@ class SWOTRiverEstimator(SWOTL2):
         hh = river_reach.wse
         ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
-
-        mask = np.logical_and(hh > -500, hh < 8000)
-
-        reach_stats['n_good_nod'] = mask.sum()
-        reach_stats['frac_obs'] = (
-            mask.sum() / len(self.river_obs.centerline.s))
+        mask = self.get_reach_mask(ss, hh, ww, min_fit_points)
 
         if mask.sum() >= min_fit_points:
-            # first, compute and remove wse outliers using iterative linear fit
-            if self.outlier_method:
-                mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
-
+            # compute slope according to input config method
             if self.slope_method == 'first_to_last':
                 reach_stats['slope'] = (
                     hh[mask][0]-hh[mask][-1])/(ss[mask][0]-ss[mask][-1])
@@ -1441,19 +1428,63 @@ class SWOTRiverEstimator(SWOTL2):
                 #    statsmodels.regression.linear_model.RegressionResults.html
                 reach_stats['slope_u'] = fit.HC0_se[0]
                 reach_stats['height_u'] = fit.HC0_se[1]
+            elif self.slope_method == 'bayes':
+                # get the optimal reconstruction (Bayes estimate)
+                # using the offset linear weighted fit as the prior
+                wse_opt = self.optimal_reconstruct(river_reach_collection,
+                                                   river_reach, reach_id,
+                                                   ss, hh,
+                                                   np.sqrt(1.0 / ww),
+                                                   mask,
+                                                   min_fit_points,
+                                                   method='Bayes')
+                #
+                # TO-DO: determine if we should use outlier Bayes method
+                #
+                # flag outliers more than 3-sigma from the optimal fit
+                # outliers = (np.abs(hh - wse_opt) > 3 * np.sqrt(1.0 / ww))
+                # ww[outliers] = 1.0 / (np.abs(
+                #     hh[outliers] - wse_opt[outliers]) * 2) ** 2
+
+                # if 0 < outliers.sum():
+                #     # refit the wle with outlier rejection
+                #     ole.fit(X, hh[mask], ww[mask])
+                #     wse_wle_out = ole.predict(ss.reshape(len(ss), 1))
+                #     wse_opt = optimal_reconstruct(ss, hh,
+                #         np.sqrt(1.0 / ww), ~mask, wse_wle_offset)
+
+                # take first-to-last of reconstruction for slope
+                # mean of reconstruction wse (for observed nodes) as wse
+
+                # TO-DO: do we want to take first-to-last of entire
+                # reconstruction, or only the populated nodes?
+                dx = ss[0] - ss[-1]  # along-reach dist
+                reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
+
+                reach_stats['height'] = np.mean(wse_opt[mask]) \
+                    + reach_stats['slope'] * (np.mean(all_ss)
+                                              - np.mean(ss[mask]))
+                # TBD unc quantities for bayes method
+                reach_stats['slope_u'] = MISSING_VALUE_FLT
+                reach_stats['height_u'] = MISSING_VALUE_FLT
 
         else:
+            # insufficient node heights for fit to reach
             reach_stats['slope'] = MISSING_VALUE_FLT
             reach_stats['slope_u'] = MISSING_VALUE_FLT
             reach_stats['height'] = MISSING_VALUE_FLT
             reach_stats['height_u'] = MISSING_VALUE_FLT
 
+        reach_stats['n_good_nod'] = mask.sum()
+        reach_stats['frac_obs'] = (
+            mask.sum() / len(self.river_obs.centerline.s))
+
         # do fit on geoid heights for reach-level outputs
-        # TO-DO: should this be weighted fit?
         gg = river_reach.geoid_hght
-        mask = np.logical_and(gg > -500, gg < 8000)
+        mask = self.get_reach_mask(ss, gg, ww, min_fit_points)
         if mask.sum() >= min_fit_points:
-            geoid_fit = statsmodels.api.OLS(gg[mask], SS[mask]).fit()
+            geoid_fit = statsmodels.api.WLS(
+                gg[mask], SS[mask], weights=ww[mask]).fit()
 
             # fit slope is meters per meter
             reach_stats['geoid_slop'] = geoid_fit.params[0]
@@ -1660,7 +1691,7 @@ class SWOTRiverEstimator(SWOTL2):
         return
 
     def compute_enhanced_slope(
-        self, river_reach, river_reach_collection, ireach,
+        self, river_reach_collection, river_reach, ireach,
         max_window_size, min_sigma, window_size_sigma_ratio, min_fit_points=3):
         """
         This function calculate enhanced reach slope from smoothed
@@ -1679,8 +1710,125 @@ class SWOTRiverEstimator(SWOTL2):
         Output:
         enhanced_slope: enhanced reach slope
         """
+        wse, wse_r_u, this_len, first_node, ss = self.get_multi_reach_height(
+            river_reach_collection, river_reach, ireach)
+        # get the multi-reach mask
+        ww = 1 / (wse_r_u ** 2)
+        mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
+        # handle indexing for masked reaches
+        end_slice = first_node + this_len
+        this_reach_mask = mask[first_node:end_slice]
+
+        if np.sum(this_reach_mask) < min_fit_points:
+            enhanced_slope = MISSING_VALUE_FLT
+        else:
+            this_reach_edges = np.ma.flatnotmasked_edges(
+                np.ma.masked_array(wse[first_node:end_slice],
+                                   mask=~this_reach_mask))
+            last_node = first_node + this_reach_edges[1] - 1
+            first_node = first_node + this_reach_edges[0]
+            first_node_masked = first_node - np.sum(~mask[:first_node])
+            last_node_masked = first_node_masked + np.sum(this_reach_mask) - 1
+            this_reach_len = ss[last_node] - ss[first_node]
+
+            # window size and sigma for Gaussian averaging
+            window_size = np.min([max_window_size, this_reach_len])
+            sigma = np.max([min_sigma, window_size / window_size_sigma_ratio])
+
+            # smooth h_n_ave, and get slope
+            slope = np.polyfit(ss[mask], wse[mask], 1)[0]
+            heights_detrend = wse[mask] - slope * ss[mask]
+            heights_smooth = self.gaussian_averaging(
+                ss[mask], heights_detrend, window_size, sigma)
+            heights_smooth = heights_smooth + slope*(ss[mask] - ss[mask][0])
+            enhanced_slope = (heights_smooth[last_node_masked] -
+                              heights_smooth[first_node_masked])/this_reach_len
+
+        if np.isnan(enhanced_slope):
+            enhanced_slope = MISSING_VALUE_FLT
+        return enhanced_slope
+
+    @staticmethod
+    def gaussian_averaging(ss, wse, window_size, sigma):
+        """
+        Gaussian smoothing of heights using distances
+        ss:   along-flow distance
+        wse:     water heights
+        window_size: size of data window to use for averaging
+        sigma:       STD of Gaussian used for averaging
+
+        outputs:
+        smooth_heights : smoothed elevations
+        """
+        smooth_heights = np.zeros(wse.shape)
+        for ii, this_distance in enumerate(ss):
+
+            # get data window
+            mask = np.logical_and(
+                np.abs(this_distance-ss) <= window_size / 2,
+                ~np.isnan(wse))
+
+            weights = scipy.stats.norm.pdf(
+                this_distance, ss[mask], sigma)
+
+            smooth_heights[ii] = (
+                np.multiply(weights, wse[mask]).sum() /
+                weights.sum())
+
+        return smooth_heights
+
+    def get_reach_mask(self, ss, hh, ww, min_fit_points):
+        """
+        Mask each node in an input reach based on whether or not it has a valid
+        wse. Then mask for node-level wse outliers, if self.outlier_method is
+        set. Returns a numpy array where good nodes are 1 and bad nodes are 0.
+
+        :param ss: along-reach distance for each node
+        :param hh: height of each node
+        :param ww: weights for each node height, to use in outlier flagging
+        :param min_fit_points: minimum number of points needed to flag outliers
+        :return: reach mask where good nodes are 1 and bad nodes are 0
+        """
+        mask = np.logical_and(hh > -500, hh < 8000)
+        if self.outlier_method is not None \
+                and mask.sum() > min_fit_points:
+            SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
+            mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
+        return mask
+
+    def get_multi_reach_height(
+            self, river_reach_collection, river_reach, ireach):
+        """
+        Handles the upstream and downstream reaches from the PRD and returns
+        heights and lengths over multiple reaches for enhanced/Bayes slope
+        calculations. Includes checks for dam reaches and edge node proximity.
+
+        Parameters
+        ----------
+        river_reach_collection : List of RiverReach instances for tile
+        river_reach : partially populated RiverReach instance with node
+            quantities already computed
+        reach : Reach instance
+            One of the reaches from ReachExtractor.
+        ireach : int
+            Index in the list of reaches extracted for this scene.
+
+        Outputs
+        ----------
+        wse : node-level wse over (valid) upstream, current, and (valid)
+              downstream reaches.
+        wse_r_u : node-level wse_r_u over (valid) upstream, current, and
+                  (valid) downstream reaches.
+        this_len : number of nodes in current reach
+        first_node : index of first node in current reach following
+                     concatenation of multiple reaches
+        ss : node-level distance over (valid) upstream, current, and (valid)
+             downstream reaches.
+        """
         this_id = river_reach.reach_indx[0]
-        other_ids = [item.reach_indx[0] for item in river_reach_collection]
+        other_ids = [
+            item.reach_indx[0] for item in river_reach_collection
+        ]
 
         # get up/dn id from prior db
         prior_s = river_reach.prior_node_ss
@@ -1690,6 +1838,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # use the first good adjacent reach that is not skipped for height
         # smoothing
+        # TO-DO: add handling for multiple upstream/downstream reaches
         for up_id_try in self.reaches[ireach].metadata['rch_id_up'][:, 0]:
             if not up_id_try % 10 in skip_types:
                 break
@@ -1741,81 +1890,173 @@ class SWOTRiverEstimator(SWOTL2):
         # downstream.  Adjust along-reach to be cumulative across
         # reach boundaries.
         first_node = 0
-        distances = np.array([])
-        heights = np.array([])
-
+        ss = np.array([])
+        wse = np.array([])
+        wse_r_u = np.array([])
         # if upstream PRD reach is usable
         if prd_is_good[1]:
-            mask = np.logical_and(adj_rch[1].wse > -500, adj_rch[1].wse < 8000)
-            distances = np.concatenate([adj_rch[1].node_ss[mask], distances])
-            heights = np.concatenate([adj_rch[1].wse[mask], heights])
+            ss = np.concatenate([adj_rch[1].node_ss, ss])
+            wse = np.concatenate([adj_rch[1].wse, wse])
+            wse_r_u = np.concatenate([adj_rch[1].wse_r_u, wse_r_u])
 
-        mask = np.logical_and(river_reach.wse > -500, river_reach.wse < 8000)
-        distances = np.concatenate([
-            river_reach.node_ss[mask], distances+prior_s[-1]])
-        heights = np.concatenate([river_reach.wse[mask], heights])
-        this_len = len(river_reach.wse[mask])
+        ss = np.concatenate([river_reach.node_ss, ss+prior_s[-1]])
+        wse = np.concatenate([river_reach.wse, wse])
+        wse_r_u = np.concatenate([river_reach.wse_r_u, wse_r_u])
+        this_len = len(river_reach.wse)
 
         # if downstream PRD reach is usable
         if prd_is_good[-1]:
             downstream_prior_s = adj_rch[-1].prior_node_ss
-            mask = np.logical_and(
-                adj_rch[-1].wse > -500, adj_rch[-1].wse < 8000)
-            first_node = first_node + len(adj_rch[-1].wse[mask])
-            distances = np.concatenate([
-                adj_rch[-1].node_ss[mask], distances+downstream_prior_s[-1]])
-            heights = np.concatenate([adj_rch[-1].wse[mask], heights])
+            first_node = first_node + len(adj_rch[-1].wse)
+            ss = np.concatenate([adj_rch[-1].node_ss,
+                                 ss+downstream_prior_s[-1]])
+            wse = np.concatenate([adj_rch[-1].wse, wse])
+            wse_r_u = np.concatenate([adj_rch[-1].wse_r_u, wse_r_u])
 
-        if this_len < min_fit_points:
-            enhanced_slope = MISSING_VALUE_FLT
+        return wse, wse_r_u, this_len, first_node, ss
+
+    def optimal_reconstruct(
+            self,
+            river_reach_collection,
+            river_reach,
+            ireach,
+            ss,
+            wse,
+            wse_r_u,
+            mask,
+            min_fit_points=2,
+            prior_wse=None,
+            prior_cov_method='exponential',
+            full_noise_cov=False,
+            method='Bayes'):
+        """
+        This function estimates the optimal reconstruction estimator under
+        certain assumptions given by the options.
+        Inputs:
+        river_reach_collection : List of RiverReach instances for tile
+        river_reach : partially populated RiverReach instance with node
+                      quantities already computed
+        ireach : int
+            Index in the list of reaches extracted for this scene.
+        wse        : Measured Node wse (with masked values for missing nodes)
+        wse_r_u    : Node-wise wse uncertainty
+        ss         : Node-level distance from prior database
+        mask       : True if node-level height is good, False where it is bad
+        Options:
+        method = Bayes
+           Bayes        : Bayes estimate of wse given prior and
+                          prior_cov method.
+        full_noise_cov : True, or False
+                         This option sets the noise covariance and the sampling
+                         operator to assume that all nodes are observed (but
+                         weighted appropriately for the unobserved nodes).
+        prior_wse : The mean wse of the prior we want to impose (defaults to
+                    the weighted linear fit to reach if there is no input)
+        prior_cov_method : independent, exponential
+                           This option controls how spatial structure is
+                           imposed by the prior.
+        """
+        if self.use_multiple_reaches:
+            wse, wse_r_u, this_len, first_node, ss = \
+                self.get_multi_reach_height(
+                    river_reach_collection, river_reach, ireach)
+            # get the multi-reach mask
+            ww = 1 / (wse_r_u ** 2)
+            mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
+            ss = ss - np.mean(ss)
+        if prior_wse is None:
+            # create linear fit prior
+            ww = 1/wse_r_u**2
+            SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
+            wse_fit = statsmodels.api.WLS(wse[mask], SS[mask],
+                                          weights=ww[mask]).fit()
+            prior_wse = wse_fit.predict(SS)
+
+        # get the sampling operator
+        # find where the data is not masked out or NaN
+        ind = np.where(np.logical_not(np.logical_and(mask, np.isfinite(wse))))
+        # get vector with 1 for valid data elements
+        h = np.ones(np.shape(wse))
+        h[ind] = 0
+        # make full sampling matrix
+        H = np.diag(h)
+        # now remove the zero rows
+        num_removed = 0
+        for k, val in enumerate(h):
+            if val == 0:
+                row = k - num_removed
+                H = np.delete(H, row, 0)
+                num_removed = num_removed + 1
+        # get the covariance matrices
+        msk = np.logical_and(mask, np.isfinite(wse))
+        Rv = self.get_noise_autocov(wse, wse_r_u, mask, full_noise_cov)
+        if prior_cov_method == 'independent':
+            # assume no spatial structure
+            Ry0 = np.identity(len(ss))
+        elif prior_cov_method == 'exponential':
+            # get the signal covariance assuming an exponential random process
+            Ry0 = np.zeros((len(ss), len(ss)))
+            # TO-DO: check for multiple good upstream/downstream reaches and
+            # modify Ry
+            for k, d0 in enumerate(ss):
+                t = ss - d0
+                Ry0[k, :] = np.exp(-np.abs(t) / self.char_length_tau)
         else:
-            last_node = first_node + this_len - 1
-            this_reach_len = distances[last_node] - distances[first_node]
-
-            # window size and sigma for Gaussian averaging
-            window_size = np.min([max_window_size, this_reach_len])
-            sigma = np.max([
-                min_sigma, window_size/window_size_sigma_ratio])
-
-            # smooth h_n_ave, and get slope
-            slope = np.polyfit(distances, heights, 1)[0]
-            heights_detrend = heights - slope*distances
-            heights_smooth = self.gaussian_averaging(
-                distances, heights_detrend, window_size, sigma)
-            heights_smooth = heights_smooth + slope*(distances - distances[0])
-            enhanced_slope = (
-                heights_smooth[last_node] - heights_smooth[first_node]
-                ) / this_reach_len
-
-        if np.isnan(enhanced_slope):
-            enhanced_slope = MISSING_VALUE_FLT
-        return enhanced_slope
+            # TODO: Raise unimplemented option exception
+            pass
+        # scale the covariance to trade-off noise.vs "spectral resolution"
+        Ry = Ry0 / np.max(Ry0) * self.prior_unc_alpha ** 2
+        # compute the optimal wse reconstruction filter
+        if method == 'Bayes':
+            # get the bayes estimate
+            K, K_bar = self.compute_bayes_estimator(Ry, Rv, H)
+        else:
+            # TODO: Raise unimplemented option exception here
+            pass
+        # handle the missing node wse measurements
+        if full_noise_cov:
+            # wse_reg = prior_wse.copy()
+            wse_reg = np.zeros(np.shape(wse))
+            wse_reg[msk] = wse[msk]
+        else:
+            wse_reg = wse[msk]
+        # apply the wse estimator(s) to the measurement term
+        wse_out0 = np.matmul(K, wse_reg)
+        # apply the prior term
+        wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
+        if self.use_multiple_reaches:
+            end_slice = first_node + this_len
+            wse_out = wse_out[first_node:end_slice]
+        return wse_out
 
     @staticmethod
-    def gaussian_averaging(distances, heights, window_size, sigma):
+    def compute_bayes_estimator(Ry, Rv, H):
         """
-        Gaussian smoothing of heights using distances
-        distances:   along-flow distance
-        heights:     water heights
-        window_size: size of data window to use for averaging
-        sigma:       STD of Gaussian used for averaging
-
-        outputs:
-        smooth_heights : smoothed elevations
+        Implements the bayes estimator of the signal/parameters
+        Ry is the signal (or parameter) covariance
+        Rv is the measurement noise covariance
+        H is the sampling operator (or sampling then basis projection operator)
+        These are the equations implemented
+        K = (Ry^-1 + H.T Rv^-1 H)^-1 H.T Rv^-1
+        K_bar = (Ry^-1 + H.T Rv^-1 H)^-1 Ry^-1 (if non-zero mean of prior wse)
         """
-        smooth_heights = np.zeros(heights.shape)
-        for ii, this_distance in enumerate(distances):
+        Ry_inv = np.linalg.pinv(Ry)
+        Rv_inv = np.linalg.pinv(Rv)
+        post_cov_inv = Ry_inv + np.matmul(np.matmul(H.T, Rv_inv), H)
+        post_cov = np.linalg.pinv(post_cov_inv)
+        K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
+        K_bar = np.matmul(post_cov, Ry_inv)
 
-            # get data window
-            mask = np.logical_and(
-                np.abs(this_distance-distances) <= window_size / 2,
-                ~np.isnan(heights))
+        return K, K_bar
 
-            weights = scipy.stats.norm.pdf(
-                this_distance, distances[mask], sigma)
-
-            smooth_heights[ii] = (
-                np.multiply(weights, heights[mask]).sum() /
-                weights.sum())
-
-        return smooth_heights
+    @staticmethod
+    def get_noise_autocov(wse, wse_r_u, mask, full=False):
+        msk = np.logical_and(mask, np.isfinite(wse))
+        if full:
+            reg_inf = 1e10
+            wse_r_u_reg = np.zeros(np.shape(wse_r_u)) + reg_inf
+            wse_r_u_reg[msk] = wse_r_u[msk]
+            wse_r_u_reg[wse_r_u_reg < 0] = reg_inf
+        else:
+            wse_r_u_reg = wse_r_u[msk]
+        return np.diag(wse_r_u_reg)
