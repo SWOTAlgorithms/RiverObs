@@ -3401,6 +3401,10 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
                 cl_lat[ii, 0:this_len] = reach_outputs['centerline_lat'][ii]
 
+            # Wrap longitude into [0, 360) interval
+            mask = np.logical_and(cl_lon >= -180, cl_lon < 0)
+            cl_lon[mask] += 360
+
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
 
