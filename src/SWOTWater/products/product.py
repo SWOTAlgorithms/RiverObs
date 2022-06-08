@@ -325,6 +325,8 @@ class Product(object):
                 netcdf_group, default_complevel=default_complevel)
         for key in self.ATTRIBUTES:
             value = self[key]
+            if value is None:
+                value = ''
             try:
                 dtype = self.ATTRIBUTES[key]['dtype']
                 if dtype != 'str':
@@ -334,8 +336,6 @@ class Product(object):
                         warnings.warn((
                             "Unable to cast key: {}; value: {}; as dtype: "+
                             "{}.").format(key, value, dtype))
-                if value is None:
-                    value = ''
             except (TypeError, KeyError):
                 # if self.ATTRIBUTES is list or dtype not in self.ATTRIBUTES
                 pass
