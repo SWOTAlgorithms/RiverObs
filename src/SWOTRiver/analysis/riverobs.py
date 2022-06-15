@@ -482,7 +482,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 0.5
+        'min_xtrk_ratio': 1.0
     }
     msk=[]
 
