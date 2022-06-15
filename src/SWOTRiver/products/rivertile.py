@@ -1384,8 +1384,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'node water surface elevation'],
                 ['units', 'm'],
-                ['valid_min', -1000],
-                ['valid_max', 10000],
+                ['valid_min', -1500],
+                ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -1564,7 +1564,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             # if xtrk is too near/far
             klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
             klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
-
+            # TO-DO: WSE outlier quality flag
         return klass
 
     @classmethod
@@ -1768,8 +1768,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'water surface elevation with respect to the geoid'],
                 ['units', 'm'],
-                ['valid_min', -1000],
-                ['valid_max', 100000],
+                ['valid_min', -1500],
+                ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
