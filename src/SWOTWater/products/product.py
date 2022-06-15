@@ -327,6 +327,18 @@ class Product(object):
             value = self[key]
             if value is None:
                 value = ''
+            try:
+                dtype = self.ATTRIBUTES[key]['dtype']
+                if dtype != 'str':
+                    try:
+                        value = np.dtype(dtype).type(value)
+                    except ValueError:
+                        warnings.warn((
+                            "Unable to cast key: {}; value: {}; as dtype: "+
+                            "{}.").format(key, value, dtype))
+            except (TypeError, KeyError):
+                # if self.ATTRIBUTES is list or dtype not in self.ATTRIBUTES
+                pass
             dataset.setncattr(key, value)
         for key, value in self.dimensions.items():
             dataset.createDimension(key, value)
