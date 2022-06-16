@@ -426,10 +426,11 @@ class L2HRRiverTile(Product):
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
                             'loc_offset', 'xtrk_dist', 'frac_obs',
                             'slope', 'height', 'slope_u', 'height_u',
-                            'geoid_slop', 'geoid_hght',
-                            'd_x_area', 'd_x_area_u', 'dark_frac', 'slope2',
-                            'metro_q_c', 'bam_q_c', 'hivdi_q_c', 'momma_q_c',
-                            'sads_q_c', 'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
+                            'height_c', 'height_c_u', 'geoid_slop',
+                            'geoid_hght', 'd_x_area', 'd_x_area_u', 'width_c',
+                            'width_c_u', 'dark_frac', 'slope2', 'metro_q_c',
+                            'bam_q_c', 'hivdi_q_c', 'momma_q_c', 'sads_q_c',
+                            'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
                             'momma_q_uc', 'sads_q_uc']:
 
                     reach_outputs[key] = np.append(
@@ -1024,9 +1025,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['layovr_val',
          odict([['dtype', 'f8'],
                 ['long_name', 'metric of layover effect'],
-                ['units', 'TBD'],
+                ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -1384,8 +1385,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'node water surface elevation'],
                 ['units', 'm'],
-                ['valid_min', -1000],
-                ['valid_max', 10000],
+                ['valid_min', -1500],
+                ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -1564,7 +1565,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             # if xtrk is too near/far
             klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
             klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
-
+            # TO-DO: WSE outlier quality flag
         return klass
 
     @classmethod
@@ -1768,8 +1769,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'water surface elevation with respect to the geoid'],
                 ['units', 'm'],
-                ['valid_min', -1000],
-                ['valid_max', 100000],
+                ['valid_min', -1500],
+                ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
@@ -1810,6 +1811,41 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     including uncertainties of corrections, and variation about
                     the fit.""")],
                 ])],
+        ['wse_c',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'constrained water surface elevation with respect to the geoid'],
+                ['units', 'm'], ['valid_min', -1500],
+                ['valid_max', 150000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Constrained water surface elevation, relative to the 
+                    provided model of the geoid (geoid_hght), with corrections 
+                    for media delays (wet and dry troposphere, and ionosphere), 
+                    crossover correction, and tidal effects (solid_tide, 
+                    load_tidef, and pole_tide) applied.  This estimate of the 
+                    water surface elevation is constrained to follow a 
+                    predefined monotonic relationship with the river 
+                    width.""")],
+               ])],
+        ['wse_c_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'total uncertainty in the constrained water surface '
+                 'elevation'],
+                ['units', 'm'],
+                ['valid_min', 0],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Total one-sigma uncertainty (random and systematic) in the 
+                    constrained reach WSE, including uncertainties of 
+                    corrections, and variation about the fit..""")],
+             ])],
         ['slope',
          odict([['dtype', 'f8'],
                 ['long_name', 'water surface slope with respect to the geoid'],
@@ -1921,6 +1957,34 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Total one-sigma uncertainty (random and systematic) in
                     the reach width.""")],
+                ])],
+        ['width_c',
+         odict([['dtype', 'f8'],
+                ['long_name', 'constrained reach width'],
+                ['units', 'm'],
+                ['valid_min', 0],
+                ['valid_max', 100000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Constrained reach width. This estimate of the width is 
+                    constrained to follow a predefined monotonic relationship 
+                    with the WSE.""")],
+                ])],
+        ['width_c_u',
+         odict([['dtype', 'f8'],
+                ['long_name', 'total uncertainty in the constrained reach '
+                              'width'],
+                ['units', 'm'],
+                ['valid_min', 0],
+                ['valid_max', 100000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Total one-sigma uncertainty (random and systematic) in the 
+                    constrained reach width.""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f8'],
@@ -3306,11 +3370,15 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['reach_id'] = reach_outputs['reach_idx']
             klass['wse'] = reach_outputs['height']
             klass['wse_r_u'] = reach_outputs['height_u']
+            klass['wse_c'] = reach_outputs['height_c']
+            klass['wse_c_u'] = reach_outputs['height_c_u']
             klass['slope'] = reach_outputs['slope']
             klass['slope_r_u'] = reach_outputs['slope_u']
             klass['slope2'] = reach_outputs['slope2']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
+            klass['width_c'] = reach_outputs['width_c']
+            klass['width_c_u'] = reach_outputs['width_c_u']
             klass['area_total'] = reach_outputs['area']
             klass['area_tot_u'] = reach_outputs['area_u']
             klass['area_detct'] = reach_outputs['area_det']
