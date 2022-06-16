@@ -663,7 +663,7 @@ class ShapeWriterMixIn(object):
                             this_property[key] = this_value
 
                     else:
-                        this_property[key] = np.asscalar(this_item[ii])
+                        this_property[key] = this_item[ii].item()
 
                 if is_reach:
                     lons = self.centerline_lon[ii]
