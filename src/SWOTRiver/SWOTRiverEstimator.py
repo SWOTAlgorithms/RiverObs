@@ -1457,14 +1457,10 @@ class SWOTRiverEstimator(SWOTL2):
                 # take first-to-last of reconstruction for slope
                 # mean of reconstruction wse (for observed nodes) as wse
 
-                # TO-DO: do we want to take first-to-last of entire
-                # reconstruction, or only the populated nodes?
+                # Use reconstruction height and slope for reach outputs
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
-
-                reach_stats['height'] = np.mean(wse_opt[mask]) \
-                    + reach_stats['slope'] * (np.mean(all_ss)
-                                              - np.mean(ss[mask]))
+                reach_stats['height'] = np.mean(wse_opt)
                 # TBD unc quantities for bayes method
                 reach_stats['slope_u'] = MISSING_VALUE_FLT
                 reach_stats['height_u'] = MISSING_VALUE_FLT
