@@ -341,6 +341,10 @@ def area_only(
     I = np.zeros(np.shape(pixel_area))
     I[(Idw + Idw_in + Ide) > 0] = 1.0  # all pixels near water
 
+    # set water fractions greater than 3 to 3 to handle water frac outliers
+    # TO-DO: propagate to node-level quality?
+    water_fraction = np.where(water_fraction < 3, water_fraction, 3)
+
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
         num_pixels = simple(Idw[good], metric='sum')
