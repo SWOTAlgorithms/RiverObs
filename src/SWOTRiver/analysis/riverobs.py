@@ -356,7 +356,8 @@ def get_truth_classes():
                       21602600311, 21602600371, 21602600871, 21602600891,
                       21602601451, 21602700051, 21602700071, 23221000021,
                       23267000111, 23267000131, 23267000201, 23267000271,
-                      23267000371, 21602600241],
+                      23267000371, 21602600241, 81130400011, 74292300011,
+                      74292100211],
         'tribs': [74230900151, 74291800111, 74291700051, 74291800081,
                   74284300051, 74284300061, 74100600051, 74100600061,
                   74100600071, 74100600081, 74100600551, 74100600561,
@@ -496,17 +497,17 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         scene_mask = [s == reach_scene for s in scene_nodes]
         node_mask = np.logical_and(data.nodes['reach_id'] == reach,
                                    scene_mask)
-        node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
-                                         scene_mask)
+        # node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
+        #                                  scene_mask)
         n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
-        n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
+        # n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
         n_prd = len(data.nodes['node_id'][node_mask])
         n_good_xtrk = np.sum(
             np.logical_and(np.abs(data.nodes['xtrk_dist'][node_mask]) > 10000,
                            np.abs(data.nodes['xtrk_dist'][node_mask]) < 60000))
 
         obs_area_frac[index] = n_good_data / n_prd
-        truth_ratio[index] = n_good_data / n_good_truth
+        # truth_ratio[index] = n_good_data / n_good_truth
         xtrk_ratio[index] = n_good_xtrk / n_prd
 
     # some quick plots
