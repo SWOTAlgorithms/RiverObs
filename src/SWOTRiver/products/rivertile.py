@@ -421,13 +421,12 @@ class L2HRRiverTile(Product):
                     reach_outputs['dschg_ssf'], dsch_m_uc['SADS']['sbQ_rel'])
                 reach_outputs['dschg_gssf'] = np.append(
                     reach_outputs['dschg_gssf'], dsch_m_c['SADS']['sbQ_rel'])
-
                 reach_outputs['dschg_isf'] = np.append(
                     reach_outputs['dschg_isf'],
-                    dsch_m_uc['SIC4DVar']['sbQ_rel'])
+                    MISSING_VALUE_FLT)
                 reach_outputs['dschg_gisf'] = np.append(
                     reach_outputs['dschg_gisf'],
-                    dsch_m_c['SIC4DVar']['sbQ_rel'])
+                    MISSING_VALUE_FLT)
 
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',

@@ -108,12 +108,14 @@ def compute(reach, reach_height, reach_width, reach_slope):
             outputs['hivdi_q_c'] = hivdi_q
             outputs['momma_q_c'] = momma_q
             outputs['sads_q_c'] = sads_q
+            outputs['sic4dvar_q_c'] = MISSING_VALUE_FLT  # need new SWORD
         elif key == 'unconstrained':
             outputs['metro_q_uc'] = metro_q
             outputs['bam_q_uc'] = bam_q
             outputs['hivdi_q_uc'] = hivdi_q
             outputs['momma_q_uc'] = momma_q
             outputs['sads_q_uc'] = sads_q
+            outputs['sic4dvar_q_uc'] = MISSING_VALUE_FLT  # need new SWORD
     # populate the constrained height and width outputs
     if np.isnan(area_fit_outputs[1]) or np.isnan(area_fit_outputs[2]):
         outputs['width_c'] = MISSING_VALUE_FLT
