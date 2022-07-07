@@ -169,6 +169,13 @@ def main():
                         help='Add -p if you want to save the output files.'
                              'If you flag -p, it is recommended that you also'
                              ' specify --outdir and --title')
+    parser.add_argument('-pge', '--pge', action='store_true', default=None,
+                        help='Flag that signifies we are looking for '
+                             'pge-generated files. These have different names '
+                             'and require a flag to correctly be found.')
+    parser.add_argument('-tm', '--test_mode', action='store_true', default=None,
+                        help='Flag that triggers testing mode. Only a small'
+                             'number of files will be read in.')
     args = parser.parse_args()
 
     metrics = None
@@ -193,9 +200,7 @@ def main():
 
         if args.outdir or args.title:
             if args.print_me is None:
-                warnings.warn('You have provided an output directory or '
-                              'filename with no --print_me flag. Tables '
-                              'will not be saved.')
+                args.print_me = True
 
         # TODO: Right now it's hardcoded that the truth data lives under the slc
         # base directory, and the proc data lives under the pixc base directory
@@ -212,34 +217,58 @@ def main():
                                    if args.scene_filter in k]
 
         # If proc_rivertile input is a basename, get the actual rivertile
-        proc_rivertile_list = [os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
-                               if os.path.isdir(proc_rivertile) else proc_rivertile
-                               for proc_rivertile in proc_rivertile_list]
+        if args.pge:
+            proc_rivertile_list = [glob.glob(
+                proc_rivertile + '/river_data/' + '*RiverTile*.nc'
+            ) if os.path.isdir(proc_rivertile) else proc_rivertile
+                                   for proc_rivertile in proc_rivertile_list]
+            proc_rivertile_list = [
+                ''.join(tile) for tile in proc_rivertile_list
+            ]
+        else:
+            proc_rivertile_list = [os.path.join(
+                proc_rivertile, 'river_data', 'rivertile.nc'
+            ) if os.path.isdir(proc_rivertile) else proc_rivertile
+                                   for proc_rivertile in proc_rivertile_list]
         if args.truth_basedir is not None:
             len_basedir = len(Path(args.basedir).parts)
             if args.pixc_errors_basename is not None:
-                truth_rivertile_list = \
-                    [os.path.join(args.truth_basedir, *Path(proc_rivertile).parts[len_basedir:-5], args.truth_rivertile)
-                     for proc_rivertile in proc_rivertile_list]
+                truth_rivertile_list = [
+                    os.path.join(
+                        args.truth_basedir,
+                        *Path(proc_rivertile).parts[len_basedir:-5],
+                        args.truth_rivertile
+                    ) for proc_rivertile in proc_rivertile_list
+                ]
             else:
-                truth_rivertile_list = \
-                    [os.path.join(args.truth_basedir, *Path(proc_rivertile).parts[len_basedir:-4], args.truth_rivertile)
-                     for proc_rivertile in proc_rivertile_list]
+                truth_rivertile_list = [
+                    os.path.join(
+                        args.truth_basedir,
+                        *Path(proc_rivertile).parts[len_basedir:-4],
+                        args.truth_rivertile
+                    ) for proc_rivertile in proc_rivertile_list
+                ]
         else:  # truth basedir same as nominal basedir
             if args.pixc_errors_basename is not None:
-                truth_rivertile_list = \
-                    [os.path.join(*Path(proc_rivertile).parts[:-5], args.truth_rivertile)
-                     for proc_rivertile in proc_rivertile_list]
+                truth_rivertile_list = [
+                    os.path.join(
+                        *Path(proc_rivertile).parts[:-5], args.truth_rivertile
+                    ) for proc_rivertile in proc_rivertile_list
+                ]
             else:
-                truth_rivertile_list = \
-                    [os.path.join(*Path(proc_rivertile).parts[:-4], args.truth_rivertile)
-                     for proc_rivertile in proc_rivertile_list]
+                truth_rivertile_list = [
+                    os.path.join(
+                        *Path(proc_rivertile).parts[:-4], args.truth_rivertile
+                    ) for proc_rivertile in proc_rivertile_list
+                ]
 
         # If truth_rivertile input is a basename, get the actual rivertile
-        truth_rivertile_list = [os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
-                                    if os.path.isdir(truth_rivertile) else truth_rivertile
-                                    for truth_rivertile in truth_rivertile_list]
-
+        truth_rivertile_list = [
+            os.path.join(
+                truth_rivertile, 'river_data', 'rivertile.nc'
+            ) if os.path.isdir(truth_rivertile) else truth_rivertile
+            for truth_rivertile in truth_rivertile_list
+        ]
         # error checking
         truth_sum = 0
         nominal_sum = 0
@@ -253,6 +282,9 @@ def main():
                 nominal_sum+=1
         if nominal_sum==0:
             print('No nominal tiles found. Check input variable names.')
+
+        if args.test_mode:
+            proc_rivertile_list = proc_rivertile_list[0:80]
 
         for proc_rivertile, truth_rivertile in zip(proc_rivertile_list,
                                                    truth_rivertile_list):
@@ -325,9 +357,9 @@ def main():
                + str(bounds['max_xtrk']) + " km and width>" \
                + str(bounds['min_width']) + " m and area>" \
                + str(bounds['min_area']) + " m^2 \n and reach len>=" \
-               + str(bounds['min_length']) + " m and obs frac >" \
-               + str(bounds['min_obs_frac']) + " and truth ratio > "\
-               + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
+               + str(bounds['min_length']) + " m and obs frac >=" \
+               + str(bounds['min_obs_frac']) + " and truth ratio >= "\
+               + str(bounds['min_truth_ratio']) + " and xtrk proportion >= "\
                + str(bounds['min_xtrk_ratio'])
 
     print(preamble)
