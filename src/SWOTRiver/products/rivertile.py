@@ -1906,7 +1906,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'total uncertainty in the constrained water surface '
                  'elevation'],
-                ['short_name', 'wse_constrained_uncert'],
+                ['short_name', 'wse_constr_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
@@ -2057,7 +2057,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the constrained reach '
                               'width'],
-                ['short_name', 'width_constrained_uncert'],
+                ['short_name', 'width_constr_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -2249,6 +2249,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'dschg_c_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the consensus discharge algorithm.""")],
@@ -2271,7 +2272,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'fractional systematic uncertainty in consensus discharge'],
-                ['short_name', 'discharge_consensus_systematic_uncert_frac'],
+                ['short_name', 'discharge_consensus_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2303,12 +2304,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gc',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained consensus discharge'],
-                ['short_name', 'discharge_gauge_constrained_consensus'],
+                ['short_name', 'discharge_gauge_constr_consensus'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'dschg_gc_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained consensus discharge
@@ -2318,7 +2320,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained consensus discharge'],
-                ['short_name', 'discharge_gauge_constrained_consensus_uncert'],
+                ['short_name', 'discharge_gauge_constr_consensus_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2335,7 +2337,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     consensus discharge""")],
-                ['short_name', 'discharge_gauge_constrained_consensus_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_consensus_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2352,7 +2354,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained consensus discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_consensus_qual'],
+                ['short_name', 'discharge_gauge_constr_consensus_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2376,6 +2378,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_m_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the MetroMan discharge algorithm.""")],
@@ -2399,7 +2402,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in MetroMan discharge
                     """)],
-                ['short_name', 'discharge_metroman_systematic_uncert_frac'],
+                ['short_name', 'discharge_metroman_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2431,12 +2434,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gm',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained MetroMan discharge'],
-                ['short_name', 'discharge_gauge_constrained_metroman'],
+                ['short_name', 'discharge_gauge_constr_metroman'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gm_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained MetroMan discharge
@@ -2446,7 +2450,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained MetroMan discharge'],
-                ['short_name', 'discharge_gauge_constrained_metroman_uncert'],
+                ['short_name', 'discharge_gauge_constr_metroman_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2463,7 +2467,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     MetroMan discharge""")],
-                ['short_name', 'discharge_gauge_constrained_metroman_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_metroman_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2480,7 +2484,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained MetroMan discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_metroman_qual'],
+                ['short_name', 'discharge_gauge_constr_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2504,6 +2508,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_b_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the BAM discharge algorithm.""")],
@@ -2558,12 +2563,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gb',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained BAM discharge'],
-                ['short_name', 'discharge_gauge_constrained_bam'],
+                ['short_name', 'discharge_gauge_constr_bam'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gb_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained BAM discharge
@@ -2573,7 +2579,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained BAM discharge'],
-                ['short_name', 'discharge_gauge_constrained_bam_uncert'],
+                ['short_name', 'discharge_gauge_constr_bam_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2590,7 +2596,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     BAM discharge""")],
-                ['short_name', 'discharge_gauge_constrained_bam_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_bam_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2607,7 +2613,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained BAM discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_bam_qual'],
+                ['short_name', 'discharge_gauge_constr_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2631,6 +2637,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_h_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the HiVDI discharge algorithm.""")],
@@ -2653,7 +2660,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in HiVDI discharge""")],
-                ['short_name', 'discharge_hivdi_systematic_uncert_frac'],
+                ['short_name', 'discharge_hivdi_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2685,12 +2692,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gh',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained HiVDI discharge'],
-                ['short_name', 'discharge_gauge_constrained_hivdi'],
+                ['short_name', 'discharge_gauge_constr_hivdi'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gh_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained HiVDI discharge
@@ -2700,7 +2708,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained HiVDI discharge'],
-                ['short_name', 'discharge_gauge_constrained_hivdi_uncert'],
+                ['short_name', 'discharge_gauge_constr_hivdi_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2717,7 +2725,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     HiVDI discharge""")],
-                ['short_name', 'discharge_gauge_constrained_hivdi_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_hivdi_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2734,7 +2742,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained HiVDI discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_hivdi_qual'],
+                ['short_name', 'discharge_gauge_constr_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2758,6 +2766,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_o_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the MOMMA discharge algorithm.""")],
@@ -2780,7 +2789,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in MOMMA discharge""")],
-                ['short_name', 'discharge_momma_systematic_uncert_frac'],
+                ['short_name', 'discharge_momma_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2812,12 +2821,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_go',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained MOMMA discharge'],
-                ['short_name', 'discharge_gauge_constrained_momma'],
+                ['short_name', 'discharge_gauge_constr_momma'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_go_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained MOMMA discharge
@@ -2827,7 +2837,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained MOMMA discharge'],
-                ['short_name', 'discharge_gauge_constrained_momma_uncert'],
+                ['short_name', 'discharge_gauge_constr_momma_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2844,7 +2854,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     MOMMA discharge""")],
-                ['short_name', 'discharge_gauge_constrained_momma_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_momma_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2861,7 +2871,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained MOMMA discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_momma_qual'],
+                ['short_name', 'discharge_gauge_constr_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2885,6 +2895,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_s_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the SADS discharge algorithm.""")],
@@ -2907,7 +2918,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in SADS discharge""")],
-                ['short_name', 'discharge_sads_systematic_uncert_frac'],
+                ['short_name', 'discharge_sads_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2939,12 +2950,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gs',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained SADS discharge'],
-                ['short_name', 'discharge_gauge_constrained_sads'],
+                ['short_name', 'discharge_gauge_constr_sads'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gs_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained SADS discharge
@@ -2954,7 +2966,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained SADS discharge'],
-                ['short_name', 'discharge_gauge_constrained_sads_uncert'],
+                ['short_name', 'discharge_gauge_constr_sads_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2971,7 +2983,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     SADS discharge""")],
-                ['short_name', 'discharge_gauge_constrained_sads_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_sads_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2988,7 +3000,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained SADS discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_sads_qual'],
+                ['short_name', 'discharge_gauge_constr_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -3012,6 +3024,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_i_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the SIC4DVar discharge algorithm.""")],
@@ -3034,7 +3047,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in SIC4DVar discharge""")],
-                ['short_name', 'discharge_sic4dvar_systematic_uncert_frac'],
+                ['short_name', 'discharge_sic4dvar_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -3066,12 +3079,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gi',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained SIC4DVar discharge'],
-                ['short_name', 'discharge_gauge_constrained_sic4dvar'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gi_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained SIC4DVar discharge
@@ -3081,7 +3095,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained SIC4DVar discharge'],
-                ['short_name', 'discharge_gauge_constrained_sic4dvar_uncert'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -3098,7 +3112,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     SIC4DVar discharge""")],
-                ['short_name', 'discharge_gauge_constrained_sic4dvar_systematic_uncert_frac'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -3115,7 +3129,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained SIC4DVar discharge quality flag'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'discharge_gauge_constrained_sic4dvar_qual'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
