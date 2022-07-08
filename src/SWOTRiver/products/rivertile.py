@@ -1121,18 +1121,19 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'summary quality indicator for the node'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'node_qual'],
-                ['flag_meanings', textjoin("""good bad""")],
+                ['flag_meanings', textjoin("""good suspect bad""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the node measurement.
-                    Values of 0 and 1 indicate nominal and off-nominal
-                    measurements.""")],
+                    Value of 0 indicates a nominal measurement, 1 is a suspect 
+                    measurement, and 2 is a bad quality measurement.
+                    """)],
                 ])],
         ['node_q_b',
          odict([['dtype', 'i4'],
