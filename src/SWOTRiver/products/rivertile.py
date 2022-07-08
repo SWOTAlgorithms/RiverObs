@@ -1658,6 +1658,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
             klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
             # TO-DO: WSE outlier quality flag
+            # TO-DO: populate bitwise quality flag
+            klass['node_q_b'][:] = MISSING_VALUE_INT9
         return klass
 
     @classmethod
