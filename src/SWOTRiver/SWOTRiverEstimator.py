@@ -1111,10 +1111,11 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             xtrack_median = None
 
-        # TO-DO: update lat and long to use only pixels used in height agg
         lon_median = np.asarray(
-            self.river_obs.get_node_stat('sincos_median', 'lon'))
-        lat_median = np.asarray(self.river_obs.get_node_stat('median', 'lat'))
+            self.river_obs.get_node_stat('sincos_median', 'lon',
+                                         goodvar='h_flg'))
+        lat_median = np.asarray(self.river_obs.get_node_stat('median', 'lat',
+                                                             goodvar='h_flg'))
         ds = np.asarray(self.river_obs.get_node_stat('value', 'ds'))
 
         # number of good heights
