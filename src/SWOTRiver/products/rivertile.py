@@ -1134,6 +1134,36 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     Values of 0 and 1 indicate nominal and off-nominal
                     measurements.""")],
                 ])],
+        ['node_q_b',
+         odict([['dtype', 'i4'],
+                ['long_name', 'summary quality indicator for the node'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'node_qual'],
+                ['flag_meanings', textjoin(
+                    """sig0_qual_suspect  
+                    classification_qual_suspect  
+                    geolocation_qual_suspect  
+                    water_fraction_suspect  
+                    blocking_width_suspect  
+                    bright_land  
+                    far_range_suspect  
+                    near_range_suspect  
+                    wse_outlier  
+                    wse_bad""")],
+                ['flag_masks',
+                 '1 2 4 8 16 128 4096 8192 32768 65536'],
+                ['valid_min', 1],
+                ['valid_max', 268435456],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the node measurement. If this 
+                     word is interpreted as an unsigned integer, a value of 0 
+                    indicates good data, values less than 32768 represent 
+                    suspect data, and values greater than or equal to 32768 
+                    represent bad data.""")],
+                ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
