@@ -1123,7 +1123,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['short_name', 'node_qual'],
                 ['flag_meanings', textjoin("""good suspect bad""")],
                 ['flag_masks', 'TBD'],
-                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -1139,7 +1139,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'summary quality indicator for the node'],
                 ['standard_name', 'status_flag'],
-                ['short_name', 'node_qual'],
+                ['short_name', 'node_qual_bitwise'],
                 ['flag_meanings', textjoin(
                     """sig0_qual_suspect  
                     classification_qual_suspect  
