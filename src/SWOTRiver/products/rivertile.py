@@ -22,6 +22,18 @@ from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
+# define constants for each node-level quality bit
+QUAL_IND_SIG0_QUAL_SUSPECT = 1              # bit 0
+QUAL_IND_CLASS_QUAL_SUSPECT = 2             # bit 1
+QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4       # bit 2
+QUAL_IND_WATER_FRAC_SUSPECT = 8             # bit 3
+QUAL_IND_BLOCK_WIDTH_SUSPECT = 16           # bit 4
+QUAL_IND_BRIGHT_LAND_SUSPECT = 128          # bit 7
+QUAL_IND_FAR_RANGE_SUSPECT = 4096           # bit 12
+QUAL_IND_NEAR_RANGE_SUSPECT = 8192          # bit 13
+QUAL_IND_WSE_OUTLIER = 32768                # bit 15
+QUAL_IND_WSE_BAD = 65536                    # bit 16
+
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
     'inner_first_latitude', 'inner_first_longitude', 'inner_last_latitude',
@@ -1151,9 +1163,19 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     near_range_suspect  
                     wse_outlier  
                     wse_bad""")],
-                ['flag_masks',
-                 '1 2 4 8 16 128 4096 8192 32768 65536'],
-                ['valid_min', 1],
+                ['flag_masks', np.array([
+                    QUAL_IND_SIG0_QUAL_SUSPECT,
+                    QUAL_IND_CLASS_QUAL_SUSPECT,
+                    QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
+                    QUAL_IND_WATER_FRAC_SUSPECT,
+                    QUAL_IND_BLOCK_WIDTH_SUSPECT,
+                    QUAL_IND_BRIGHT_LAND_SUSPECT,
+                    QUAL_IND_FAR_RANGE_SUSPECT,
+                    QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAL_IND_WSE_OUTLIER,
+                    QUAL_IND_WSE_BAD
+                ]).astype('i4')],
+                ['valid_min', 0],
                 ['valid_max', 268435456],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
