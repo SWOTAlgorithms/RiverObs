@@ -3204,18 +3204,18 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'summary quality indicator for the reach'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'reach_qual'],
-                ['flag_meanings', textjoin("""good bad""")],
+                ['flag_meanings', textjoin("""good suspect bad""")],
                 ['flag_masks', 'TBD'],
-                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the reach measurement. 
-                    Values of 0 and 1 indicate nominal (good) and off-nominal
-                    (suspect) measurements.""")],
+                    Value of 0 indicates a nominal measurement, 1 is a suspect 
+                    measurement, and 2 is a bad quality measurement.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
