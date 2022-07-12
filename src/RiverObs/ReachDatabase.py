@@ -692,8 +692,8 @@ class ReachDatabaseReachDischargeModels(Product):
         ['BAM', 'ReachDatabaseReachBAM'],
         ['HiVDI', 'ReachDatabaseReachHiVDI'],
         ['MOMMA', 'ReachDatabaseReachMOMMA'],
-        ['SADS', 'ReachDatabaseReachSADS'],
-    ])
+        ['SADS', 'ReachDatabaseReachSADS'] # ['SIC4DVar', 'ReachDatabaseReachSIC4DVar'],
+    ])  # TO-DO: add SIC4DVar when added to SWORD
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachDischargeModels by reach_ids"""

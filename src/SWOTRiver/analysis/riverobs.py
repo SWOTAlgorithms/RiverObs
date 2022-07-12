@@ -476,7 +476,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     bounds = {
         'min_xtrk': 10000,
         'max_xtrk': 60000,
-        'min_width': 100,
+        'min_width': 80,
         'min_area': 800000,
         'min_length': 8000,
         'min_obs_frac': 0.5,
@@ -489,7 +489,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
 
     # define some extra masking criteria for each reach based on node values
     obs_area_frac = np.empty(np.size(data.reaches['reach_id']))
-    truth_ratio = np.empty(np.size(data.reaches['reach_id']))
+    # truth_ratio = np.empty(np.size(data.reaches['reach_id']))
     xtrk_ratio = np.empty(np.size(data.reaches['reach_id']))
     for index, reach in enumerate(data.reaches['reach_id']):
         reach_scene = scene[index]
@@ -557,8 +557,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         # add the node-level filters to the mask
         msk = np.logical_and.reduce([
             msk,
-            obs_area_frac >= bounds['min_area_obs_frac'],
-            truth_ratio >= bounds['min_truth_ratio'],
+            obs_area_frac >= bounds['min_area_obs_frac'], #truth_ratio >= bounds['min_truth_ratio'],
             xtrk_ratio >= bounds['min_xtrk_ratio']
         ])
         if print_table:

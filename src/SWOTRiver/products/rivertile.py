@@ -22,6 +22,18 @@ from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
+# define constants for each node-level quality bit
+QUAL_IND_SIG0_QUAL_SUSPECT = 1              # bit 0
+QUAL_IND_CLASS_QUAL_SUSPECT = 2             # bit 1
+QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4       # bit 2
+QUAL_IND_WATER_FRAC_SUSPECT = 8             # bit 3
+QUAL_IND_BLOCK_WIDTH_SUSPECT = 16           # bit 4
+QUAL_IND_BRIGHT_LAND_SUSPECT = 128          # bit 7
+QUAL_IND_FAR_RANGE_SUSPECT = 4096           # bit 12
+QUAL_IND_NEAR_RANGE_SUSPECT = 8192          # bit 13
+QUAL_IND_WSE_OUTLIER = 32768                # bit 15
+QUAL_IND_WSE_BAD = 65536                    # bit 16
+
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
     'inner_first_latitude', 'inner_first_longitude', 'inner_last_latitude',
@@ -421,6 +433,12 @@ class L2HRRiverTile(Product):
                     reach_outputs['dschg_ssf'], dsch_m_uc['SADS']['sbQ_rel'])
                 reach_outputs['dschg_gssf'] = np.append(
                     reach_outputs['dschg_gssf'], dsch_m_c['SADS']['sbQ_rel'])
+                reach_outputs['dschg_isf'] = np.append(
+                    reach_outputs['dschg_isf'],
+                    MISSING_VALUE_FLT)
+                reach_outputs['dschg_gisf'] = np.append(
+                    reach_outputs['dschg_gisf'],
+                    MISSING_VALUE_FLT)
 
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
@@ -430,8 +448,9 @@ class L2HRRiverTile(Product):
                             'geoid_hght', 'd_x_area', 'd_x_area_u', 'width_c',
                             'width_c_u', 'dark_frac', 'slope2', 'metro_q_c',
                             'bam_q_c', 'hivdi_q_c', 'momma_q_c', 'sads_q_c',
-                            'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
-                            'momma_q_uc', 'sads_q_uc']:
+                            'sic4dvar_q_c', 'metro_q_uc', 'bam_q_uc',
+                            'hivdi_q_uc', 'momma_q_uc', 'sads_q_uc',
+                            'sic4dvar_q_uc']:
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
@@ -719,6 +738,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['reach_id',
          odict([['dtype', 'i8'],
                 ['long_name', 'reach ID with which node is associated'],
+                ['short_name', 'reach_id'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -731,6 +751,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i8'],
                 ['long_name',
                  "node ID of the node in the prior river database"],
+                ['short_name', 'node_id'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -743,6 +764,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', "time (UTC)"],
                 ['standard_name', 'time'],
+                ['short_name', 'time'],
                 ['calendar', 'gregorian'],
                 ['tai_utc_difference',
                  '[value of TAI-UTC at time of first record]'],
@@ -762,6 +784,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', "time (TAI)"],
                 ['standard_name', 'time'],
+                ['short_name', 'time_tai'],
                 ['calendar', 'gregorian'],
                 ['units', 'seconds since 2000-01-01 00:00:00.000'],
                 ['_FillValue', MISSING_VALUE_FLT],
@@ -776,6 +799,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', "time (UTC)"],
                 ['standard_name', 'time'],
+                ['short_name', 'time_string'],
                 ['calendar', 'gregorian'],
                 ['tai_utc_difference',
                  '[value of TAI-UTC at time of first record]'],
@@ -791,6 +815,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'latitude of centroid of water-detected pixels'],
                 ['standard_name', 'latitude'],
+                ['short_name', 'latitude'],
                 ['units', 'degrees_north'],
                 ['valid_min', -80],
                 ['valid_max', 80],
@@ -805,6 +830,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'longitude of centroid of water-detected pixels'],
                 ['standard_name', 'longitude'],
+                ['short_name', 'longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', -180],
                 ['valid_max', 180],
@@ -819,6 +845,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['lat_u',
          odict([['dtype', 'f8'],
                 ['long_name', "uncertainty in the node latitude"],
+                ['short_name', 'latitude_uncert'],
                 ['units', 'degrees_north'],
                 ['valid_min', 0],
                 ['valid_max', 1],
@@ -832,6 +859,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['lon_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in the node longitude'],
+                ['short_name', 'longitude_uncert'],
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 1],
@@ -846,6 +874,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['river_name',
          odict([['dtype', 'U254'],
                 ['long_name', 'river name(s)'],
+                ['short_name', 'river_name'],
                 ['_FillValue', 'no_data'],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -858,6 +887,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'Latitude of prior node in database'],
                 ['standard_name', 'latitude'],
+                ['short_name', 'prior_latitude'],
                 ['units', 'degrees_north'],
                 ['valid_min', -78],
                 ['valid_max', 78],
@@ -872,6 +902,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'Longitude of prior node in database'],
                 ['standard_name', 'longitude'],
+                ['short_name', 'prior_longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', -180],
                 ['valid_max', 180],
@@ -887,6 +918,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'water surface elevation with respect to the geoid'],
+                ['short_name', 'wse'],
                 ['units', 'm'],
                 ['valid_min', -1000],
                 ['valid_max', 100000],
@@ -904,6 +936,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'total uncertainty in the water surface elevation'],
+                ['short_name', 'wse_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0.0],
                 ['valid_max', 999999],
@@ -919,6 +952,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'random-only uncertainty in the water surface elevation'],
+                ['short_name', 'wse_random_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0.0],
                 ['valid_max', 999999],
@@ -933,6 +967,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['width',
          odict([['dtype', 'f8'],
                 ['long_name', "node width"],
+                ['short_name', 'width'],
                 ['units', 'm'],
                 ['valid_min', 0.0],
                 ['valid_max', 100000],
@@ -944,6 +979,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['width_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the node width'],
+                ['short_name', 'width_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -957,6 +993,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['area_total',
          odict([['dtype', 'f8'],
                 ['long_name', 'total water surface area including dark water'],
+                ['short_name', 'area_total'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -972,6 +1009,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['area_tot_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in the total water surface area'],
+                ['short_name', 'area_total_uncert'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -985,6 +1023,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['area_detct',
          odict([['dtype', 'f8'],
                 ['long_name', 'surface area of detected water pixels'],
+                ['short_name', 'area_detected'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -999,6 +1038,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     uncertainty in the surface area of detected water""")],
+                ['short_name', 'area_detected_uncert'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -1012,6 +1052,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['area_wse',
          odict([['dtype', 'f8'],
                 ['long_name', 'area used to compute water surface elevation'],
+                ['short_name', 'area_wse'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -1025,6 +1066,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['layovr_val',
          odict([['dtype', 'f8'],
                 ['long_name', 'metric of layover effect'],
+                ['short_name', 'layover_value'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
@@ -1040,6 +1082,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name',textjoin("""
                     distance between observed and prior river database node
                     location""")],
+                ['short_name', 'node_distance'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
@@ -1053,6 +1096,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['xtrk_dist',
          odict([['dtype', 'f8'],
                 ['long_name', 'distance to the satellite ground track'],
+                ['short_name', 'cross_track_distance'],
                 ['units', 'm'],
                 ['valid_min', -75000],
                 ['valid_max', 75000],
@@ -1069,6 +1113,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'river flow direction relative to the satellite ground track'],
+                ['short_name', 'flow_angle'],
                 ['units', 'degrees'],
                 ['valid_min', 0],
                 ['valid_max', 360],
@@ -1087,22 +1132,65 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the node'],
                 ['standard_name', 'status_flag'],
-                ['flag_meanings', textjoin("""good bad""")],
+                ['short_name', 'node_qual'],
+                ['flag_meanings', textjoin("""good suspect bad""")],
                 ['flag_masks', 'TBD'],
-                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the node measurement.
-                    Values of 0 and 1 indicate nominal and off-nominal
-                    measurements.""")],
+                    Value of 0 indicates a nominal measurement, 1 is a suspect 
+                    measurement, and 2 is a bad quality measurement.
+                    """)],
+                ])],
+        ['node_q_b',
+         odict([['dtype', 'i4'],
+                ['long_name', 'summary quality indicator for the node'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'node_qual_bitwise'],
+                ['flag_meanings', textjoin(
+                    """sig0_qual_suspect  
+                    classification_qual_suspect  
+                    geolocation_qual_suspect  
+                    water_fraction_suspect  
+                    blocking_width_suspect  
+                    bright_land  
+                    far_range_suspect  
+                    near_range_suspect  
+                    wse_outlier  
+                    wse_bad""")],
+                ['flag_masks', np.array([
+                    QUAL_IND_SIG0_QUAL_SUSPECT,
+                    QUAL_IND_CLASS_QUAL_SUSPECT,
+                    QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
+                    QUAL_IND_WATER_FRAC_SUSPECT,
+                    QUAL_IND_BLOCK_WIDTH_SUSPECT,
+                    QUAL_IND_BRIGHT_LAND_SUSPECT,
+                    QUAL_IND_FAR_RANGE_SUSPECT,
+                    QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAL_IND_WSE_OUTLIER,
+                    QUAL_IND_WSE_BAD
+                ]).astype('i4')],
+                ['valid_min', 0],
+                ['valid_max', 268435456],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the node measurement. If this 
+                     word is interpreted as an unsigned integer, a value of 0 
+                    indicates good data, values less than 32768 represent 
+                    suspect data, and values greater than or equal to 32768 
+                    represent bad data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
+                ['short_name', 'dark_water_fraction'],
                 ['units', 1],
                 ['valid_min', 0],
                 ['valid_max', 1],
@@ -1116,6 +1204,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'climatological ice cover flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'climatological_ice_flag'],
                 ['source', 'Yang et al. (2020)'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover uncertain_ice_cover full_ice_cover""")],
@@ -1137,6 +1226,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'dynamical ice cover flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'dynamic_ice_flag'],
                 ['source', 'Yang et al. (2020)'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
@@ -1158,6 +1248,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'partial node coverage flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'partial_coverage_flag'],
                 ['flag_meanings', textjoin("""covered not_covered""")],
                 ['flag_values', np.array([0, 1]).astype('i2')],
                 ['valid_min', 0],
@@ -1174,6 +1265,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['n_good_pix',
          odict([['dtype', 'i4'],
                 ['long_name', 'number of pixels that have a valid WSE'],
+                ['short_name', 'num_good_pixels'],
                 ['units', 1],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -1187,6 +1279,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['xovr_cal_q',
          odict([['dtype', 'i2'],
                 ['long_name', 'quality of the cross-over calibration'],
+                ['short_name', 'height_cor_xover_qual'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
@@ -1201,6 +1294,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['rdr_sig0',
          odict([['dtype', 'f8'],
                 ['long_name', 'sigma0'],
+                ['short_name', 'radar_sig0'],
                 ['units', '1'],
                 ['valid_min', -1000],
                 ['valid_max', 10000000],
@@ -1217,6 +1311,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['rdr_sig0_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in sigma0'],
+                ['short_name', 'radar_sig0_uncert'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 1000],
@@ -1232,6 +1327,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['rdr_pol',
          odict([['dtype', 'S1'],
                 ['long_name', 'polarization of sigma0'],
+                ['short_name', 'radar_polarization'],
                 ['_FillValue', 'no_data'],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -1242,7 +1338,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
-                ['standard_name','geoid_height_above_reference_ellipsoid'],
+                ['standard_name', 'geoid_height_above_reference_ellipsoid'],
+                ['short_name', 'geoid_height'],
                 ['source', 'EGM2008 (Pavlis et al., 2012)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
@@ -1259,6 +1356,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['solid_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'solid Earth tide height'],
+                ['short_name', 'solid_earth_tide'],
                 ['source', textjoin("""
                     Cartwright and Taylor (1971) and Cartwright and Edden
                     (1973)""")],
@@ -1275,6 +1373,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['load_tidef',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric load tide height (FES)'],
+                ['short_name', 'load_tide_fes'],
                 ['source', 'FES2014b (Carrere et al., 2016)'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
@@ -1291,6 +1390,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['load_tideg',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric load tide height (GOT)'],
+                ['short_name', 'load_tide_got'],
                 ['source', 'GOT4.10c (Ray, 2013)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
@@ -1306,6 +1406,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['pole_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
+                ['short_name', 'pole_tide'],
                 ['source', 'Wahr (1985) and Desai et al. (2015)'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -1322,6 +1423,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['dry_trop_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'dry troposphere vertical correction'],
+                ['short_name', 'model_dry_tropo_cor'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['institution', 'ECMWF'],
                 ['units', 'm'],
@@ -1338,6 +1440,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['wet_trop_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'wet troposphere vertical correction'],
+                ['short_name', 'model_wet_tropo_cor'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['institution', 'ECMWF'],
                 ['units', 'm'],
@@ -1354,6 +1457,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['iono_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'ionosphere vertical correction'],
+                ['short_name', 'iono_cor_gim_ka'],
                 ['source', 'Global Ionosphere Maps'],
                 ['institution', 'JPL'],
                 ['units', 'm'],
@@ -1370,6 +1474,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'WSE correction from KaRIn crossovers'],
+                ['short_name', 'height_cor_xover'],
                 ['units', 'm'],
                 ['valid_min', -10],
                 ['valid_max', 10],
@@ -1384,6 +1489,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_wse',
          odict([['dtype', 'f8'],
                 ['long_name', 'node water surface elevation'],
+                ['short_name', 'prior_wse'],
                 ['units', 'm'],
                 ['valid_min', -1500],
                 ['valid_max', 150000],
@@ -1396,6 +1502,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_wse_var',
          odict([['dtype', 'f8'],
                 ['long_name', 'node water surface elevation variability'],
+                ['short_name', 'prior_wse_variability'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
@@ -1409,6 +1516,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_width',
          odict([['dtype', 'f8'],
                 ['long_name', 'node width'],
+                ['short_name', 'prior_width'],
                 ['units', 'm'],
                 ['valid_min', 10],
                 ['valid_max', 100000],
@@ -1421,6 +1529,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_wid_var',
          odict([['dtype', 'f8'],
                 ['long_name', 'node width variability'],
+                ['short_name', 'prior_width_variability'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -1434,6 +1543,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_dist_out',
          odict([['dtype', 'f8'],
                 ['long_name', 'distance from the node to the outlet'],
+                ['short_name', 'prior_distance_to_outlet'],
                 ['units', 'm'],
                 ['valid_min', -10000],
                 ['valid_max', 10000000],
@@ -1447,6 +1557,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_length',
          odict([['dtype', 'f8'],
                 ['long_name', 'length of node'],
+                ['short_name', 'prior_length'],
                 ['units', 'm'],
                 ['valid_min', 10],
                 ['valid_max', 1000],
@@ -1461,6 +1572,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_dam_id',
          odict([['dtype', 'i4'],
                 ['long_name', 'dam ID from GRanD database'],
+                ['short_name', 'prior_dam_id'],
                 ['source', 'Lehner et al. (2011)'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -1479,6 +1591,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_n_ch_max',
          odict([['dtype', 'i2'],
                 ['long_name', 'maximum number of channels detected in node'],
+                ['short_name', 'prior_num_channels_max'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
@@ -1492,6 +1605,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         ['p_n_ch_mod',
          odict([['dtype', 'i2'],
                 ['long_name', 'mode of the number of channels at the node'],
+                ['short_name', 'prior_num_channels_mode'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
@@ -1566,6 +1680,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
             klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
             # TO-DO: WSE outlier quality flag
+            # TO-DO: populate bitwise quality flag
+            klass['node_q_b'][:] = MISSING_VALUE_INT9
         return klass
 
     @classmethod
@@ -1691,6 +1807,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['reach_id',
          odict([['dtype', 'i8'],
                 ['long_name', 'reach ID from prior river database'],
+                ['short_name', 'reach_id'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
@@ -1706,6 +1823,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'Latitude of the centerline of the reach from prior database'],
+                ['short_name', 'centerline_latitude'],
                 ['units', 'degrees_north'],
                 ['valid_min', -90],
                 ['valid_max', 90],
@@ -1717,6 +1835,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'Longitude of the centerline of the reach from prior database'],
+                ['short_name', 'centerline_longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', 0],
                 ['valid_max', 360],
@@ -1728,6 +1847,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'latitude of the center of the reach'],
                 ['standard_name', 'latitude'],
+                ['short_name', 'prior_latitude'],
                 ['units', 'degrees_north'],
                 ['valid_min', -80],
                 ['valid_max', 80],
@@ -1742,6 +1862,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'longitude of the center of the reach'],
                 ['standard_name', 'longitude'],
+                ['short_name', 'prior_longitude'],
                 ['units', 'degrees_east'],
                 ['valid_min', -180],
                 ['valid_max', 180],
@@ -1756,6 +1877,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['river_name',
          odict([['dtype', 'U254'],
                 ['long_name', 'river name(s)'],
+                ['short_name', 'river_name'],
                 ['_FillValue', 'no_data'],
                 ['tag_basic_expert','Basic'],
                 ['comment', textjoin("""
@@ -1768,6 +1890,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'water surface elevation with respect to the geoid'],
+                ['short_name', 'wse'],
                 ['units', 'm'],
                 ['valid_min', -1500],
                 ['valid_max', 150000],
@@ -1785,6 +1908,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'total uncertainty in the water surface elevation'],
+                ['short_name', 'wse_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
@@ -1800,6 +1924,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'random-only uncertainty in the water surface elevation'],
+                ['short_name', 'wse_random_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
@@ -1813,8 +1938,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['wse_c',
          odict([['dtype', 'f8'],
-                ['long_name',
-                 'constrained water surface elevation with respect to the geoid'],
+                ['long_name', 'constrained water surface elevation with '
+                              'respect to the geoid'],
+                ['short_name', 'wse_constrained'],
                 ['units', 'm'], ['valid_min', -1500],
                 ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
@@ -1835,6 +1961,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'total uncertainty in the constrained water surface '
                  'elevation'],
+                ['short_name', 'wse_constr_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 999999],
@@ -1849,6 +1976,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['slope',
          odict([['dtype', 'f8'],
                 ['long_name', 'water surface slope with respect to the geoid'],
+                ['short_name', 'slope'],
                 ['units', 'm/m'],
                 ['valid_min', -0.001],
                 ['valid_max', 0.1],
@@ -1865,6 +1993,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['slope_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the water surface slope'],
+                ['short_name', 'slope_uncert'],
                 ['units', 'm/m'],
                 ['valid_min', 0],
                 ['valid_max', 0.1],
@@ -1879,6 +2008,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['slope_r_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'random uncertainty in the water surface slope'],
+                ['short_name', 'slope_random_uncert'],
                 ['units', 'm/m'],
                 ['valid_min', 0],
                 ['valid_max', 0.1],
@@ -1893,6 +2023,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                     'enhanced water surface slope with respect to the geoid'],
+                ['short_name', 'slope_2'],
                 ['units', 'm/m'],
                 ['valid_min', -0.001],
                 ['valid_max', 0.1],
@@ -1909,6 +2040,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['slope2_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in the enhanced water surface slope'],
+                ['short_name', 'slope_2_uncert'],
                 ['units', 'm/m'],
                 ['valid_min', 0],
                 ['valid_max', 0.1],
@@ -1924,6 +2056,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'random uncertainty in the enhanced water surface slope'],
+                ['short_name', 'slope_2_random_uncert'],
                 ['units', 'm/m'],
                 ['valid_min', 0],
                 ['valid_max', 0.1],
@@ -1937,6 +2070,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['width',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach width'],
+                ['short_name', 'width'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -1948,6 +2082,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['width_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the reach width'],
+                ['short_name', 'width_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -1961,6 +2096,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['width_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'constrained reach width'],
+                ['short_name', 'width_constrained'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -1976,6 +2112,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the constrained reach '
                               'width'],
+                ['short_name', 'width_constr_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
@@ -1989,6 +2126,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['area_total',
          odict([['dtype', 'f8'],
                 ['long_name', 'total water surface area including dark water'],
+                ['short_name', 'area_total'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -2005,6 +2143,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     uncertainty in the total water surface area""")],
+                ['short_name', 'area_total_uncert'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 10000*200],
@@ -2018,6 +2157,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['area_detct',
          odict([['dtype', 'f8'],
                 ['long_name', 'surface area of detected water pixels'],
+                ['short_name', 'area_detected'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -2032,6 +2172,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     uncertainty in the surface area of detected water""")],
+                ['short_name', 'area_detected_uncert'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -2046,6 +2187,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     area used to compute water surface elevation""")],
+                ['short_name', 'area_wse'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 2000000000],
@@ -2059,6 +2201,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['d_x_area',
          odict([['dtype', 'f8'],
                 ['long_name', 'change in cross-sectional area'],
+                ['short_name', 'change_in_cross_sectional_area'],
                 ['units', 'm^2'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
@@ -2074,6 +2217,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     total uncertainty of the change in the cross-sectional
                     area """)],
+                ['short_name', 'change_in_cross_sectional_area_uncert'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2087,6 +2231,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['layovr_val',
          odict([['dtype', 'f8'],
                 ['long_name', 'metric of layover effect'],
+                ['short_name', 'layover_value'],
                 ['units', 'TBD'],
                 ['valid_min', 0],
                 ['valid_max', 1],
@@ -2102,6 +2247,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     mean distance between observed and prior river database
                     node locations""")],
+                ['short_name', 'node_distance'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 10000],
@@ -2117,6 +2263,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     along-stream location offset between the observed and
                     prior reach location""")],
+                ['short_name', 'location_offset'],
                 ['units', 'm'],
                 ['valid_min', -20000],
                 ['valid_max', 20000],
@@ -2134,6 +2281,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     distance to the satellite ground track""")],
+                ['short_name', 'cross_track_distance'],
                 ['units', 'm'],
                 ['valid_min', -75000],
                 ['valid_max', 75000],
@@ -2150,11 +2298,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'consensus discharge'],
+                ['short_name', 'discharge_consensus'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'dschg_c_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the consensus discharge algorithm.""")],
@@ -2162,6 +2312,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_c_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in consensus discharge'],
+                ['short_name', 'discharge_consensus_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2176,6 +2327,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'fractional systematic uncertainty in consensus discharge'],
+                ['short_name', 'discharge_consensus_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2189,6 +2341,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_c_q',
          odict([['dtype', 'i4'],
                 ['long_name', 'consensus discharge quality flag'],
+                ['short_name', 'discharge_consensus_qual'],
                 ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
@@ -2206,11 +2359,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gc',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained consensus discharge'],
+                ['short_name', 'discharge_gauge_constr_consensus'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'dschg_gc_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained consensus discharge
@@ -2220,6 +2375,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained consensus discharge'],
+                ['short_name', 'discharge_gauge_constr_consensus_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2236,6 +2392,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     consensus discharge""")],
+                ['short_name', 'discharge_gauge_constr_consensus_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2252,6 +2409,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained consensus discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_consensus_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2269,11 +2427,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_m',
          odict([['dtype', 'f8'],
                 ['long_name', 'MetroMan discharge'],
+                ['short_name', 'discharge_metroman'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_m_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the MetroMan discharge algorithm.""")],
@@ -2281,6 +2441,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_m_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in MetroMan discharge'],
+                ['short_name', 'discharge_metroman_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2296,6 +2457,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in MetroMan discharge
                     """)],
+                ['short_name', 'discharge_metroman_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2310,6 +2472,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'MetroMan discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2326,11 +2489,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gm',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained MetroMan discharge'],
+                ['short_name', 'discharge_gauge_constr_metroman'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gm_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained MetroMan discharge
@@ -2340,6 +2505,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained MetroMan discharge'],
+                ['short_name', 'discharge_gauge_constr_metroman_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2356,6 +2522,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     MetroMan discharge""")],
+                ['short_name', 'discharge_gauge_constr_metroman_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2372,6 +2539,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained MetroMan discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2389,11 +2557,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_b',
          odict([['dtype', 'f8'],
                 ['long_name', 'BAM discharge'],
+                ['short_name', 'discharge_bam'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_b_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the BAM discharge algorithm.""")],
@@ -2401,6 +2571,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_b_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in BAM discharge'],
+                ['short_name', 'discharge_bam_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2415,6 +2586,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in BAM discharge""")],
+                ['short_name', 'discharge_bam_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2429,6 +2601,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'BAM discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2445,11 +2618,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gb',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained BAM discharge'],
+                ['short_name', 'discharge_gauge_constr_bam'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gb_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained BAM discharge
@@ -2459,6 +2634,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained BAM discharge'],
+                ['short_name', 'discharge_gauge_constr_bam_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2475,6 +2651,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     BAM discharge""")],
+                ['short_name', 'discharge_gauge_constr_bam_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2491,6 +2668,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained BAM discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2508,11 +2686,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_h',
          odict([['dtype', 'f8'],
                 ['long_name', 'HiVDI discharge'],
+                ['short_name', 'discharge_hivdi'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_h_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the HiVDI discharge algorithm.""")],
@@ -2520,6 +2700,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_h_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in HiVDI discharge'],
+                ['short_name', 'discharge_hivdi_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2534,6 +2715,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in HiVDI discharge""")],
+                ['short_name', 'discharge_hivdi_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2548,6 +2730,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'HiVDI discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2564,11 +2747,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gh',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained HiVDI discharge'],
+                ['short_name', 'discharge_gauge_constr_hivdi'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gh_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained HiVDI discharge
@@ -2578,6 +2763,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained HiVDI discharge'],
+                ['short_name', 'discharge_gauge_constr_hivdi_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2594,6 +2780,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     HiVDI discharge""")],
+                ['short_name', 'discharge_gauge_constr_hivdi_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2610,6 +2797,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained HiVDI discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2627,11 +2815,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_o',
          odict([['dtype', 'f8'],
                 ['long_name', 'MOMMA discharge'],
+                ['short_name', 'discharge_momma'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_o_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the MOMMA discharge algorithm.""")],
@@ -2639,6 +2829,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_o_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in MOMMA discharge'],
+                ['short_name', 'discharge_momma_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2653,6 +2844,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in MOMMA discharge""")],
+                ['short_name', 'discharge_momma_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2667,6 +2859,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'MOMMA discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2683,11 +2876,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_go',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained MOMMA discharge'],
+                ['short_name', 'discharge_gauge_constr_momma'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_go_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained MOMMA discharge
@@ -2697,6 +2892,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained MOMMA discharge'],
+                ['short_name', 'discharge_gauge_constr_momma_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2713,6 +2909,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     MOMMA discharge""")],
+                ['short_name', 'discharge_gauge_constr_momma_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2729,6 +2926,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained MOMMA discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2746,11 +2944,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_s',
          odict([['dtype', 'f8'],
                 ['long_name', 'SADS discharge'],
+                ['short_name', 'discharge_sads'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_s_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the SADS discharge algorithm.""")],
@@ -2758,6 +2958,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_s_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'uncertainty in SADS discharge'],
+                ['short_name', 'discharge_sads_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2772,6 +2973,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in SADS discharge""")],
+                ['short_name', 'discharge_sads_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2786,6 +2988,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i4'],
                 ['long_name', 'SADS discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2802,11 +3005,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dschg_gs',
          odict([['dtype', 'f8'],
                 ['long_name', 'gauge-constrained SADS discharge'],
+                ['short_name', 'discharge_gauge_constr_sads'],
                 ['units', 'm^3/s'],
                 ['valid_min', -10000000],
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gs_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Discharge from the gauge-constrained SADS discharge
@@ -2816,6 +3021,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name',
                  'uncertainty in gauge-constrained SADS discharge'],
+                ['short_name', 'discharge_gauge_constr_sads_uncert'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -2832,6 +3038,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in gauge-constrained
                     SADS discharge""")],
+                ['short_name', 'discharge_gauge_constr_sads_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -2848,6 +3055,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name',
                  'gauge-constrained SADS discharge quality flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
@@ -2862,10 +3070,140 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     the gauge-constrained SADS discharge is valid,
                     questionable, and invalid, respectively.""")],
                 ])],
+        ['dschg_i',
+         odict([['dtype', 'f8'],
+                ['long_name', 'SIC4DVar discharge'],
+                ['short_name', 'discharge_sic4dvar'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_i_q'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the SIC4DVar discharge algorithm.""")],
+                ])],
+        ['dschg_i_u',
+         odict([['dtype', 'f8'],
+                ['long_name', 'uncertainty in SIC4DVar discharge'],
+                ['short_name', 'discharge_sic4dvar_uncert'],
+                ['units', 'm^3/s'],
+                ['valid_min', 0],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Total uncertainty in the discharge from the SIC4DVar algorithm
+                    as an absolute quantity.""")],
+                ])],
+        ['dschg_isf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in SIC4DVar discharge""")],
+                ['short_name', 'discharge_sic4dvar_sys_uncert_frac'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the SIC4DVar algorithm as a fractional quantity.""")],
+                ])],
+        ['dschg_i_q',
+         odict([['dtype', 'i4'],
+                ['long_name', 'SIC4DVar discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_sic4dvar_qual'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the SIC4DVar discharge.
+                    Values of 0, 1, and 2 indicate that the SIC4DVar discharge
+                    is valid, questionable, and invalid, respectively.""")],
+                ])],
+        ['dschg_gi',
+         odict([['dtype', 'f8'],
+                ['long_name', 'gauge-constrained SIC4DVar discharge'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar'],
+                ['units', 'm^3/s'],
+                ['valid_min', -10000000],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['quality_flag', 'dschg_gi_q'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Discharge from the gauge-constrained SIC4DVar discharge
+                    algorithm.""")],
+                ])],
+        ['dschg_gi_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in gauge-constrained SIC4DVar discharge'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar_uncert'],
+                ['units', 'm^3/s'],
+                ['valid_min', 0],
+                ['valid_max', 10000000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Total uncertainty in the discharge from the
+                    gauge-constrained SIC4DVar algorithm as an absolute
+                    quantity.""")],
+                ])],
+        ['dschg_gisf',
+         odict([['dtype', 'f8'],
+                ['long_name', textjoin("""
+                    fractional systematic uncertainty in gauge-constrained
+                    SIC4DVar discharge""")],
+                ['short_name', 'discharge_gauge_constr_sic4dvar_sys_uncert_frac'],
+                ['units', '1'],
+                ['valid_min', 0],
+                ['valid_max', 9999999999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Systematic component of the uncertainty in the discharge
+                    from the gauge-constrained SIC4DVar algorithm as a 
+                    fractional quantity.""")],
+                ])],
+        ['dschg_gi_q',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'gauge-constrained SIC4DVar discharge quality flag'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_sic4dvar_qual'],
+                ['flag_meanings', textjoin("""
+                    valid questionable invalid""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 2],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert','Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Flag that indicates quality of the gauge-constrained
+                    SIC4DVar discharge. Values of 0, 1, and 2 indicate that
+                    the gauge-constrained SIC4DVar discharge is valid,
+                    questionable, and invalid, respectively.""")],
+                ])],
         ['reach_q',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the reach'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'reach_qual'],
                 ['flag_meanings', textjoin("""good bad""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1]).astype('i2')],
@@ -2882,6 +3220,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dark_frac',
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
+                ['short_name', 'dark_water_fraction'],
                 ['units', 1],
                 ['valid_min', -1000],
                 ['valid_max', 10000],
@@ -2895,6 +3234,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'climatological ice cover flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'climatological_ice_flag'],
                 ['source', 'Yang et al. (2020)'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover uncertain_ice_cover full_ice_cover""")],
@@ -2915,8 +3255,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i2'],
-                ['long_name', 'dynamical ice cover flag'],
+                ['long_name', 'dynamic ice cover flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'dynamic_ice_flag'],
                 ['source', 'Yang et al. (2020)'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
@@ -2938,6 +3279,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'partial reach coverage flag'],
                 ['standard_name', 'status_flag'],
+                ['short_name', 'partial_coverage_flag'],
                 ['flag_meanings', textjoin("""covered not_covered""")],
                 ['flag_values', np.array([0, 1]).astype('i2')],
                 ['valid_min', 0],
@@ -2955,6 +3297,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name',
                  'number of nodes in the reach that have a valid WSE'],
+                ['short_name', 'num_good_node'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
@@ -2969,6 +3312,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['obs_frac_n',
          odict([['dtype', 'f8'],
                 ['long_name', 'fraction of nodes that have a valid WSE'],
+                ['short_name', 'fraction_of_observed_nodes'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 1],
@@ -2982,6 +3326,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['xovr_cal_q',
          odict([['dtype', 'i2'],
                 ['long_name', 'quality of the cross-over calibration'],
+                ['short_name', 'height_cor_xover_qual'],
                 ['flag_meanings', textjoin("""TBD""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', 'TBD'],
@@ -2997,6 +3342,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
                 ['standard_name','geoid_height_above_reference_ellipsoid'],
+                ['short_name', 'geoid_height'],
                 ['source', 'EGM2008 (Pavlis et al., 2012)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
@@ -3013,6 +3359,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['geoid_slop',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid slope'],
+                ['short_name', 'geoid_slope'],
                 ['source', 'EGM2008 (Pavlis et al., 2012)'],
                 ['institution', 'GSFC'],
                 ['units', 'm/m'],
@@ -3029,6 +3376,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['solid_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'solid Earth tide height'],
+                ['short_name', 'solid_earth_tide'],
                 ['source', textjoin("""
                     Cartwright and Taylor (1971) and Cartwright and Edden
                     (1973)""")],
@@ -3045,6 +3393,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['load_tidef',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric load tide height (FES)'],
+                ['short_name', 'load_tide_fes'],
                 ['source', 'FES2014b (Carrere et al., 2016)'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
@@ -3061,6 +3410,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['load_tideg',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric load tide height (GOT)'],
+                ['short_name', 'load_tide_got'],
                 ['source', 'GOT4.10c (Ray, 2013)'],
                 ['institution', 'GSFC'],
                 ['units', 'm'],
@@ -3076,6 +3426,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['pole_tide',
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric pole tide height'],
+                ['short_name', 'pole_tide'],
                 ['source', 'Wahr (1985) and Desai et al. (2015)'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -3092,6 +3443,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['dry_trop_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'dry troposphere vertical correction'],
+                ['short_name', 'model_dry_tropo_cor'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['institution', 'ECMWF'],
                 ['units', 'm'],
@@ -3108,6 +3460,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['wet_trop_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'wet troposphere vertical correction'],
+                ['short_name', 'model_wet_tropo_cor'],
                 ['source', 'European Centre for Medium-Range Weather Forecasts'],
                 ['institution', 'ECMWF'],
                 ['units', 'm'],
@@ -3124,6 +3477,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['iono_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'ionosphere vertical correction'],
+                ['short_name', 'iono_cor_gim_ka'],
                 ['source', 'Global Ionosphere Maps'],
                 ['institution', 'JPL'],
                 ['units', 'm'],
@@ -3140,6 +3494,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['xovr_cal_c',
          odict([['dtype', 'f8'],
                 ['long_name', 'WSE correction from KaRIn crossovers'],
+                ['short_name', 'height_cor_xover'],
                 ['units', 'm'],
                 ['valid_min', -10],
                 ['valid_max', 10],
@@ -3154,6 +3509,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['n_reach_up',
          odict([['dtype', 'i2'],
                 ['long_name', 'number of upstream reaches'],
+                ['short_name', 'num_upstream_reaches'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 4],
@@ -3167,6 +3523,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['n_reach_dn',
          odict([['dtype', 'i2'],
                 ['long_name', 'number of downstream reaches'],
+                ['short_name', 'num_downstream_reaches'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 4],
@@ -3181,6 +3538,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['rch_id_up',
          odict([['dtype', 'i8'],
                 ['long_name', 'reach_id  of upstream reaches'],
+                ['short_name', 'reach_id_upstream'],
                 ['units', '1'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
@@ -3194,6 +3552,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['rch_id_dn',
          odict([['dtype', 'i8'],
                 ['long_name', 'reach_id  of downstream reaches'],
+                ['short_name', 'reach_id_downstream'],
                 ['units', '1'],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Basic'],
@@ -3207,6 +3566,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_wse',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach water surface elevation'],
+                ['short_name', 'prior_wse'],
                 ['units', 'm'],
                 ['valid_min', -1000],
                 ['valid_max', 10000],
@@ -3219,6 +3579,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_wse_var',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach water surface elevation variability'],
+                ['short_name', 'prior_wse_variability'],
                 ['units', 'm'],
                 ['valid_min', 0],
                 ['valid_max', 9999],
@@ -3232,6 +3593,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_width',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach width'],
+                ['short_name', 'prior_width'],
                 ['units', 'm'],
                 ['valid_min', 10],
                 ['valid_max', 100000],
@@ -3244,6 +3606,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_wid_var',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach width variability'],
+                ['short_name', 'prior_width_variability'],
                 ['units', 'm'],
                 ['valid_min', 10],
                 ['valid_max', 100000],
@@ -3257,6 +3620,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_n_nodes',
          odict([['dtype', 'i2'],
                 ['long_name', 'number of nodes in the reach'],
+                ['short_name', 'prior_num_nodes'],
                 ['units', '1'],
                 ['valid_min', 1],
                 ['valid_max', 500],
@@ -3270,6 +3634,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_dist_out',
          odict([['dtype', 'f8'],
                 ['long_name', 'distance from the reach to the outlet '],
+                ['short_name', 'prior_distance_to_outlet'],
                 ['units', 'm'],
                 ['valid_min', -10000],
                 ['valid_max', 10000000],
@@ -3283,6 +3648,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_length',
          odict([['dtype', 'f8'],
                 ['long_name', 'length of reach'],
+                ['short_name', 'prior_length'],
                 ['units', 'm'],
                 ['valid_min', 100],
                 ['valid_max', 100000],
@@ -3297,6 +3663,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_maf',
          odict([['dtype', 'f8'],
                 ['long_name', 'mean annual flow'],
+                ['short_name', 'prior_mean_annual_flow'],
                 ['units', 'm^3/s'],
                 ['valid_min', 0],
                 ['valid_max', 10000000],
@@ -3309,6 +3676,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_dam_id',
          odict([['dtype', 'i4'],
                 ['long_name', 'dam ID from GRanD database'],
+                ['short_name', 'prior_dam_id'],
                 ['source', 'Lehner et al. (2011)'],
                 ['units', '1'],
                 ['valid_min', 0],
@@ -3328,6 +3696,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name',
                  'maximum number of channels detected in the reach'],
+                ['short_name', 'prior_num_channels_max'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
@@ -3341,6 +3710,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         ['p_n_ch_mod',
          odict([['dtype', 'i2'],
                 ['long_name', 'mode of the number of channels in the reach'],
+                ['short_name', 'prior_num_channels_mode'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100],
@@ -3461,6 +3831,15 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
 #             klass['dschg_gs_u'] = ...
 #             klass['dschg_gs_q'] = ...
             klass['dschg_gssf'] = reach_outputs['dschg_gssf']
+
+            klass['dschg_i'] = reach_outputs['sic4dvar_q_uc']
+            #             klass['dschg_i_u'] = ...
+            #             klass['dschg_i_q'] = ...
+            klass['dschg_isf'] = reach_outputs['dschg_isf']
+            klass['dschg_gi'] = reach_outputs['sic4dvar_q_c']
+            #             klass['dschg_gi_u'] = ...
+            #             klass['dschg_gi_q'] = ...
+            klass['dschg_gisf'] = reach_outputs['dschg_gisf']
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]
