@@ -2104,8 +2104,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Constrained reach width. This estimate of the width is 
-                    constrained to follow a predefined monotonic relationship 
+                    Constrained reach width. This estimate of the width is
+                    constrained to follow a predefined monotonic relationship
                     with the WSE.""")],
                 ])],
         ['width_c_u',
@@ -2120,7 +2120,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the 
+                    Total one-sigma uncertainty (random and systematic) in the
                     constrained reach width.""")],
                 ])],
         ['area_total',
@@ -2232,9 +2232,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', 'metric of layover effect'],
                 ['short_name', 'layover_value'],
-                ['units', 'TBD'],
+                ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -2586,7 +2586,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'f8'],
                 ['long_name', textjoin("""
                     fractional systematic uncertainty in BAM discharge""")],
-                ['short_name', 'discharge_bam_uncert_frac'],
+                ['short_name', 'discharge_bam_sys_uncert_frac'],
                 ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 9999999999999],
@@ -3213,9 +3213,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Summary quality indicator for the reach measurement. 
-                    Value of 0 indicates a nominal measurement, 1 is a suspect 
-                    measurement, and 2 is a bad quality measurement.""")],
+                    Summary quality indicator for the reach measurement.
+                    A value of 0 indicates a nominal measurement, 1 is a suspect
+                    measurement, and 2 indicates a bad measurement.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
