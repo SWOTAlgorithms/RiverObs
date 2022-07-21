@@ -523,7 +523,7 @@ class Product(object):
                 # explicitly use floats for add_offset and scale_factor
                 if key in ['add_offset', 'scale_factor']:
                     things.append('%s="%f" ' % (key, value))
-                elif key in ['flag_values', ]:
+                elif key in ['flag_values', 'flag_masks']:
                     things.append('{}="{}"'.format(
                         key, ' '.join(['{}'.format(item) for item in value])))
                 else:
