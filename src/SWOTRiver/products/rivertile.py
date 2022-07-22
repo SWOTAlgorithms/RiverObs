@@ -1143,8 +1143,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the node measurement.
-                    Value of 0 indicates a nominal measurement, 1 is a suspect 
-                    measurement, and 2 is a bad quality measurement.
+                    Value of 0 indicates a nominal measurement, 1 indicates a
+                    suspect measurement, and 2 indicates a bad quality
+                    measurement.
                     """)],
                 ])],
         ['node_q_b',
