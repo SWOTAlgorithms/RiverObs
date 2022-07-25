@@ -39,8 +39,8 @@ def sort_variable_attribute_odict(in_odict):
     """Sorts attributes"""
     # These come first in this order
     FIRST_ATTRS = ['dtype', 'dimensions', 'long_name', 'standard_name',
-                   'calendar', 'time', 'standard_time', 'tai_utc_difference',
-                   'leap_second']
+                   'short_name', 'calendar', 'time', 'standard_time',
+                   'tai_utc_difference', 'leap_second']
     # Then put in non-standard ones, and finally these ones in this order
     LAST_ATTRS = [
         'units', 'add_offset', 'scale_factor', 'quality_flag', 'flag_meanings',
