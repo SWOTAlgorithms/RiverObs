@@ -116,6 +116,7 @@ def main():
 
     # generate empty output file on errors
     try:
+        l2pixc_to_rivertile.validate_inputs()
         l2pixc_to_rivertile.do_river_processing()
         l2pixc_to_rivertile.match_pixc_idx()
         l2pixc_to_rivertile.do_improved_geolocation()

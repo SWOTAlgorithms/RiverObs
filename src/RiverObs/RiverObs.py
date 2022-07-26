@@ -350,7 +350,8 @@ class RiverObs:
         result given the variable name. Keyword arguments can vary depending on
         which stat is being called.
 
-        Example statfns are: 'mean', 'std', 'cdf', 'height_weighted_mean'
+        Example statfns include:
+            'mean', 'median', 'std', 'cdf', 'height_weighted_mean'
 
         If all_nodes is True, populated and unpopulated nodes are returned.
         Otherwise, only populated nodes are returned.

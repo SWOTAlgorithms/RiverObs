@@ -329,6 +329,7 @@ def get_passfail(is_lake = False):
             'area_tot e (%)': [15, 30],
             'wse e (cm)': [10, 20],
             'slp e (cm/km)':[1.7, 3.4],
+            'slp2 e (cm/km)': [1.7, 3.4]
         }
     else:
         passfail = {
@@ -351,7 +352,12 @@ def get_truth_classes():
                       74269900011, 73160200101, 73216000211, 73214000011,
                       73150600541, 73150600171, 73150600031, 73150600011,
                       73150600021, 73150600151, 73150600161, 73150600951,
-                      73150600111],
+                      73150600111, 21602100101, 21602600131, 21602600191,
+                      21602600311, 21602600371, 21602600871, 21602600891,
+                      21602601451, 21602700051, 21602700071, 23221000021,
+                      23267000111, 23267000131, 23267000201, 23267000271,
+                      23267000371, 21602600241, 81130400011, 74292300011,
+                      74292100211],
         'tribs': [74230900151, 74291800111, 74291700051, 74291800081,
                   74284300051, 74284300061, 74100600051, 74100600061,
                   74100600071, 74100600081, 74100600551, 74100600561,
@@ -370,7 +376,8 @@ def get_truth_classes():
                   73150600221, 73150600241, 73150600251, 73150600541,
                   73150600561, 73150600181, 73160100161, 73160100181,
                   73160100101, 73150600031, 73150600061, 73150600011,
-                  73150600161, 73160100071, 78210000261],
+                  73150600161, 73160100071, 78210000261, 23221000061,
+                  21602100565, 21602700081, 21602600191],
         'non_linear': [74292300011, 74292100221, 74230900141, 74230900161,
                        74230900261, 74291900051, 74291700061, 74291800051,
                        74100600081, 74100600091, 73260300071, 73260200021,
@@ -394,7 +401,7 @@ def get_truth_classes():
         'edge_node': [74291800111, 81140300051, 81140300061, 81140300081,
                       73240900141, 74262700231, 73240200301, 74269900281,
                       74269900781, 74269700041, 73160200071, 73214000011,
-                      73150600101, 73160100091],
+                      73150600101, 73160100091, 23230200041, 21602100565],
         'partial_truth': [74292100221, 74292100251, 74292100261],
         'wrong_dir': [74292200061, 74230900241, 74230900261, 74230900271,
                       74291800011, 73260100045, 73270200031, 74267600131,
@@ -406,14 +413,17 @@ def get_truth_classes():
                       73216000021, 73216000211, 73216000051, 73213000011,
                       73214000021, 73150600021, 73150600111],
         'multi_chn': [74230900151, 74230900241, 74230900221, 81130400051,
-                      74267100071, 74269700031, 73214000021],
+                      74267100071, 74269700031, 73214000021, 21602600191,
+                      21602300011],
         'linear': [73150600011, 73150600061, 73150600251, 73160100091,
                    73160100191, 73160200101, 73160300021, 73218000371,
                    73218000471, 73220700281, 73220700291, 73220900211,
                    73240200301, 74269800021, 74269800061, 74269800081,
                    74269800101, 74269800261, 74269900301, 74269900341,
                    74291900051, 74291900071, 81130400021, 81130400061,
-                   81130400071, 81130400111, 81140300011, 81140300071]}
+                   81130400071, 81130400111, 81140300011, 81140300071,
+                   21602600171, 21602100565, 23221000021, 23221000061,
+                   21602600121, 21602600111]}
     return truth_classes
 
 
@@ -466,20 +476,20 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     bounds = {
         'min_xtrk': 10000,
         'max_xtrk': 60000,
-        'min_width': 100,
+        'min_width': 80,
         'min_area': 800000,
         'min_length': 8000,
         'min_obs_frac': 0.5,
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 0.5
+        'min_xtrk_ratio': 1.0
     }
     msk=[]
 
     # define some extra masking criteria for each reach based on node values
     obs_area_frac = np.empty(np.size(data.reaches['reach_id']))
-    truth_ratio = np.empty(np.size(data.reaches['reach_id']))
+    # truth_ratio = np.empty(np.size(data.reaches['reach_id']))
     xtrk_ratio = np.empty(np.size(data.reaches['reach_id']))
     for index, reach in enumerate(data.reaches['reach_id']):
         reach_scene = scene[index]
@@ -487,17 +497,17 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         scene_mask = [s == reach_scene for s in scene_nodes]
         node_mask = np.logical_and(data.nodes['reach_id'] == reach,
                                    scene_mask)
-        node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
-                                         scene_mask)
+        # node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
+        #                                  scene_mask)
         n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
-        n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
+        # n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
         n_prd = len(data.nodes['node_id'][node_mask])
         n_good_xtrk = np.sum(
             np.logical_and(np.abs(data.nodes['xtrk_dist'][node_mask]) > 10000,
                            np.abs(data.nodes['xtrk_dist'][node_mask]) < 60000))
 
         obs_area_frac[index] = n_good_data / n_prd
-        truth_ratio[index] = n_good_data / n_good_truth
+        # truth_ratio[index] = n_good_data / n_good_truth
         xtrk_ratio[index] = n_good_xtrk / n_prd
 
     # some quick plots
@@ -535,24 +545,21 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     # plt.show()
 
     if truth:
-        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              > bounds['min_xtrk']),#),
-              np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              < bounds['max_xtrk']),#),
-              np.logical_and((truth.reaches['width']
-                              > bounds['min_width']),#100),
-              np.logical_and((truth.reaches['area_total']
-                              > bounds['min_area']),
-              np.logical_and((truth.reaches['p_length']
-                              >= bounds['min_length']),
-              np.logical_and(data.reaches['obs_frac_n']
-                             >= bounds['min_obs_frac'],
-                  truth.reaches['dark_frac']
-                             <= bounds['max_dark_frac']))))))
+        msk = np.logical_and.reduce([
+            np.abs(truth.reaches['xtrk_dist']) > bounds['min_xtrk'],
+            np.abs(truth.reaches['xtrk_dist']) < bounds['max_xtrk'],
+            truth.reaches['width'] > bounds['min_width'],
+            truth.reaches['area_total'] > bounds['min_area'],
+            truth.reaches['p_length'] >= bounds['min_length'],
+            data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+            truth.reaches['dark_frac'] <= bounds['max_dark_frac']
+        ])
         # add the node-level filters to the mask
-        msk = np.logical_and(msk, obs_area_frac > bounds['min_area_obs_frac'])
-        msk = np.logical_and(msk, truth_ratio > bounds['min_truth_ratio'])
-        msk = np.logical_and(msk, xtrk_ratio > bounds['min_xtrk_ratio'])
+        msk = np.logical_and.reduce([
+            msk,
+            obs_area_frac >= bounds['min_area_obs_frac'], #truth_ratio >= bounds['min_truth_ratio'],
+            xtrk_ratio >= bounds['min_xtrk_ratio']
+        ])
         if print_table:
             passfail = {
                 'Truth width (m)': [bounds['min_width'], 'flip'],
@@ -679,8 +686,9 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
 
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, preamble=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None, passfail={}):
+        dark_frac=None, preamble=None, with_slope=True, with_slope2=True,
+        with_width=True, with_node_avg=False, reach_len=None,
+        with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
@@ -693,6 +701,9 @@ def print_metrics(
     if with_slope:
         table['slp e (cm/km)'] = metrics['slope'][msk]
         table['slope (cm/km)'] = metrics['slope_t'][msk]
+    if with_slope2:
+        table['slp2 e (cm/km)'] = metrics['slope2'][msk]
+        table['slope2 (cm/km)'] = metrics['slope2_t'][msk]
     table['area_tot e (%)'] = metrics['area_total'][msk]
     table['area_det e (%)'] = metrics['area_detct'][msk]
     if with_width:

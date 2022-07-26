@@ -39,8 +39,8 @@ def sort_variable_attribute_odict(in_odict):
     """Sorts attributes"""
     # These come first in this order
     FIRST_ATTRS = ['dtype', 'dimensions', 'long_name', 'standard_name',
-                   'calendar', 'time', 'standard_time', 'tai_utc_difference',
-                   'leap_second']
+                   'short_name', 'calendar', 'time', 'standard_time',
+                   'tai_utc_difference', 'leap_second']
     # Then put in non-standard ones, and finally these ones in this order
     LAST_ATTRS = [
         'units', 'add_offset', 'scale_factor', 'quality_flag', 'flag_meanings',
@@ -327,6 +327,18 @@ class Product(object):
             value = self[key]
             if value is None:
                 value = ''
+            try:
+                dtype = self.ATTRIBUTES[key]['dtype']
+                if dtype != 'str':
+                    try:
+                        value = np.dtype(dtype).type(value)
+                    except ValueError:
+                        warnings.warn((
+                            "Unable to cast key: {}; value: {}; as dtype: "+
+                            "{}.").format(key, value, dtype))
+            except (TypeError, KeyError):
+                # if self.ATTRIBUTES is list or dtype not in self.ATTRIBUTES
+                pass
             dataset.setncattr(key, value)
         for key, value in self.dimensions.items():
             dataset.createDimension(key, value)
@@ -511,7 +523,7 @@ class Product(object):
                 # explicitly use floats for add_offset and scale_factor
                 if key in ['add_offset', 'scale_factor']:
                     things.append('%s="%f" ' % (key, value))
-                elif key in ['flag_values', ]:
+                elif key in ['flag_values', 'flag_masks']:
                     things.append('{}="{}"'.format(
                         key, ' '.join(['{}'.format(item) for item in value])))
                 else:
@@ -632,9 +644,13 @@ class Product(object):
         quantized_fill = self._getfill(my_var)
         fill = FILL_VALUES[value.dtype.str[1:]]
 
-        valid = np.logical_and(value != fill, ~np.isnan(value))
-        quantized_values = quantized_fill * np.ones(value.shape)
+        if np.ma.isMaskedArray(value):
+            # if mask array use .data
+            valid = np.logical_and(value.data != fill, ~np.isnan(value))
+        else:
+            valid = np.logical_and(value != fill, ~np.isnan(value))
 
+        quantized_values = quantized_fill * np.ones(value.shape)
         if dtype[0] in ['i', 'u']:
             # round integers to nearest int versus just typecast
             quantized_values[valid] = np.round(

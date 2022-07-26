@@ -19,7 +19,7 @@ from SWOTRiver.products.rivertile import L2HRRiverTile
 from SWOTRiver.products.pixcvec import L2PIXCVector
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
-
+from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger(__name__)
 
@@ -94,10 +94,38 @@ class L2PixcToRiverTile(object):
         return (lon[mask].min(), lat[mask].min(), lon[mask].max(),
                 lat[mask].max())
 
+    def validate_inputs(self):
+        """Validates that the input products meet requirements"""
+        LOGGER.info('validate_inputs')
+        # Check for empty PIXC file (dimension points in /pixel_cloud/ group
+        # is zero).
+        with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
+            if ifp.groups['pixel_cloud'].dimensions['points'].size == 0:
+                LOGGER.error('Input L2_HR_PIXC product has zero valid pixels!')
+                raise RiverObsException(
+                    'Input L2_HR_PIXC product has zero valid pixels!')
+
+        # ...etc for more validation tests
+
     def do_river_processing(self):
         """Does the river processing"""
         LOGGER.info('do_river_processing')
-        print(self.config['trim_ends'])
+
+        qual_words = ("geo_qual_wse_suspect",
+                      "geo_qual_wse_degraded",
+                      "geo_qual_wse_bad",
+                      "class_qual_area_suspect",
+                      "class_qual_area_degraded",
+                      "class_qual_area_bad",
+                      "sig0_suspect",
+                      "sig0_bad")
+
+        for word in qual_words:
+            if word not in self.config:
+                self.config[word] = 0x00000000
+
+        if 'pixc_qual_handling' not in self.config:
+            self.config['pixc_qual_handling'] = 'nominal'
 
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
@@ -112,7 +140,16 @@ class L2PixcToRiverTile(object):
             self.config['preseg_dilation_iter'] = 0
 
         if 'slope_method' not in self.config:
-            self.config['slope_method'] = 'weighted'
+            self.config['slope_method'] = 'bayes'
+
+        if 'prior_unc_alpha' not in self.config:
+            self.config['prior_unc_alpha'] = 1.5
+
+        if 'char_length_tau' not in self.config:
+            self.config['char_length_tau'] = 10000
+
+        if 'use_multiple_reaches' not in self.config:
+            self.config['use_multiple_reaches'] = False
 
         if 'use_ext_dist_coef' not in self.config:
             self.config['use_ext_dist_coef'] = True
@@ -148,6 +185,9 @@ class L2PixcToRiverTile(object):
             'area_agg_method': self.config['area_agg_method'],
             'preseg_dilation_iter': self.config['preseg_dilation_iter'],
             'slope_method': self.config['slope_method'],
+            'prior_unc_alpha': self.config['prior_unc_alpha'],
+            'char_length_tau': self.config['char_length_tau'],
+            'use_multiple_reaches': self.config['use_multiple_reaches'],
             'use_ext_dist_coef': self.config['use_ext_dist_coef'],
             'outlier_method': self.config['outlier_method'],
             'outlier_abs_thresh': self.config['outlier_abs_thresh'],

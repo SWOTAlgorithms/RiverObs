@@ -485,7 +485,8 @@ class ReachDatabaseNodes(Product):
                 'x', 'y', 'node_id', 'reach_id', 'node_length', 'wse',
                 'wse_var', 'width', 'width_var', 'n_chan_max', 'n_chan_mod',
                 'grod_id', 'dist_out', 'wth_coef', 'ext_dist_coef',
-                'river_name']:
+                'river_name', 'obstr_type', 'hfalls_id', 'facc', 'lakeflag',
+                'max_width', 'meander_length', 'sinuosity', 'manual_add']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         klass.cl_ids = np.ma.concatenate([self.cl_ids, other.cl_ids], 1)
@@ -606,11 +607,13 @@ class ReachDatabaseReaches(Product):
                     'reach_length', 'n_nodes', 'wse', 'wse_var', 'width',
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
                     'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag',
-                    'river_name']:
+                    'river_name', 'facc', 'obstr_type', 'hfalls_id',
+                    'swot_obs', 'max_width']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
-        for dset in ['cl_ids', 'rch_id_up', 'rch_id_dn', 'iceflag']:
+        for dset in [
+                'cl_ids', 'rch_id_up', 'rch_id_dn', 'iceflag', 'swot_orbits']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)], 1))
 
@@ -690,6 +693,7 @@ class ReachDatabaseReachDischargeModels(Product):
         ['HiVDI', 'ReachDatabaseReachHiVDI'],
         ['MOMMA', 'ReachDatabaseReachMOMMA'],
         ['SADS', 'ReachDatabaseReachSADS'],
+        ['SIC4DVar', 'ReachDatabaseReachSIC4DVar'],
     ])
 
     def subset(self, mask):
@@ -923,6 +927,47 @@ class ReachDatabaseReachSADS(Product):
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
+
+class ReachDatabaseReachSIC4DVar(Product):
+    """class for PRD reach SIC4DVar discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachSIC4DVar by reach_ids"""
+        klass = ReachDatabaseReachSIC4DVar()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachSIC4DVar()
+        for dset in self.VARIABLES.keys():
+            setattr(klass, dset, np.ma.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        return klass
+
 
 class ReachDatabaseReachAreaFits(Product):
     """class for prior reach database reach area_fits datagroup"""
