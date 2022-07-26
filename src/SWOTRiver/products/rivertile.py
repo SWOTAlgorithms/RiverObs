@@ -23,16 +23,26 @@ from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 # define constants for each node-level quality bit
-QUAL_IND_SIG0_QUAL_SUSPECT = 1              # bit 0
-QUAL_IND_CLASS_QUAL_SUSPECT = 2             # bit 1
-QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4       # bit 2
-QUAL_IND_WATER_FRAC_SUSPECT = 8             # bit 3
-QUAL_IND_BLOCK_WIDTH_SUSPECT = 16           # bit 4
-QUAL_IND_BRIGHT_LAND_SUSPECT = 128          # bit 7
-QUAL_IND_FAR_RANGE_SUSPECT = 4096           # bit 12
-QUAL_IND_NEAR_RANGE_SUSPECT = 8192          # bit 13
-QUAL_IND_WSE_OUTLIER = 32768                # bit 15
-QUAL_IND_WSE_BAD = 65536                    # bit 16
+QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
+QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
+QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
+QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
+QUAL_IND_BLOCK_WIDTH_SUSPECT = 16               # bit 4
+QUAL_IND_BRIGHT_LAND_SUSPECT = 128              # bit 7
+QUAL_IND_FEW_SIG0_PIX = 512                     # bit 9
+QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
+QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
+QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
+QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
+QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
+QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_WSE_OUTLIER = 8388608                  # bit 23
+QUAL_IND_WSE_BAD = 16777216                     # bit 24
+QUAL_IND_NO_SIG0_PIX = 33554432                 # bit 25
+QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
+QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
+QUAL_IND_NO_PIXELS = 268435456                  # bit 28
+
 
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
@@ -1171,10 +1181,19 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     QUAL_IND_WATER_FRAC_SUSPECT,
                     QUAL_IND_BLOCK_WIDTH_SUSPECT,
                     QUAL_IND_BRIGHT_LAND_SUSPECT,
+                    QUAL_IND_FEW_SIG0_PIX,
+                    QUAL_IND_FEW_AREA_PIX,
+                    QUAL_IND_FEW_WSE_PIX,
                     QUAL_IND_FAR_RANGE_SUSPECT,
                     QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAL_IND_CLASS_QUAL_DEGRADED,
+                    QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
                     QUAL_IND_WSE_OUTLIER,
-                    QUAL_IND_WSE_BAD
+                    QUAL_IND_WSE_BAD,
+                    QUAL_IND_NO_SIG0_PIX,
+                    QUAL_IND_NO_AREA_PIX,
+                    QUAL_IND_NO_WSE_PIX,
+                    QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 268435456],
@@ -1183,10 +1202,11 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Bitwise quality indicator for the node measurement. If this 
-                     word is interpreted as an unsigned integer, a value of 0 
-                    indicates good data, values less than 32768 represent 
-                    suspect data, and values greater than or equal to 32768 
-                    represent bad data.""")],
+                    word is interpreted as an unsigned integer, a value of 0 
+                    indicates good data, values less than 262144 represent 
+                    suspect data, values greater than or equal to 262144 but
+                    less than 8388608 represent degraded data, and values
+                    greater than or equal to 8388608 represent bad data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
