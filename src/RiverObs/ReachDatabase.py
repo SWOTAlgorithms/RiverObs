@@ -692,8 +692,9 @@ class ReachDatabaseReachDischargeModels(Product):
         ['BAM', 'ReachDatabaseReachBAM'],
         ['HiVDI', 'ReachDatabaseReachHiVDI'],
         ['MOMMA', 'ReachDatabaseReachMOMMA'],
-        ['SADS', 'ReachDatabaseReachSADS'] # ['SIC4DVar', 'ReachDatabaseReachSIC4DVar'],
-    ])  # TO-DO: add SIC4DVar when added to SWORD
+        ['SADS', 'ReachDatabaseReachSADS'],
+        ['SIC4DVar', 'ReachDatabaseReachSIC4DVar'],
+    ])
 
     def subset(self, mask):
         """Subsets ReachDatabaseReachDischargeModels by reach_ids"""
@@ -926,6 +927,47 @@ class ReachDatabaseReachSADS(Product):
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
         return klass
+
+class ReachDatabaseReachSIC4DVar(Product):
+    """class for PRD reach SIC4DVar discharge model"""
+    ATTRIBUTES = odict()
+    DIMENSIONS = odict([['reaches', 0]])
+    VARIABLES = odict([
+        ['Abar', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['n', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ['sbQ_rel', odict([['dtype', 'f8'], ['dimensions', DIMENSIONS]])],
+        ])
+    GROUPS = odict([])
+
+    for var in VARIABLES:
+        if VARIABLES[var]['dtype'][0] in ['f', 'i']:
+            VARIABLES[var]['_FillValue'] = -9999
+
+    def subset(self, mask):
+        """Subsets ReachDatabaseReachSIC4DVar by reach_ids"""
+        klass = ReachDatabaseReachSIC4DVar()
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        for key, value in outputs.items():
+            klass[key] = value
+        return klass
+
+    def __call__(self, mask):
+        """Returns dict of reach attributes for reach_id"""
+        # HACK alert, mask is injected by ReachDatabaseReaches class
+        # which is the parent group of this datagroup
+        outputs = {
+            key: self[key][mask] for key in self.VARIABLES.keys()}
+        return outputs
+
+    def __add__(self, other):
+        """Adds other to self"""
+        klass = ReachDatabaseReachSIC4DVar()
+        for dset in self.VARIABLES.keys():
+            setattr(klass, dset, np.ma.concatenate([
+                getattr(self, dset), getattr(other, dset)]))
+        return klass
+
 
 class ReachDatabaseReachAreaFits(Product):
     """class for prior reach database reach area_fits datagroup"""

@@ -102,20 +102,34 @@ def compute(reach, reach_height, reach_width, reach_slope):
                 (reach_slope)**(1/2)) / sads_n
         else:
             sads_q = MISSING_VALUE_FLT
+
+        # 7: Compute SIC4DVar model
+        sic4dvar_n = models['SIC4DVar']['n']
+        sic4dvar_Abar = models['SIC4DVar']['Abar']
+
+        if (reach_width > 0 and reach_slope > 0 and sic4dvar_Abar+d_x_area >= 0
+                and sic4dvar_Abar > 0 and sic4dvar_n > 0):
+
+            sic4dvar_q = (
+                (d_x_area+sic4dvar_Abar)**(5/3) * reach_width**(-2/3) *
+                (reach_slope)**(1/2)) / sic4dvar_n
+        else:
+            sic4dvar_q = MISSING_VALUE_FLT
+
         if key == 'constrained':
             outputs['metro_q_c'] = metro_q
             outputs['bam_q_c'] = bam_q
             outputs['hivdi_q_c'] = hivdi_q
             outputs['momma_q_c'] = momma_q
             outputs['sads_q_c'] = sads_q
-            outputs['sic4dvar_q_c'] = MISSING_VALUE_FLT  # need new SWORD
+            outputs['sic4dvar_q_c'] = sic4dvar_q
         elif key == 'unconstrained':
             outputs['metro_q_uc'] = metro_q
             outputs['bam_q_uc'] = bam_q
             outputs['hivdi_q_uc'] = hivdi_q
             outputs['momma_q_uc'] = momma_q
             outputs['sads_q_uc'] = sads_q
-            outputs['sic4dvar_q_uc'] = MISSING_VALUE_FLT  # need new SWORD
+            outputs['sic4dvar_q_uc'] = sic4dvar_q
     # populate the constrained height and width outputs
     if np.isnan(area_fit_outputs[1]) or np.isnan(area_fit_outputs[2]):
         outputs['width_c'] = MISSING_VALUE_FLT
