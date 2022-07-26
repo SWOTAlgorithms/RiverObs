@@ -119,13 +119,9 @@ class L2PixcToRiverTile(object):
                       "class_qual_area_bad",
                       "sig0_suspect",
                       "sig0_bad")
-
         for word in qual_words:
             if word not in self.config:
                 self.config[word] = 0x00000000
-
-        if 'pixc_qual_handling' not in self.config:
-            self.config['pixc_qual_handling'] = 'nominal'
 
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
