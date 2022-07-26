@@ -308,7 +308,7 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
-        if pixc_qual_handling not in [None, ]:
+        if pixc_qual_handling not in [None, 'nominal', 'experimental']:
             raise Exception('AUX Param key: pixc_qual_handling has unexpected '+
                             'value: %s'%pixc_qual_handling)
 
