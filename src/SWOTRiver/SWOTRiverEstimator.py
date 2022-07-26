@@ -159,6 +159,38 @@ class SWOTRiverEstimator(SWOTL2):
     outlier_iter_num   : int, default 2
         The number of iterations of fitting, residual checking, and outlier
         masking that will be performed by the outlier detection algorithm.
+    pixc_qual_handling : str, default None
+        Describes approach for pixel cloud quality handling. Options are
+        'None', which ignores the pixel cloud quality data, 'nominal', which
+        uses the standard quality handling described in ATBD, and
+        'experimental', which is a testing state for new features.
+    geo_qual_wse_suspect: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC geolocation qual map
+        to a suspect wse measurement.
+    geo_qual_wse_degraded: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC geolocation qual map
+        to a degraded wse measurement.
+    geo_qual_wse_bad: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC geolocation qual map
+        to a bad wse measurement.
+    class_qual_area_suspect: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC classification qual
+        map to a suspect area measurement.
+    class_qual_area_degraded: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC classification qual
+        map to a degraded area measurement.
+    class_qual_area_bad: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC classification qual
+        map to a bad area measurement.
+    sig0_qual_suspect: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC sig0 qual map to a
+        suspect sig0 measurement.
+    sig0_qual_bad: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC sig0 qual map to a
+        bad sig0 measurement.
+
+
+
     The final set of keywords are projection options for pyproj. See Notes.
 
     Notes
@@ -247,6 +279,14 @@ class SWOTRiverEstimator(SWOTL2):
                  outlier_upr_thresh=None,
                  outlier_iter_num=None,
                  pixc_qual_handling=None,
+                 geo_qual_wse_suspect=None,
+                 geo_qual_wse_degraded=None,
+                 geo_qual_wse_bad=None,
+                 class_qual_area_suspect=None,
+                 class_qual_area_degraded=None,
+                 class_qual_area_bad=None,
+                 sig0_qual_suspect=None,
+                 sig0_qual_bad=None,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -263,6 +303,14 @@ class SWOTRiverEstimator(SWOTL2):
         self.outlier_rel_thresh = outlier_rel_thresh
         self.outlier_upr_thresh = outlier_upr_thresh
         self.outlier_iter_num = outlier_iter_num
+        self.geo_qual_wse_suspect = geo_qual_wse_suspect
+        self.geo_qual_wse_degraded = geo_qual_wse_degraded
+        self.geo_qual_wse_bad = geo_qual_wse_bad
+        self.class_qual_area_suspect = class_qual_area_suspect
+        self.class_qual_area_degraded = class_qual_area_degraded
+        self.class_qual_area_bad = class_qual_area_bad
+        self.sig0_qual_suspect = sig0_qual_suspect
+        self.sig0_qual_bad = sig0_qual_bad
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -299,7 +347,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         self.create_index_file()
 
-
         if np.ma.is_masked(self.lat):
             mask = self.lat.mask
         else:
@@ -313,8 +360,10 @@ class SWOTRiverEstimator(SWOTL2):
                             'value: %s'%pixc_qual_handling)
 
         bright_land_flag = self.get(bright_land_flag_kwd)
-        # TODO use bright_land_flag to set mask here
-        # ..etc
+        # TODO use bright_land_flag to set node_q_b bit 7
+        # TODO build internal quality state module mapping input config params
+        # to [area/height]_[good/sus/degraded/bad] and sig0_[good/sus/bad]
+        # using the input config params geo_qual_wse... etc
 
         # skip NaNs in dheight_dphase
         good = ~mask
@@ -432,15 +481,15 @@ class SWOTRiverEstimator(SWOTL2):
                     self.isWater[index] = 1
             self.segment_water_class(self.preseg_dilation_iter)
 
-            # TODO: Modify self.isWater using classification_qual and
-            # geolocation_qual (use_segmentation)
+            # TODO: Modify self.isWater using area_bad and height_bad (use_segmentation)
+            # pixels with bad height OR area will not be segmented or assigned
             # ...etc
 
         else:
             self.seg_label = None
 
-        # set which class pixels to use for heights (should be modified
-        # by layover flag later)
+        # TO-DO: set which pixels to use for heights (all good/sus by default;
+        # plus all degraded if < N good/sus)
         if len(self.use_heights) == len(self.class_list):
             self.h_flg = np.zeros(np.shape(self.h_noise))
             for i, k in enumerate(class_list):
@@ -448,8 +497,8 @@ class SWOTRiverEstimator(SWOTL2):
                     index = self.klass == k
                     self.h_flg[index] = 1
 
-            # TODO: Modify self.h_flag using classification_qual and
-            # geolocation_qual (use_heights)
+            # TODO: Modify self.h_flag geolocation_qual (use_heights)
+            # TODO: create area flag, modify based on class_qual input params
             # ...etc
 
         else:

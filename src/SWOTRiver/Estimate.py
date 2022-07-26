@@ -117,8 +117,8 @@ class L2PixcToRiverTile(object):
                       "class_qual_area_suspect",
                       "class_qual_area_degraded",
                       "class_qual_area_bad",
-                      "sig0_suspect",
-                      "sig0_bad")
+                      "sig0_qual_suspect",
+                      "sig0_qual_bad")
         for word in qual_words:
             if word not in self.config:
                 self.config[word] = 0x00000000
@@ -191,7 +191,15 @@ class L2PixcToRiverTile(object):
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
             'pixc_qual_handling': self.config['pixc_qual_handling'],
-            }
+            'geo_qual_wse_suspect': self.config['geo_qual_wse_suspect'],
+            'geo_qual_wse_degraded': self.config['geo_qual_wse_degraded'],
+            'geo_qual_wse_bad': self.config['geo_qual_wse_bad'],
+            'class_qual_area_suspect': self.config['class_qual_area_suspect'],
+            'class_qual_area_degraded': self.config['class_qual_area_degraded'],
+            'class_qual_area_bad': self.config['class_qual_area_bad'],
+            'sig0_qual_suspect': self.config['sig0_qual_suspect'],
+            'sig0_qual_bad':self.config['sig0_qual_bad']
+        }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
