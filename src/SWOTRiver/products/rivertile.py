@@ -1147,15 +1147,15 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 2],
+                ['valid_max', 3],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the node measurement.
                     Value of 0 indicates a nominal measurement, 1 indicates a
-                    suspect measurement, and 2 indicates a bad quality
-                    measurement.
+                    suspect measurement, 2 indicates a degraded quality
+                    measurement, and 3 indicates a bad measurement.
                     """)],
                 ])],
         ['node_q_b',
@@ -3229,14 +3229,15 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 2],
+                ['valid_max', 3],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the reach measurement.
-                    A value of 0 indicates a nominal measurement, 1 is a suspect
-                    measurement, and 2 indicates a bad measurement.""")],
+                    A value of 0 indicates a nominal measurement, 1 indicates a 
+                    suspect measurement, 2 indicates a degraded measurement,
+                    and 3 indicates a bad measurement.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
