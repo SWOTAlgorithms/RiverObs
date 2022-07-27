@@ -1169,11 +1169,20 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     geolocation_qual_suspect  
                     water_fraction_suspect  
                     blocking_width_suspect  
-                    bright_land  
+                    bright_land
+                    few_sig0_pix
+                    few_area_pix
+                    few_wse_pix  
                     far_range_suspect  
                     near_range_suspect  
+                    classification_qual_degraded
+                    geolocation_qual_degraded
                     wse_outlier  
-                    wse_bad""")],
+                    wse_bad
+                    no_sig0_pix
+                    no_area_pix
+                    no_wse_pix
+                    no_pixels""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
                     QUAL_IND_CLASS_QUAL_SUSPECT,
