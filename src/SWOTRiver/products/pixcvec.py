@@ -95,7 +95,7 @@ class L2PIXCVector(Product):
                 and right swath, respectively.""")}],
         ['continent_id', {'dtype': 'str',
             'docstr': 'Two-letter continent identifier of the product granule.'}],
-        ['continent_code', {'dtype': 'i2',
+        ['continent_code', {'dtype': 'str',
             'docstr': 'One-digit (C) continent code of the product granule.'}],
         ['time_granule_start', {'dtype': 'str',
             'docstr': textjoin("""

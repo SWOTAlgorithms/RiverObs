@@ -28,6 +28,7 @@ import pdb
 import matplotlib.pyplot as plt
 import warnings
 import pandas as pd
+from pathlib import Path
 
 from os import path
 from plot_reach_stats import load_and_accumulate
@@ -35,8 +36,9 @@ from plot_riverobs import NodePlots, ParamPlots, HeightPlots
 from collections import namedtuple
 
 
-def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
-                    truth_only=False, scene_filter=None):
+def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
+                    truth_rivertile, truth_basedir=None, truth_only=False,
+                    scene_filter=None):
     # get all pixc files 'rivertile.nc' and find associated truth file
     missing_truth_count = 0
     if truth_only:
@@ -61,8 +63,9 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
     truth_rivertile_list = []
     for index, rivertile in enumerate(proc_rivertile_list):
         if os.path.exists(rivertile):
-            truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile,
-                                    truth_dir, truth_only)
+            truth_file = get_truth_file(
+                proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
+                truth_basedir, truth_only)
             if os.path.exists(truth_file):
                 truth_rivertile_list.append(truth_file)
             else:
@@ -79,15 +82,22 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
     return proc_rivertile_list, truth_rivertile_list
 
 
-def get_truth_file(proc_dir, pixc_dir, proc_rivertile,
-                   truth_dir, truth_only=False):
+def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_rivertile,
+                   basedir, truth_basedir=None, truth_only=False):
     if truth_only:
         n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc')
     else:
         n_char = len(proc_dir) + len(pixc_dir) \
                  + 1 + len('river_data/rivertile.nc') + 1
     path = proc_rivertile[0:-n_char]
-    truth_file = path + truth_dir + '/river_data/rivertile.nc'
+    if truth_basedir:
+        len_basedir = len(Path(basedir).parts)
+        truth_file = os.path.join(
+            truth_basedir, *Path(path).parts[len_basedir:])
+        truth_file = truth_file + '/' + truth_rivertile \
+                     + '/river_data/rivertile.nc'
+    else:
+        truth_file = path + truth_rivertile + '/river_data/rivertile.nc'
     return truth_file
 
 
@@ -271,6 +281,9 @@ def main():
     parser.add_argument('truth_rivertile', type=str, default=None,
                         help='truth rivertile file (or basename)')
     parser.add_argument('--basedir', help='base directory of processing')
+    parser.add_argument('--truth_basedir', type=str, default=None,
+                        help='base directory of truth processing. Only use if'
+                             'different than nominal processing.')
     parser.add_argument('-sb', '--slc_basename', type=str, default=None,
                         help='slc directory basename')
     parser.add_argument('-pb', '--pixc_basename', type=str, default=None,
@@ -308,6 +321,7 @@ def main():
                                             args.pixc_basename,
                                             args.proc_rivertile,
                                             args.truth_rivertile,
+                                            args.truth_basedir,
                                             args.truth_only,
                                             args.scene_filter)
     metrics, good_rivertile_list, good_truth_list = get_errors(proc_list,

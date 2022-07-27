@@ -6,6 +6,7 @@ import numpy as np
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
+
 def compute(reach, reach_height, reach_width, reach_slope):
     """Computes the discharge models"""
     area_fit_outputs = area(
@@ -26,14 +27,14 @@ def compute(reach, reach_height, reach_width, reach_slope):
         metro_Abar = models['MetroMan']['Abar']
         metro_p = models['MetroMan']['p']
 
-        if (reach_width > 0 and reach_slope > 0 and metro_Abar+d_x_area >= 0 and
-            metro_Abar > 0 and metro_ninf > 0):
+        if (reach_width > 0 and reach_slope > 0 and metro_Abar+d_x_area >= 0
+                and metro_Abar > 0 and metro_ninf > 0):
 
             metro_n = metro_ninf * (
                 (d_x_area+metro_Abar) / reach_width)**metro_p
             metro_q = (
                 (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
-                (reach_slope)**(1/2)) / metro_n
+                reach_slope**(1/2)) / metro_n
         else:
             metro_q = MISSING_VALUE_FLT
 
@@ -81,7 +82,8 @@ def compute(reach, reach_height, reach_width, reach_slope):
             log_check = log_factor < 1
 
         if (reach_width > 0 and reach_slope > 0 and momma_n > 0 and
-            momma_Save > 0 and momma_H > momma_B and momma_nb > 0 and log_check):
+            momma_Save > 0 and momma_H > momma_B and momma_nb > 0
+                and log_check):
 
             momma_q = (
                 ((reach_height - momma_B)*(momma_r/(1+momma_r)))**(5/3) *
@@ -101,19 +103,47 @@ def compute(reach, reach_height, reach_width, reach_slope):
         else:
             sads_q = MISSING_VALUE_FLT
 
+        # 7: Compute SIC4DVar model
+        sic4dvar_n = models['SIC4DVar']['n']
+        sic4dvar_Abar = models['SIC4DVar']['Abar']
+
+        if (reach_width > 0 and reach_slope > 0 and sic4dvar_Abar+d_x_area >= 0
+                and sic4dvar_Abar > 0 and sic4dvar_n > 0):
+
+            sic4dvar_q = (
+                (d_x_area+sic4dvar_Abar)**(5/3) * reach_width**(-2/3) *
+                (reach_slope)**(1/2)) / sic4dvar_n
+        else:
+            sic4dvar_q = MISSING_VALUE_FLT
+
         if key == 'constrained':
             outputs['metro_q_c'] = metro_q
             outputs['bam_q_c'] = bam_q
             outputs['hivdi_q_c'] = hivdi_q
             outputs['momma_q_c'] = momma_q
             outputs['sads_q_c'] = sads_q
+            outputs['sic4dvar_q_c'] = sic4dvar_q
         elif key == 'unconstrained':
             outputs['metro_q_uc'] = metro_q
             outputs['bam_q_uc'] = bam_q
             outputs['hivdi_q_uc'] = hivdi_q
             outputs['momma_q_uc'] = momma_q
             outputs['sads_q_uc'] = sads_q
+            outputs['sic4dvar_q_uc'] = sic4dvar_q
+    # populate the constrained height and width outputs
+    if np.isnan(area_fit_outputs[1]) or np.isnan(area_fit_outputs[2]):
+        outputs['width_c'] = MISSING_VALUE_FLT
+        outputs['width_c_u'] = MISSING_VALUE_FLT
+        outputs['height_c'] = MISSING_VALUE_FLT
+        outputs['height_c_u'] = MISSING_VALUE_FLT
+    else:
+        outputs['width_c'] = area_fit_outputs[1]
+        outputs['width_c_u'] = MISSING_VALUE_FLT
+        outputs['height_c'] = area_fit_outputs[2]
+        outputs['height_c_u'] = MISSING_VALUE_FLT
+
     return outputs
+
 
 def area(observed_height, observed_width, area_fits):
     """
@@ -147,6 +177,7 @@ def area(observed_height, observed_width, area_fits):
         area_median_flow, fit_width_std**2, fit_height_std**2,
         cov_height_width, num_obs)
 
+
 def _area(
     observed_height, observed_width, height_breakpoints, poly_fits,
     area_median_flow, fit_width_var, fit_height_var, cov_height_width,
@@ -155,6 +186,7 @@ def _area(
     Computes cross-sectional area from fit, based on CalculatedAEIV.m at
     https://github.com/mikedurand/SWOTAprimeCalcs
 
+    Inputs
     observed_height - swot observed height for this reach
     observed_width - swot observed width for this reach
     height_breakpoints - boundaries for fits in height
@@ -163,6 +195,15 @@ def _area(
     fit_width_var - width error std**2
     fit_height_var - height error std**2
     cov_height_width - covariance matrix for width / height
+
+    Outputs
+    delta_area_hat - estimated cross-sectional area
+    observed_width_hat - estimated width using height-width fit
+    observed_height_hat - estimated height using height-width fit
+    dAunc - uncertainty in the cross-sectional area
+
+    TO-DO:
+    add uncertainties observed_width_hat_u and observed_height_hat_u
     """
     poly_ints = np.array([np.polyint(item) for item in poly_fits])
 
@@ -243,8 +284,9 @@ def _area(
                 2 * poly_fits[ifit][0]))
             sigma = np.sqrt(poly_fits[ifit][0]/2) * np.sqrt(fit_height_var)
             dAunc = np.sqrt(4*mu**2*sigma**2 + 2*sigma**4);
-
+    # TO-DO: add uncertainties for width_hat and height_hat
     return delta_area_hat, observed_width_hat, observed_height_hat, dAunc
+
 
 def estimate_height(observed_width, observed_height, poly_fit, fit_width_var,
                     fit_height_var):
