@@ -1441,9 +1441,6 @@ class SWOTRiverEstimator(SWOTL2):
                                                    min_fit_points,
                                                    method='Bayes')
 
-                # take first-to-last of reconstruction for slope
-                # mean of reconstruction wse (for observed nodes) as wse
-
                 # Use reconstruction height and slope for reach outputs
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
@@ -1925,7 +1922,7 @@ class SWOTRiverEstimator(SWOTL2):
         ireach : int
             Index in the list of reaches extracted for this scene.
         wse        : Measured Node wse (with masked values for missing nodes)
-        wse_r_u    : Node-wise wse uncertainty
+        wse_r_u    : Node-wise random wse uncertainty
         ss         : Node-level distance from prior database
         mask       : True if node-level height is good, False where it is bad
         Options:
@@ -1982,8 +1979,6 @@ class SWOTRiverEstimator(SWOTL2):
         elif prior_cov_method == 'exponential':
             # get the signal covariance assuming an exponential random process
             Ry0 = np.zeros((len(ss), len(ss)))
-            # TO-DO: check for multiple good upstream/downstream reaches and
-            # modify Ry
             for k, d0 in enumerate(ss):
                 t = ss - d0
                 Ry0[k, :] = np.exp(-np.abs(t) / self.char_length_tau)
