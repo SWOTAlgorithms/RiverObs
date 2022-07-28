@@ -3234,7 +3234,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'summary quality indicator for the reach'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'reach_qual'],
-                ['flag_meanings', textjoin("""good suspect bad""")],
+                ['flag_meanings', textjoin("""good suspect degraded bad""")],
                 ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
