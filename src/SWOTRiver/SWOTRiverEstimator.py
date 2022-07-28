@@ -1440,20 +1440,6 @@ class SWOTRiverEstimator(SWOTL2):
                                                    mask,
                                                    min_fit_points,
                                                    method='Bayes')
-                #
-                # TO-DO: determine if we should use outlier Bayes method
-                #
-                # flag outliers more than 3-sigma from the optimal fit
-                # outliers = (np.abs(hh - wse_opt) > 3 * np.sqrt(1.0 / ww))
-                # ww[outliers] = 1.0 / (np.abs(
-                #     hh[outliers] - wse_opt[outliers]) * 2) ** 2
-
-                # if 0 < outliers.sum():
-                #     # refit the wle with outlier rejection
-                #     ole.fit(X, hh[mask], ww[mask])
-                #     wse_wle_out = ole.predict(ss.reshape(len(ss), 1))
-                #     wse_opt = optimal_reconstruct(ss, hh,
-                #         np.sqrt(1.0 / ww), ~mask, wse_wle_offset)
 
                 # take first-to-last of reconstruction for slope
                 # mean of reconstruction wse (for observed nodes) as wse
