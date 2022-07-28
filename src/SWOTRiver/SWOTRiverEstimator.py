@@ -1983,8 +1983,8 @@ class SWOTRiverEstimator(SWOTL2):
                 t = ss - d0
                 Ry0[k, :] = np.exp(-np.abs(t) / self.char_length_tau)
         else:
-            # TODO: Raise unimplemented option exception
-            pass
+            raise Exception('Covariance model %s is not an implemented option '
+                            'for the reconstruction' % prior_cov_method)
         # scale the covariance to trade-off noise.vs "spectral resolution"
         Ry = Ry0 / np.max(Ry0) * self.prior_unc_alpha ** 2
         # compute the optimal wse reconstruction filter
