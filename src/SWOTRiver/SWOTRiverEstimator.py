@@ -1992,7 +1992,6 @@ class SWOTRiverEstimator(SWOTL2):
             # get the bayes estimate
             K, K_bar = self.compute_bayes_estimator(Ry, Rv, H)
         else:
-            # TODO: Raise unimplemented option exception here
             raise Exception('Reconstruction method %s is not an implemented '
                             'option for the reconstruction' % method)
         # handle the missing node wse measurements
