@@ -1433,21 +1433,23 @@ class SWOTRiverEstimator(SWOTL2):
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
                 # using the offset linear weighted fit as the prior
-                wse_opt = self.optimal_reconstruct(river_reach_collection,
-                                                   river_reach, reach_id,
-                                                   ss, hh,
-                                                   np.sqrt(1.0 / ww),
-                                                   mask,
-                                                   min_fit_points,
-                                                   method='Bayes')
+                wse_opt, height_u, slope_u = self.optimal_reconstruct(
+                    river_reach_collection,
+                    river_reach, reach_id,
+                    ss, hh,
+                    np.sqrt(1.0 / ww),
+                    mask,
+                    min_fit_points,
+                    method='Bayes'
+                )
 
                 # Use reconstruction height and slope for reach outputs
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
                 # TBD unc quantities for bayes method
-                reach_stats['slope_u'] = MISSING_VALUE_FLT
-                reach_stats['height_u'] = MISSING_VALUE_FLT
+                reach_stats['slope_u'] = slope_u
+                reach_stats['height_u'] = height_u
 
         else:
             # insufficient node heights for fit to reach
@@ -1947,6 +1949,13 @@ class SWOTRiverEstimator(SWOTL2):
             ww = 1 / (wse_r_u ** 2)
             mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
             ss = ss - np.mean(ss)
+            end_slice = first_node + this_len
+            b = np.zeros_like(ss)
+            b[first_node:end_slice] = 1
+            c = np.zeros_like(ss)
+            c[first_node] = -1
+            c[end_slice-1] = 1
+
         if prior_wse is None:
             # create linear fit prior
             ww = 1/wse_r_u**2
@@ -1990,7 +1999,7 @@ class SWOTRiverEstimator(SWOTL2):
         # compute the optimal wse reconstruction filter
         if method == 'Bayes':
             # get the bayes estimate
-            K, K_bar = self.compute_bayes_estimator(Ry, Rv, H)
+            K, K_bar, A_inv = self.compute_bayes_estimator(Ry, Rv, H)
         else:
             # TODO: Raise unimplemented option exception here
             raise Exception('Reconstruction method %s is not an implemented '
@@ -2006,10 +2015,11 @@ class SWOTRiverEstimator(SWOTL2):
         wse_out0 = np.matmul(K, wse_reg)
         # apply the prior term
         wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
+        height_u = b @ A_inv @ np.atleast_2d(b).T
+        slope_u = c @ A_inv @ np.atleast_2d(c).T
         if self.use_multiple_reaches:
-            end_slice = first_node + this_len
             wse_out = wse_out[first_node:end_slice]
-        return wse_out
+        return wse_out, height_u, slope_u
 
     @staticmethod
     def compute_bayes_estimator(Ry, Rv, H):
@@ -2028,8 +2038,9 @@ class SWOTRiverEstimator(SWOTL2):
         post_cov = np.linalg.pinv(post_cov_inv)
         K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
         K_bar = np.matmul(post_cov, Ry_inv)
+        A_inv = np.linalg.pinv(Ry_inv + H.T @ Rv_inv @ H)
 
-        return K, K_bar
+        return K, K_bar, A_inv
 
     @staticmethod
     def get_noise_autocov(wse, wse_r_u, mask, full=False):
