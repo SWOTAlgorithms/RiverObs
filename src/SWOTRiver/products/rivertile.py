@@ -3,7 +3,7 @@ Copyright (c) 2018-, California Institute of Technology ("Caltech"). U.S.
 Government sponsorship acknowledged.
 All rights reserved.
 
-Author (s): Alex Fore
+Author (s): Alex Fore, Cassie Stuurman
 '''
 import os
 import textwrap
@@ -42,6 +42,26 @@ QUAL_IND_NO_SIG0_PIX = 33554432                 # bit 25
 QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
 QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
 QUAL_IND_NO_PIXELS = 268435456                  # bit 28
+
+# define constants for each reach-level quality bit
+QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
+QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
+QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
+QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
+QUAL_IND_BLOCK_WIDTH_SUSPECT = 16               # bit 4
+QUAL_IND_BRIGHT_LAND_SUSPECT = 128              # bit 7
+QUAL_IND_FEW_SIG0_PIX = 512                     # bit 9
+QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
+QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
+QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
+QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
+QUAl_IND_PARTIAL_OBS = 32768                    # bit 15
+QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
+QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_MIN_FIT_POINTS = 33554432              # bit 25
+QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
+QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
+QUAL_IND_NO_OBS = 268435456                     # bit 28
 
 
 ATTRS_2COPY_FROM_PIXC = [
@@ -1160,7 +1180,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ])],
         ['node_q_b',
          odict([['dtype', 'i4'],
-                ['long_name', 'summary quality indicator for the node'],
+                ['long_name', 'bitwise quality indicator for the node'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'node_qual_bitwise'],
                 ['flag_meanings', textjoin(
@@ -3248,6 +3268,63 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     suspect measurement, 2 indicates a degraded measurement,
                     and 3 indicates a bad measurement.""")],
                 ])],
+        ['reach_q_b',
+         odict([['dtype', 'i4'],
+                ['long_name', 'bitwise quality indicator for the reach'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'reach_qual_bitwise'],
+                ['flag_meanings', textjoin(
+                    """sig0_qual_suspect  
+                    classification_qual_suspect  
+                    geolocation_qual_suspect  
+                    water_fraction_suspect  
+                    blocking_width_suspect  
+                    bright_land
+                    few_sig0_pix
+                    few_area_pix
+                    few_wse_pix  
+                    far_range_suspect  
+                    near_range_suspect
+                    partial_obs
+                    classification_qual_degraded
+                    geolocation_qual_degraded
+                    min_fit_points  
+                    no_area_pix
+                    no_wse_pix
+                    no_pixels""")],
+                ['flag_masks', np.array([
+                    QUAL_IND_SIG0_QUAL_SUSPECT,
+                    QUAL_IND_CLASS_QUAL_SUSPECT,
+                    QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
+                    QUAL_IND_WATER_FRAC_SUSPECT,
+                    QUAL_IND_BLOCK_WIDTH_SUSPECT,
+                    QUAL_IND_BRIGHT_LAND_SUSPECT,
+                    QUAL_IND_FEW_SIG0_PIX,
+                    QUAL_IND_FEW_AREA_PIX,
+                    QUAL_IND_FEW_WSE_PIX,
+                    QUAL_IND_FAR_RANGE_SUSPECT,
+                    QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAl_IND_PARTIAL_OBS,
+                    QUAL_IND_CLASS_QUAL_DEGRADED,
+                    QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    QUAL_IND_MIN_FIT_POINTS,
+                    QUAL_IND_NO_AREA_PIX,
+                    QUAL_IND_NO_WSE_PIX,
+                    QUAL_IND_NO_OBS
+                ]).astype('i4')],
+                ['valid_min', 0],
+                ['valid_max', 268435456],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the reach measurement. If
+                    this word is interpreted as an unsigned integer, a value of
+                    0 indicates good data, values less than 262144 represent 
+                    suspect data, values greater than or equal to 262144 but
+                    less than 8388608 represent degraded data, and values
+                    greater than or equal to 8388608 represent bad data.""")],
+                ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
@@ -3890,8 +3967,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
-            # set quality bad if partial flag is set
-            klass['reach_q'] = klass['partial_f']
+            klass['reach_q'] = MISSING_VALUE_INT9  # TODO: populate qual flag
+            klass['reach_q_b'] = MISSING_VALUE_INT9  # TODO: set bitwise flag
 
         return klass
 
