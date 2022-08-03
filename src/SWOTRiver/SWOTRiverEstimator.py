@@ -1517,23 +1517,6 @@ class SWOTRiverEstimator(SWOTL2):
                                                    mask,
                                                    min_fit_points,
                                                    method='Bayes')
-                #
-                # TO-DO: determine if we should use outlier Bayes method
-                #
-                # flag outliers more than 3-sigma from the optimal fit
-                # outliers = (np.abs(hh - wse_opt) > 3 * np.sqrt(1.0 / ww))
-                # ww[outliers] = 1.0 / (np.abs(
-                #     hh[outliers] - wse_opt[outliers]) * 2) ** 2
-
-                # if 0 < outliers.sum():
-                #     # refit the wle with outlier rejection
-                #     ole.fit(X, hh[mask], ww[mask])
-                #     wse_wle_out = ole.predict(ss.reshape(len(ss), 1))
-                #     wse_opt = optimal_reconstruct(ss, hh,
-                #         np.sqrt(1.0 / ww), ~mask, wse_wle_offset)
-
-                # take first-to-last of reconstruction for slope
-                # mean of reconstruction wse (for observed nodes) as wse
 
                 # Use reconstruction height and slope for reach outputs
                 dx = ss[0] - ss[-1]  # along-reach dist
@@ -2016,7 +1999,7 @@ class SWOTRiverEstimator(SWOTL2):
         ireach : int
             Index in the list of reaches extracted for this scene.
         wse        : Measured Node wse (with masked values for missing nodes)
-        wse_r_u    : Node-wise wse uncertainty
+        wse_r_u    : Node-wise random wse uncertainty
         ss         : Node-level distance from prior database
         mask       : True if node-level height is good, False where it is bad
         Options:
@@ -2073,14 +2056,12 @@ class SWOTRiverEstimator(SWOTL2):
         elif prior_cov_method == 'exponential':
             # get the signal covariance assuming an exponential random process
             Ry0 = np.zeros((len(ss), len(ss)))
-            # TO-DO: check for multiple good upstream/downstream reaches and
-            # modify Ry
             for k, d0 in enumerate(ss):
                 t = ss - d0
                 Ry0[k, :] = np.exp(-np.abs(t) / self.char_length_tau)
         else:
-            # TODO: Raise unimplemented option exception
-            pass
+            raise Exception('Covariance model %s is not an implemented option '
+                            'for the reconstruction' % prior_cov_method)
         # scale the covariance to trade-off noise.vs "spectral resolution"
         Ry = Ry0 / np.max(Ry0) * self.prior_unc_alpha ** 2
         # compute the optimal wse reconstruction filter
@@ -2088,8 +2069,8 @@ class SWOTRiverEstimator(SWOTL2):
             # get the bayes estimate
             K, K_bar = self.compute_bayes_estimator(Ry, Rv, H)
         else:
-            # TODO: Raise unimplemented option exception here
-            pass
+            raise Exception('Reconstruction method %s is not an implemented '
+                            'option for the reconstruction' % method)
         # handle the missing node wse measurements
         if full_noise_cov:
             # wse_reg = prior_wse.copy()
