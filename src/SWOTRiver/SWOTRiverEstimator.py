@@ -229,12 +229,13 @@ class SWOTRiverEstimator(SWOTL2):
                  ellps='WGS84',
                  output_file=None,
                  subsample_factor=1,
-                 height_agg_method='weight',#[weight, median, uniform, orig]
+                 height_agg_method='weight',  # [weight, median, uniform, orig]
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
                  slope_method='bayes',
                  prior_unc_alpha=1.5,
                  char_length_tau=10000,
+                 prior_wse_method= 'fit',
                  use_multiple_reaches=False,
                  use_ext_dist_coef=True,
                  outlier_method=None,
@@ -251,6 +252,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.slope_method = slope_method
         self.prior_unc_alpha = prior_unc_alpha
         self.char_length_tau = char_length_tau
+        self.prior_wse_method = prior_wse_method
         self.use_multiple_reaches = use_multiple_reaches
         self.use_ext_dist_coef = use_ext_dist_coef
         self.outlier_method = outlier_method
@@ -1430,9 +1432,9 @@ class SWOTRiverEstimator(SWOTL2):
                 #    statsmodels.regression.linear_model.RegressionResults.html
                 reach_stats['slope_u'] = fit.HC0_se[0]
                 reach_stats['height_u'] = fit.HC0_se[1]
+
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
-                # using the offset linear weighted fit as the prior
                 wse_opt, height_u, slope_u = self.optimal_reconstruct(
                     river_reach_collection,
                     river_reach, reach_id,
@@ -1440,7 +1442,7 @@ class SWOTRiverEstimator(SWOTL2):
                     np.sqrt(1.0 / ww),
                     mask,
                     min_fit_points,
-                    method='Bayes'
+                    method='Bayes',
                 )
 
                 # Use reconstruction height and slope for reach outputs
@@ -1695,7 +1697,8 @@ class SWOTRiverEstimator(SWOTL2):
         Output:
         enhanced_slope: enhanced reach slope
         """
-        wse, wse_r_u, this_len, first_node, ss = self.get_multi_reach_height(
+        wse, wse_r_u, this_len, first_node, ss, p_wse = \
+            self.get_multi_reach_height(
             river_reach_collection, river_reach, ireach)
         # get the multi-reach mask
         ww = 1 / (wse_r_u ** 2)
@@ -1710,7 +1713,7 @@ class SWOTRiverEstimator(SWOTL2):
             this_reach_edges = np.ma.flatnotmasked_edges(
                 np.ma.masked_array(wse[first_node:end_slice],
                                    mask=~this_reach_mask))
-            last_node = first_node + this_reach_edges[1] - 1
+            last_node = first_node + this_reach_edges[1]
             first_node = first_node + this_reach_edges[0]
             first_node_masked = first_node - np.sum(~mask[:first_node])
             last_node_masked = first_node_masked + np.sum(this_reach_mask) - 1
@@ -1876,15 +1879,18 @@ class SWOTRiverEstimator(SWOTL2):
         # reach boundaries.
         first_node = 0
         ss = np.array([])
+        p_wse = np.array([])
         wse = np.array([])
         wse_r_u = np.array([])
         # if upstream PRD reach is usable
         if prd_is_good[1]:
             ss = np.concatenate([adj_rch[1].node_ss, ss])
+            p_wse = np.concatenate([adj_rch[1].p_wse, p_wse])
             wse = np.concatenate([adj_rch[1].wse, wse])
             wse_r_u = np.concatenate([adj_rch[1].wse_r_u, wse_r_u])
 
         ss = np.concatenate([river_reach.node_ss, ss+prior_s[-1]])
+        p_wse = np.concatenate([river_reach.p_wse, p_wse])
         wse = np.concatenate([river_reach.wse, wse])
         wse_r_u = np.concatenate([river_reach.wse_r_u, wse_r_u])
         this_len = len(river_reach.wse)
@@ -1895,10 +1901,11 @@ class SWOTRiverEstimator(SWOTL2):
             first_node = first_node + len(adj_rch[-1].wse)
             ss = np.concatenate([adj_rch[-1].node_ss,
                                  ss+downstream_prior_s[-1]])
+            p_wse = np.concatenate([adj_rch[-1].p_wse, p_wse])
             wse = np.concatenate([adj_rch[-1].wse, wse])
             wse_r_u = np.concatenate([adj_rch[-1].wse_r_u, wse_r_u])
 
-        return wse, wse_r_u, this_len, first_node, ss
+        return wse, wse_r_u, this_len, first_node, ss, p_wse
 
     def optimal_reconstruct(
             self,
@@ -1910,7 +1917,6 @@ class SWOTRiverEstimator(SWOTL2):
             wse_r_u,
             mask,
             min_fit_points=2,
-            prior_wse=None,
             prior_cov_method='exponential',
             full_noise_cov=False,
             method='Bayes'):
@@ -1941,8 +1947,9 @@ class SWOTRiverEstimator(SWOTL2):
                            This option controls how spatial structure is
                            imposed by the prior.
         """
+
         if self.use_multiple_reaches:
-            wse, wse_r_u, this_len, first_node, ss = \
+            wse, wse_r_u, this_len, first_node, ss, prior_wse = \
                 self.get_multi_reach_height(
                     river_reach_collection, river_reach, ireach)
             # get the multi-reach mask
@@ -1956,8 +1963,22 @@ class SWOTRiverEstimator(SWOTL2):
             c[first_node] = -1
             c[end_slice-1] = 1
 
+        # create a wse prior if flagged
+        if self.prior_wse_method == 'fit':
+            prior_wse = None
+        elif self.prior_wse_method == 'prd':
+            if self.use_multiple_reaches:
+                # prior_wse already set above
+                pass
+            else:
+                # get prior wse from PRD
+                prior_wse = river_reach.p_wse
+        else:
+            raise Exception('Prior wse method %s is not an implemented option '
+                            'for the reconstruction' % self.prior_wse_method)
+
         if prior_wse is None:
-            # create linear fit prior
+            # If no prior wse is given, use obs wse to make linear fit prior
             ww = 1/wse_r_u**2
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             wse_fit = statsmodels.api.WLS(wse[mask], SS[mask],
