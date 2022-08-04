@@ -32,6 +32,9 @@ from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
 
+REACH_WSE_SYS_UNCERT = 0.09 # m/m
+SLOPE_SYS_UNCERT = 0.003  # m/m
+
 class SWOTRiverEstimator(SWOTL2):
     """
     Given a SWOTL2 file, fit all of the reaches observed and output results.
@@ -1412,6 +1415,8 @@ class SWOTRiverEstimator(SWOTL2):
                 # TBD on unc quantities for first_to_last method
                 reach_stats['slope_r_u'] = MISSING_VALUE_FLT
                 reach_stats['height_r_u'] = MISSING_VALUE_FLT
+                reach_stats['slope_u'] = SLOPE_SYS_UNCERT
+                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT
 
             elif self.slope_method in ['unweighted', 'weighted']:
                 # use weighted fit if commanded and all weights are good
@@ -1433,6 +1438,10 @@ class SWOTRiverEstimator(SWOTL2):
                 #    statsmodels.regression.linear_model.RegressionResults.html
                 reach_stats['slope_r_u'] = fit.HC0_se[0]
                 reach_stats['height_r_u'] = fit.HC0_se[1]
+                reach_stats['slope_u'] = SLOPE_SYS_UNCERT \
+                                         + reach_stats['slope_r_u']
+                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT \
+                                          + reach_stats['height_r_u']
 
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
@@ -1449,15 +1458,21 @@ class SWOTRiverEstimator(SWOTL2):
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
-                reach_stats['slope_r_u'] = slope_u
-                reach_stats['height_r_u'] = height_u
+                reach_stats['slope_r_u'] = slope_u * 0.01    # m/m
+                reach_stats['height_r_u'] = height_u * 0.01  # m/m
+                reach_stats['slope_u'] = SLOPE_SYS_UNCERT \
+                                         + reach_stats['slope_r_u']
+                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT \
+                                          + reach_stats['height_r_u']
 
         else:
             # insufficient node heights for fit to reach
             reach_stats['slope'] = MISSING_VALUE_FLT
             reach_stats['slope_r_u'] = MISSING_VALUE_FLT
+            reach_stats['slope_u'] = MISSING_VALUE_FLT
             reach_stats['height'] = MISSING_VALUE_FLT
             reach_stats['height_r_u'] = MISSING_VALUE_FLT
+            reach_stats['height_u'] = MISSING_VALUE_FLT
 
         reach_stats['n_good_nod'] = mask.sum()
         reach_stats['frac_obs'] = (

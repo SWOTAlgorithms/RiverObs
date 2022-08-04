@@ -441,17 +441,17 @@ class L2HRRiverTile(Product):
                     reach_outputs['dschg_gisf'],
                     MISSING_VALUE_FLT)
 
-                for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
-                            'area_det_u', 'area_of_ht', 'width', 'width_u',
-                            'loc_offset', 'xtrk_dist', 'frac_obs',
+                for key in ['length', 'node_dist', 'area', 'area_u',
+                            'area_det', 'area_det_u', 'area_of_ht', 'width',
+                            'width_u', 'loc_offset', 'xtrk_dist', 'frac_obs',
                             'slope', 'height', 'slope_r_u', 'height_r_u',
-                            'height_c', 'height_c_u', 'geoid_slop',
-                            'geoid_hght', 'd_x_area', 'd_x_area_u', 'width_c',
-                            'width_c_u', 'dark_frac', 'slope2', 'metro_q_c',
-                            'bam_q_c', 'hivdi_q_c', 'momma_q_c', 'sads_q_c',
-                            'sic4dvar_q_c', 'metro_q_uc', 'bam_q_uc',
-                            'hivdi_q_uc', 'momma_q_uc', 'sads_q_uc',
-                            'sic4dvar_q_uc']:
+                            'slope_u', 'height_u', 'height_c', 'height_c_u',
+                            'geoid_slop', 'geoid_hght', 'd_x_area',
+                            'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
+                            'slope2', 'metro_q_c', 'bam_q_c', 'hivdi_q_c',
+                            'momma_q_c', 'sads_q_c', 'sic4dvar_q_c',
+                            'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
+                            'momma_q_uc', 'sads_q_uc', 'sic4dvar_q_uc']:
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
@@ -1992,7 +1992,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     direction is defined by the prior river database.  A
                     positive slope means that the downstream WSE is lower.""")],
                 ])],
-        ['slope_r_u',
+        ['slope_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the water surface slope'],
                 ['short_name', 'slope_uncert'],
@@ -3742,10 +3742,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['reach_id'] = reach_outputs['reach_idx']
             klass['wse'] = reach_outputs['height']
             klass['wse_r_u'] = reach_outputs['height_r_u']
+            klass['wse_u'] = reach_outputs['height_u']
             klass['wse_c'] = reach_outputs['height_c']
             klass['wse_c_u'] = reach_outputs['height_c_u']
             klass['slope'] = reach_outputs['slope']
             klass['slope_r_u'] = reach_outputs['slope_r_u']
+            klass['slope_u'] = reach_outputs['slope_u']
             klass['slope2'] = reach_outputs['slope2']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
