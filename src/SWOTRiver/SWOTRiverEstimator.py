@@ -1459,7 +1459,7 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
                 reach_stats['slope_r_u'] = slope_u * 0.01    # m/m
-                reach_stats['height_r_u'] = height_u * 0.01  # m/m
+                reach_stats['height_r_u'] = height_u * 0.01  # m
                 reach_stats['slope_u'] = SLOPE_SYS_UNCERT \
                                          + reach_stats['slope_r_u']
                 reach_stats['height_u'] = REACH_WSE_SYS_UNCERT \
