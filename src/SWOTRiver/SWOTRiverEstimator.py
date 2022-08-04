@@ -5,6 +5,7 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
+import pdb
 import scipy.ndimage
 import numpy as np
 import netCDF4 as nc
@@ -1409,8 +1410,8 @@ class SWOTRiverEstimator(SWOTL2):
                     (np.mean(all_ss)-np.mean(ss[mask])))
 
                 # TBD on unc quantities for first_to_last method
-                reach_stats['slope_u'] = MISSING_VALUE_FLT
-                reach_stats['height_u'] = MISSING_VALUE_FLT
+                reach_stats['slope_r_u'] = MISSING_VALUE_FLT
+                reach_stats['height_r_u'] = MISSING_VALUE_FLT
 
             elif self.slope_method in ['unweighted', 'weighted']:
                 # use weighted fit if commanded and all weights are good
@@ -1430,8 +1431,8 @@ class SWOTRiverEstimator(SWOTL2):
                 # use White’s (1980) heteroskedasticity robust standard errors.
                 # https://www.statsmodels.org/dev/generated/
                 #    statsmodels.regression.linear_model.RegressionResults.html
-                reach_stats['slope_u'] = fit.HC0_se[0]
-                reach_stats['height_u'] = fit.HC0_se[1]
+                reach_stats['slope_r_u'] = fit.HC0_se[0]
+                reach_stats['height_r_u'] = fit.HC0_se[1]
 
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
@@ -1444,21 +1445,19 @@ class SWOTRiverEstimator(SWOTL2):
                     min_fit_points,
                     method='Bayes',
                 )
-
                 # Use reconstruction height and slope for reach outputs
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
-                # TBD unc quantities for bayes method
-                reach_stats['slope_u'] = slope_u
-                reach_stats['height_u'] = height_u
+                reach_stats['slope_r_u'] = slope_u
+                reach_stats['height_r_u'] = height_u
 
         else:
             # insufficient node heights for fit to reach
             reach_stats['slope'] = MISSING_VALUE_FLT
-            reach_stats['slope_u'] = MISSING_VALUE_FLT
+            reach_stats['slope_r_u'] = MISSING_VALUE_FLT
             reach_stats['height'] = MISSING_VALUE_FLT
-            reach_stats['height_u'] = MISSING_VALUE_FLT
+            reach_stats['height_r_u'] = MISSING_VALUE_FLT
 
         reach_stats['n_good_nod'] = mask.sum()
         reach_stats['frac_obs'] = (

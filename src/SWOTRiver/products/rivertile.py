@@ -6,6 +6,7 @@ All rights reserved.
 Author (s): Alex Fore
 '''
 import os
+import pdb
 import textwrap
 import numpy as np
 import fiona
@@ -443,7 +444,7 @@ class L2HRRiverTile(Product):
                 for key in ['length', 'node_dist', 'area', 'area_u', 'area_det',
                             'area_det_u', 'area_of_ht', 'width', 'width_u',
                             'loc_offset', 'xtrk_dist', 'frac_obs',
-                            'slope', 'height', 'slope_u', 'height_u',
+                            'slope', 'height', 'slope_r_u', 'height_r_u',
                             'height_c', 'height_c_u', 'geoid_slop',
                             'geoid_hght', 'd_x_area', 'd_x_area_u', 'width_c',
                             'width_c_u', 'dark_frac', 'slope2', 'metro_q_c',
@@ -1991,7 +1992,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     direction is defined by the prior river database.  A
                     positive slope means that the downstream WSE is lower.""")],
                 ])],
-        ['slope_u',
+        ['slope_r_u',
          odict([['dtype', 'f8'],
                 ['long_name', 'total uncertainty in the water surface slope'],
                 ['short_name', 'slope_uncert'],
@@ -3740,11 +3741,11 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         if reach_outputs is not None:
             klass['reach_id'] = reach_outputs['reach_idx']
             klass['wse'] = reach_outputs['height']
-            klass['wse_r_u'] = reach_outputs['height_u']
+            klass['wse_r_u'] = reach_outputs['height_r_u']
             klass['wse_c'] = reach_outputs['height_c']
             klass['wse_c_u'] = reach_outputs['height_c_u']
             klass['slope'] = reach_outputs['slope']
-            klass['slope_r_u'] = reach_outputs['slope_u']
+            klass['slope_r_u'] = reach_outputs['slope_r_u']
             klass['slope2'] = reach_outputs['slope2']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
