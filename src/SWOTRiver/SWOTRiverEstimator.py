@@ -32,8 +32,8 @@ from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
 
-REACH_WSE_SYS_UNCERT = 0.09 # m/m
-SLOPE_SYS_UNCERT = 0.003  # m/m
+REACH_WSE_SYS_UNCERT = 0.09  # m
+SLOPE_SYS_UNCERT = 0.000003  # m/m
 
 class SWOTRiverEstimator(SWOTL2):
     """
