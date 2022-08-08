@@ -6,6 +6,7 @@ All rights reserved.
 Author (s): Alex Fore
 '''
 import os
+import pdb
 import textwrap
 import numpy as np
 import fiona
@@ -1698,6 +1699,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 value = eval(item.text)
             except:
                 value = item.text
+                if value is None:
+                    value = ''
             setattr(klass, item.tag, value)
 
         # load datasets from shapefiles
