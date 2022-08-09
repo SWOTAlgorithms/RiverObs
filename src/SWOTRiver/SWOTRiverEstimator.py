@@ -1775,31 +1775,30 @@ class SWOTRiverEstimator(SWOTL2):
         Output:
         enhanced_slope: enhanced reach slope
         """
-
         wse, wse_r_u, this_len, first_node, ss, mask, p_wse = \
             self.get_multi_reach_height(
             river_reach_collection, river_reach, ireach)
 
-        # handle indexing for masked reaches
-        end_slice = first_node + this_len
-        this_reach_mask = mask[first_node:end_slice]
-
-        if np.sum(this_reach_mask) < min_fit_points:
+        if np.sum(river_reach.mask) < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
         else:
+            # handle indexing for masked reaches
             this_reach_edges = np.ma.flatnotmasked_edges(
-                np.ma.masked_array(wse[first_node:end_slice],
-                                   mask=~this_reach_mask))
-            last_node = first_node + this_reach_edges[1]
-            first_node = first_node + this_reach_edges[0]
-            first_node_masked = first_node - np.sum(~mask[:first_node])
-            last_node_masked = first_node_masked + np.sum(this_reach_mask) - 1
-            this_reach_len = ss[last_node] - ss[first_node]
+                np.ma.masked_array(river_reach.wse, mask=~river_reach.mask))
+            this_reach_len = river_reach.node_ss[this_reach_edges[1]] \
+                             - river_reach.node_ss[this_reach_edges[0]]
+            if first_node == 0:
+                # No upstream reach. Do not adjust first node location
+                first_node_masked = 0
+            else:
+                # Adjust first node location based on upstream masked nodes
+                first_node_masked = first_node - np.sum(
+                    ~mask[:first_node + this_reach_edges[0]])
+            last_node_masked = first_node_masked + np.sum(river_reach.mask) - 1
 
             # window size and sigma for Gaussian averaging
             window_size = np.min([max_window_size, this_reach_len])
             sigma = np.max([min_sigma, window_size / window_size_sigma_ratio])
-
             # smooth h_n_ave, and get slope
             slope = np.polyfit(ss[mask], wse[mask], 1)[0]
             heights_detrend = wse[mask] - slope * ss[mask]
