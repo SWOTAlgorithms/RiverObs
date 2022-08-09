@@ -5,7 +5,6 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
-import pdb
 import scipy.ndimage
 import numpy as np
 import netCDF4 as nc
