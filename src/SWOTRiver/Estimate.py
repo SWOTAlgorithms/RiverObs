@@ -157,11 +157,16 @@ class L2PixcToRiverTile(object):
         if 'use_ext_dist_coef' not in self.config:
             self.config['use_ext_dist_coef'] = True
 
-        # Set sub-params of iterative_linear outlier flagging method to
-        # None if outlier_method is not iterative_linear
+        # set values to None for iterative_linear only keywords
         if self.config['outlier_method'] != 'iterative_linear':
-            for key in ['outlier_abs_thresh', 'outlier_rel_thresh',
-                        'outlier_upr_thresh', 'outlier_iter_num']:
+            for key in ['outlier_rel_thresh']:
+                self.config[key] = None
+
+        # set values to None for piecewise_linear only keywords
+        elif self.config['outlier_method'] != 'piecewise_linear':
+            for key in ['outlier_breakpoint_min_dist',
+                        'outlier_edge_min_dist',
+                        'outlier_n_boot']:
                 self.config[key] = None
 
         # key/value arguments for constructing SWOTRiverEstimator
@@ -195,6 +200,9 @@ class L2PixcToRiverTile(object):
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
+            'outlier_breakpoint_min_dist': self.config['outlier_breakpoint_min_dist'],
+            'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
+            'outlier_n_boot': self.config['outlier_n_boot']
             }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(

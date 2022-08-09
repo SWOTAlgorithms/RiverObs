@@ -1699,6 +1699,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 value = eval(item.text)
             except:
                 value = item.text
+                if value is None:
+                    value = ''
             setattr(klass, item.tag, value)
 
         # load datasets from shapefiles
@@ -3910,7 +3912,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     tmp = record['properties'][key].replace(
                         'no_data', str(fill))
                     data[key][irec, :] = np.array([
-                        int(float(item)) for item in tmp.split(' ')])
+                        int(float(item)) for item in tmp.split(', ')])
 
             else:
                 data[key] = np.array([
