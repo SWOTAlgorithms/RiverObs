@@ -2126,19 +2126,23 @@ class SWOTRiverEstimator(SWOTL2):
         Ry is the signal (or parameter) covariance
         Rv is the measurement noise covariance
         H is the sampling operator (or sampling then basis projection operator)
+        A is the posterior covariance (post_cov)
+
         These are the equations implemented
         K = (Ry^-1 + H.T Rv^-1 H)^-1 H.T Rv^-1
         K_bar = (Ry^-1 + H.T Rv^-1 H)^-1 Ry^-1 (if non-zero mean of prior wse)
+        A = (Ry^-1 + H.T Rv^-1 H))
+
         """
         Ry_inv = np.linalg.pinv(Ry)
         Rv_inv = np.linalg.pinv(Rv)
-        post_cov_inv = Ry_inv + np.matmul(np.matmul(H.T, Rv_inv), H)
+        post_cov = Ry_inv + H.T @ Rv_inv @ H
+        post_cov_inv = np.linalg.pinv(post_cov)
         post_cov = np.linalg.pinv(post_cov_inv)
-        K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
-        K_bar = np.matmul(post_cov, Ry_inv)
-        A_inv = np.linalg.pinv(Ry_inv + H.T @ Rv_inv @ H)
+        K = post_cov @ H.T @ Rv_inv
+        K_bar = post_cov @ Ry_inv
 
-        return K, K_bar, A_inv
+        return K, K_bar, post_cov_inv
 
     @staticmethod
     def get_noise_autocov(wse, wse_r_u, mask, full=False):
