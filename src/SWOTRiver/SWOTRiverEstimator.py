@@ -2038,7 +2038,7 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             first_node = 0
             end_slice = len(ss)
-        
+
         # define vectors b and c for uncertainty estimates later
         this_reach_mask_b = np.zeros_like(ss)
         this_reach_mask_b[first_node:end_slice] = 1
@@ -2133,23 +2133,21 @@ class SWOTRiverEstimator(SWOTL2):
         Ry is the signal (or parameter) covariance
         Rv is the measurement noise covariance
         H is the sampling operator (or sampling then basis projection operator)
-        A is the posterior covariance (post_cov)
+        A_inv is the posterior covariance (post_cov)
 
         These are the equations implemented
         K = (Ry^-1 + H.T Rv^-1 H)^-1 H.T Rv^-1
         K_bar = (Ry^-1 + H.T Rv^-1 H)^-1 Ry^-1 (if non-zero mean of prior wse)
         A = (Ry^-1 + H.T Rv^-1 H))
-
         """
         Ry_inv = np.linalg.pinv(Ry)
         Rv_inv = np.linalg.pinv(Rv)
-        post_cov = Ry_inv + H.T @ Rv_inv @ H
-        post_cov_inv = np.linalg.pinv(post_cov)
-        post_cov = np.linalg.pinv(post_cov_inv)
+        A = Ry_inv + H.T @ Rv_inv @ H
+        post_cov = np.linalg.pinv(A)  # A_inv
         K = post_cov @ H.T @ Rv_inv
         K_bar = post_cov @ Ry_inv
 
-        return K, K_bar, post_cov_inv
+        return K, K_bar, post_cov
 
     @staticmethod
     def get_noise_autocov(wse, wse_r_u, mask, full=False):
