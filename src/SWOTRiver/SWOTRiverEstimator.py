@@ -1453,10 +1453,10 @@ class SWOTRiverEstimator(SWOTL2):
                 #    statsmodels.regression.linear_model.RegressionResults.html
                 reach_stats['slope_r_u'] = fit.HC0_se[0]
                 reach_stats['height_r_u'] = fit.HC0_se[1]
-                reach_stats['slope_u'] = SLOPE_SYS_UNCERT \
-                                         + reach_stats['slope_r_u']
-                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT \
-                                          + reach_stats['height_r_u']
+                reach_stats['slope_u'] = np.sqrt(
+                    SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                reach_stats['height_u'] = np.sqrt(
+                    REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
 
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
@@ -1474,10 +1474,10 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['height'] = np.mean(wse_opt)
                 reach_stats['slope_r_u'] = slope_u * 0.01    # m/m
                 reach_stats['height_r_u'] = height_u * 0.01  # m
-                reach_stats['slope_u'] = SLOPE_SYS_UNCERT \
-                                         + reach_stats['slope_r_u']
-                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT \
-                                          + reach_stats['height_r_u']
+                reach_stats['slope_u'] = np.sqrt(
+                    SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                reach_stats['height_u'] = np.sqrt(
+                    REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
 
         else:
             # insufficient node heights for fit to reach
