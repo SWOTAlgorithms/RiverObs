@@ -2035,11 +2035,16 @@ class SWOTRiverEstimator(SWOTL2):
             # get the multi-reach mask
             ss = ss - np.mean(ss)
             end_slice = first_node + this_len
-            b = np.zeros_like(ss)
-            b[first_node:end_slice] = 1
-            c = np.zeros_like(ss)
-            c[first_node] = -1
-            c[end_slice-1] = 1
+        else:
+            first_node = 0
+            end_slice = len(ss)
+        
+        # define vectors b and c for uncertainty estimates later
+        this_reach_mask_b = np.zeros_like(ss)
+        this_reach_mask_b[first_node:end_slice] = 1
+        first_and_last_node_c = np.zeros_like(ss)
+        first_and_last_node_c[first_node] = -1
+        first_and_last_node_c[end_slice-1] = 1
 
         # create a wse prior if flagged
         if self.prior_wse_method == 'fit':
@@ -2113,8 +2118,10 @@ class SWOTRiverEstimator(SWOTL2):
         wse_out0 = np.matmul(K, wse_reg)
         # apply the prior term
         wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
-        height_u = b @ A_inv @ np.atleast_2d(b).T
-        slope_u = c @ A_inv @ np.atleast_2d(c).T
+        height_u = this_reach_mask_b @ A_inv @ np.atleast_2d(
+            this_reach_mask_b).T
+        slope_u = first_and_last_node_c @ A_inv @ np.atleast_2d(
+            first_and_last_node_c).T
         if self.use_multiple_reaches:
             wse_out = wse_out[first_node:end_slice]
         return wse_out, height_u, slope_u
