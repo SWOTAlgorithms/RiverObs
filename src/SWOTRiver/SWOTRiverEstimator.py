@@ -13,6 +13,7 @@ import scipy.stats
 import scipy.ndimage
 import statsmodels.api
 import logging
+import piecewise_regression
 
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
@@ -30,6 +31,9 @@ from Centerline.Centerline import Centerline, CenterLineException
 from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
+
+REACH_WSE_SYS_UNCERT = 0.09  # m
+SLOPE_SYS_UNCERT = 0.000003  # m/m
 
 class SWOTRiverEstimator(SWOTL2):
     """
@@ -144,7 +148,7 @@ class SWOTRiverEstimator(SWOTL2):
         the prior river database (SWORD) for river reaches near water bodies.
     outlier_method : str, default 'None'.
         This describes which method to use for reach-level wse outlier
-        rejection. Options are 'None' and 'iterative_linear'.
+        rejection. Options are 'None', 'iterative_linear' and 'piecewise_linear'
     outlier_abs_thresh : float, default 2
         The threshold for absolute error in outlier rejection. Nodes with error
         greater than this value will be detected as outliers. Default is 2 m.
@@ -159,6 +163,12 @@ class SWOTRiverEstimator(SWOTL2):
     outlier_iter_num   : int, default 2
         The number of iterations of fitting, residual checking, and outlier
         masking that will be performed by the outlier detection algorithm.
+    outlier_min_dist_btw_bps : float (0-1), default 0.1
+        Minimum distance between breakpoints, as a proportion of the input data
+        range for piecewise linear outlier detection algorithm.
+    outlier_min_dist_to_edge : float (0-1), default 0.1
+        Minimum distance from edge to a breakpoint, as a proportion of the input data
+        range for piecewise linear outlier detection algorithm.
     pixc_qual_handling : str, default None
         Describes approach for pixel cloud quality handling. Options are
         'None', which ignores the pixel cloud quality data, 'nominal', which
@@ -189,10 +199,7 @@ class SWOTRiverEstimator(SWOTL2):
         Bitwise word describing which bits from the PIXC sig0 qual map to a
         bad sig0 measurement.
 
-
-
     The final set of keywords are projection options for pyproj. See Notes.
-
     Notes
     -----
 
@@ -265,12 +272,13 @@ class SWOTRiverEstimator(SWOTL2):
                  ellps='WGS84',
                  output_file=None,
                  subsample_factor=1,
-                 height_agg_method='weight',#[weight, median, uniform, orig]
+                 height_agg_method='weight',  # [weight, median, uniform, orig]
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
                  slope_method='bayes',
                  prior_unc_alpha=1.5,
                  char_length_tau=10000,
+                 prior_wse_method= 'fit',
                  use_multiple_reaches=False,
                  use_ext_dist_coef=True,
                  outlier_method=None,
@@ -278,6 +286,9 @@ class SWOTRiverEstimator(SWOTL2):
                  outlier_rel_thresh=None,
                  outlier_upr_thresh=None,
                  outlier_iter_num=None,
+                 outlier_breakpoint_min_dist=None,
+                 outlier_edge_min_dist=None,
+                 outlier_n_boot=None,
                  pixc_qual_handling=None,
                  geo_qual_wse_suspect=None,
                  geo_qual_wse_degraded=None,
@@ -296,6 +307,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.slope_method = slope_method
         self.prior_unc_alpha = prior_unc_alpha
         self.char_length_tau = char_length_tau
+        self.prior_wse_method = prior_wse_method
         self.use_multiple_reaches = use_multiple_reaches
         self.use_ext_dist_coef = use_ext_dist_coef
         self.outlier_method = outlier_method
@@ -303,6 +315,9 @@ class SWOTRiverEstimator(SWOTL2):
         self.outlier_rel_thresh = outlier_rel_thresh
         self.outlier_upr_thresh = outlier_upr_thresh
         self.outlier_iter_num = outlier_iter_num
+        self.outlier_breakpoint_min_dist = outlier_breakpoint_min_dist
+        self.outlier_edge_min_dist = outlier_edge_min_dist
+        self.outlier_n_boot = outlier_n_boot
         self.geo_qual_wse_suspect = geo_qual_wse_suspect
         self.geo_qual_wse_degraded = geo_qual_wse_degraded
         self.geo_qual_wse_bad = geo_qual_wse_bad
@@ -731,7 +746,12 @@ class SWOTRiverEstimator(SWOTL2):
                 smooth=smooth,
                 alpha=alpha,
                 max_iter=max_iter)
-
+            # compute node mask to be used for reach aggregation
+            ww = 1 / (river_reach.wse_r_u**2)
+            river_reach.mask = self.get_reach_mask(river_reach.node_ss,
+                                                   river_reach.wse,
+                                                   ww,
+                                                   min_fit_points)
             river_reach_collection.append(river_reach)
 
             LOGGER.debug('reach processed')
@@ -745,7 +765,6 @@ class SWOTRiverEstimator(SWOTL2):
 
             # Ugly way process_reach/process_node uses the data
             self.river_obs = river_obs
-
             out_river_reach = self.process_reach(
                 river_reach_collection, river_reach, self.reaches[ireach],
                 ireach, reach_idx, min_fit_points=min_fit_points
@@ -1472,7 +1491,7 @@ class SWOTRiverEstimator(SWOTL2):
         hh = river_reach.wse
         ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
-        mask = self.get_reach_mask(ss, hh, ww, min_fit_points)
+        mask = river_reach.mask
 
         if mask.sum() >= min_fit_points:
             # compute slope according to input config method
@@ -1484,8 +1503,10 @@ class SWOTRiverEstimator(SWOTL2):
                     (np.mean(all_ss)-np.mean(ss[mask])))
 
                 # TBD on unc quantities for first_to_last method
-                reach_stats['slope_u'] = MISSING_VALUE_FLT
-                reach_stats['height_u'] = MISSING_VALUE_FLT
+                reach_stats['slope_r_u'] = MISSING_VALUE_FLT
+                reach_stats['height_r_u'] = MISSING_VALUE_FLT
+                reach_stats['slope_u'] = SLOPE_SYS_UNCERT
+                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT
 
             elif self.slope_method in ['unweighted', 'weighted']:
                 # use weighted fit if commanded and all weights are good
@@ -1505,32 +1526,41 @@ class SWOTRiverEstimator(SWOTL2):
                 # use White’s (1980) heteroskedasticity robust standard errors.
                 # https://www.statsmodels.org/dev/generated/
                 #    statsmodels.regression.linear_model.RegressionResults.html
-                reach_stats['slope_u'] = fit.HC0_se[0]
-                reach_stats['height_u'] = fit.HC0_se[1]
+                reach_stats['slope_r_u'] = fit.HC0_se[0]
+                reach_stats['height_r_u'] = fit.HC0_se[1]
+                reach_stats['slope_u'] = np.sqrt(
+                    SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                reach_stats['height_u'] = np.sqrt(
+                    REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
-                # using the offset linear weighted fit as the prior
-                wse_opt = self.optimal_reconstruct(river_reach_collection,
-                                                   river_reach, reach_id,
-                                                   ss, hh,
-                                                   np.sqrt(1.0 / ww),
-                                                   mask,
-                                                   min_fit_points,
-                                                   method='Bayes')
-
+                wse_opt, height_u, slope_u = self.optimal_reconstruct(
+                    river_reach_collection,
+                    river_reach, reach_id,
+                    ss, hh,
+                    np.sqrt(1.0 / ww),
+                    min_fit_points,
+                    method='Bayes',
+                )
                 # Use reconstruction height and slope for reach outputs
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
-                # TBD unc quantities for bayes method
-                reach_stats['slope_u'] = MISSING_VALUE_FLT
-                reach_stats['height_u'] = MISSING_VALUE_FLT
+                reach_stats['slope_r_u'] = slope_u * 0.01    # m/m
+                reach_stats['height_r_u'] = height_u * 0.01  # m
+                reach_stats['slope_u'] = np.sqrt(
+                    SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                reach_stats['height_u'] = np.sqrt(
+                    REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
 
         else:
             # insufficient node heights for fit to reach
             reach_stats['slope'] = MISSING_VALUE_FLT
+            reach_stats['slope_r_u'] = MISSING_VALUE_FLT
             reach_stats['slope_u'] = MISSING_VALUE_FLT
             reach_stats['height'] = MISSING_VALUE_FLT
+            reach_stats['height_r_u'] = MISSING_VALUE_FLT
             reach_stats['height_u'] = MISSING_VALUE_FLT
 
         reach_stats['n_good_nod'] = mask.sum()
@@ -1539,7 +1569,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         # do fit on geoid heights for reach-level outputs
         gg = river_reach.geoid_hght
-        mask = self.get_reach_mask(ss, gg, ww, min_fit_points)
+        # make changes here
+        #mask = self.get_reach_mask(ss, gg, ww, min_fit_points)
         if mask.sum() >= min_fit_points:
             geoid_fit = statsmodels.api.WLS(
                 gg[mask], SS[mask], weights=ww[mask]).fit()
@@ -1636,7 +1667,7 @@ class SWOTRiverEstimator(SWOTL2):
         flow_dist: node flow distance
         mask: overall mask that wse and flow_dist are subset using
 
-        valid methods: ['iterative_linear',]
+        valid methods: ['iterative_linear', 'piecewise_linear']
 
         iterative_linear outlier flagging method uses these class attributes:
         - self.outlier_abs_thresh: absolute threshold, default 2[m]
@@ -1644,6 +1675,32 @@ class SWOTRiverEstimator(SWOTL2):
         - self.outlier_upr_thresh: upper limit, i.e. what percent of nodes are
                                    kept at the last iteration, default 80%
         - self.outlier_iter_num:   number of iterations
+
+        piecewise_linear outlier flagging method uses these class attributes:
+        - self.outlier_abs_thresh:       absolute threshold, default 1.5[m]
+        - self.outlier_upr_thresh:       upper limit, i.e. what percent of
+                                         nodes are kept at the last iteration,
+                                         default 80%
+        - self.outlier_breakpoint_min_dist: Minimum distance between
+                                            breakpoints, as a proportion of the
+                                            input data range, default 0.1
+        - self.outlier_edge_min_dist:    Minimum distance from edge to a
+                                         breakpoint, as a proportion of the
+                                         input data range, default 0.1
+        - self.outlier_n_boot:           The number of times to run the
+                                         bootstrap restarting, positive int,
+                                         default 10
+        - self.outlier_iter_num:         Maximum iterations of Muggeo
+                                         algorithms if not converged,
+                                         positive int, default 30
+        For more information of the piecewise linear fit:
+        https://github.com/chasmani/piecewise-regression
+
+        Three of the parameters below are used in both of the outlier flagging
+        algorithms:
+        - outlier_abs_thresh
+        - outlier_upr_thresh
+        - outlier_iter_num
 
         outputs: returns the input mask array, further subset using the
                  outlier flagging method.
@@ -1683,6 +1740,28 @@ class SWOTRiverEstimator(SWOTL2):
                     r_wse = fit.params[1]
 
                 wse_fit = r_wse + r_slp * flow_dist[:, 0]
+            mask[mask] = current_ind
+            
+        elif self.outlier_method == 'piecewise_linear':
+            current_ind = None
+            # at least to have 10 node (2km) to run piecewise linear
+            if len(wse) > 10:
+                break_num = int(np.floor(len(wse)/10)-1)
+                while current_ind is None and break_num >=1:
+                    current_ind = self.piecewise_linear(flow_dist[:, 0],
+                                                        wse,
+                                                        break_num)
+                    break_num -= 1
+
+            if current_ind is None:
+                fit = statsmodels.api.OLS(wse, flow_dist).fit()
+                wse_fit = fit.params[1] + fit.params[0] * flow_dist[:, 0]
+                metric = abs(wse_fit - wse)
+                metric_upr_thresh = np.percentile(
+                    metric, self.outlier_upr_thresh)
+                if self.outlier_abs_thresh < metric_upr_thresh:
+                    current_ind = metric < metric_upr_thresh
+                else: current_ind = metric < self.outlier_abs_thresh
             mask[mask] = current_ind
 
         else:
@@ -1770,31 +1849,30 @@ class SWOTRiverEstimator(SWOTL2):
         Output:
         enhanced_slope: enhanced reach slope
         """
-        wse, wse_r_u, this_len, first_node, ss = self.get_multi_reach_height(
+        wse, wse_r_u, this_len, first_node, ss, mask, p_wse = \
+            self.get_multi_reach_height(
             river_reach_collection, river_reach, ireach)
-        # get the multi-reach mask
-        ww = 1 / (wse_r_u ** 2)
-        mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
-        # handle indexing for masked reaches
-        end_slice = first_node + this_len
-        this_reach_mask = mask[first_node:end_slice]
 
-        if np.sum(this_reach_mask) < min_fit_points:
+        if np.sum(river_reach.mask) < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
         else:
+            # handle indexing for masked reaches
             this_reach_edges = np.ma.flatnotmasked_edges(
-                np.ma.masked_array(wse[first_node:end_slice],
-                                   mask=~this_reach_mask))
-            last_node = first_node + this_reach_edges[1] - 1
-            first_node = first_node + this_reach_edges[0]
-            first_node_masked = first_node - np.sum(~mask[:first_node])
-            last_node_masked = first_node_masked + np.sum(this_reach_mask) - 1
-            this_reach_len = ss[last_node] - ss[first_node]
+                np.ma.masked_array(river_reach.wse, mask=~river_reach.mask))
+            this_reach_len = river_reach.node_ss[this_reach_edges[1]] \
+                             - river_reach.node_ss[this_reach_edges[0]]
+            if first_node == 0:
+                # No upstream reach. Do not adjust first node location
+                first_node_masked = 0
+            else:
+                # Adjust first node location based on upstream masked nodes
+                first_node_masked = first_node - np.sum(
+                    ~mask[:first_node + this_reach_edges[0]])
+            last_node_masked = first_node_masked + np.sum(river_reach.mask) - 1
 
             # window size and sigma for Gaussian averaging
             window_size = np.min([max_window_size, this_reach_len])
             sigma = np.max([min_sigma, window_size / window_size_sigma_ratio])
-
             # smooth h_n_ave, and get slope
             slope = np.polyfit(ss[mask], wse[mask], 1)[0]
             heights_detrend = wse[mask] - slope * ss[mask]
@@ -1842,7 +1920,6 @@ class SWOTRiverEstimator(SWOTL2):
         Mask each node in an input reach based on whether or not it has a valid
         wse. Then mask for node-level wse outliers, if self.outlier_method is
         set. Returns a numpy array where good nodes are 1 and bad nodes are 0.
-
         :param ss: along-reach distance for each node
         :param hh: height of each node
         :param ww: weights for each node height, to use in outlier flagging
@@ -1850,10 +1927,12 @@ class SWOTRiverEstimator(SWOTL2):
         :return: reach mask where good nodes are 1 and bad nodes are 0
         """
         mask = np.logical_and(hh > -500, hh < 8000)
-        if self.outlier_method is not None \
-                and mask.sum() > min_fit_points:
+        if self.outlier_method is not None and mask.sum() > min_fit_points:
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
+
+        elif self.outlier_method is not None and mask.sum() <= min_fit_points:
+            mask = np.zeros(len(hh), dtype=bool)
         return mask
 
     def get_multi_reach_height(
@@ -1951,17 +2030,23 @@ class SWOTRiverEstimator(SWOTL2):
         # reach boundaries.
         first_node = 0
         ss = np.array([])
+        p_wse = np.array([])
         wse = np.array([])
         wse_r_u = np.array([])
+        mask = np.array([], dtype=bool)
         # if upstream PRD reach is usable
         if prd_is_good[1]:
             ss = np.concatenate([adj_rch[1].node_ss, ss])
+            p_wse = np.concatenate([adj_rch[1].p_wse, p_wse])
             wse = np.concatenate([adj_rch[1].wse, wse])
             wse_r_u = np.concatenate([adj_rch[1].wse_r_u, wse_r_u])
+            mask = np.concatenate([adj_rch[1].mask, mask])
 
         ss = np.concatenate([river_reach.node_ss, ss+prior_s[-1]])
+        p_wse = np.concatenate([river_reach.p_wse, p_wse])
         wse = np.concatenate([river_reach.wse, wse])
         wse_r_u = np.concatenate([river_reach.wse_r_u, wse_r_u])
+        mask = np.concatenate([river_reach.mask, mask])
         this_len = len(river_reach.wse)
 
         # if downstream PRD reach is usable
@@ -1970,10 +2055,13 @@ class SWOTRiverEstimator(SWOTL2):
             first_node = first_node + len(adj_rch[-1].wse)
             ss = np.concatenate([adj_rch[-1].node_ss,
                                  ss+downstream_prior_s[-1]])
+            p_wse = np.concatenate([adj_rch[-1].p_wse, p_wse])
             wse = np.concatenate([adj_rch[-1].wse, wse])
             wse_r_u = np.concatenate([adj_rch[-1].wse_r_u, wse_r_u])
+            mask = np.concatenate([adj_rch[-1].mask, mask])
 
-        return wse, wse_r_u, this_len, first_node, ss
+        return wse, wse_r_u, this_len, first_node, ss, mask, p_wse
+
 
     def optimal_reconstruct(
             self,
@@ -1983,9 +2071,7 @@ class SWOTRiverEstimator(SWOTL2):
             ss,
             wse,
             wse_r_u,
-            mask,
             min_fit_points=2,
-            prior_wse=None,
             prior_cov_method='exponential',
             full_noise_cov=False,
             method='Bayes'):
@@ -2016,16 +2102,41 @@ class SWOTRiverEstimator(SWOTL2):
                            This option controls how spatial structure is
                            imposed by the prior.
         """
+
         if self.use_multiple_reaches:
-            wse, wse_r_u, this_len, first_node, ss = \
+            wse, wse_r_u, this_len, first_node, ss, mask, prior_wse = \
                 self.get_multi_reach_height(
                     river_reach_collection, river_reach, ireach)
             # get the multi-reach mask
-            ww = 1 / (wse_r_u ** 2)
-            mask = self.get_reach_mask(ss, wse, ww, min_fit_points)
             ss = ss - np.mean(ss)
+            end_slice = first_node + this_len
+        else:
+            first_node = 0
+            end_slice = len(ss)
+
+        # define vectors b and c for uncertainty estimates later
+        this_reach_mask_b = np.zeros_like(ss)
+        this_reach_mask_b[first_node:end_slice] = 1
+        first_and_last_node_c = np.zeros_like(ss)
+        first_and_last_node_c[first_node] = -1
+        first_and_last_node_c[end_slice-1] = 1
+
+        # create a wse prior if flagged
+        if self.prior_wse_method == 'fit':
+            prior_wse = None
+        elif self.prior_wse_method == 'prd':
+            if self.use_multiple_reaches:
+                # prior_wse already set above
+                pass
+            else:
+                # get prior wse from PRD
+                prior_wse = river_reach.p_wse
+        else:
+            raise Exception('Prior wse method %s is not an implemented option '
+                            'for the reconstruction' % self.prior_wse_method)
+
         if prior_wse is None:
-            # create linear fit prior
+            # If no prior wse is given, use obs wse to make linear fit prior
             ww = 1/wse_r_u**2
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             wse_fit = statsmodels.api.WLS(wse[mask], SS[mask],
@@ -2067,7 +2178,7 @@ class SWOTRiverEstimator(SWOTL2):
         # compute the optimal wse reconstruction filter
         if method == 'Bayes':
             # get the bayes estimate
-            K, K_bar = self.compute_bayes_estimator(Ry, Rv, H)
+            K, K_bar, A_inv = self.compute_bayes_estimator(Ry, Rv, H)
         else:
             raise Exception('Reconstruction method %s is not an implemented '
                             'option for the reconstruction' % method)
@@ -2082,10 +2193,13 @@ class SWOTRiverEstimator(SWOTL2):
         wse_out0 = np.matmul(K, wse_reg)
         # apply the prior term
         wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
+        height_u = this_reach_mask_b @ A_inv @ np.atleast_2d(
+            this_reach_mask_b).T
+        slope_u = first_and_last_node_c @ A_inv @ np.atleast_2d(
+            first_and_last_node_c).T
         if self.use_multiple_reaches:
-            end_slice = first_node + this_len
             wse_out = wse_out[first_node:end_slice]
-        return wse_out
+        return wse_out, height_u, slope_u
 
     @staticmethod
     def compute_bayes_estimator(Ry, Rv, H):
@@ -2094,18 +2208,21 @@ class SWOTRiverEstimator(SWOTL2):
         Ry is the signal (or parameter) covariance
         Rv is the measurement noise covariance
         H is the sampling operator (or sampling then basis projection operator)
+        A_inv is the posterior covariance (post_cov)
+
         These are the equations implemented
         K = (Ry^-1 + H.T Rv^-1 H)^-1 H.T Rv^-1
         K_bar = (Ry^-1 + H.T Rv^-1 H)^-1 Ry^-1 (if non-zero mean of prior wse)
+        A = (Ry^-1 + H.T Rv^-1 H))
         """
         Ry_inv = np.linalg.pinv(Ry)
         Rv_inv = np.linalg.pinv(Rv)
-        post_cov_inv = Ry_inv + np.matmul(np.matmul(H.T, Rv_inv), H)
-        post_cov = np.linalg.pinv(post_cov_inv)
-        K = np.matmul(np.matmul(post_cov, H.T), Rv_inv)
-        K_bar = np.matmul(post_cov, Ry_inv)
+        A = Ry_inv + H.T @ Rv_inv @ H
+        post_cov = np.linalg.pinv(A)  # A_inv
+        K = post_cov @ H.T @ Rv_inv
+        K_bar = post_cov @ Ry_inv
 
-        return K, K_bar
+        return K, K_bar, post_cov
 
     @staticmethod
     def get_noise_autocov(wse, wse_r_u, mask, full=False):
@@ -2118,3 +2235,52 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             wse_r_u_reg = wse_r_u[msk]
         return np.diag(wse_r_u_reg)
+
+    def piecewise_linear(self, x, y, n_breakpoints):
+        """
+        Piecewise linear outlier detector
+
+        Parameters
+        ----------
+        x : Node-level flow distance
+        y : Measured Node wse
+        n_breakpoints : Number of breakpoints
+        For more information of the piecewise linear fit:
+        https://github.com/chasmani/piecewise-regression
+
+        Outputs
+        ----------
+        returns the input mask array
+        """
+        pw_fit = piecewise_regression.Fit(
+            x, y, n_breakpoints=n_breakpoints,
+            min_distance_between_breakpoints=self.outlier_breakpoint_min_dist,
+            min_distance_to_edge=self.outlier_edge_min_dist,
+            n_boot=self.outlier_n_boot,
+            max_iterations=self.outlier_iter_num)
+
+        if pw_fit.best_muggeo is not None:
+            final_params = pw_fit.best_muggeo.best_fit.raw_params
+            breakpoints = pw_fit.best_muggeo.best_fit.next_breakpoints
+            # Extract what we need from params etc
+            intercept_hat = final_params[0]
+            alpha_hat = final_params[1]
+            beta_hats = final_params[2:2 + len(breakpoints)]
+
+            # Build the fit plot segment by segment. Betas are defined as
+            # difference in gradient from previous section
+            y_hat = intercept_hat + alpha_hat * x
+            for bp_count in range(len(breakpoints)):
+                y_hat += (
+                    beta_hats[bp_count] *
+                    np.maximum(x - breakpoints[bp_count], 0))
+            metric = abs(y - y_hat)
+            metric_upr_thresh = np.percentile(metric, self.outlier_upr_thresh)
+            if self.outlier_abs_thresh < metric_upr_thresh:
+                current_ind = metric < metric_upr_thresh
+            else:
+                current_ind = metric < self.outlier_abs_thresh
+        else:
+            current_ind = None
+        return current_ind
+
