@@ -375,8 +375,9 @@ class RiverObs:
         return result
 
     def get_node_agg(
-        self, height_method='weight', area_method='composite',
-        all_nodes=False, goodvar='good'):
+            self, height_method='weight', area_method='composite',
+            all_nodes=False, goodvar_wse='good', goodvar_area='good',
+            goodvar_sig0='good'):
         """
         Get lists of height, areas, and uncertainties
 
@@ -397,13 +398,14 @@ class RiverObs:
                 river_node = self.river_nodes[node]
 
                 h, h_std, h_u, lat_u, lon_u = river_node.height_with_uncert(
-                    method=height_method, goodvar=goodvar)
+                    method=height_method, goodvar=goodvar_wse)
 
                 sig0, sig0_std, sig0_u = river_node.sig0_with_uncert(
-                    goodvar=goodvar)
+                    goodvar=goodvar_sig0)
 
                 area, width_area, area_u, width_area_u, area_det, area_det_u =\
-                    river_node.area_with_uncert(method=area_method)
+                    river_node.area_with_uncert(
+                        method=area_method, goodvar=goodvar_area)
 
                 local_vars = locals()
                 for key in outputs:
@@ -415,11 +417,10 @@ class RiverObs:
                 for key in outputs:
                     outputs[key].append(self.missing_value)
 
-        # cast to arrays to make life easier later
+        # Cast to arrays with fill values instead of NaNs
         for key in outputs:
             outputs[key] = np.asarray(outputs[key])
-            mask = np.isnan(outputs[key])
-            outputs[key][mask] = MISSING_VALUE_FLT
+            outputs[key][np.isnan(outputs[key])] = MISSING_VALUE_FLT
         return outputs
 
     def trim_nodes(self, fraction, mode='both', sort_variable='n'):

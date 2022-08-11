@@ -13,6 +13,7 @@ import scipy.stats
 import scipy.ndimage
 import statsmodels.api
 import logging
+import warnings
 import piecewise_regression
 
 import RiverObs.ReachDatabase
@@ -515,22 +516,26 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             self.seg_label = None
 
-        # TO-DO: set which pixels to use for heights (all good/sus by default;
-        # plus all degraded if < N good/sus)
         if len(self.use_heights) == len(self.class_list):
-            self.h_flg = np.zeros(np.shape(self.h_noise))
+            self.h_flg = np.zeros(np.shape(self.h_noise), dtype='bool')
             for i, k in enumerate(class_list):
                 if self.use_heights[i]:
                     index = self.klass == k
-                    self.h_flg[index] = 1
+                    self.h_flg[index] = True
 
         else:
             self.h_flg = None
 
-        # TODO: Update self.h_flg with self.is_wse_degraded
-        # (make it work for either None or existing mask)
+        # Update h_flag with WSE degraded
+        if self.h_flg is None:
+            self.h_flg = np.logical_not(self.is_wse_degraded)
+        else:
+            self.h_flg = np.logical_and(
+                self.h_flg, np.logical_not(self.is_wse_degraded))
 
-        # TODO: Create self.area_flg with self.is_area_degraded (new mask)
+        # Set area / sig0 flg based on degraded area / bad sig0
+        self.area_flg = np.logical_not(self.is_area_degraded)
+        self.sig0_flg = np.logical_not(self.is_sig0_bad)
 
         LOGGER.debug('Data loaded')
 
@@ -543,13 +548,14 @@ class SWOTRiverEstimator(SWOTL2):
     def flatten_interferogram(self):
         """Flattens the pixel cloud interferogram"""
         # range index is self.img_x, azi is self.img_y
+        LOGGER.debug('flatten_interferogram')
         try:
             import cnes.modules.geoloc.lib.geoloc as geoloc
             from cnes.common.lib.my_variables import \
                 GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE
 
         except ImportError:
-            print("Can't flatten interferogram as swotCNES not found.")
+            LOGGER.warning("Can't flatten interferogram as swotCNES not found.")
             return
 
         try:
@@ -565,14 +571,19 @@ class SWOTRiverEstimator(SWOTL2):
                     'pixel_cloud': {'illumination_time': 
                      self.nc['pixel_cloud']['illumination_time'][:]}}
         except KeyError:
-            print("Can't flatten interferogram as TVP not in pixel cloud.")
+            LOGGER.warning(
+                "Can't flatten interferogram as TVP not in pixel cloud.")
             return
 
         hgt_2d = np.nan*np.ones((np.max(self.img_y)+1, np.max(self.img_x)+1))
         hgt_2d[self.img_y, self.img_x] = self.h_noise
 
         # do a 2d median filter on the heights
-        hgt_filt = scipy.ndimage.generic_filter(hgt_2d, np.nanmedian, size=11)
+        # following line raises a Warning (all-NaN slice encountered)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            hgt_filt = scipy.ndimage.generic_filter(
+                hgt_2d, np.nanmedian, size=11)
 
         target_xyz = geoloc.convert_llh2ecef(
             self.lat, self.lon, hgt_filt[self.img_y, self.img_x],
@@ -1149,7 +1160,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Add the observations
         self.river_obs.add_obs('h_noise', self.h_noise)
-        self.river_obs.add_obs('h_flg', (self.h_flg > 0))
+        self.river_obs.add_obs('h_flg', self.h_flg)
+        self.river_obs.add_obs('area_flg', self.area_flg)
+        self.river_obs.add_obs('sig0_flg', self.sig0_flg)
         self.river_obs.add_obs('lon', self.lon)
         self.river_obs.add_obs('lat', self.lat)
         self.river_obs.add_obs('xobs', self.x)
@@ -1157,7 +1170,8 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('inundated_area', self.inundated_area)
 
         dsets_to_load = [
-            'h_noise', 'h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area'
+            'h_noise', 'h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area',
+            'area_flg', 'sig0_flg',
         ]
 
         other_obs_keys = [
@@ -1261,7 +1275,8 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             node_aggs = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
-                area_method=self.area_agg_method, goodvar='h_flg')
+                area_method=self.area_agg_method, goodvar_wse='h_flg',
+                goodvar_area='area_flg', goodvar_sig0='sig0_flg')
 
             latitude_u = node_aggs['lat_u']
             longitud_u = node_aggs['lon_u']

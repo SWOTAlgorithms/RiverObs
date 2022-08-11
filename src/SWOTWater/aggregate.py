@@ -258,7 +258,7 @@ def height_uncert_multilook(
 
 
 def height_with_uncerts(
-        height,  good, num_rare_looks, num_med_looks,
+        height, good, num_rare_looks, num_med_looks,
         ifgram, power1, power2, look_to_efflooks, dh_dphi,
         dlat_dphi, dlon_dphi, height_std=1.0, method='weight'):
     """
@@ -269,7 +269,7 @@ def height_with_uncerts(
     """
     # first aggregate the heights
     height_out, weight_norm = height_only(
-        height,  good, height_std=height_std, method=method)
+        height, good, height_std=height_std, method=method)
 
     # now compute uncertainties
     height_std_out = height_uncert_std(
