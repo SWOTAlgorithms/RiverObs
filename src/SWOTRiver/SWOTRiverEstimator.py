@@ -517,21 +517,21 @@ class SWOTRiverEstimator(SWOTL2):
             self.seg_label = None
 
         if len(self.use_heights) == len(self.class_list):
-            self.h_flg = np.zeros(np.shape(self.h_noise), dtype='bool')
+            self.wse_class_flg = np.zeros(np.shape(self.h_noise), dtype='bool')
             for i, k in enumerate(class_list):
                 if self.use_heights[i]:
                     index = self.klass == k
-                    self.h_flg[index] = True
+                    self.wse_class_flg[index] = True
 
         else:
-            self.h_flg = None
+            self.wse_class_flg = None
 
-        # Update h_flag with WSE degraded
-        if self.h_flg is None:
+        # Use wse_class_flg and is_wse_degraded to make self.h_flg
+        if self.wse_class_flg is None:
             self.h_flg = np.logical_not(self.is_wse_degraded)
         else:
             self.h_flg = np.logical_and(
-                self.h_flg, np.logical_not(self.is_wse_degraded))
+                self.wse_class_flg, np.logical_not(self.is_wse_degraded))
 
         # Set area / sig0 flg based on degraded area / bad sig0
         self.area_flg = np.logical_not(self.is_area_degraded)
@@ -1161,6 +1161,7 @@ class SWOTRiverEstimator(SWOTL2):
         # Add the observations
         self.river_obs.add_obs('h_noise', self.h_noise)
         self.river_obs.add_obs('h_flg', self.h_flg)
+        self.river_obs.add_obs('wse_class_flg', self.wse_class_flg)
         self.river_obs.add_obs('area_flg', self.area_flg)
         self.river_obs.add_obs('sig0_flg', self.sig0_flg)
         self.river_obs.add_obs('lon', self.lon)
@@ -1171,7 +1172,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         dsets_to_load = [
             'h_noise', 'h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area',
-            'area_flg', 'sig0_flg',
+            'area_flg', 'sig0_flg', 'wse_class_flg',
         ]
 
         other_obs_keys = [
@@ -1180,7 +1181,9 @@ class SWOTRiverEstimator(SWOTL2):
             'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
             'looks_to_efflooks', 'geoid', 'solid_earth_tide', 'load_tide_fes',
-            'load_tide_got', 'pole_tide']
+            'load_tide_got', 'pole_tide', 'is_area_degraded',
+            'is_area_suspect', 'is_wse_degraded', 'is_wse_suspect',
+            'is_sig0_bad', 'is_sig0_suspect']
 
         for name in other_obs_keys:
             value = getattr(self, name)
@@ -1375,6 +1378,45 @@ class SWOTRiverEstimator(SWOTL2):
         flow_dir = np.rad2deg(tangent_angle - at_angle) % 360
 
         prior_s = np.cumsum(reach.node_length)
+
+        # total number of pixels assigned to each node
+        num_pixels = np.array(self.river_obs.get_node_stat('count', 'x'))
+
+        # Number of pixels that are in wse class types for each node
+        num_pixels_wse_class = np.array(
+            self.river_obs.get_node_stat('countGood', 'wse_class_flg'))
+
+        # Number of pixels used for wse/area/sig0 for each node
+        num_pixels_wse = np.array(
+            self.river_obs.get_node_stat('countGood', 'h_flg'))
+        num_pixels_area = np.array(
+            self.river_obs.get_node_stat('countGood', 'area_flg'))
+        num_pixels_sig0 = np.array(
+            self.river_obs.get_node_stat('countGood', 'sig0_flg'))
+
+        # Number of pixels with suspect wse/area/sig0 used in aggregations for
+        # each node
+        num_pixels_wse_suspect = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_wse_suspect', goodvar='h_flg'))
+        num_pixels_area_suspect = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_area_suspect', goodvar='area_flg'))
+        num_pixels_sig0_suspect = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_sig0_suspect', goodvar='sig0_flg'))
+
+        # Number of pixels with degraded wse/area that were rejected for each
+        # node
+        num_pixels_wse_degraded = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_wse_degraded', goodvar='wse_class_flg'))
+        num_pixels_area_degraded = np.array(
+            self.river_obs.get_node_stat('sum', 'is_area_degraded'))
+
+        # TODO set some variables in the output dictionary to hold the
+        # flagging info we need to pass up to reaches/for output flags
+        # ...etc
 
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
