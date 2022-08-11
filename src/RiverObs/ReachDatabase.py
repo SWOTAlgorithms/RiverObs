@@ -314,10 +314,10 @@ class ReachExtractor(object):
 class ReachDatabase(Product):
     """Prior Reach database"""
     ATTRIBUTES = odict([
-        ['x_min', {'dtype': 'f8' , 'value': None}],
-        ['x_max', {'dtype': 'f8' , 'value': None}],
-        ['y_min', {'dtype': 'f8' , 'value': None}],
-        ['y_max', {'dtype': 'f8' , 'value': None}],
+        ['x_min', {'dtype': 'f8' , 'value': -9999.}],
+        ['x_max', {'dtype': 'f8' , 'value': -9999.}],
+        ['y_min', {'dtype': 'f8' , 'value': -9999.}],
+        ['y_max', {'dtype': 'f8' , 'value': -9999.}],
         ['Name', {}], ['production_date', {}],
         ['pass_number', {}], ['tile_number', {}], ['swath_side', {}],
         ])
