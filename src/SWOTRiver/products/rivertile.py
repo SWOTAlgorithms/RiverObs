@@ -3972,8 +3972,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
-            klass['reach_q'] = MISSING_VALUE_INT9  # TODO: populate qual flag
-            klass['reach_q_b'] = MISSING_VALUE_INT9  # TODO: set bitwise flag
+            # TODO populate quality flags
+            # klass['reach_q'] = ...
+            # klass['reach_q_b'] = ...
 
         return klass
 
