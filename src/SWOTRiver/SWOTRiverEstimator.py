@@ -263,6 +263,7 @@ class SWOTRiverEstimator(SWOTL2):
                  bright_land_flag_kwd='bright_land_flag',
                  classification_qual_kwd='classification_qual',
                  geolocation_qual_kwd='geolocation_qual',
+                 sig0_qual_kwd='sig0_qual',
                  layover_impact_kwd='layover_impact',
                  proj='laea',
                  x_0=0,
@@ -318,14 +319,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.outlier_breakpoint_min_dist = outlier_breakpoint_min_dist
         self.outlier_edge_min_dist = outlier_edge_min_dist
         self.outlier_n_boot = outlier_n_boot
-        self.geo_qual_wse_suspect = geo_qual_wse_suspect
-        self.geo_qual_wse_degraded = geo_qual_wse_degraded
-        self.geo_qual_wse_bad = geo_qual_wse_bad
-        self.class_qual_area_suspect = class_qual_area_suspect
-        self.class_qual_area_degraded = class_qual_area_degraded
-        self.class_qual_area_bad = class_qual_area_bad
-        self.sig0_qual_suspect = sig0_qual_suspect
-        self.sig0_qual_bad = sig0_qual_bad
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -374,11 +367,16 @@ class SWOTRiverEstimator(SWOTL2):
             raise Exception('AUX Param key: pixc_qual_handling has unexpected '+
                             'value: %s'%pixc_qual_handling)
 
-        bright_land_flag = self.get(bright_land_flag_kwd)
-        # TODO use bright_land_flag to set node_q_b bit 7
-        # TODO build internal quality state module mapping input config params
-        # to [area/height]_[good/sus/degraded/bad] and sig0_[good/sus/bad]
-        # using the input config params geo_qual_wse... etc
+        # set quality masks from input PIXC quality flags
+        classification_qual = self.get(classification_qual_kwd)
+        geolocation_qual = self.get(geolocation_qual_kwd)
+
+        # Update mask of pixels to reject from pixel assignment with
+        # commanded bitmasks from aux param file applied to classification_qual
+        # and geolocation_qual.
+        mask = np.logical_or.reduce([
+            mask, class_qual_area_bad & classification_qual > 0,
+            geo_qual_wse_bad & geolocation_qual > 0])
 
         # skip NaNs in dheight_dphase
         good = ~mask
@@ -418,7 +416,10 @@ class SWOTRiverEstimator(SWOTL2):
             ['pole_tide', pole_tide_kwd],
             ['layover_impact', layover_impact_kwd],
             ['geolocation_qual', geolocation_qual_kwd],
-            ['classification_qual', classification_qual_kwd],]
+            ['classification_qual', classification_qual_kwd],
+            ['sig0_qual', sig0_qual_kwd],
+            ['bright_land_flag', bright_land_flag_kwd],
+        ]
 
         for dset_name, keyword in datasets2load:
             try:
@@ -429,6 +430,21 @@ class SWOTRiverEstimator(SWOTL2):
             except KeyError:
                 value = None
             setattr(self, dset_name, value)
+
+        # Set PIXC quality masks for use in aggregation using commanded bitmasks
+        # from aux param file. Set as attributes of self so they may be used
+        # later in node aggregation.
+        self.is_area_degraded = (
+            class_qual_area_degraded & self.classification_qual > 0)
+        self.is_area_suspect = (
+            class_qual_area_suspect & self.classification_qual > 0)
+
+        self.is_wse_degraded = (
+            geo_qual_wse_degraded & self.geolocation_qual > 0)
+        self.is_wse_suspect = geo_qual_wse_suspect & self.geolocation_qual > 0
+
+        self.is_sig0_bad = sig0_qual_bad & self.sig0_qual > 0
+        self.is_sig0_suspect = sig0_qual_suspect & self.sig0_qual > 0
 
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
@@ -496,10 +512,6 @@ class SWOTRiverEstimator(SWOTL2):
                     self.isWater[index] = 1
             self.segment_water_class(self.preseg_dilation_iter)
 
-            # TODO: Modify self.isWater using area_bad and height_bad (use_segmentation)
-            # pixels with bad height OR area will not be segmented or assigned
-            # ...etc
-
         else:
             self.seg_label = None
 
@@ -512,12 +524,13 @@ class SWOTRiverEstimator(SWOTL2):
                     index = self.klass == k
                     self.h_flg[index] = 1
 
-            # TODO: Modify self.h_flag geolocation_qual (use_heights)
-            # TODO: create area flag, modify based on class_qual input params
-            # ...etc
-
         else:
             self.h_flg = None
+
+        # TODO: Update self.h_flg with self.is_wse_degraded
+        # (make it work for either None or existing mask)
+
+        # TODO: Create self.area_flg with self.is_area_degraded (new mask)
 
         LOGGER.debug('Data loaded')
 
