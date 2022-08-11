@@ -176,8 +176,10 @@ class L2PixcToRiverTile(object):
             'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
             'class_list': self.config['class_list'],
             'xtrack_kwd': 'cross_track',
-            'fractional_inundation_kwd': self.config['fractional_inundation_kwd'],
-            'use_fractional_inundation': self.config['use_fractional_inundation'],
+            'fractional_inundation_kwd': (
+                self.config['fractional_inundation_kwd']),
+            'use_fractional_inundation': (
+                self.config['use_fractional_inundation']),
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],
             'min_points': self.config['min_points'],
@@ -199,9 +201,10 @@ class L2PixcToRiverTile(object):
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
-            'outlier_breakpoint_min_dist': self.config['outlier_breakpoint_min_dist'],
+            'outlier_breakpoint_min_dist': (
+                self.config['outlier_breakpoint_min_dist']),
             'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
-            'outlier_n_boot': self.config['outlier_n_boot']
+            'outlier_n_boot': self.config['outlier_n_boot'],
             'pixc_qual_handling': self.config['pixc_qual_handling'],
             'geo_qual_wse_suspect': self.config['geo_qual_wse_suspect'],
             'geo_qual_wse_degraded': self.config['geo_qual_wse_degraded'],
@@ -210,7 +213,7 @@ class L2PixcToRiverTile(object):
             'class_qual_area_degraded': self.config['class_qual_area_degraded'],
             'class_qual_area_bad': self.config['class_qual_area_bad'],
             'sig0_qual_suspect': self.config['sig0_qual_suspect'],
-            'sig0_qual_bad':self.config['sig0_qual_bad']
+            'sig0_qual_bad': self.config['sig0_qual_bad']
         }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
