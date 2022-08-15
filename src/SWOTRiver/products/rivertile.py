@@ -365,9 +365,13 @@ class L2HRRiverTile(Product):
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
 
-                    for key in ['nobs', 'nobs_h', 'node_blocked']:
+                    for key in ['nobs', 'nobs_h', 'node_blocked', 'node_q_b']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
+
+                    node_outputs['node_q'] = np.insert(
+                            node_outputs['node_q'], insert_idx,
+                            MISSING_VALUE_INT4)
 
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
@@ -1164,9 +1168,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'summary quality indicator for the node'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'node_qual'],
-                ['flag_meanings', textjoin("""good suspect bad""")],
+                ['flag_meanings', textjoin("""good suspect degraded bad""")],
                 ['flag_masks', 'TBD'],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2, 3]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 3],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -1716,23 +1720,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['river_name'] = node_outputs['river_name']
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
-                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length']:
+                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
+                        'node_q', 'node_q_b']:
                 klass[key] = node_outputs[key]
 
-            # set quality flag...
-            # if blocking widths are bad
-            klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
-                klass.VARIABLES['node_q']['dtype'])
-            klass['node_q'][node_outputs['node_blocked'] == 1] |= 1
-            # if node-level heights are bad
-            klass['node_q'][node_outputs['wse'] < -500] |= 1
-            klass['node_q'][node_outputs['wse'] > 8000] |= 1
-            # if xtrk is too near/far
-            klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
-            klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
-            # TO-DO: WSE outlier quality flag
-            # TO-DO: populate bitwise quality flag
-            klass['node_q_b'][:] = MISSING_VALUE_INT9
         return klass
 
     @classmethod

@@ -123,6 +123,12 @@ class L2PixcToRiverTile(object):
             if word not in self.config:
                 self.config[word] = 0x00000000
 
+        if 'num_good_sus_pix_thresh_wse' not in self.config:
+            self.config['num_good_sus_pix_thresh_wse'] = 1
+
+        if 'num_good_sus_pix_thresh_area' not in self.config:
+            self.config['num_good_sus_pix_thresh_area'] = 1
+
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
 
@@ -213,7 +219,11 @@ class L2PixcToRiverTile(object):
             'class_qual_area_degraded': self.config['class_qual_area_degraded'],
             'class_qual_area_bad': self.config['class_qual_area_bad'],
             'sig0_qual_suspect': self.config['sig0_qual_suspect'],
-            'sig0_qual_bad': self.config['sig0_qual_bad']
+            'sig0_qual_bad': self.config['sig0_qual_bad'],
+            'num_good_sus_pix_thresh_wse': (
+                self.config['num_good_sus_pix_thresh_wse']),
+            'num_good_sus_pix_thresh_area': (
+                self.config['num_good_sus_pix_thresh_area']),
         }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
