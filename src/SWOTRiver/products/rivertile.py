@@ -1184,21 +1184,21 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'bitwise quality indicator for the node'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'node_qual_bitwise'],
-                ['flag_meanings', textjoin(
-                    """sig0_qual_suspect  
-                    classification_qual_suspect  
-                    geolocation_qual_suspect  
-                    water_fraction_suspect  
-                    blocking_width_suspect  
+                ['flag_meanings', textjoin("""
+                    sig0_qual_suspect
+                    classification_qual_suspect
+                    geolocation_qual_suspect
+                    water_fraction_suspect
+                    blocking_width_suspect
                     bright_land
                     few_sig0_pix
                     few_area_pix
-                    few_wse_pix  
-                    far_range_suspect  
-                    near_range_suspect  
+                    few_wse_pix
+                    far_range_suspect
+                    near_range_suspect
                     classification_qual_degraded
                     geolocation_qual_degraded
-                    wse_outlier  
+                    wse_outlier
                     wse_bad
                     no_sig0_pix
                     no_area_pix
@@ -1231,9 +1231,9 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the node measurement. If this 
-                    word is interpreted as an unsigned integer, a value of 0 
-                    indicates good data, values less than 262144 represent 
+                    Bitwise quality indicator for the node measurement. If this
+                    word is interpreted as an unsigned integer, a value of 0
+                    indicates good data, values less than 262144 represent
                     suspect data, values greater than or equal to 262144 but
                     less than 8388608 represent degraded data, and values
                     greater than or equal to 8388608 represent bad data.""")],
@@ -3267,7 +3267,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the reach measurement.
-                    A value of 0 indicates a nominal measurement, 1 indicates a 
+                    A value of 0 indicates a nominal measurement, 1 indicates a
                     suspect measurement, 2 indicates a degraded measurement,
                     and 3 indicates a bad measurement.""")],
                 ])],
@@ -3276,22 +3276,22 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'bitwise quality indicator for the reach'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'reach_qual_bitwise'],
-                ['flag_meanings', textjoin(
-                    """sig0_qual_suspect  
-                    classification_qual_suspect  
-                    geolocation_qual_suspect  
-                    water_fraction_suspect  
-                    blocking_width_suspect  
+                ['flag_meanings', textjoin("""
+                    sig0_qual_suspect
+                    classification_qual_suspect
+                    geolocation_qual_suspect
+                    water_fraction_suspect
+                    blocking_width_suspect
                     bright_land
                     few_sig0_pix
                     few_area_pix
-                    few_wse_pix  
-                    far_range_suspect  
+                    few_wse_pix
+                    far_range_suspect
                     near_range_suspect
                     partial_obs
                     classification_qual_degraded
                     geolocation_qual_degraded
-                    min_fit_points  
+                    min_fit_points
                     no_area_pix
                     no_wse_pix
                     no_pixels""")],
@@ -3313,8 +3313,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_MIN_FIT_POINTS,
                     QUAL_IND_NO_AREA_PIX,
                     QUAL_IND_NO_WSE_PIX,
-                    QUAL_IND_NO_OBS
-                ]).astype('i4')],
+                    QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 268435456],
                 ['_FillValue', MISSING_VALUE_INT9],
@@ -3323,7 +3322,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Bitwise quality indicator for the reach measurement. If
                     this word is interpreted as an unsigned integer, a value of
-                    0 indicates good data, values less than 262144 represent 
+                    0 indicates good data, values less than 262144 represent
                     suspect data, values greater than or equal to 262144 but
                     less than 8388608 represent degraded data, and values
                     greater than or equal to 8388608 represent bad data.""")],
