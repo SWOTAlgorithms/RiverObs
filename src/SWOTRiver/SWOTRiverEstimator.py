@@ -781,14 +781,17 @@ class SWOTRiverEstimator(SWOTL2):
                 smooth=smooth,
                 alpha=alpha,
                 max_iter=max_iter)
+
             # compute node mask to be used for reach aggregation
             ww = 1 / (river_reach.wse_r_u**2)
-            river_reach.mask = self.get_reach_mask(river_reach.node_ss,
-                                                   river_reach.wse,
-                                                   ww,
-                                                   min_fit_points)
-            river_reach_collection.append(river_reach)
+            river_reach.mask = self.get_reach_mask(
+                river_reach.node_ss, river_reach.wse, ww, min_fit_points)
 
+            # Use node mask to set wse_outlier bit in node_q_b
+            river_reach.node_q_b[~river_reach.mask] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER)
+
+            river_reach_collection.append(river_reach)
             LOGGER.debug('reach processed')
 
         out_river_reach_collection = []
@@ -1527,8 +1530,8 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[n_pix_wse_degraded > 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_DEGRADED)
 
-        # bit 23 / wse_outlier
-        # TODO (set in later stage of processing when reach masks are generated)
+        # bit 23 / wse_outlier will be set in later stage of processing when
+        # reach masks are generated)
 
         # bit 24 / wse_bad
         node_q_b[np.logical_or(wse < -500, wse > 8000)] |= (
