@@ -32,9 +32,12 @@ def compute(reach, reach_height, reach_width, reach_slope):
 
             metro_n = metro_ninf * (
                 (d_x_area+metro_Abar) / reach_width)**metro_p
-            metro_q = (
-                (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
-                reach_slope**(1/2)) / metro_n
+            if reach.metadata['low_slope_flag']:
+                metro_q = MISSING_VALUE_FLT  # TODO: populate with flow law
+            else:
+                metro_q = (
+                    (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
+                    reach_slope**(1/2)) / metro_n
         else:
             metro_q = MISSING_VALUE_FLT
 
