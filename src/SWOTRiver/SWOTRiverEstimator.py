@@ -1523,12 +1523,18 @@ class SWOTRiverEstimator(SWOTL2):
             SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
 
         # bit 18 / classification_qual_degraded
-        node_q_b[n_pix_area_degraded > 0] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED)
+        # Only set if not enough pixels for good/sus only aggregations and
+        # degraded data is actually used (n_pix_area_degraded>0).
+        node_q_b[np.logical_and(
+            ~mask_good_sus_area, n_pix_area_degraded > 0)] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED)
 
         # bit 19 / geolocation_qual_degraded
-        node_q_b[n_pix_wse_degraded > 0] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_DEGRADED)
+        # Only set if not enough pixels for good/sus only aggregations, and
+        # n_pix_wse_degraded is not zero
+        node_q_b[np.logical_and(
+            ~mask_good_sus_wse, n_pix_wse_degraded > 0)] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_DEGRADED)
 
         # bit 23 / wse_outlier will be set in later stage of processing when
         # reach masks are generated)
@@ -1785,8 +1791,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         # do fit on geoid heights for reach-level outputs
         gg = river_reach.geoid_hght
-        # make changes here
-        #mask = self.get_reach_mask(ss, gg, ww, min_fit_points)
         if mask.sum() >= min_fit_points:
             geoid_fit = statsmodels.api.WLS(
                 gg[mask], SS[mask], weights=ww[mask]).fit()
@@ -1872,6 +1876,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
+
+        # Set reach_q and reach_q_b
+        # TODO
 
         river_reach.metadata = reach_stats
         return river_reach
