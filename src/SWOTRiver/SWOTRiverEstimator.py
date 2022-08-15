@@ -1877,8 +1877,62 @@ class SWOTRiverEstimator(SWOTL2):
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
 
-        # Set reach_q and reach_q_b
+        # Set reach_q_b
+        # Start by bitwise OR-ing all the node_q_b of the good (non-outlier)
+        # nodes node_q_b qual flag together.
+        reach_q_b = np.bitwise_or.reduce(river_reach.node_q_b[mask])
+        reach_q_b_and = np.bitwise_and.reduce(river_reach.node_q_b[mask])
+
+        # overwrite bit 3 / water_fraction_suspect
         # TODO
+
+        # unset bit 15 / re-set it with partially_observed
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS)
+        if reach_stats['frac_obs'] < 0.5:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
+
+        # unset bits 23 and 24
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER)
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
+
+        # overwrite 25 / below_min_fit_points
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
+        if mask.sum() < min_fit_points:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS
+
+        # overwrite bit 26 / no_area_observations if ALL node_q_b bit 26 is set
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX)
+        if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX
+
+        # overwrite bit 27 / no_wse_observations if ALL node_q_b bit 27 is set
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX)
+        if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX
+
+        # overwrite bit 28 / no_observations if ALL node_q_b bit 28 is set
+        reach_q_b = (
+            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_OBS)
+        if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_OBS:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_OBS
+
+        reach_q = 0
+        if reach_q_b >= 1:
+            reach_q = 1
+        elif (reach_q_b >=
+              SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED):
+            reach_q = 2
+        elif reach_q_b >= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS:
+            reach_q = 3
+
+        reach_stats['reach_q_b'] = reach_q_b
+        reach_stats['reach_q'] = reach_q
 
         river_reach.metadata = reach_stats
         return river_reach

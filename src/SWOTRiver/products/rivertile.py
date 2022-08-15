@@ -56,7 +56,7 @@ QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
 QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
 QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
 QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
-QUAl_IND_PARTIAL_OBS = 32768                    # bit 15
+QUAL_IND_PARTIAL_OBS = 32768                    # bit 15
 QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
 QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
 QUAL_IND_MIN_FIT_POINTS = 33554432              # bit 25
@@ -434,6 +434,13 @@ class L2HRRiverTile(Product):
                     reach_outputs['n_good_nod'], MISSING_VALUE_INT4)
                 reach_outputs['lake_flag'] = np.append(
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
+                reach_outputs['reach_q'] = np.append(
+                    reach_outputs['reach_q'], MISSING_VALUE_INT4)
+                reach_outputs['reach_q_b'] = np.append(
+                    reach_outputs['reach_q_b'], MISSING_VALUE_INT9)
+                reach_outputs['lake_flag'] = np.append(
+                    reach_outputs['lake_flag'], MISSING_VALUE_INT4)
+
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
                 reach_outputs['river_name'] = np.append(
@@ -3298,7 +3305,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_FEW_WSE_PIX,
                     QUAL_IND_FAR_RANGE_SUSPECT,
                     QUAL_IND_NEAR_RANGE_SUSPECT,
-                    QUAl_IND_PARTIAL_OBS,
+                    QUAL_IND_PARTIAL_OBS,
                     QUAL_IND_CLASS_QUAL_DEGRADED,
                     QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
                     QUAL_IND_MIN_FIT_POINTS,
@@ -3876,10 +3883,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
             klass['river_name'] = reach_outputs['river_name']
+            klass['reach_q'] = reach_outputs['reach_q']
+            klass['reach_q_b'] = reach_outputs['reach_q_b']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
-                        'p_lat', 'p_lon', 'ice_clim_f', 'river_name']:
+                        'p_lat', 'p_lon']:
                 klass[key] = reach_outputs[key]
 
 
@@ -3961,10 +3970,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             # set quality flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
-
-            # TODO populate quality flags
-            # klass['reach_q'] = ...
-            # klass['reach_q_b'] = ...
 
         return klass
 
