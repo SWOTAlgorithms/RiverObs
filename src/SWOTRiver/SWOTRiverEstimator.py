@@ -309,6 +309,7 @@ class SWOTRiverEstimator(SWOTL2):
                  sig0_qual_bad=None,
                  num_good_sus_pix_thresh_wse=None,
                  num_good_sus_pix_thresh_area=None,
+                 use_bright_land=None,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -331,6 +332,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.outlier_n_boot = outlier_n_boot
         self.num_good_sus_pix_thresh_wse = num_good_sus_pix_thresh_wse
         self.num_good_sus_pix_thresh_area = num_good_sus_pix_thresh_area
+        self.use_bright_land = use_bright_land
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -382,6 +384,7 @@ class SWOTRiverEstimator(SWOTL2):
         # set quality masks from input PIXC quality flags
         classification_qual = self.get(classification_qual_kwd)
         geolocation_qual = self.get(geolocation_qual_kwd)
+        bright_land_flag = self.get(bright_land_flag_kwd)
 
         # Update mask of pixels to reject from pixel assignment with
         # commanded bitmasks from aux param file applied to classification_qual
@@ -389,6 +392,10 @@ class SWOTRiverEstimator(SWOTL2):
         mask = np.logical_or.reduce([
             mask, class_qual_area_bad & classification_qual > 0,
             geo_qual_wse_bad & geolocation_qual > 0])
+
+        if not self.use_bright_land:
+            # Exclude bright land as well is self.use_bright_land is False
+            mask = np.logical_or(mask, bright_land_flag > 0)
 
         # skip NaNs in dheight_dphase
         good = ~mask
@@ -1503,7 +1510,8 @@ class SWOTRiverEstimator(SWOTL2):
         # bit 7 / bright_land
         n_pix_bright_land = np.array(
             self.river_obs.get_node_stat('sum', 'bright_land_flag'))
-        # TODO
+        node_q_b[n_pix_bright_land > 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
 
         # bit (9/few_sig0_pix) / (10/few_area_pix) / (11/few_wse_pix)
         TOO_FEW_PIXELS_THRESHOLD = 10

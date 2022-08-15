@@ -123,12 +123,6 @@ class L2PixcToRiverTile(object):
             if word not in self.config:
                 self.config[word] = 0x00000000
 
-        if 'num_good_sus_pix_thresh_wse' not in self.config:
-            self.config['num_good_sus_pix_thresh_wse'] = 1
-
-        if 'num_good_sus_pix_thresh_area' not in self.config:
-            self.config['num_good_sus_pix_thresh_area'] = 1
-
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
 
@@ -161,6 +155,15 @@ class L2PixcToRiverTile(object):
 
         if 'pixc_qual_handling' not in self.config:
             self.config['pixc_qual_handling'] = None
+
+        if 'num_good_sus_pix_thresh_wse' not in self.config:
+            self.config['num_good_sus_pix_thresh_wse'] = 1
+
+        if 'num_good_sus_pix_thresh_area' not in self.config:
+            self.config['num_good_sus_pix_thresh_area'] = 1
+
+        if 'use_bright_land' not in self.config:
+            self.config['use_bright_land'] = True
 
         # set values to None for iterative_linear only keywords
         if self.config['outlier_method'] != 'iterative_linear':
@@ -224,6 +227,7 @@ class L2PixcToRiverTile(object):
                 self.config['num_good_sus_pix_thresh_wse']),
             'num_good_sus_pix_thresh_area': (
                 self.config['num_good_sus_pix_thresh_area']),
+            'use_bright_land': self.config['use_bright_land'],
         }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
