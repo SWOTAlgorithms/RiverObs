@@ -2134,20 +2134,16 @@ class SWOTRiverEstimator(SWOTL2):
             # handle indexing for masked reaches
             this_reach_edges = np.ma.flatnotmasked_edges(
                 np.ma.masked_array(river_reach.wse, mask=~river_reach.mask))
-            this_reach_len = river_reach.node_ss[this_reach_edges[1]] \
-                             - river_reach.node_ss[this_reach_edges[0]]
-            if first_node == 0:
-                # No upstream reach. Do not adjust first node location
-                first_node_masked = 0
-            else:
-                # Adjust first node location based on upstream masked nodes
-                first_node_masked = first_node - np.sum(
-                    ~mask[:first_node + this_reach_edges[0]])
+            this_reach_len = (river_reach.node_ss[this_reach_edges[1]]
+                              - river_reach.node_ss[this_reach_edges[0]])
+
+            first_node_masked = first_node - np.sum(~mask[:first_node])
             last_node_masked = first_node_masked + np.sum(river_reach.mask) - 1
 
             # window size and sigma for Gaussian averaging
             window_size = np.min([max_window_size, this_reach_len])
             sigma = np.max([min_sigma, window_size / window_size_sigma_ratio])
+
             # smooth h_n_ave, and get slope
             slope = np.polyfit(ss[mask], wse[mask], 1)[0]
             heights_detrend = wse[mask] - slope * ss[mask]
@@ -2474,7 +2470,9 @@ class SWOTRiverEstimator(SWOTL2):
             first_and_last_node_c).T
         if self.use_multiple_reaches:
             wse_out = wse_out[first_node:end_slice]
-        return wse_out, height_u, slope_u
+
+        # Return height_u and slope_u as scalars
+        return wse_out, height_u.item(), slope_u.item()
 
     @staticmethod
     def compute_bayes_estimator(Ry, Rv, H):
