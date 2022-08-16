@@ -1298,12 +1298,12 @@ class SWOTRiverEstimator(SWOTL2):
         n_pix_area_good_sus = np.array(
             self.river_obs.get_node_stat('countGood', 'area_flg'))
 
-        # Use good/suspect aggregations if more than
-        # num_good_sus_pix_thresh_(wse/area) pixels used
+        # Use good/suspect aggregations if number of pixels used is greater or
+        # equal to num_good_sus_pix_thresh_(wse/area)
         mask_good_sus_wse = (
-            n_pix_wse_good_sus > self.num_good_sus_pix_thresh_wse)
+            n_pix_wse_good_sus >= self.num_good_sus_pix_thresh_wse)
         mask_good_sus_area = (
-            n_pix_area_good_sus > self.num_good_sus_pix_thresh_area)
+            n_pix_area_good_sus >= self.num_good_sus_pix_thresh_area)
 
         # get the aggregated heights and widths with their corresponding
         # uncertainty estimates all in one shot
