@@ -206,6 +206,9 @@ class SWOTRiverEstimator(SWOTL2):
         required to use only good/suspect data in node aggregation for wse.
     num_good_sus_pix_thresh_area: Minimum number of good and suspect pixels
         required to use only good/suspect data in node aggregation for area.
+    use_bright_land: Boolean value, if True we use bright land in pixel
+        assignment and aggregations (mark as suspect), if False do not use
+        in pixel assignment.
 
     The final set of keywords are projection options for pyproj. See Notes.
     Notes
@@ -393,8 +396,8 @@ class SWOTRiverEstimator(SWOTL2):
             mask, class_qual_area_bad & classification_qual > 0,
             geo_qual_wse_bad & geolocation_qual > 0])
 
+        # Exclude bright land as well if self.use_bright_land is False
         if not self.use_bright_land:
-            # Exclude bright land as well is self.use_bright_land is False
             mask = np.logical_or(mask, bright_land_flag > 0)
 
         # skip NaNs in dheight_dphase
@@ -667,6 +670,7 @@ class SWOTRiverEstimator(SWOTL2):
     def get_reaches(self, reach_db_path, clip=False, clip_buffer=0.1,
                     day_of_year=None):
         """Get all of the reaches using a ReachExtractor."""
+        LOGGER.debug('get_reaches')
         self.clip = clip
         self.clip_buffer = clip_buffer
 
@@ -745,6 +749,7 @@ class SWOTRiverEstimator(SWOTL2):
         Returns a list containing a RiverReach instance for each reach in the
         bounding box.
         """
+        LOGGER.debug('process_reaches')
         # assign the reaches
         if self.use_ext_dist_coef:
             river_obs_list, reach_idx_list, ireach_list = \
@@ -1179,24 +1184,11 @@ class SWOTRiverEstimator(SWOTL2):
                               self.lon[self.river_obs.in_channel],
                               self.h_noise[self.river_obs.in_channel])
 
-        # Add the observations
-        self.river_obs.add_obs('h_noise', self.h_noise)
-        self.river_obs.add_obs('h_flg', self.h_flg)
-        self.river_obs.add_obs('wse_class_flg', self.wse_class_flg)
-        self.river_obs.add_obs('area_flg', self.area_flg)
-        self.river_obs.add_obs('sig0_flg', self.sig0_flg)
-        self.river_obs.add_obs('lon', self.lon)
-        self.river_obs.add_obs('lat', self.lat)
-        self.river_obs.add_obs('xobs', self.x)
-        self.river_obs.add_obs('yobs', self.y)
-        self.river_obs.add_obs('inundated_area', self.inundated_area)
-
+        # Load these datasets from input file and add obsevations to
+        # self.river_obs.
         dsets_to_load = [
-            'h_noise', 'h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area',
-            'area_flg', 'sig0_flg', 'wse_class_flg',
-        ]
-
-        other_obs_keys = [
+            'h_noise', 'h_flg', 'wse_class_flg', 'area_flg', 'sig0_flg', 'lon',
+            'lat', 'inundated_area', 'klass', 'pixel_area',
             'xtrack', 'sig0', 'sig0_uncert', 'water_frac', 'water_frac_uncert',
             'ifgram', 'power1', 'power2', 'phase_noise_std', 'dh_dphi',
             'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
@@ -1206,13 +1198,12 @@ class SWOTRiverEstimator(SWOTL2):
             'is_area_suspect', 'is_wse_degraded', 'is_wse_suspect',
             'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag']
 
-        for name in other_obs_keys:
+        for name in dsets_to_load:
             value = getattr(self, name)
             if value is not None:
                 if name is 'looks_to_efflooks':
                     value = value + np.zeros(np.shape(self.lat))
                 self.river_obs.add_obs(name, value)
-                dsets_to_load.append(name)
 
         # need to get array of land/water edge classes
         # to decode/encode the classification routine 
@@ -1227,12 +1218,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
 
-        self.river_obs.add_obs('klass', self.klass)
-        dsets_to_load.append('klass')
-
-        self.river_obs.add_obs('pixel_area', self.pixel_area)
-        dsets_to_load.append('pixel_area')
-
         # Adjust heights to geoid and do tide corrections 
         # (need to do before load_nodes or it is not updated in nodes)
         mask = np.logical_and(
@@ -1242,6 +1227,12 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.solid_earth_tide[mask] +
             self.river_obs.load_tide_fes[mask] +
             self.river_obs.pole_tide[mask])
+
+        # add these separately since input/output names don't match
+        self.river_obs.add_obs('xobs', self.x)
+        self.river_obs.add_obs('yobs', self.y)
+        dsets_to_load.append('xobs')
+        dsets_to_load.append('yobs')
 
         self.river_obs.load_nodes(dsets_to_load)
         LOGGER.debug('Observations added to nodes')
@@ -1420,7 +1411,7 @@ class SWOTRiverEstimator(SWOTL2):
         max_n = np.array(self.river_obs.get_node_stat('max', 'n'))
         blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
 
-        # test at 5% inside of blocking width
+        # test at 10% inside of blocking width
         test_width = blocking_width * 0.90
         nanmask = np.isfinite(test_width)  # mask NaN's to avoid warning
         is_blocked = np.empty_like(nanmask)
@@ -1501,7 +1492,11 @@ class SWOTRiverEstimator(SWOTL2):
             SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_SUSPECT)
 
         # bit 3 / water_fraction_suspect
-        # TODO
+        WATER_FRAC_SUSPECT_THRESHOLD = 3
+        water_frac_max = np.array(self.river_obs.get_node_stat(
+            'max', 'water_frac', goodvar='area_flg'))
+        node_q_b[water_frac_max > WATER_FRAC_SUSPECT_THRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT);
 
         # bit 4 / blocking_width_suspect
         node_q_b[is_blocked] |= (
@@ -1889,44 +1884,39 @@ class SWOTRiverEstimator(SWOTL2):
         # Start by bitwise OR-ing all the node_q_b of the good (non-outlier)
         # nodes node_q_b qual flag together.
         reach_q_b = np.bitwise_or.reduce(river_reach.node_q_b[mask])
+
+        # bitwise AND of node_q_b used to set bits 26-28
         reach_q_b_and = np.bitwise_and.reduce(river_reach.node_q_b[mask])
 
-        # overwrite bit 3 / water_fraction_suspect
-        # TODO
+        # The following bits are not given by logically OR-ing all the
+        # node_q_b flags together.
 
         # unset bit 15 / re-set it with partially_observed
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS)
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
         if reach_stats['frac_obs'] < 0.5:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
 
         # unset bits 23 and 24
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER)
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD
 
         # overwrite 25 / below_min_fit_points
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX
         if mask.sum() < min_fit_points:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS
 
         # overwrite bit 26 / no_area_observations if ALL node_q_b bit 26 is set
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX)
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX
         if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX
 
         # overwrite bit 27 / no_wse_observations if ALL node_q_b bit 27 is set
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX)
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX
         if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX
 
         # overwrite bit 28 / no_observations if ALL node_q_b bit 28 is set
-        reach_q_b = (
-            reach_q_b &~SWOTRiver.products.rivertile.QUAL_IND_NO_OBS)
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_OBS
         if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_OBS:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_OBS
 
