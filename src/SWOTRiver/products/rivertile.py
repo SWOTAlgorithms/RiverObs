@@ -402,6 +402,9 @@ class L2HRRiverTile(Product):
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
+                reach_outputs['low_slope_flag'] = np.append(
+                    reach_outputs['low_slope_flag'],
+                    reach.metadata['low_slope_flag'])
                 reach_outputs['river_name'] = np.append(
                     reach_outputs['river_name'], reach.metadata['river_name'])
 
@@ -2070,6 +2073,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Random-only component of the uncertainty in the enhanced
                     water surface slope.""")],
+                ])],
+        ['low_slp_f',
+         odict([['dtype', 'i2'],
+                ['long_name', 'low slope flag'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'low_slope_flag'],
+                ['flag_meanings', textjoin("""
+                    low_slope_false low_slope_true""")],
+                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 1],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Low slope flag indicating whether the reach is considered 
+                    low slope or standard slope for the MetroMan discharge 
+                    algorithm. Values of 0 or 1 indicate that the reach is or 
+                    is not low-slope, respectively.""")],
                 ])],
         ['width',
          odict([['dtype', 'f8'],
@@ -3778,6 +3800,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
+            klass['low_slp_f'] = reach_outputs['low_slope_flag']
             klass['river_name'] = reach_outputs['river_name']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',

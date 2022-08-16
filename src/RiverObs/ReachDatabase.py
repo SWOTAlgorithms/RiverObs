@@ -243,12 +243,11 @@ class ReachExtractor(object):
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
                 }
-
             reach_metadata_keys = ['area_fits', 'discharge_models',
                 'reach_length', 'n_nodes', 'wse', 'wse_var', 'width',
                 'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id', 'slope',
                 'dist_out', 'n_rch_up', 'n_rch_down', 'rch_id_up', 'rch_id_dn',
-                'lakeflag', 'low_slope_flag', 'iceflag', 'river_name']
+                'lakeflag', 'iceflag', 'river_name']
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
