@@ -2125,7 +2125,7 @@ class SWOTRiverEstimator(SWOTL2):
             first_and_last_node_c).T
         if self.use_multiple_reaches:
             wse_out = wse_out[first_node:end_slice]
-        return wse_out, height_u, slope_u
+        return wse_out, height_u[0], slope_u[0]
 
     @staticmethod
     def compute_bayes_estimator(Ry, Rv, H):
