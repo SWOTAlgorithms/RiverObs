@@ -3800,7 +3800,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
-            klass['low_slp_f'] = reach_outputs['low_slope_flag']
+            klass['p_low_slp'] = reach_outputs['low_slope_flag']
             klass['river_name'] = reach_outputs['river_name']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
