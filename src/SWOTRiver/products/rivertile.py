@@ -379,7 +379,7 @@ class L2HRRiverTile(Product):
                             QUAL_IND_NO_PIXELS))
 
                     for key in [
-                        'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
+                        'lat', 'lon', 'x', 'y', 's', 'w_area',
                          'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
                          'area_of_ht', 'wse', 'wse_std', 'wse_r_u', 'rdr_sig0',
                          'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',

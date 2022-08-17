@@ -1249,48 +1249,6 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             xtrack_median = None
 
-        # prints warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            lon_median = np.asarray(self.river_obs.get_node_stat(
-                'sincos_median', 'lon', goodvar='h_flg'))
-            lat_median = np.asarray(self.river_obs.get_node_stat(
-                'median', 'lat', goodvar='h_flg'))
-
-        ds = np.asarray(self.river_obs.get_node_stat('value', 'ds'))
-
-        # number of good heights
-        nobs_h = np.asarray(self.river_obs.get_node_stat('countGood', 'h_flg'))
-
-        # heights using only "good" heights
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            wse = np.asarray(self.river_obs.get_node_stat(
-                    'median', 'h_noise', goodvar='h_flg'))
-            wse_r_u = np.asarray(self.river_obs.get_node_stat(
-                'std', 'h_noise', goodvar='h_flg'))
-        wse_std = wse_r_u
-
-        # The following are estimates of river width
-        width_ptp = np.asarray(self.river_obs.get_node_stat('width_ptp', ''))
-        width_std = np.asarray(self.river_obs.get_node_stat('width_std', ''))
-
-        # These are area based estimates, the nominal SWOT approach
-        area = np.asarray(
-            self.river_obs.get_node_stat('sum', 'inundated_area'))
-
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
-                'median', 'sig0', goodvar='h_flg'))
-
-        # area of pixels used to compute heights
-        area_of_ht = np.asarray(self.river_obs.get_node_stat(
-            'sum', 'inundated_area', goodvar='h_flg'))
-
-        width_area = np.asarray(
-            self.river_obs.get_node_stat('width_area', 'inundated_area'))
-
         # Compute number of good+sus pixels in wse / area masks
         n_pix_wse_good_sus = np.array(
             self.river_obs.get_node_stat('countGood', 'h_flg'))
@@ -1303,6 +1261,73 @@ class SWOTRiverEstimator(SWOTL2):
             n_pix_wse_good_sus >= self.num_good_sus_pix_thresh_wse)
         mask_good_sus_area = (
             n_pix_area_good_sus >= self.num_good_sus_pix_thresh_area)
+
+        # prints warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            lon_median = np.asarray(self.river_obs.get_node_stat(
+                'sincos_median', 'lon', goodvar='h_flg'))
+            lon_median[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'sincos_median', 'lon', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
+            lat_median = np.asarray(self.river_obs.get_node_stat(
+                'median', 'lat', goodvar='h_flg'))
+            lat_median[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'median', 'lat', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
+        ds = np.asarray(self.river_obs.get_node_stat('value', 'ds'))
+
+        # number of good heights
+        nobs_h = np.asarray(self.river_obs.get_node_stat('countGood', 'h_flg'))
+        nobs_h[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('countGood', 'wse_class_flg')
+            )[~mask_good_sus_wse]
+
+        # heights using only "good" heights
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            wse = np.asarray(self.river_obs.get_node_stat(
+                    'median', 'h_noise', goodvar='h_flg'))
+            wse[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'median', 'h_noise', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
+            wse_r_u = np.asarray(self.river_obs.get_node_stat(
+                'std', 'h_noise', goodvar='h_flg'))
+            wse_r_u[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'std', 'h_noise', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
+        wse_std = wse_r_u
+
+        # These are area based estimates, the nominal SWOT approach
+        area = np.asarray(
+            self.river_obs.get_node_stat('sum', 'inundated_area'))
+        area[~mask_good_sus_area] = np.asarray(
+            self.river_obs.get_node_stat(
+                'sum', 'inundated_area', goodvar='good'))[~mask_good_sus_area]
+
+        # area of pixels used to compute heights
+        area_of_ht = np.asarray(self.river_obs.get_node_stat(
+            'sum', 'inundated_area', goodvar='h_flg'))
+        area_of_ht[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat(
+                'sum', 'inundated_area', goodvar='wse_class_flg')
+            )[~mask_good_sus_wse]
+
+        width_area = np.asarray(self.river_obs.get_node_stat(
+            'width_area', 'inundated_area'))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
+                'median', 'sig0', goodvar='h_flg'))
 
         # get the aggregated heights and widths with their corresponding
         # uncertainty estimates all in one shot
@@ -1378,26 +1403,60 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        geoid_hght[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'solid_earth_tide',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        solid_tide[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'solid_earth_tide',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
         load_tidef = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_fes',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        load_tidef[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'load_tide_fes',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
         load_tideg = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_got',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        load_tideg[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'load_tide_got',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
+
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'pole_tide',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        pole_tide[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'pole_tide',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1503,8 +1562,11 @@ class SWOTRiverEstimator(SWOTL2):
         WATER_FRAC_SUSPECT_THRESHOLD = 3
         water_frac_max = np.array(self.river_obs.get_node_stat(
             'max', 'water_frac', goodvar='area_flg'))
+        water_frac_max[~mask_good_sus_area] = np.array(
+            self.river_obs.get_node_stat('max', 'water_frac', goodvar='good')
+            )[~mask_good_sus_area]
         node_q_b[water_frac_max > WATER_FRAC_SUSPECT_THRESHOLD] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT);
+            SWOTRiver.products.rivertile.QUAL_IND_WATER_FRAC_SUSPECT);
 
         # bit 4 / blocking_width_suspect
         node_q_b[is_blocked] |= (
@@ -1589,8 +1651,6 @@ class SWOTRiverEstimator(SWOTL2):
             'nobs': nobs.astype('int32'),
             's': s_median.astype('float64'),
             'ds': ds.astype('float64'),
-            'w_ptp': width_ptp.astype('float64'),
-            'w_std': width_std.astype('float64'),
             'w_area': width_area.astype('float64'),
             'w_db': width_db.astype('float64'),
             'area': area.astype('float64'),
