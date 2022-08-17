@@ -2074,25 +2074,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     Random-only component of the uncertainty in the enhanced
                     water surface slope.""")],
                 ])],
-        ['low_slp_f',
-         odict([['dtype', 'i2'],
-                ['long_name', 'low slope flag'],
-                ['standard_name', 'status_flag'],
-                ['short_name', 'low_slope_flag'],
-                ['flag_meanings', textjoin("""
-                    low_slope_false low_slope_true""")],
-                ['flag_values', np.array([0, 1]).astype('i2')],
-                ['valid_min', 0],
-                ['valid_max', 1],
-                ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert', 'Basic'],
-                ['coordinates', 'p_lon p_lat'],
-                ['comment', textjoin("""
-                    Low slope flag indicating whether the reach is considered 
-                    low slope or standard slope for the MetroMan discharge 
-                    algorithm. Values of 0 or 1 indicate that the reach is or 
-                    is not low-slope, respectively.""")],
-                ])],
         ['width',
          odict([['dtype', 'f8'],
                 ['long_name', 'reach width'],
@@ -3697,7 +3678,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Mean annual flow from the prior river datavase.""")],
+                    Mean annual flow from the prior river database.""")],
                 ])],
         ['p_dam_id',
          odict([['dtype', 'i4'],
@@ -3746,6 +3727,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Mode of the number of channels in the reach from the
                     prior river database.""")],
+                ])],
+        ['p_low_slp',
+         odict([['dtype', 'i2'],
+                ['long_name', 'low slope flag'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'low_slope_flag'],
+                ['flag_meanings', textjoin("""
+                    low_slope_false low_slope_true""")],
+                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 1],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Low-slope flag from the prior river database.  A nonzero
+                    value indicates that the reach slope is considered to be
+                    low.  Low-slope reaches are handled differently than other
+                    reaches by the MetroMan discharge algorithm.""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
