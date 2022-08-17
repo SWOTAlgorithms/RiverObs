@@ -1346,16 +1346,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'quality of the cross-over calibration'],
                 ['short_name', 'height_cor_xover_qual'],
-                ['flag_meanings', textjoin("""TBD""")],
+                ['flag_meanings', textjoin("""good suspect bad""")],
                 ['flag_masks', 'TBD'],
-                ['flag_values', 'TBD'],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Quality of the cross-over calibration.""")],
+                    Quality of the cross-over calibration. A value of 0 
+                    indicates a nominal measurement, 1 indicates a suspect 
+                    measurement, and 2 indicates a bad measurement.""")],
                 ])],
         ['rdr_sig0',
          odict([['dtype', 'f8'],
