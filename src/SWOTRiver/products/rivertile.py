@@ -365,13 +365,18 @@ class L2HRRiverTile(Product):
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
 
-                    for key in ['nobs', 'nobs_h', 'node_blocked', 'node_q_b']:
+                    for key in ['nobs', 'nobs_h', 'node_blocked']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
                     node_outputs['node_q'] = np.insert(
-                            node_outputs['node_q'], insert_idx,
-                            MISSING_VALUE_INT4)
+                            node_outputs['node_q'], insert_idx, 3)
+
+                    node_outputs['node_q_b'] = np.insert(
+                            node_outputs['node_q_b'], insert_idx, (
+                            QUAL_IND_WSE_BAD + QUAL_IND_NO_SIG0_PIX +
+                            QUAL_IND_NO_AREA_PIX + QUAL_IND_NO_WSE_PIX +
+                            QUAL_IND_NO_PIXELS))
 
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
@@ -435,11 +440,10 @@ class L2HRRiverTile(Product):
                 reach_outputs['lake_flag'] = np.append(
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
                 reach_outputs['reach_q'] = np.append(
-                    reach_outputs['reach_q'], MISSING_VALUE_INT4)
+                    reach_outputs['reach_q'], 3)
                 reach_outputs['reach_q_b'] = np.append(
-                    reach_outputs['reach_q_b'], MISSING_VALUE_INT9)
-                reach_outputs['lake_flag'] = np.append(
-                    reach_outputs['lake_flag'], MISSING_VALUE_INT4)
+                    reach_outputs['reach_q_b'],
+                    QUAL_IND_NO_AREA_PIX+QUAL_IND_NO_WSE_PIX+QUAL_IND_NO_OBS)
 
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
@@ -1237,7 +1241,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 268435456],
+                ['valid_max', 529297055],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -3313,7 +3317,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_WSE_PIX,
                     QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 268435456],
+                ['valid_max', 504163999],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
