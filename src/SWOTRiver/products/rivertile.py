@@ -3742,9 +3742,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Low-slope flag from the prior river database.  A nonzero
+                    Low-slope flag from the prior river database. A nonzero
                     value indicates that the reach slope is considered to be
-                    low.  Low-slope reaches are handled differently than other
+                    low. Low-slope reaches are handled differently than other
                     reaches by the MetroMan discharge algorithm.""")],
                 ])],
     ])
