@@ -468,8 +468,13 @@ class SWOTRiverEstimator(SWOTL2):
         self.is_sig0_bad = sig0_qual_bad & self.sig0_qual > 0
         self.is_sig0_suspect = sig0_qual_suspect & self.sig0_qual > 0
 
-        self.is_xovercal_suspect = self.geolocation_qual & 2**6 > 0
-        self.is_xovercal_degraded = self.geolocation_qual & 2**23 > 0
+        PIXC_GEO_QUAL_XOVR_SUSPECT = 2**6
+        PIXC_GEO_QUAL_XOVR_BAD = 2**23
+
+        self.is_xovercal_suspect = (
+            self.geolocation_qual & PIXC_GEO_QUAL_XOVR_SUSPECT) > 0
+        self.is_xovercal_degraded = (
+            self.geolocation_qual & PIXC_GEO_QUAL_XOVR_BAD) > 0
 
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
@@ -1666,13 +1671,15 @@ class SWOTRiverEstimator(SWOTL2):
                 )[~mask_good_sus_wse]
         xovr_cal_q[n_pix_xovercal_degraded > 0] = 2
 
+        # if no valid pixels for height, set xovr_cal_q to BAD
+        xovr_cal_q[n_pix_wse == 0] = 2
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
             'lon': lon_median.astype('float64'),
             'x': x_median.astype('float64'),
             'y': y_median.astype('float64'),
-            'nobs': nobs.astype('int32'),
             's': s_median.astype('float64'),
             'ds': ds.astype('float64'),
             'w_area': width_area.astype('float64'),
@@ -1685,7 +1692,9 @@ class SWOTRiverEstimator(SWOTL2):
             'wse': wse.astype('float64'),
             'wse_std': wse_std.astype('float64'),
             'wse_r_u': wse_r_u.astype('float64'),
+            'nobs': nobs.astype('int32'),
             'nobs_h': nobs_h.astype('int32'),
+            'n_good_pix': n_pix_wse.astype('int32'),
             'node_indx': node_indx.astype('int64'),
             'reach_indx': reach_index.astype('int64'),
             'rdr_sig0': rdr_sig0.astype('float64'),

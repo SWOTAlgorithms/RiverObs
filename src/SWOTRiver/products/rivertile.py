@@ -365,7 +365,7 @@ class L2HRRiverTile(Product):
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
 
-                    for key in ['nobs', 'nobs_h', 'node_blocked']:
+                    for key in ['nobs', 'nobs_h', 'node_blocked', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
@@ -1717,7 +1717,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['area_tot_u'] = node_outputs['area_u']
             klass['area_wse'] = node_outputs['area_of_ht']
             klass['xtrk_dist'] = node_outputs['xtrack']
-            klass['n_good_pix'] = node_outputs['nobs']
+            klass['n_good_pix'] = node_outputs['n_good_pix']
             klass['rdr_sig0'] = node_outputs['rdr_sig0']
             klass['rdr_sig0_u'] = node_outputs['rdr_sig0_u']
             klass['geoid_hght'] = node_outputs['geoid_hght']
