@@ -2032,7 +2032,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         reach_stats['reach_q_b'] = reach_q_b
         reach_stats['reach_q'] = reach_q
-        reach_stats['xovr_cal_q'] = river_reach.node_q_b[mask].max()
+        reach_stats['xovr_cal_q'] = river_reach.xovr_cal_q[mask].max()
 
         river_reach.metadata = reach_stats
         return river_reach
