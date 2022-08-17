@@ -1355,8 +1355,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Quality of the cross-over calibration. A value of 0 
-                    indicates a nominal measurement, 1 indicates a suspect 
+                    Quality of the cross-over calibration. A value of 0
+                    indicates a nominal measurement, 1 indicates a suspect
                     measurement, and 2 indicates a bad measurement.""")],
                 ])],
         ['rdr_sig0',
@@ -1548,6 +1548,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'xovr_cal_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Height correction from KaRIn crossover calibration. 
@@ -3441,17 +3442,20 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'quality of the cross-over calibration'],
                 ['short_name', 'height_cor_xover_qual'],
-                ['flag_meanings', textjoin("""TBD""")],
+                ['flag_meanings', textjoin("""good suspect bad""")],
                 ['flag_masks', 'TBD'],
-                ['flag_values', 'TBD'],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert','Basic'],
-                ['coordinates', 'p_lon p_lat'],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Quality of the cross-over calibration.""")],
+                    Quality of the cross-over calibration. A value of 0
+                    indicates a nominal measurement, 1 indicates a suspect
+                    measurement, and 2 indicates a bad measurement.""")],
                 ])],
+
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
@@ -3614,6 +3618,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'xovr_cal_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Height correction from KaRIn crossover calibration. 
