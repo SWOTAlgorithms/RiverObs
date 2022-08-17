@@ -554,8 +554,11 @@ def area_with_uncert(
         dark_water_klasses=dark_water_klasses,
         method=method)
 
-    # normalize to get area percent error
-    area_pcnt_uncert = area_unc/abs(area_agg)*100.0
+    # Hide divide by zero warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # normalize to get area percent error
+        area_pcnt_uncert = area_unc/abs(area_agg)*100.0
     return area_agg, area_unc, area_pcnt_uncert
 
 
