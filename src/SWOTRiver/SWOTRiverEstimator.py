@@ -468,6 +468,9 @@ class SWOTRiverEstimator(SWOTL2):
         self.is_sig0_bad = sig0_qual_bad & self.sig0_qual > 0
         self.is_sig0_suspect = sig0_qual_suspect & self.sig0_qual > 0
 
+        self.is_xovercal_suspect = self.geolocation_qual & 2**6 > 0
+        self.is_xovercal_degraded = self.geolocation_qual & 2**23 > 0
+
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
             if self.looks_to_efflooks == 'None':
@@ -1196,7 +1199,8 @@ class SWOTRiverEstimator(SWOTL2):
             'looks_to_efflooks', 'geoid', 'solid_earth_tide', 'load_tide_fes',
             'load_tide_got', 'pole_tide', 'is_area_degraded',
             'is_area_suspect', 'is_wse_degraded', 'is_wse_suspect',
-            'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag']
+            'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag',
+            'is_xovercal_suspect', 'is_xovercal_degraded']
 
         for name in dsets_to_load:
             value = getattr(self, name)
@@ -1642,6 +1646,26 @@ class SWOTRiverEstimator(SWOTL2):
         node_q[node_q_b >= thresh_deg] = 2
         node_q[node_q_b >= thresh_bad] = 3
 
+        # create xovr_cal_q
+        xovr_cal_q = np.zeros(lat_median.shape, dtype='i2')
+        n_pix_xovercal_suspect = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_suspect', goodvar='h_flg'))
+        n_pix_xovercal_suspect[~mask_good_sus_wse] = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_suspect', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+        xovr_cal_q[n_pix_xovercal_suspect > 0] = 1
+
+        n_pix_xovercal_degraded = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_degraded', goodvar='h_flg'))
+        n_pix_xovercal_degraded[~mask_good_sus_wse] = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_degraded', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+        xovr_cal_q[n_pix_xovercal_degraded > 0] = 2
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
@@ -1695,7 +1719,7 @@ class SWOTRiverEstimator(SWOTL2):
             'populated_nodes': self.river_obs.populated_nodes,
             'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape),
             'river_name': reach.river_name[self.river_obs.populated_nodes],
-            'node_q': node_q, 'node_q_b': node_q_b,
+            'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
         }
 
         if xtrack_median is not None:
@@ -1999,6 +2023,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         reach_stats['reach_q_b'] = reach_q_b
         reach_stats['reach_q'] = reach_q
+        reach_stats['xovr_cal_q'] = river_reach.node_q_b[mask].max()
 
         river_reach.metadata = reach_stats
         return river_reach

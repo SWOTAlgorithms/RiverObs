@@ -378,6 +378,9 @@ class L2HRRiverTile(Product):
                             QUAL_IND_NO_AREA_PIX + QUAL_IND_NO_WSE_PIX +
                             QUAL_IND_NO_PIXELS))
 
+                    node_outputs['xovr_cal_q'] = np.insert(
+                            node_outputs['xovr_cal_q'], insert_idx, 2)
+
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_area',
                          'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
@@ -444,6 +447,8 @@ class L2HRRiverTile(Product):
                 reach_outputs['reach_q_b'] = np.append(
                     reach_outputs['reach_q_b'],
                     QUAL_IND_NO_AREA_PIX+QUAL_IND_NO_WSE_PIX+QUAL_IND_NO_OBS)
+                reach_outputs['xovr_cal_q'] = np.append(
+                    reach_outputs['xovr_cal_q'], 2)
 
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
@@ -1735,7 +1740,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
-                        'node_q', 'node_q_b']:
+                        'node_q', 'node_q_b', 'xovr_cal_q']:
                 klass[key] = node_outputs[key]
 
         return klass
@@ -3896,6 +3901,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['river_name'] = reach_outputs['river_name']
             klass['reach_q'] = reach_outputs['reach_q']
             klass['reach_q_b'] = reach_outputs['reach_q_b']
+            klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
