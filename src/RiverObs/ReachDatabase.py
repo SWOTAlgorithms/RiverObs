@@ -237,7 +237,7 @@ class ReachExtractor(object):
             blocking_widths = get_blocking_widths(x, y)
             reach_metadata = {
                 'lakeFlag': this_reach['reaches']['lakeflag'][0],
-                'low_slope_flag': this_reach['reaches']['low_slope_flag'][0],
+                'p_low_slp': this_reach['reaches']['low_slope_flag'][0],
                 'lon': this_reach['reaches']['x'][0],
                 'lat': this_reach['reaches']['y'][0],
                 'centerline_lon': this_reach['centerlines']['x'],

@@ -32,7 +32,8 @@ def compute(reach, reach_height, reach_width, reach_slope):
 
             metro_n = metro_ninf * (
                 (d_x_area+metro_Abar) / reach_width)**metro_p
-            if reach.metadata['low_slope_flag']:
+            if reach.metadata['p_low_slp']:
+                # Low slope flag is TRUE in PRD. Use different flow law.
                 metro_q = metro_n * (reach_height - metro_Abar)**metro_p
             else:
                 metro_q = (
