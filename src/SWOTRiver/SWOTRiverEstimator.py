@@ -1964,6 +1964,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
         reach_stats['ice_clim_f'] = reach.metadata['iceflag']
+        reach_stats['p_low_slp'] = reach.metadata['p_low_slp']
         reach_stats['river_name'] = reach.metadata['river_name']
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']

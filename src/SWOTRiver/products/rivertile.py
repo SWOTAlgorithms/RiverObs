@@ -325,9 +325,11 @@ class L2HRRiverTile(Product):
                     node_outputs['y_prior'] = np.insert(
                         node_outputs['y_prior'], insert_idx, reach.y[rch_idx])
                     node_outputs['lon_prior'] = np.insert(
-                        node_outputs['lon_prior'], insert_idx, reach.lon[rch_idx])
+                        node_outputs['lon_prior'], insert_idx,
+                        reach.lon[rch_idx])
                     node_outputs['lat_prior'] = np.insert(
-                        node_outputs['lat_prior'], insert_idx, reach.lat[rch_idx])
+                        node_outputs['lat_prior'], insert_idx,
+                        reach.lat[rch_idx])
                     node_outputs['p_wse'] = np.insert(
                         node_outputs['p_wse'], insert_idx, reach.wse[rch_idx])
                     node_outputs['p_wse_var'] = np.insert(
@@ -382,13 +384,13 @@ class L2HRRiverTile(Product):
                             node_outputs['xovr_cal_q'], insert_idx, 2)
 
                     for key in [
-                        'lat', 'lon', 'x', 'y', 's', 'w_area',
-                         'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
-                         'area_of_ht', 'wse', 'wse_std', 'wse_r_u', 'rdr_sig0',
-                         'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
-                         'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
-                         'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
-                         'h_n_ave', 'fit_height']:
+                        'lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db', 'area',
+                        'area_u', 'area_det', 'area_det_u', 'area_of_ht',
+                        'wse', 'wse_std', 'wse_r_u', 'rdr_sig0', 'rdr_sig0_u',
+                        'latitude_u', 'longitud_u', 'width_u', 'geoid_hght',
+                        'solid_tide', 'load_tidef', 'load_tideg', 'pole_tide',
+                        'flow_dir', 'dark_frac', 'xtrack', 'h_n_ave',
+                        'fit_height']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
@@ -403,13 +405,13 @@ class L2HRRiverTile(Product):
                 reach_outputs['rch_id_up'] = np.concatenate(
                     (reach_outputs['rch_id_up'], this_rch_id_up))
                 reach_outputs['n_reach_up'] = np.append(
-                    reach_outputs['n_reach_up'], (this_rch_id_up>0).sum())
+                    reach_outputs['n_reach_up'], (this_rch_id_up > 0).sum())
                 this_rch_id_dn = reach.metadata['rch_id_dn'].T
                 this_rch_id_dn[this_rch_id_dn == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_dn'] = np.concatenate(
                     (reach_outputs['rch_id_dn'], this_rch_id_dn))
                 reach_outputs['n_reach_dn'] = np.append(
-                    reach_outputs['n_reach_dn'], (this_rch_id_dn>0).sum())
+                    reach_outputs['n_reach_dn'], (this_rch_id_dn > 0).sum())
                 reach_outputs['reach_idx'] = np.append(
                         reach_outputs['reach_idx'], reach_id)
                 reach_outputs['p_lon'] = np.append(
@@ -427,7 +429,8 @@ class L2HRRiverTile(Product):
                 reach_outputs['p_n_nodes'] = np.append(
                         reach_outputs['p_n_nodes'], len(reach.x))
                 reach_outputs['p_dist_out'] = np.append(
-                        reach_outputs['p_dist_out'], reach.metadata['dist_out'])
+                        reach_outputs['p_dist_out'], reach.metadata['dist_out']
+                )
                 reach_outputs['p_length'] = np.append(
                     reach_outputs['p_length'], reach.metadata['reach_length'])
                 reach_outputs['grand_id'] = np.append(
@@ -452,6 +455,9 @@ class L2HRRiverTile(Product):
 
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
+                reach_outputs['p_low_slp'] = np.append(
+                    reach_outputs['p_low_slp'],
+                    reach.metadata['p_low_slp'])
                 reach_outputs['river_name'] = np.append(
                     reach_outputs['river_name'], reach.metadata['river_name'])
 
@@ -769,9 +775,10 @@ class ShapeWriterMixIn(object):
         self.write_shape_xml(shp_fname.replace('.shp', '.shp.xml'))
         with open(shp_fname.replace('.shp', '.prj'), 'w') as ofp:
             ofp.write((
-                'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'+
-                'SPHEROID["WGS_1984",6378137,298.257223563]],'+
-                'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'))
+                'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",' +
+                'SPHEROID["WGS_1984",6378137,298.257223563]],' +
+                'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'
+            ))
 
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
@@ -1850,6 +1857,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             setattr(klass, key, np.concatenate((
                 getattr(self, key), getattr(other, key))))
         return klass
+
 
 class RiverTileReaches(Product, ShapeWriterMixIn):
 
@@ -3795,7 +3803,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Mean annual flow from the prior river datavase.""")],
+                    Mean annual flow from the prior river database.""")],
                 ])],
         ['p_dam_id',
          odict([['dtype', 'i4'],
@@ -3844,6 +3852,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Mode of the number of channels in the reach from the
                     prior river database.""")],
+                ])],
+        ['p_low_slp',
+         odict([['dtype', 'i2'],
+                ['long_name', 'low slope flag'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'low_slope_flag'],
+                ['flag_meanings', textjoin("""
+                    low_slope_false low_slope_true""")],
+                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 1],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Low-slope flag from the prior river database. A nonzero
+                    value indicates that the reach slope is considered to be
+                    low. Low-slope reaches are handled differently than other
+                    reaches by the MetroMan discharge algorithm.""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
@@ -3898,6 +3925,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
+            klass['p_low_slp'] = reach_outputs['p_low_slp']
             klass['river_name'] = reach_outputs['river_name']
             klass['reach_q'] = reach_outputs['reach_q']
             klass['reach_q_b'] = reach_outputs['reach_q_b']
