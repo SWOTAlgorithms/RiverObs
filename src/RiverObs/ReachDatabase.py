@@ -235,21 +235,21 @@ class ReachExtractor(object):
                 this_reach['centerlines']['y'] = lats
 
             blocking_widths = get_blocking_widths(x, y)
-
             reach_metadata = {
                 'lakeFlag': this_reach['reaches']['lakeflag'][0],
+                'p_low_slp': this_reach['reaches']['low_slope_flag'][0],
                 'lon': this_reach['reaches']['x'][0],
                 'lat': this_reach['reaches']['y'][0],
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
                 }
-
             reach_metadata_keys = [
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
                 'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
                 'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
                 'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag', 'iceflag',
-                'river_name']
+                'river_name'
+            ]
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
@@ -560,6 +560,8 @@ class ReachDatabaseReaches(Product):
         ['rch_id_dn',
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
         ['lakeflag',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['low_slope_flag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['iceflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ICEFLAG]])],

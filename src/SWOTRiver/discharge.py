@@ -32,9 +32,13 @@ def compute(reach, reach_height, reach_width, reach_slope):
 
             metro_n = metro_ninf * (
                 (d_x_area+metro_Abar) / reach_width)**metro_p
-            metro_q = (
-                (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
-                reach_slope**(1/2)) / metro_n
+            if reach.metadata['p_low_slp']:
+                # Low slope flag is TRUE in PRD. Use different flow law.
+                metro_q = metro_n * (reach_height - metro_Abar)**metro_p
+            else:
+                metro_q = (
+                    (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
+                    reach_slope**(1/2)) / metro_n
         else:
             metro_q = MISSING_VALUE_FLT
 
