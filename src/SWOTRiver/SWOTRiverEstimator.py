@@ -15,6 +15,7 @@ import statsmodels.api
 import logging
 import warnings
 import piecewise_regression
+from scipy.ndimage.morphology import binary_dilation
 
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
@@ -27,9 +28,8 @@ from RiverObs import RiverNode
 from RiverObs import RiverReach
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
-
+from SWOTRiver.errors import RiverObsException
 from Centerline.Centerline import Centerline, CenterLineException
-from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
 
@@ -401,7 +401,12 @@ class SWOTRiverEstimator(SWOTL2):
             mask = np.logical_or(mask, bright_land_flag > 0)
 
         # skip NaNs in dheight_dphase
+
         good = ~mask
+        if good.sum() == 0:
+            LOGGER.warning("No useable pixels found in input PIXC file")
+            raise RiverObsException(
+                "No useable pixels found in input PIXC file")
         for key in ['lat', 'lon', 'x', 'y', 'klass', 'h_noise',
                     'img_x', 'img_y']:
             try:
