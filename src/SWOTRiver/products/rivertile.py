@@ -390,7 +390,7 @@ class L2HRRiverTile(Product):
                         'latitude_u', 'longitud_u', 'width_u', 'geoid_hght',
                         'solid_tide', 'load_tidef', 'load_tideg', 'pole_tide',
                         'flow_dir', 'dark_frac', 'xtrack', 'h_n_ave',
-                        'fit_height']:
+                        'fit_height', 'layovr_val']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
@@ -507,7 +507,8 @@ class L2HRRiverTile(Product):
                             'slope2', 'metro_q_c', 'bam_q_c', 'hivdi_q_c',
                             'momma_q_c', 'sads_q_c', 'sic4dvar_q_c',
                             'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
-                            'momma_q_uc', 'sads_q_uc', 'sic4dvar_q_uc']:
+                            'momma_q_uc', 'sads_q_uc', 'sic4dvar_q_uc',
+                            'layovr_val']:
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
@@ -1045,7 +1046,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
+                    Total one-sigma uncertainty in
                     the node width.""")],
                 ])],
         ['area_total',
@@ -1075,8 +1076,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    total estimated water surface area area_total.""")],
+                    Total one-sigma uncertainty in the total estimated water
+                    surface area area_total.""")],
                 ])],
         ['area_detct',
          odict([['dtype', 'f8'],
@@ -1104,7 +1105,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
+                    Total one-sigma uncertainty in
                     the surface area of the detected water pixels.""")],
                 ])],
         ['area_wse',
@@ -2161,8 +2162,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
-                    the reach width.""")],
+                    Total one-sigma uncertainty in the reach width.""")],
                 ])],
         ['width_c',
          odict([['dtype', 'f8'],
@@ -2191,8 +2191,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    constrained reach width.""")],
+                    Total one-sigma uncertainty in the constrained reach
+                    width.""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f8'],
@@ -2222,8 +2222,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    total estimated water surface area area_total.""")],
+                    Total one-sigma uncertainty in the total estimated water
+                    surface area area_total.""")],
                 ])],
         ['area_detct',
          odict([['dtype', 'f8'],
@@ -2251,8 +2251,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
-                    the surface area of the detected water pixels.""")],
+                    Total one-sigma uncertainty in the surface area of the
+                    detected water pixels.""")],
                 ])],
         ['area_wse',
          odict([['dtype', 'f8'],
@@ -2296,8 +2296,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    change in the cross-sectional area.""")],
+                    Total one-sigma uncertainty in the change in the
+                    cross-sectional area.""")],
                 ])],
         ['layovr_val',
          odict([['dtype', 'f8'],
