@@ -1748,7 +1748,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
-                        'node_q', 'node_q_b', 'xovr_cal_q']:
+                        'node_q', 'node_q_b', 'xovr_cal_q', 'layovr_val']:
                 klass[key] = node_outputs[key]
 
         return klass
@@ -3930,6 +3930,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['reach_q'] = reach_outputs['reach_q']
             klass['reach_q_b'] = reach_outputs['reach_q_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
+            klass['layovr_val'] = reach_outputs['layovr_val']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
