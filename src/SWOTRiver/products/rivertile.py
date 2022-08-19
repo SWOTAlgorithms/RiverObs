@@ -6,7 +6,6 @@ All rights reserved.
 Author (s): Alex Fore, Cassie Stuurman
 '''
 import os
-import pdb
 import textwrap
 import numpy as np
 import fiona
