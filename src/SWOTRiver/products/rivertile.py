@@ -1132,8 +1132,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Value indicating an estimate of the height error due to
-                    layover (TBD).""")],
+                    Estimate of the systematic error in WSE due to layover.
+                    """)],
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],
@@ -2310,8 +2310,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Value indicating an estimate of the height error due to
-                    layover (TBD). """)],
+                    Estimate of the systematic error in WSE due to layover.
+                    """)],
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],

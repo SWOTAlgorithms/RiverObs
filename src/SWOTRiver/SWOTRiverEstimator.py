@@ -5,6 +5,7 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 from __future__ import absolute_import, division, print_function
 
 import os
+import pdb  # REMOVE ME
 import scipy.ndimage
 import numpy as np
 import netCDF4 as nc
@@ -1210,7 +1211,7 @@ class SWOTRiverEstimator(SWOTL2):
             'load_tide_got', 'pole_tide', 'is_area_degraded',
             'is_area_suspect', 'is_wse_degraded', 'is_wse_suspect',
             'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag',
-            'is_xovercal_suspect', 'is_xovercal_degraded']
+            'is_xovercal_suspect', 'is_xovercal_degraded', 'layover_impact']
 
         for name in dsets_to_load:
             value = getattr(self, name)
@@ -1422,7 +1423,6 @@ class SWOTRiverEstimator(SWOTL2):
                                          goodvar='wse_class_flg',
                                          method=self.height_agg_method)
                                          )[~mask_good_sus_wse]
-
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'solid_earth_tide',
@@ -1468,6 +1468,18 @@ class SWOTRiverEstimator(SWOTL2):
         pole_tide[~mask_good_sus_wse] = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'pole_tide',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
+        layovr_val = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'layover_impact',
+                                         goodvar='h_flg',
+                                         method=self.height_agg_method))
+        layovr_val[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'layover_impact',
                                          goodvar='wse_class_flg',
                                          method=self.height_agg_method)
                                          )[~mask_good_sus_wse]
@@ -1734,6 +1746,7 @@ class SWOTRiverEstimator(SWOTL2):
             'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape),
             'river_name': reach.river_name[self.river_obs.populated_nodes],
             'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
+            'layovr_val': layovr_val.astype('float64')
         }
 
         if xtrack_median is not None:
@@ -1802,6 +1815,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['width'] = np.sum(river_reach.area)/reach_stats['length']
         reach_stats['width_u'] = np.sqrt(np.sum(
             river_reach.area_u**2)) / reach_stats['length']
+        reach_stats['layovr_val'] = np.sqrt(np.sum(
+            river_reach.layovr_val[river_reach.mask]**2))
 
         reach_stats['loc_offset'] = (
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
