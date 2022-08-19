@@ -1108,6 +1108,7 @@ class ReachDatabaseTile(ReachDatabase):
         ['pass_number', {'dtype': 'i4', 'value': None}],
         ['tile_number', {'dtype': 'i4', 'value': None}],
         ['swath_side', {}],
+        ['version', {'dtype': 'str' , 'value': ''}],
         ])
 
     def subset(self, reach_ids):
