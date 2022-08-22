@@ -1737,7 +1737,7 @@ class SWOTRiverEstimator(SWOTL2):
         }
 
         if xtrack_median is not None:
-            river_reach_kw_args['xtrack'] = xtrack_median
+            river_reach_kw_args['xtrack'] = xtrack_median.astype('float64')
         else:
             river_reach_kw_args['xtrack'] = None
 
