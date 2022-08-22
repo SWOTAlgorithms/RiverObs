@@ -140,6 +140,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
             outputs['momma_q_uc'] = momma_q
             outputs['sads_q_uc'] = sads_q
             outputs['sic4dvar_q_uc'] = sic4dvar_q
+
     # populate the constrained height and width outputs
     if np.isnan(area_fit_outputs[1]) or np.isnan(area_fit_outputs[2]):
         outputs['width_c'] = MISSING_VALUE_FLT
