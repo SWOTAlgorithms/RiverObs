@@ -518,7 +518,8 @@ class SWOTRiverEstimator(SWOTL2):
 
                 except AttributeError:
                     self.pixel_area = 10.0 * np.zeros(len(self.h_noise))
-                    print("could not find correct pixel area parameters")
+                    LOGGER.warning(
+                        "could not find correct pixel area parameters")
 
         # need to scale pixel area by the subsampling factor if subsampling
         if self.subsample_factor > 1:
@@ -2323,6 +2324,11 @@ class SWOTRiverEstimator(SWOTL2):
         :return: reach mask where good nodes are 1 and bad nodes are 0
         """
         mask = np.logical_and(hh > -500, hh < 8000)
+        if (ww[mask] == 0).any():
+            LOGGER.warning(
+                "get_reach_mask: Removing invalid wse_r_u (Inf) values!")
+            mask = np.logical_and(mask, ww > 0)
+
         if self.outlier_method is not None and mask.sum() > min_fit_points:
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
@@ -2361,9 +2367,7 @@ class SWOTRiverEstimator(SWOTL2):
              downstream reaches.
         """
         this_id = river_reach.reach_indx[0]
-        other_ids = [
-            item.reach_indx[0] for item in river_reach_collection
-        ]
+        other_ids = [item.reach_indx[0] for item in river_reach_collection]
 
         # get up/dn id from prior db
         prior_s = river_reach.prior_node_ss
