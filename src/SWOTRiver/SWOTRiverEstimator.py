@@ -518,7 +518,8 @@ class SWOTRiverEstimator(SWOTL2):
 
                 except AttributeError:
                     self.pixel_area = 10.0 * np.zeros(len(self.h_noise))
-                    print("could not find correct pixel area parameters")
+                    LOGGER.warning(
+                        "could not find correct pixel area parameters")
 
         # need to scale pixel area by the subsampling factor if subsampling
         if self.subsample_factor > 1:
@@ -1505,14 +1506,11 @@ class SWOTRiverEstimator(SWOTL2):
 
         # test at 10% inside of blocking width
         test_width = blocking_width * 0.90
-        nanmask = np.isfinite(test_width)  # mask NaN's to avoid warning
-        is_blocked = np.empty_like(nanmask)
-        is_blocked[nanmask] = np.logical_or(
-            np.logical_and(test_width[nanmask] < 0,
-                           min_n[nanmask] < test_width[nanmask]),
-            np.logical_and(test_width[nanmask] > 0,
-                           max_n[nanmask] > test_width[nanmask]))
-        is_blocked = np.logical_or(is_blocked, nanmask)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            is_blocked = np.logical_or(
+                np.logical_and(test_width < 0, min_n < test_width),
+                np.logical_and(test_width > 0, max_n > test_width))
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
@@ -1748,6 +1746,11 @@ class SWOTRiverEstimator(SWOTL2):
             'layovr_val': layovr_val.astype('float64')
         }
 
+        # Get wse_u from RSS of random wse_r_u and REACH_WSE_SYS_UNCERT
+        river_reach_kw_args['wse_u'] = np.sqrt(
+            river_reach_kw_args['wse_r_u']**2 + REACH_WSE_SYS_UNCERT**2
+            ).astype('float64')
+
         if xtrack_median is not None:
             river_reach_kw_args['xtrack'] = xtrack_median.astype('float64')
         else:
@@ -1978,16 +1981,20 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
         reach_stats['ice_clim_f'] = reach.metadata['iceflag']
-        reach_stats['p_low_slp'] = reach.metadata['p_low_slp']
         reach_stats['river_name'] = reach.metadata['river_name']
 
-        dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
-        dsch_m_c = reach.metadata['discharge_models']['constrained']
 
         # Avoid letting fill value of -9999 from PRD propagate into outputs
         # (these variables are just passed through from PRD to RiverTile).
         def fill_if_was_fill(value, other_fill, fill):
             return value if value != other_fill else fill
+
+        reach_stats['p_low_slp'] = fill_if_was_fill(
+            reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
+
+        dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
+        dsch_m_c = reach.metadata['discharge_models']['constrained']
+
         reach_stats['dschg_msf'] = fill_if_was_fill(
             dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
         reach_stats['dschg_bsf'] = fill_if_was_fill(
@@ -2337,6 +2344,11 @@ class SWOTRiverEstimator(SWOTL2):
         :return: reach mask where good nodes are 1 and bad nodes are 0
         """
         mask = np.logical_and(hh > -500, hh < 8000)
+        if (ww[mask] == 0).any():
+            LOGGER.warning(
+                "get_reach_mask: Removing invalid wse_r_u (Inf) values!")
+            mask = np.logical_and(mask, ww > 0)
+
         if self.outlier_method is not None and mask.sum() > min_fit_points:
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
@@ -2375,9 +2387,7 @@ class SWOTRiverEstimator(SWOTL2):
              downstream reaches.
         """
         this_id = river_reach.reach_indx[0]
-        other_ids = [
-            item.reach_indx[0] for item in river_reach_collection
-        ]
+        other_ids = [item.reach_indx[0] for item in river_reach_collection]
 
         # get up/dn id from prior db
         prior_s = river_reach.prior_node_ss

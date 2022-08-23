@@ -385,11 +385,11 @@ class L2HRRiverTile(Product):
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db', 'area',
                         'area_u', 'area_det', 'area_det_u', 'area_of_ht',
-                        'wse', 'wse_std', 'wse_r_u', 'rdr_sig0', 'rdr_sig0_u',
-                        'latitude_u', 'longitud_u', 'width_u', 'geoid_hght',
-                        'solid_tide', 'load_tidef', 'load_tideg', 'pole_tide',
-                        'flow_dir', 'dark_frac', 'xtrack', 'h_n_ave',
-                        'fit_height', 'layovr_val']:
+                        'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
+                        'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
+                        'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
+                        'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
+                        'h_n_ave', 'fit_height', 'layovr_val']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
@@ -454,9 +454,6 @@ class L2HRRiverTile(Product):
 
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
-                reach_outputs['p_low_slp'] = np.append(
-                    reach_outputs['p_low_slp'],
-                    reach.metadata['p_low_slp'])
                 reach_outputs['river_name'] = np.append(
                     reach_outputs['river_name'], reach.metadata['river_name'])
 
@@ -468,6 +465,12 @@ class L2HRRiverTile(Product):
                 # to RiverTile).
                 def fill_if_was_fill(value, other_fill, fill):
                     return value if value != other_fill else fill
+
+                reach_outputs['p_low_slp'] = np.append(
+                    reach_outputs['p_low_slp'], fill_if_was_fill(
+                        reach.metadata['p_low_slp'], -9999,
+                        MISSING_VALUE_INT4))
+
                 reach_outputs['dschg_msf'] = np.append(
                     reach_outputs['dschg_msf'], fill_if_was_fill(
                         dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999,
@@ -1741,6 +1744,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['lat_u'] = node_outputs['latitude_u']
             klass['lon_u'] = node_outputs['longitud_u']
             klass['wse'] = node_outputs['wse']
+            klass['wse_u'] = node_outputs['wse_u']
             klass['wse_r_u'] = node_outputs['wse_r_u']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
@@ -1934,8 +1938,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                  'Longitude of the centerline of the reach from prior database'],
                 ['short_name', 'centerline_longitude'],
                 ['units', 'degrees_east'],
-                ['valid_min', 0],
-                ['valid_max', 360],
+                ['valid_min', -180],
+                ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""""")],
@@ -4030,10 +4034,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 this_len = len(reach_outputs['centerline_lon'][ii])
                 cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
                 cl_lat[ii, 0:this_len] = reach_outputs['centerline_lat'][ii]
-
-            # Wrap longitude into [0, 360) interval
-            mask = np.logical_and(cl_lon >= -180, cl_lon < 0)
-            cl_lon[mask] += 360
 
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat

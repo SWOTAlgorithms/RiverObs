@@ -296,14 +296,14 @@ class L2PixcToRiverTile(object):
             return
 
         if not self.is_new_pixc:
-            print("Sensor information not provided, skipping improved ",
-                  "geolocation")
+            LOGGER.warning(("Sensor information not provided, skipping "
+                            "improved geolocation"))
             return
 
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
         except ModuleNotFoundError:
-            print("Cant load CNES improved geolocation, skipping!")
+            LOGGER.warning("Cant load CNES improved geolocation, skipping!")
             return
 
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
@@ -358,6 +358,7 @@ class L2PixcToRiverTile(object):
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
+
         # If lake flag is set don't output width, area, or slope.
         try:
             for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
