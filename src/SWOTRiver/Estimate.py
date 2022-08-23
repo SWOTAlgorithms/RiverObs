@@ -358,6 +358,7 @@ class L2PixcToRiverTile(object):
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
+
         # If lake flag is set don't output width, area, or slope.
         try:
             for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):

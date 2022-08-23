@@ -455,9 +455,6 @@ class L2HRRiverTile(Product):
 
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
-                reach_outputs['p_low_slp'] = np.append(
-                    reach_outputs['p_low_slp'],
-                    reach.metadata['p_low_slp'])
                 reach_outputs['river_name'] = np.append(
                     reach_outputs['river_name'], reach.metadata['river_name'])
 
@@ -469,6 +466,11 @@ class L2HRRiverTile(Product):
                 # to RiverTile).
                 def fill_if_was_fill(value, other_fill, fill):
                     return value if value != other_fill else fill
+                reach_outputs['p_low_slp'] = np.append(
+                    reach_outputs['p_low_slp'], fill_if_was_fill(
+                        reach.metadata['p_low_slp'], -9999,
+                        MISSING_VALUE_INT4))
+
                 reach_outputs['dschg_msf'] = np.append(
                     reach_outputs['dschg_msf'], fill_if_was_fill(
                         dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999,

@@ -1965,16 +1965,20 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
         reach_stats['ice_clim_f'] = reach.metadata['iceflag']
-        reach_stats['p_low_slp'] = reach.metadata['p_low_slp']
         reach_stats['river_name'] = reach.metadata['river_name']
 
-        dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
-        dsch_m_c = reach.metadata['discharge_models']['constrained']
 
         # Avoid letting fill value of -9999 from PRD propagate into outputs
         # (these variables are just passed through from PRD to RiverTile).
         def fill_if_was_fill(value, other_fill, fill):
             return value if value != other_fill else fill
+
+        reach_stats['p_low_slp'] = fill_if_was_fill(
+            reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
+
+        dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
+        dsch_m_c = reach.metadata['discharge_models']['constrained']
+
         reach_stats['dschg_msf'] = fill_if_was_fill(
             dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
         reach_stats['dschg_bsf'] = fill_if_was_fill(
