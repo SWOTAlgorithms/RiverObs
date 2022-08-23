@@ -1737,6 +1737,11 @@ class SWOTRiverEstimator(SWOTL2):
             'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
         }
 
+        # Get wse_u from RSS of random wse_r_u and REACH_WSE_SYS_UNCERT
+        river_reach_kw_args['wse_u'] = np.sqrt(
+            river_reach_kw_args['wse_r_u']**2 + REACH_WSE_SYS_UNCERT**2
+            ).astype('float64')
+
         if xtrack_median is not None:
             river_reach_kw_args['xtrack'] = xtrack_median.astype('float64')
         else:
