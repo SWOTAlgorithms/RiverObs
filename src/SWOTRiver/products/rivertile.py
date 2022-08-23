@@ -1937,8 +1937,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                  'Longitude of the centerline of the reach from prior database'],
                 ['short_name', 'centerline_longitude'],
                 ['units', 'degrees_east'],
-                ['valid_min', 0],
-                ['valid_max', 360],
+                ['valid_min', -180],
+                ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""""")],
@@ -4033,10 +4033,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 this_len = len(reach_outputs['centerline_lon'][ii])
                 cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
                 cl_lat[ii, 0:this_len] = reach_outputs['centerline_lat'][ii]
-
-            # Wrap longitude into [0, 360) interval
-            mask = np.logical_and(cl_lon >= -180, cl_lon < 0)
-            cl_lon[mask] += 360
 
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
