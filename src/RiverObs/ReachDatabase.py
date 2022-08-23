@@ -612,7 +612,7 @@ class ReachDatabaseReaches(Product):
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
                     'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag',
                     'river_name', 'facc', 'obstr_type', 'hfalls_id',
-                    'swot_obs', 'max_width']:
+                    'swot_obs', 'max_width', 'low_slope_flag']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 

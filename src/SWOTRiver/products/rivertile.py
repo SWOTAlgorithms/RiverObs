@@ -6,7 +6,6 @@ All rights reserved.
 Author (s): Alex Fore, Cassie Stuurman
 '''
 import os
-import pdb
 import textwrap
 import numpy as np
 import fiona
@@ -466,6 +465,7 @@ class L2HRRiverTile(Product):
                 # to RiverTile).
                 def fill_if_was_fill(value, other_fill, fill):
                     return value if value != other_fill else fill
+
                 reach_outputs['p_low_slp'] = np.append(
                     reach_outputs['p_low_slp'], fill_if_was_fill(
                         reach.metadata['p_low_slp'], -9999,
