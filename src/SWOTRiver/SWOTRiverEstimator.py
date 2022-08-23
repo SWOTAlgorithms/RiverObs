@@ -1495,14 +1495,11 @@ class SWOTRiverEstimator(SWOTL2):
 
         # test at 10% inside of blocking width
         test_width = blocking_width * 0.90
-        nanmask = np.isfinite(test_width)  # mask NaN's to avoid warning
-        is_blocked = np.empty_like(nanmask)
-        is_blocked[nanmask] = np.logical_or(
-            np.logical_and(test_width[nanmask] < 0,
-                           min_n[nanmask] < test_width[nanmask]),
-            np.logical_and(test_width[nanmask] > 0,
-                           max_n[nanmask] > test_width[nanmask]))
-        is_blocked = np.logical_or(is_blocked, nanmask)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            is_blocked = np.logical_or(
+                np.logical_and(test_width < 0, min_n < test_width),
+                np.logical_and(test_width > 0, max_n > test_width))
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
