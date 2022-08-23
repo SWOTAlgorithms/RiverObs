@@ -197,7 +197,7 @@ class RiverObs:
 
             else:
                 self.in_channel = class_mask
-                print("No valid class labels in reach")
+                LOGGER.debug("No valid class labels in reach")
 
         self.index = self.index[self.in_channel]
         self.d = self.d[self.in_channel]
