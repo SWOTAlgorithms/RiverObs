@@ -272,12 +272,19 @@ def get_gdem_from_rivertile(rivertile_file):
 
 
 def get_pixcvec_from_rivertile(rivertile_file):
-    # gets a pixcvec file from an input rivertile.nc. Hard coded, user beware.
+    # gets a pixcvec file from an input rivertile. Hard coded.
+    # TODO: make more general
     pixcvec_file = rivertile_file[0:-12] + '/pixcvec.nc'
     if path.exists(pixcvec_file):
         return pixcvec_file
     else:
-        print('Missing pixcvec file, continuing...')
+        # pixcvec not found, try PGE format instead
+        pixcvec_file = rivertile_file[0:-65] + 'PIXCVecRiver' \
+                       + rivertile_file[-56:]
+    if path.exists(pixcvec_file):
+        return pixcvec_file
+    else:
+        print('Could not find pixcvec file.')
         return None
 
 
