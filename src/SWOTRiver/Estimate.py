@@ -117,15 +117,11 @@ class L2PixcToRiverTile(object):
                       "class_qual_area_suspect",
                       "class_qual_area_degraded",
                       "class_qual_area_bad",
-                      "sig0_suspect",
-                      "sig0_bad")
-
+                      "sig0_qual_suspect",
+                      "sig0_qual_bad")
         for word in qual_words:
             if word not in self.config:
                 self.config[word] = 0x00000000
-
-        if 'pixc_qual_handling' not in self.config:
-            self.config['pixc_qual_handling'] = 'nominal'
 
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
@@ -157,6 +153,18 @@ class L2PixcToRiverTile(object):
         if 'use_ext_dist_coef' not in self.config:
             self.config['use_ext_dist_coef'] = True
 
+        if 'pixc_qual_handling' not in self.config:
+            self.config['pixc_qual_handling'] = None
+
+        if 'num_good_sus_pix_thresh_wse' not in self.config:
+            self.config['num_good_sus_pix_thresh_wse'] = 1
+
+        if 'num_good_sus_pix_thresh_area' not in self.config:
+            self.config['num_good_sus_pix_thresh_area'] = 1
+
+        if 'use_bright_land' not in self.config:
+            self.config['use_bright_land'] = True
+
         # set values to None for iterative_linear only keywords
         if self.config['outlier_method'] != 'iterative_linear':
             for key in ['outlier_rel_thresh']:
@@ -177,8 +185,10 @@ class L2PixcToRiverTile(object):
             'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
             'class_list': self.config['class_list'],
             'xtrack_kwd': 'cross_track',
-            'fractional_inundation_kwd': self.config['fractional_inundation_kwd'],
-            'use_fractional_inundation': self.config['use_fractional_inundation'],
+            'fractional_inundation_kwd': (
+                self.config['fractional_inundation_kwd']),
+            'use_fractional_inundation': (
+                self.config['use_fractional_inundation']),
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],
             'min_points': self.config['min_points'],
@@ -200,10 +210,25 @@ class L2PixcToRiverTile(object):
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
-            'outlier_breakpoint_min_dist': self.config['outlier_breakpoint_min_dist'],
+            'outlier_breakpoint_min_dist': (
+                self.config['outlier_breakpoint_min_dist']),
             'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
-            'outlier_n_boot': self.config['outlier_n_boot']
-            }
+            'outlier_n_boot': self.config['outlier_n_boot'],
+            'pixc_qual_handling': self.config['pixc_qual_handling'],
+            'geo_qual_wse_suspect': self.config['geo_qual_wse_suspect'],
+            'geo_qual_wse_degraded': self.config['geo_qual_wse_degraded'],
+            'geo_qual_wse_bad': self.config['geo_qual_wse_bad'],
+            'class_qual_area_suspect': self.config['class_qual_area_suspect'],
+            'class_qual_area_degraded': self.config['class_qual_area_degraded'],
+            'class_qual_area_bad': self.config['class_qual_area_bad'],
+            'sig0_qual_suspect': self.config['sig0_qual_suspect'],
+            'sig0_qual_bad': self.config['sig0_qual_bad'],
+            'num_good_sus_pix_thresh_wse': (
+                self.config['num_good_sus_pix_thresh_wse']),
+            'num_good_sus_pix_thresh_area': (
+                self.config['num_good_sus_pix_thresh_area']),
+            'use_bright_land': self.config['use_bright_land'],
+        }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
@@ -271,14 +296,14 @@ class L2PixcToRiverTile(object):
             return
 
         if not self.is_new_pixc:
-            print("Sensor information not provided, skipping improved ",
-                  "geolocation")
+            LOGGER.warning(("Sensor information not provided, skipping "
+                            "improved geolocation"))
             return
 
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
         except ModuleNotFoundError:
-            print("Cant load CNES improved geolocation, skipping!")
+            LOGGER.warning("Cant load CNES improved geolocation, skipping!")
             return
 
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
@@ -333,6 +358,7 @@ class L2PixcToRiverTile(object):
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
+
         # If lake flag is set don't output width, area, or slope.
         try:
             for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
