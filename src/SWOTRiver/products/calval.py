@@ -62,7 +62,9 @@ class GPSProfile(RiverNCProductMixIn, Product):
         ['model_dry_tropo_cor', {'dtype': 'f8'}],
         ['model_wet_tropo_cor', {'dtype': 'f8'}],
         ['gnss_wet_tropo_cor', {'dtype': 'f8'}],
-        ['classification', {'dtype': 'u1'}]
+        ['classification', {'dtype': 'u1'}],
+        ['azimuth_index', {'dtype': 'i4'}],
+        ['range_index', {'dtype': 'i4'}]
         ])
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
@@ -76,6 +78,14 @@ class GPSProfile(RiverNCProductMixIn, Product):
         # by setting classification
         classification[product.position_3drss_formal_error > 0.25] = 1
         setattr(product, 'classification', classification)
+        # make fake range and azimuth indices so that segmentation algorithms work
+        # in riverobs processing
+        range_index = np.zeros(product.latitude.shape)
+        azimuth_index = np.zeros(product.latitude.shape) + 2
+        rind = np.arange(len(classification[classification==0]), dtype=int)
+        range_index[classification==0] = rind
+        setattr(product, 'azimuth_index', azimuth_index)
+        setattr(product, 'range_index', range_index)
         return product
 
     @classmethod
@@ -113,12 +123,19 @@ class GPSProfile(RiverNCProductMixIn, Product):
         # Create dummy classification field filled with constant value
         classification = np.zeros(latitude.shape)
 
+        # create dummy range and azimuth indices to enable segmentation
+        # algorithms in riverobs processing
+        range_index = np.arange(latitude.shape, dtype=int)
+        azimuth_index = np.zeros(latitude.shape) + 2
+        
         klass = cls()
         klass.time = swot_tt
         klass.latitude = latitude
         klass.longitude = longitude
         klass.height_water = height # put it in water_height since we dont have cor fields
         klass.classification = classification
+        klass.azimuth_index = azimuth_index
+        klass.range_index = range_index
         return klass
 
 
