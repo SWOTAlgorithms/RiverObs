@@ -26,18 +26,57 @@ class RiverNCProductMixIn(object):
                 self.longitude[mask].max(), self.latitude[mask].max())
 
 class GPSProfile(RiverNCProductMixIn, Product):
-    ATTRIBUTES = odict()
+    ATTRIBUTES = odict([
+        ['Conventions',{}],
+        ['title',{}],
+        ['institution',{}],
+        ['source',{}],
+        ['history',{}],
+        ['platform',{}],
+        ['description',{}],
+        ['ellipsoid_semi_major_axis',{}],
+        ['ellipsoid_flattening',{}],
+        ['xref_input_gnss_files',{}],
+        ['xref_input_height_offset_files',{}],
+        ])
     GROUPS = odict()
     DIMENSIONS = odict([['record', 0]])
     VARIABLES = odict([
         ['time', {'dtype': 'f8'}],
+        ['time_tai', {'dtype': 'f8'}],
         ['latitude', {'dtype': 'f8'}],
         ['longitude', {'dtype': 'f8'}],
         ['height', {'dtype': 'f8'}],
+        ['x', {'dtype': 'f8'}],
+        ['y', {'dtype': 'f8'}],
+        ['z', {'dtype': 'f8'}],
+        ['position_3drss_formal_error', {'dtype': 'f8'}],
+        ['height_water', {'dtype': 'f8'}],
+        ['wse', {'dtype': 'f8'}],
+        ['geoid', {'dtype': 'f8'}],
+        ['solid_earth_tide', {'dtype': 'f8'}],
+        ['load_tide_fes', {'dtype': 'f8'}],
+        ['load_tide_got', {'dtype': 'f8'}],
+        ['pole_tide', {'dtype': 'f8'}],
+        ['height_offset_cor', {'dtype': 'f8'}],
+        ['model_dry_tropo_cor', {'dtype': 'f8'}],
+        ['model_wet_tropo_cor', {'dtype': 'f8'}],
+        ['gnss_wet_tropo_cor', {'dtype': 'f8'}],
         ['classification', {'dtype': 'u1'}]
         ])
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
+
+    @classmethod
+    def from_ncfile(cls, gps_profile_file):
+        product = super(GPSProfile, cls).from_ncfile(gps_profile_file)
+        # Create dummy classification field filled with constant value of 0
+        classification = np.zeros(product.latitude.shape)
+        # use the position_3drss_formal_error to throw out bad data
+        # by setting classification
+        classification[product.position_3drss_formal_error > 0.25] = 1
+        setattr(product, 'classification', classification)
+        return product
 
     @classmethod
     def from_native(cls, gps_profile_file):
@@ -71,14 +110,14 @@ class GPSProfile(RiverNCProductMixIn, Product):
             dt = datetime.datetime(year, month, day, hour, minute, second)
             swot_tt[ii] = (dt-datetime.datetime(2000,1,1)).total_seconds()
 
-        # Create dummy classification field filled with contant value
+        # Create dummy classification field filled with constant value
         classification = np.zeros(latitude.shape)
 
         klass = cls()
         klass.time = swot_tt
         klass.latitude = latitude
         klass.longitude = longitude
-        klass.height = height
+        klass.height_water = height # put it in water_height since we dont have cor fields
         klass.classification = classification
         return klass
 

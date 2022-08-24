@@ -387,7 +387,7 @@ class CalValToRiverTile(L2PixcToRiverTile):
         kwargs = {
             'bounding_box': self.compute_bounding_box(),
             'lat_kwd': 'latitude', 'lon_kwd': 'longitude',
-            'class_kwd': 'classification', 'height_kwd': 'height',
+            'class_kwd': 'classification', 'height_kwd': 'height_water',
             'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
             'class_list': [self.config['class_list']],
             'xtrack_kwd': 'cross_track',

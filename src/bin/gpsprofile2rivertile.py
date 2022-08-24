@@ -39,8 +39,13 @@ def main():
     config = dict(config)
 
     LOGGER.debug('Converting GPS profile to netCDF4 file')
-    gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(args.gps_profile)
-    gpsnc.to_ncfile('gps_profile.nc')
+    
+    gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(args.gps_profile)
+    #breakpoint()
+    #gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(args.gps_profile)
+    gps_profile_basename = os.path.basename(args.gps_profile)
+    fake_pixc_fname = 'pixc_{}'.format(gps_profile_basename)
+    gpsnc.to_ncfile(fake_pixc_fname)
 
     # typecast most config values with eval since RDF won't do it for me
     # (excluding strings)
@@ -49,12 +54,13 @@ def main():
                    'area_agg_method', 'slope_method', 'outlier_method']:
             if config[key].lower() != 'none':
                 continue
+        print(key)
         config[key] = ast.literal_eval(config[key])
 
     LOGGER.debug('Computing bounding box')
     bbox = gpsnc.compute_bounding_box()
 
-    estimator = SWOTRiver.Estimate.CalValToRiverTile('gps_profile.nc')
+    estimator = SWOTRiver.Estimate.CalValToRiverTile(fake_pixc_fname)
     estimator.load_config(config)
 
     # generate empty output file on errors
