@@ -1600,11 +1600,11 @@ class SWOTRiverEstimator(SWOTL2):
             SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX)
 
         # bit 13 / far_range_suspect
-        node_q_b[xtrack_median > FAR_RANGE_XTRACK_TRESHOLD] |= (
+        node_q_b[np.abs(xtrack_median) > FAR_RANGE_XTRACK_TRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
 
         # bit 14 / near_range_suspect
-        node_q_b[xtrack_median < NEAR_RANGE_XTRACK_THRESHOLD] |= (
+        node_q_b[np.abs(xtrack_median) < NEAR_RANGE_XTRACK_THRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
 
         # bit 18 / classification_qual_degraded
