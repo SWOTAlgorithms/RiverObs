@@ -3332,12 +3332,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     few_wse_pix
                     far_range_suspect
                     near_range_suspect
-                    partial_obs
+                    partially_observed
                     classification_qual_degraded
                     geolocation_qual_degraded
-                    min_fit_points
-                    no_area_pix
-                    no_wse_pix
+                    below_min_fit_points
+                    no_area_observations
+                    no_wse_observations
                     no_pixels""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
