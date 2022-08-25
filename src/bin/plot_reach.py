@@ -53,7 +53,7 @@ def get_simple_node_id(node_id, reach_id):
 
 
 def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
-             title=None, prd_heights=False):
+             title=None, prd_heights=False, plot_bit_qual=False):
     # plots the water surface elevation (wse) for each node, for the observed
     # and truth data, and the fit for the reach
     reach_id = int(reach_id)
@@ -65,6 +65,7 @@ def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
     node_i = data.nodes['reach_id'] == reach_id
     node_id = data.nodes['node_id'][node_i]
     node_q = data.nodes['node_q'][node_i]
+    node_q_b = data.nodes['node_q_b'][node_i]
     node_i_truth = truth.nodes['reach_id'] == reach_id
     data_df = data_df[node_i]
     truth_df = truth_df[node_i_truth]
@@ -93,15 +94,46 @@ def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
     axis.errorbar(node_p_dist, wse, wse_r_u, fmt='o',
                   markersize=2, label='node wse', zorder=0)
     # plot the bad quality nodes in different colour
-    qual_mask = node_q == 1
-    axis.errorbar(node_p_dist[qual_mask], wse[qual_mask], wse_r_u[qual_mask],
+    sus_qual_mask = node_q == 1
+    deg_qual_mask = node_q == 2
+    bad_qual_mask = node_q == 3
+    axis.errorbar(node_p_dist[bad_qual_mask], wse[bad_qual_mask],
+                  wse_r_u[bad_qual_mask],
                   fmt='o',
+                  color='red',
                   markersize=2,
                   markerfacecolor='red',
+                  markeredgecolor='red',
+                  markeredgewidth=1,
                   label='bad qual',
                   zorder=1)
+    axis.errorbar(node_p_dist[deg_qual_mask], wse[deg_qual_mask],
+                  wse_r_u[deg_qual_mask],
+                  fmt='o',
+                  color='orange',
+                  markersize=2,
+                  markerfacecolor='orange',
+                  markeredgecolor='orange',
+                  markeredgewidth=1,
+                  label='degraded qual',
+                  zorder=1)
+    axis.errorbar(node_p_dist[sus_qual_mask], wse[sus_qual_mask],
+                  wse_r_u[sus_qual_mask],
+                  fmt='o',
+                  color='yellow',
+                  markersize=2,
+                  markerfacecolor='yellow',
+                  markeredgecolor='yellow',
+                  markeredgewidth=1,
+                  label='suspect qual',
+                  zorder=1)
+    if plot_bit_qual:
+        for node_dist, wse, node_q in zip(node_p_dist, wse, node_q_b):
+            axis.text(
+                node_dist, wse+0.5, node_q, fontsize=3, color='lightgrey')
     axis.plot(node_p_dist_truth, truth_wse, 'kx',
               markersize=2, label='truth', zorder=10)
+
     axis2 = axis.twiny()
     node_id = node_id - node_id[0] + 11  # no reach in node_id, for readability
     axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
