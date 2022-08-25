@@ -1214,11 +1214,17 @@ class SWOTRiverEstimator(SWOTL2):
                 'height_weighted_mean', 'pole_tide', goodvar='h_flg',
                 method=self.height_agg_method))
         except AttributeError:
-            geoid_hght = np.nan*np.ones(area.shape)
-            solid_tide = np.nan*np.ones(area.shape)
-            load_tidef = np.nan*np.ones(area.shape)
-            load_tideg = np.nan*np.ones(area.shape)
-            pole_tide = np.nan*np.ones(area.shape)
+            # non-weighted geoid and tide correction averages
+            geoid_hght = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'geoid', goodvar = 'h_flg'))
+            solid_tide = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'solid_earth_tide', goodvar='h_flg'))
+            load_tidef = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'load_tide_fes', goodvar='h_flg'))
+            load_tideg = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'load_tide_got', goodvar='h_flg'))
+            pole_tide = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'pole_tide', goodvar='h_flg'))
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
