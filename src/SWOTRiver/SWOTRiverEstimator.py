@@ -2037,7 +2037,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # unset bit 9
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX
-        
+
         # unset bit 15 / re-set it with partially_observed
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
         if reach_stats['frac_obs'] < 0.5:

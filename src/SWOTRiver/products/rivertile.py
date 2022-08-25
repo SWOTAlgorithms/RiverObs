@@ -1281,7 +1281,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 529297055],
+                ['valid_max', 529297311],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -3357,7 +3357,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_WSE_PIX,
                     QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 504163999],
+                ['valid_max', 504163487],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
