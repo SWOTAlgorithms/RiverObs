@@ -40,11 +40,16 @@ def main():
 
     LOGGER.debug('Converting GPS profile to netCDF4 file')
     
-    gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(args.gps_profile)
-    #breakpoint()
-    #gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(args.gps_profile)
+    # handle both formats: official nc product, and old-style text format
+    try:
+        gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(args.gps_profile)
+    except OSError:
+        gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(args.gps_profile)
+    # write out a fake pixc, which is just the official format version
+    # (with some extra made-up fields to get riverobs to run correctly)
     gps_profile_basename = os.path.basename(args.gps_profile)
-    fake_pixc_fname = 'pixc_{}'.format(gps_profile_basename)
+    fake_pixc_fname = 'pixc_{}.nc'.format(os.path.splitext(gps_profile_basename)[0])
+    #fake_pixc_fname.replace('.txt','.nc') # output needs to be a .nc file
     gpsnc.to_ncfile(fake_pixc_fname)
 
     # typecast most config values with eval since RDF won't do it for me

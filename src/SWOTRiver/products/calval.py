@@ -125,7 +125,7 @@ class GPSProfile(RiverNCProductMixIn, Product):
 
         # create dummy range and azimuth indices to enable segmentation
         # algorithms in riverobs processing
-        range_index = np.arange(latitude.shape, dtype=int)
+        range_index = np.arange(len(classification), dtype=int)
         azimuth_index = np.zeros(latitude.shape) + 2
         
         klass = cls()
