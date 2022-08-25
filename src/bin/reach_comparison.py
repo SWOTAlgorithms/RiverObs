@@ -90,21 +90,21 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
 
 def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_rivertile,
                    basedir, truth_basedir=None, truth_only=False):
+    proc_file_parts = proc_rivertile.split('/')
     if truth_only:
-        n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc')
+        n_char = len(proc_dir) + 1 + len(proc_file_parts[-1] + '/'
+                                         + proc_file_parts[-2])
     else:
-        n_char = len(proc_dir) + len(pixc_dir) \
-                 + 1 + len('river_data/rivertile.nc') + 1
+        n_char = len(proc_dir) + len(pixc_dir) + 1 \
+                 + len(proc_file_parts[-1] + '/' + proc_file_parts[-2]) + 1
     path = proc_rivertile[0:-n_char]
     if truth_basedir:
-        scene_pass_slc = path.split('/')[-5:-2]
-        truth_file = os.path.join(
-            truth_basedir, scene_pass_slc[0], scene_pass_slc[1],
-            scene_pass_slc[2])
-        truth_file = truth_file + '/' + truth_rivertile \
-                     + '/river_data/rivertile.nc'
+        truth_path = proc_rivertile.replace(basedir, truth_basedir)[0:-n_char]
+        truth_file = glob.glob(os.path.join(
+            truth_path, truth_rivertile, '*', '*iver*ile*.nc'))[0]
     else:
-        truth_file = path + truth_rivertile + '/river_data/rivertile.nc'
+        truth_file = glob.glob(os.path.join(
+            path, truth_rivertile, '*', '*iver*ile*.nc'))[0]
     return truth_file
 
 
