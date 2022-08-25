@@ -3327,7 +3327,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     water_fraction_suspect
                     blocking_width_suspect
                     bright_land
-                    few_sig0_pix
                     few_area_pix
                     few_wse_pix
                     far_range_suspect
@@ -3346,7 +3345,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_WATER_FRAC_SUSPECT,
                     QUAL_IND_BLOCK_WIDTH_SUSPECT,
                     QUAL_IND_BRIGHT_LAND_SUSPECT,
-                    QUAL_IND_FEW_SIG0_PIX,
                     QUAL_IND_FEW_AREA_PIX,
                     QUAL_IND_FEW_WSE_PIX,
                     QUAL_IND_FAR_RANGE_SUSPECT,
