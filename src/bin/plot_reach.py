@@ -53,7 +53,7 @@ def get_simple_node_id(node_id, reach_id):
 
 
 def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
-             title=None, prd_heights=False):
+             title=None, prd_heights=False, plot_bit_qual=False):
     # plots the water surface elevation (wse) for each node, for the observed
     # and truth data, and the fit for the reach
     reach_id = int(reach_id)
@@ -127,8 +127,13 @@ def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
                   markeredgewidth=1,
                   label='suspect qual',
                   zorder=1)
+    if plot_bit_qual:
+        for node_dist, wse, node_q in zip(node_p_dist, wse, node_q_b):
+            axis.text(
+                node_dist, wse+0.5, node_q, fontsize=3, color='lightgrey')
     axis.plot(node_p_dist_truth, truth_wse, 'kx',
               markersize=2, label='truth', zorder=10)
+
     axis2 = axis.twiny()
     node_id = node_id - node_id[0] + 11  # no reach in node_id, for readability
     axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
