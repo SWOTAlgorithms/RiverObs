@@ -2035,6 +2035,9 @@ class SWOTRiverEstimator(SWOTL2):
         # The following bits are not given by logically OR-ing all the
         # node_q_b flags together.
 
+        # unset bit 9
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX
+        
         # unset bit 15 / re-set it with partially_observed
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
         if reach_stats['frac_obs'] < 0.5:
@@ -2045,6 +2048,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD
 
         # overwrite 25 / below_min_fit_points
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX
         if mask.sum() < min_fit_points:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS
 
