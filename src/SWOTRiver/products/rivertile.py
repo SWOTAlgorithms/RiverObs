@@ -1245,18 +1245,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     water_fraction_suspect
                     blocking_width_suspect
                     bright_land
-                    few_sig0_pix
-                    few_area_pix
-                    few_wse_pix
+                    few_sig0_observations
+                    few_area_observations
+                    few_wse_observations
                     far_range_suspect
                     near_range_suspect
                     classification_qual_degraded
                     geolocation_qual_degraded
                     wse_outlier
                     wse_bad
-                    no_sig0_pix
-                    no_area_pix
-                    no_wse_pix
+                    no_sig0_observations
+                    no_area_observations
+                    no_wse_observations
                     no_pixels""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
@@ -3479,7 +3479,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'quality of the cross-over calibration'],
                 ['short_name', 'height_cor_xover_qual'],
                 ['flag_meanings', textjoin("""good suspect bad""")],
-                ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 2],
