@@ -236,13 +236,14 @@ class ReachExtractor(object):
 
             blocking_widths = get_blocking_widths(x, y)
             reach_metadata = {
-                'lakeFlag': this_reach['reaches']['lakeflag'][0],
-                'p_low_slp': this_reach['reaches']['low_slope_flag'][0],
-                'lon': this_reach['reaches']['x'][0],
-                'lat': this_reach['reaches']['y'][0],
+                'lakeFlag': this_reach['reaches']['lakeflag'].item(),
+                'p_low_slp': this_reach['reaches']['low_slope_flag'].item(),
+                'lon': this_reach['reaches']['x'].item(),
+                'lat': this_reach['reaches']['y'].item(),
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
-                }
+            }
+
             reach_metadata_keys = [
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
                 'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
@@ -314,10 +315,10 @@ class ReachExtractor(object):
 class ReachDatabase(Product):
     """Prior Reach database"""
     ATTRIBUTES = odict([
-        ['x_min', {'dtype': 'f8' , 'value': None}],
-        ['x_max', {'dtype': 'f8' , 'value': None}],
-        ['y_min', {'dtype': 'f8' , 'value': None}],
-        ['y_max', {'dtype': 'f8' , 'value': None}],
+        ['x_min', {'dtype': 'f8' , 'value': -9999.}],
+        ['x_max', {'dtype': 'f8' , 'value': -9999.}],
+        ['y_min', {'dtype': 'f8' , 'value': -9999.}],
+        ['y_max', {'dtype': 'f8' , 'value': -9999.}],
         ['Name', {}], ['production_date', {}],
         ['pass_number', {}], ['tile_number', {}], ['swath_side', {}],
         ['version', {'dtype': 'str' , 'value': ''}],
@@ -1108,6 +1109,7 @@ class ReachDatabaseTile(ReachDatabase):
         ['pass_number', {'dtype': 'i4', 'value': None}],
         ['tile_number', {'dtype': 'i4', 'value': None}],
         ['swath_side', {}],
+        ['version', {'dtype': 'str' , 'value': ''}],
         ])
 
     def subset(self, reach_ids):

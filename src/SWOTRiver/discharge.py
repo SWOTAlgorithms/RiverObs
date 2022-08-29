@@ -2,6 +2,7 @@
 Module for computing discharge for river reaches
 """
 import numpy as np
+import warnings
 
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
@@ -9,8 +10,10 @@ from RiverObs.RiverObs import \
 
 def compute(reach, reach_height, reach_width, reach_slope):
     """Computes the discharge models"""
-    area_fit_outputs = area(
-        reach_height, reach_width, reach.metadata['area_fits'])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        area_fit_outputs = area(
+            reach_height, reach_width, reach.metadata['area_fits'])
 
     d_x_area = area_fit_outputs[0]
     if d_x_area < -10000000 or np.ma.is_masked(d_x_area):
@@ -77,7 +80,10 @@ def compute(reach, reach_height, reach_width, reach_slope):
         momma_r = 2
 
         momma_nb = 0.11 * momma_Save**0.18
-        log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
+
         if reach_height <= momma_H:
             momma_n = momma_nb*(1+log_factor)
             log_check = log_factor > -1
