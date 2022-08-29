@@ -1608,7 +1608,8 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[n_pix_bright_land > 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
 
-        # bit (9/few_sig0_pix) / (10/few_area_pix) / (11/few_wse_pix)
+        # bit (9/few_sig0_observations) / (10/few_area_observations) /
+        # (11/few_wse_observations)
         node_q_b[n_pix_sig0 < TOO_FEW_PIXELS_THRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX)
         node_q_b[n_pix_area < TOO_FEW_PIXELS_THRESHOLD] |= (
