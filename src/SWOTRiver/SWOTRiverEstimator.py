@@ -1646,15 +1646,15 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[np.logical_or(wse < MIN_VALID_WSE, wse > MAX_VALID_WSE)] |= (
             SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
 
-        # bit 25 / no_sig0_pix
+        # bit 25 / no_sig0_observations
         node_q_b[n_pix_sig0 == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
 
-        # bit 26 / no_area_pix
+        # bit 26 / no_area_observations
         node_q_b[n_pix_area == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
 
-        # bit 27 / no_wse_pix
+        # bit 27 / no_wse_observations
         node_q_b[n_pix_wse == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
 
