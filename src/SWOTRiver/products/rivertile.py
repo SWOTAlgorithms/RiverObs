@@ -3326,8 +3326,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     water_fraction_suspect
                     blocking_width_suspect
                     bright_land
-                    few_area_pix
-                    few_wse_pix
+                    few_area_observations
+                    few_wse_observations
                     far_range_suspect
                     near_range_suspect
                     partially_observed
