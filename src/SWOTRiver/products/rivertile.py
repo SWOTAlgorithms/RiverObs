@@ -48,7 +48,6 @@ QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
 QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
 QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
 QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
-QUAL_IND_BLOCK_WIDTH_SUSPECT = 16               # bit 4
 QUAL_IND_BRIGHT_LAND_SUSPECT = 128              # bit 7
 QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
 QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
@@ -1245,18 +1244,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     water_fraction_suspect
                     blocking_width_suspect
                     bright_land
-                    few_sig0_pix
-                    few_area_pix
-                    few_wse_pix
+                    few_sig0_observations
+                    few_area_observations
+                    few_wse_observations
                     far_range_suspect
                     near_range_suspect
                     classification_qual_degraded
                     geolocation_qual_degraded
                     wse_outlier
                     wse_bad
-                    no_sig0_pix
-                    no_area_pix
-                    no_wse_pix
+                    no_sig0_observations
+                    no_area_observations
+                    no_wse_observations
                     no_pixels""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
@@ -3324,10 +3323,9 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     classification_qual_suspect
                     geolocation_qual_suspect
                     water_fraction_suspect
-                    blocking_width_suspect
                     bright_land
-                    few_area_pix
-                    few_wse_pix
+                    few_area_observations
+                    few_wse_observations
                     far_range_suspect
                     near_range_suspect
                     partially_observed
@@ -3342,7 +3340,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_CLASS_QUAL_SUSPECT,
                     QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
                     QUAL_IND_WATER_FRAC_SUSPECT,
-                    QUAL_IND_BLOCK_WIDTH_SUSPECT,
                     QUAL_IND_BRIGHT_LAND_SUSPECT,
                     QUAL_IND_FEW_AREA_PIX,
                     QUAL_IND_FEW_WSE_PIX,
@@ -3356,7 +3353,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_WSE_PIX,
                     QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 504163487],
+                ['valid_max', 504163471],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -3479,7 +3476,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'quality of the cross-over calibration'],
                 ['short_name', 'height_cor_xover_qual'],
                 ['flag_meanings', textjoin("""good suspect bad""")],
-                ['flag_masks', 'TBD'],
                 ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
                 ['valid_max', 2],

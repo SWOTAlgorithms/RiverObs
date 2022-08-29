@@ -1608,7 +1608,8 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[n_pix_bright_land > 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
 
-        # bit (9/few_sig0_pix) / (10/few_area_pix) / (11/few_wse_pix)
+        # bit (9/few_sig0_observations) / (10/few_area_observations) /
+        # (11/few_wse_observations)
         node_q_b[n_pix_sig0 < TOO_FEW_PIXELS_THRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX)
         node_q_b[n_pix_area < TOO_FEW_PIXELS_THRESHOLD] |= (
@@ -1645,15 +1646,15 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[np.logical_or(wse < MIN_VALID_WSE, wse > MAX_VALID_WSE)] |= (
             SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
 
-        # bit 25 / no_sig0_pix
+        # bit 25 / no_sig0_observations
         node_q_b[n_pix_sig0 == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
 
-        # bit 26 / no_area_pix
+        # bit 26 / no_area_observations
         node_q_b[n_pix_area == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
 
-        # bit 27 / no_wse_pix
+        # bit 27 / no_wse_observations
         node_q_b[n_pix_wse == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
 
@@ -2040,6 +2041,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # The following bits are not given by logically OR-ing all the
         # node_q_b flags together.
+
+        # unset bit 4
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT
 
         # unset bit 9
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX
