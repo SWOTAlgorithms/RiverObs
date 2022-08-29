@@ -39,6 +39,13 @@ SLOPE_SYS_UNCERT = 0.000003  # m/m
 NEAR_RANGE_XTRACK_THRESHOLD = 10000
 FAR_RANGE_XTRACK_TRESHOLD = 60000
 
+MIN_VALID_WSE = -500
+MAX_VALID_WSE = 8000
+
+TOO_FEW_PIXELS_THRESHOLD = 10
+
+BLOCKING_WIDTH_THRESHOLD_FRACTION = 0.90
+
 class SWOTRiverEstimator(SWOTL2):
     """
     Given a SWOTL2 file, fit all of the reaches observed and output results.
@@ -1505,7 +1512,7 @@ class SWOTRiverEstimator(SWOTL2):
         blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
 
         # test at 10% inside of blocking width
-        test_width = blocking_width * 0.90
+        test_width = blocking_width * BLOCKING_WIDTH_THRESHOLD_FRACTION
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             is_blocked = np.logical_or(
@@ -1602,7 +1609,6 @@ class SWOTRiverEstimator(SWOTL2):
             SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
 
         # bit (9/few_sig0_pix) / (10/few_area_pix) / (11/few_wse_pix)
-        TOO_FEW_PIXELS_THRESHOLD = 10
         node_q_b[n_pix_sig0 < TOO_FEW_PIXELS_THRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX)
         node_q_b[n_pix_area < TOO_FEW_PIXELS_THRESHOLD] |= (
@@ -1636,7 +1642,7 @@ class SWOTRiverEstimator(SWOTL2):
         # reach masks are generated)
 
         # bit 24 / wse_bad
-        node_q_b[np.logical_or(wse < -500, wse > 8000)] |= (
+        node_q_b[np.logical_or(wse < MIN_VALID_WSE, wse > MAX_VALID_WSE)] |= (
             SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
 
         # bit 25 / no_sig0_pix
@@ -2346,7 +2352,7 @@ class SWOTRiverEstimator(SWOTL2):
         :param min_fit_points: minimum number of points needed to flag outliers
         :return: reach mask where good nodes are 1 and bad nodes are 0
         """
-        mask = np.logical_and(hh > -500, hh < 8000)
+        mask = np.logical_and(hh > MIN_VALID_WSE, hh < MAX_VALID_WSE)
         if (ww[mask] == 0).any():
             LOGGER.warning(
                 "get_reach_mask: Removing invalid wse_r_u (Inf) values!")
