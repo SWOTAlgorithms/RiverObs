@@ -27,17 +27,10 @@ class L2PixcToRiverTile(object):
     """
     Class for running RiverObs on a SWOT L2 PixelCloud data product
     """
-    def __init__(self, l2pixc_file, index_file, is_new_pixc=None):
+    def __init__(self, l2pixc_file, index_file):
         self.pixc_file = l2pixc_file
         self.index_file = index_file
-        self.is_new_pixc = is_new_pixc
         self.node_outputs, self.reach_outputs = None, None
-
-        # if is_new_pixc is not supplied, test pixc file to see if it is true
-        if self.is_new_pixc is None:
-            self.is_new_pixc = False
-            with netCDF4.Dataset(self.pixc_file) as ifp:
-                self.is_new_pixc = 'pixel_cloud' in ifp.groups
 
         # compute day of year
         try:
@@ -81,8 +74,7 @@ class L2PixcToRiverTile(object):
                     lon = np.array([getattr(ifp, item) for item in lon_keys])
 
             else:
-                data_dict = (ifp.variables if not self.is_new_pixc else
-                             ifp.groups['pixel_cloud'])
+                data_dict = ifp.groups['pixel_cloud']
 
                 lat = np.asarray(data_dict['latitude'][:])
                 lon = np.asarray(data_dict['longitude'][:])
@@ -295,11 +287,6 @@ class L2PixcToRiverTile(object):
             self.config['do_improved_geolocation']):
             return
 
-        if not self.is_new_pixc:
-            LOGGER.warning(("Sensor information not provided, skipping "
-                            "improved geolocation"))
-            return
-
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
         except ModuleNotFoundError:
@@ -328,15 +315,9 @@ class L2PixcToRiverTile(object):
         """Matches the pixels from pixcvector to input pixc"""
         LOGGER.info('match_pixc_idx')
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
-
-            if self.is_new_pixc:
-                nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
-                azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
-                rng_index = ifp.groups['pixel_cloud']['range_index'][:]
-            else:
-                nr_pixels = ifp.nr_pixels
-                azi_index = ifp.variables['azimuth_index'][:]
-                rng_index = ifp.variables['range_index'][:]
+            nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
+            azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
+            rng_index = ifp.groups['pixel_cloud']['range_index'][:]
 
             pixc_idx = np.array(azi_index * int(nr_pixels) + rng_index)
 
