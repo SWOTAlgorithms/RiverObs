@@ -48,7 +48,6 @@ QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
 QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
 QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
 QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
-QUAL_IND_BLOCK_WIDTH_SUSPECT = 16               # bit 4
 QUAL_IND_BRIGHT_LAND_SUSPECT = 128              # bit 7
 QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
 QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
@@ -3324,7 +3323,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     classification_qual_suspect
                     geolocation_qual_suspect
                     water_fraction_suspect
-                    blocking_width_suspect
                     bright_land
                     few_area_observations
                     few_wse_observations
@@ -3342,7 +3340,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_CLASS_QUAL_SUSPECT,
                     QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
                     QUAL_IND_WATER_FRAC_SUSPECT,
-                    QUAL_IND_BLOCK_WIDTH_SUSPECT,
                     QUAL_IND_BRIGHT_LAND_SUSPECT,
                     QUAL_IND_FEW_AREA_PIX,
                     QUAL_IND_FEW_WSE_PIX,
