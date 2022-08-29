@@ -156,5 +156,6 @@ def main():
     if args.gdem_file is not None:
         os.remove(pixc_file)
 
+
 if __name__ == "__main__":
     main()

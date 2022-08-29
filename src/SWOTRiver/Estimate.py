@@ -23,6 +23,7 @@ from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger(__name__)
 
+
 class L2PixcToRiverTile(object):
     """
     Class for running RiverObs on a SWOT L2 PixelCloud data product
@@ -158,7 +159,13 @@ class L2PixcToRiverTile(object):
             self.config['use_bright_land'] = True
 
         # set values to None for iterative_linear only keywords
-        if self.config['outlier_method'] != 'iterative_linear':
+        if self.config['outlier_method'] is None:
+            for key in ['outlier_rel_thresh', 'outlier_breakpoint_min_dist',
+                        'outlier_edge_min_dist', 'outlier_abs_thresh',
+                        'outlier_upr_thresh', 'outlier_n_boot',
+                        'outlier_iter_num']:
+                self.config[key] = None
+        elif self.config['outlier_method'] != 'iterative_linear':
             for key in ['outlier_rel_thresh']:
                 self.config[key] = None
 
