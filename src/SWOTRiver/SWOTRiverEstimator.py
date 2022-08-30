@@ -477,6 +477,9 @@ class SWOTRiverEstimator(SWOTL2):
         # Set PIXC quality masks for use in aggregation using commanded bitmasks
         # from aux param file. Set as attributes of self so they may be used
         # later in node aggregation.
+        PIXC_GEO_QUAL_XOVR_SUSPECT = 2**6
+        PIXC_GEO_QUAL_XOVR_BAD = 2**23
+
         if self.classification_qual is not None:
             self.is_area_degraded = (
                 class_qual_area_degraded & self.classification_qual > 0)
@@ -507,10 +510,6 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             self.is_sig0_bad = np.zeros(self.lat.shape, dtype='bool')
             self.is_sig0_suspect = np.zeros(self.lat.shape, dtype='bool')
-
-        PIXC_GEO_QUAL_XOVR_SUSPECT = 2**6
-        PIXC_GEO_QUAL_XOVR_BAD = 2**23
-
 
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
