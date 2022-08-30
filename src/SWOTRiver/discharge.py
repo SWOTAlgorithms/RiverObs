@@ -2,6 +2,7 @@
 Module for computing discharge for river reaches
 """
 import numpy as np
+import warnings
 
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
@@ -9,8 +10,10 @@ from RiverObs.RiverObs import \
 
 def compute(reach, reach_height, reach_width, reach_slope):
     """Computes the discharge models"""
-    area_fit_outputs = area(
-        reach_height, reach_width, reach.metadata['area_fits'])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        area_fit_outputs = area(
+            reach_height, reach_width, reach.metadata['area_fits'])
 
     d_x_area = area_fit_outputs[0]
     if d_x_area < -10000000 or np.ma.is_masked(d_x_area):
@@ -32,9 +35,13 @@ def compute(reach, reach_height, reach_width, reach_slope):
 
             metro_n = metro_ninf * (
                 (d_x_area+metro_Abar) / reach_width)**metro_p
-            metro_q = (
-                (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
-                reach_slope**(1/2)) / metro_n
+            if reach.metadata['p_low_slp']:
+                # Low slope flag is TRUE in PRD. Use different flow law.
+                metro_q = metro_n * (reach_height - metro_Abar)**metro_p
+            else:
+                metro_q = (
+                    (d_x_area+metro_Abar)**(5/3) * reach_width**(-2/3) *
+                    reach_slope**(1/2)) / metro_n
         else:
             metro_q = MISSING_VALUE_FLT
 
@@ -73,7 +80,10 @@ def compute(reach, reach_height, reach_width, reach_slope):
         momma_r = 2
 
         momma_nb = 0.11 * momma_Save**0.18
-        log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
+
         if reach_height <= momma_H:
             momma_n = momma_nb*(1+log_factor)
             log_check = log_factor > -1
@@ -130,6 +140,7 @@ def compute(reach, reach_height, reach_width, reach_slope):
             outputs['momma_q_uc'] = momma_q
             outputs['sads_q_uc'] = sads_q
             outputs['sic4dvar_q_uc'] = sic4dvar_q
+
     # populate the constrained height and width outputs
     if np.isnan(area_fit_outputs[1]) or np.isnan(area_fit_outputs[2]):
         outputs['width_c'] = MISSING_VALUE_FLT

@@ -235,21 +235,22 @@ class ReachExtractor(object):
                 this_reach['centerlines']['y'] = lats
 
             blocking_widths = get_blocking_widths(x, y)
-
             reach_metadata = {
-                'lakeFlag': this_reach['reaches']['lakeflag'][0],
-                'lon': this_reach['reaches']['x'][0],
-                'lat': this_reach['reaches']['y'][0],
+                'lakeFlag': this_reach['reaches']['lakeflag'].item(),
+                'p_low_slp': this_reach['reaches']['low_slope_flag'].item(),
+                'lon': this_reach['reaches']['x'].item(),
+                'lat': this_reach['reaches']['y'].item(),
                 'centerline_lon': this_reach['centerlines']['x'],
                 'centerline_lat': this_reach['centerlines']['y'],
-                }
+            }
 
             reach_metadata_keys = [
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
                 'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
                 'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
                 'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag', 'iceflag',
-                'river_name']
+                'river_name'
+            ]
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
@@ -314,10 +315,10 @@ class ReachExtractor(object):
 class ReachDatabase(Product):
     """Prior Reach database"""
     ATTRIBUTES = odict([
-        ['x_min', {'dtype': 'f8' , 'value': None}],
-        ['x_max', {'dtype': 'f8' , 'value': None}],
-        ['y_min', {'dtype': 'f8' , 'value': None}],
-        ['y_max', {'dtype': 'f8' , 'value': None}],
+        ['x_min', {'dtype': 'f8' , 'value': -9999.}],
+        ['x_max', {'dtype': 'f8' , 'value': -9999.}],
+        ['y_min', {'dtype': 'f8' , 'value': -9999.}],
+        ['y_max', {'dtype': 'f8' , 'value': -9999.}],
         ['Name', {}], ['production_date', {}],
         ['pass_number', {}], ['tile_number', {}], ['swath_side', {}],
         ['version', {'dtype': 'str' , 'value': ''}],
@@ -561,6 +562,8 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'i8'], ['dimensions', DIMENSIONS_REACH_UPDOWN]])],
         ['lakeflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['low_slope_flag',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ['iceflag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_ICEFLAG]])],
         ['swot_obs',
@@ -609,7 +612,7 @@ class ReachDatabaseReaches(Product):
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
                     'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag',
                     'river_name', 'facc', 'obstr_type', 'hfalls_id',
-                    'swot_obs', 'max_width']:
+                    'swot_obs', 'max_width', 'low_slope_flag']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
@@ -1106,6 +1109,7 @@ class ReachDatabaseTile(ReachDatabase):
         ['pass_number', {'dtype': 'i4', 'value': None}],
         ['tile_number', {'dtype': 'i4', 'value': None}],
         ['swath_side', {}],
+        ['version', {'dtype': 'str' , 'value': ''}],
         ])
 
     def subset(self, reach_ids):

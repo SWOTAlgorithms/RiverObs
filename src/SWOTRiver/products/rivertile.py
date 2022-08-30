@@ -3,10 +3,9 @@ Copyright (c) 2018-, California Institute of Technology ("Caltech"). U.S.
 Government sponsorship acknowledged.
 All rights reserved.
 
-Author (s): Alex Fore
+Author (s): Alex Fore, Cassie Stuurman
 '''
 import os
-import pdb
 import textwrap
 import numpy as np
 import fiona
@@ -24,16 +23,44 @@ from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 # define constants for each node-level quality bit
-QUAL_IND_SIG0_QUAL_SUSPECT = 1              # bit 0
-QUAL_IND_CLASS_QUAL_SUSPECT = 2             # bit 1
-QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4       # bit 2
-QUAL_IND_WATER_FRAC_SUSPECT = 8             # bit 3
-QUAL_IND_BLOCK_WIDTH_SUSPECT = 16           # bit 4
-QUAL_IND_BRIGHT_LAND_SUSPECT = 128          # bit 7
-QUAL_IND_FAR_RANGE_SUSPECT = 4096           # bit 12
-QUAL_IND_NEAR_RANGE_SUSPECT = 8192          # bit 13
-QUAL_IND_WSE_OUTLIER = 32768                # bit 15
-QUAL_IND_WSE_BAD = 65536                    # bit 16
+QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
+QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
+QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
+QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
+QUAL_IND_BLOCK_WIDTH_SUSPECT = 16               # bit 4
+QUAL_IND_BRIGHT_LAND_SUSPECT = 128              # bit 7
+QUAL_IND_FEW_SIG0_PIX = 512                     # bit 9
+QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
+QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
+QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
+QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
+QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
+QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_WSE_OUTLIER = 8388608                  # bit 23
+QUAL_IND_WSE_BAD = 16777216                     # bit 24
+QUAL_IND_NO_SIG0_PIX = 33554432                 # bit 25
+QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
+QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
+QUAL_IND_NO_PIXELS = 268435456                  # bit 28
+
+# define constants for each reach-level quality bit
+QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
+QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
+QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
+QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
+QUAL_IND_BRIGHT_LAND_SUSPECT = 128              # bit 7
+QUAL_IND_FEW_AREA_PIX = 1024                    # bit 10
+QUAL_IND_FEW_WSE_PIX = 2048                     # bit 11
+QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
+QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
+QUAL_IND_PARTIAL_OBS = 32768                    # bit 15
+QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
+QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_MIN_FIT_POINTS = 33554432              # bit 25
+QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
+QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
+QUAL_IND_NO_OBS = 268435456                     # bit 28
+
 
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
@@ -295,9 +322,11 @@ class L2HRRiverTile(Product):
                     node_outputs['y_prior'] = np.insert(
                         node_outputs['y_prior'], insert_idx, reach.y[rch_idx])
                     node_outputs['lon_prior'] = np.insert(
-                        node_outputs['lon_prior'], insert_idx, reach.lon[rch_idx])
+                        node_outputs['lon_prior'], insert_idx,
+                        reach.lon[rch_idx])
                     node_outputs['lat_prior'] = np.insert(
-                        node_outputs['lat_prior'], insert_idx, reach.lat[rch_idx])
+                        node_outputs['lat_prior'], insert_idx,
+                        reach.lat[rch_idx])
                     node_outputs['p_wse'] = np.insert(
                         node_outputs['p_wse'], insert_idx, reach.wse[rch_idx])
                     node_outputs['p_wse_var'] = np.insert(
@@ -335,18 +364,30 @@ class L2HRRiverTile(Product):
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
 
-                    for key in ['nobs', 'nobs_h', 'node_blocked']:
+                    for key in ['nobs', 'nobs_h', 'node_blocked', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
+                    node_outputs['node_q'] = np.insert(
+                            node_outputs['node_q'], insert_idx, 3)
+
+                    node_outputs['node_q_b'] = np.insert(
+                            node_outputs['node_q_b'], insert_idx, (
+                            QUAL_IND_WSE_BAD + QUAL_IND_NO_SIG0_PIX +
+                            QUAL_IND_NO_AREA_PIX + QUAL_IND_NO_WSE_PIX +
+                            QUAL_IND_NO_PIXELS))
+
+                    node_outputs['xovr_cal_q'] = np.insert(
+                            node_outputs['xovr_cal_q'], insert_idx, 2)
+
                     for key in [
-                        'lat', 'lon', 'x', 'y', 's', 'w_ptp', 'w_std', 'w_area',
-                         'w_db', 'area', 'area_u', 'area_det', 'area_det_u',
-                         'area_of_ht', 'wse', 'wse_std', 'wse_r_u', 'rdr_sig0',
-                         'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
-                         'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
-                         'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
-                         'h_n_ave', 'fit_height']:
+                        'lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db', 'area',
+                        'area_u', 'area_det', 'area_det_u', 'area_of_ht',
+                        'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
+                        'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
+                        'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
+                        'pole_tide', 'flow_dir', 'dark_frac', 'xtrack',
+                        'h_n_ave', 'fit_height', 'layovr_val']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
@@ -361,13 +402,13 @@ class L2HRRiverTile(Product):
                 reach_outputs['rch_id_up'] = np.concatenate(
                     (reach_outputs['rch_id_up'], this_rch_id_up))
                 reach_outputs['n_reach_up'] = np.append(
-                    reach_outputs['n_reach_up'], (this_rch_id_up>0).sum())
+                    reach_outputs['n_reach_up'], (this_rch_id_up > 0).sum())
                 this_rch_id_dn = reach.metadata['rch_id_dn'].T
                 this_rch_id_dn[this_rch_id_dn == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_dn'] = np.concatenate(
                     (reach_outputs['rch_id_dn'], this_rch_id_dn))
                 reach_outputs['n_reach_dn'] = np.append(
-                    reach_outputs['n_reach_dn'], (this_rch_id_dn>0).sum())
+                    reach_outputs['n_reach_dn'], (this_rch_id_dn > 0).sum())
                 reach_outputs['reach_idx'] = np.append(
                         reach_outputs['reach_idx'], reach_id)
                 reach_outputs['p_lon'] = np.append(
@@ -385,7 +426,8 @@ class L2HRRiverTile(Product):
                 reach_outputs['p_n_nodes'] = np.append(
                         reach_outputs['p_n_nodes'], len(reach.x))
                 reach_outputs['p_dist_out'] = np.append(
-                        reach_outputs['p_dist_out'], reach.metadata['dist_out'])
+                        reach_outputs['p_dist_out'], reach.metadata['dist_out']
+                )
                 reach_outputs['p_length'] = np.append(
                     reach_outputs['p_length'], reach.metadata['reach_length'])
                 reach_outputs['grand_id'] = np.append(
@@ -400,6 +442,14 @@ class L2HRRiverTile(Product):
                     reach_outputs['n_good_nod'], MISSING_VALUE_INT4)
                 reach_outputs['lake_flag'] = np.append(
                     reach_outputs['lake_flag'], MISSING_VALUE_INT4)
+                reach_outputs['reach_q'] = np.append(
+                    reach_outputs['reach_q'], 3)
+                reach_outputs['reach_q_b'] = np.append(
+                    reach_outputs['reach_q_b'],
+                    QUAL_IND_NO_AREA_PIX+QUAL_IND_NO_WSE_PIX+QUAL_IND_NO_OBS)
+                reach_outputs['xovr_cal_q'] = np.append(
+                    reach_outputs['xovr_cal_q'], 2)
+
                 reach_outputs['ice_clim_f'] = np.append(
                     reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
                 reach_outputs['river_name'] = np.append(
@@ -408,38 +458,70 @@ class L2HRRiverTile(Product):
                 dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
                 dsch_m_c = reach.metadata['discharge_models']['constrained']
 
+                # Avoid letting fill value of -9999 from PRD propagate into
+                # outputs (these variables are just passed through from PRD
+                # to RiverTile).
+                def fill_if_was_fill(value, other_fill, fill):
+                    return value if value != other_fill else fill
+
+                reach_outputs['p_low_slp'] = np.append(
+                    reach_outputs['p_low_slp'], fill_if_was_fill(
+                        reach.metadata['p_low_slp'], -9999,
+                        MISSING_VALUE_INT4))
+
                 reach_outputs['dschg_msf'] = np.append(
-                    reach_outputs['dschg_msf'],
-                    dsch_m_uc['MetroMan']['sbQ_rel'])
+                    reach_outputs['dschg_msf'], fill_if_was_fill(
+                        dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
                 reach_outputs['dschg_gmsf'] = np.append(
-                    reach_outputs['dschg_gmsf'],
-                    dsch_m_c['MetroMan']['sbQ_rel'])
+                    reach_outputs['dschg_gmsf'], fill_if_was_fill(
+                        dsch_m_c['MetroMan']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
 
                 reach_outputs['dschg_bsf'] = np.append(
-                    reach_outputs['dschg_bsf'], dsch_m_uc['BAM']['sbQ_rel'])
+                    reach_outputs['dschg_bsf'], fill_if_was_fill(
+                        dsch_m_uc['BAM']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
                 reach_outputs['dschg_gbsf'] = np.append(
-                    reach_outputs['dschg_gbsf'], dsch_m_c['BAM']['sbQ_rel'])
+                    reach_outputs['dschg_gbsf'], fill_if_was_fill(
+                        dsch_m_c['BAM']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
 
                 reach_outputs['dschg_hsf'] = np.append(
-                    reach_outputs['dschg_hsf'], dsch_m_uc['HiVDI']['sbQ_rel'])
+                    reach_outputs['dschg_hsf'], fill_if_was_fill(
+                        dsch_m_uc['HiVDI']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
                 reach_outputs['dschg_ghsf'] = np.append(
-                    reach_outputs['dschg_ghsf'], dsch_m_c['HiVDI']['sbQ_rel'])
+                    reach_outputs['dschg_ghsf'], fill_if_was_fill(
+                        dsch_m_c['HiVDI']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
 
                 reach_outputs['dschg_osf'] = np.append(
-                    reach_outputs['dschg_osf'], dsch_m_uc['MOMMA']['sbQ_rel'])
+                    reach_outputs['dschg_osf'], fill_if_was_fill(
+                        dsch_m_uc['MOMMA']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
                 reach_outputs['dschg_gosf'] = np.append(
-                    reach_outputs['dschg_gosf'], dsch_m_c['MOMMA']['sbQ_rel'])
+                    reach_outputs['dschg_gosf'], fill_if_was_fill(
+                        dsch_m_c['MOMMA']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
 
                 reach_outputs['dschg_ssf'] = np.append(
-                    reach_outputs['dschg_ssf'], dsch_m_uc['SADS']['sbQ_rel'])
+                    reach_outputs['dschg_ssf'], fill_if_was_fill(
+                        dsch_m_uc['SADS']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
                 reach_outputs['dschg_gssf'] = np.append(
-                    reach_outputs['dschg_gssf'], dsch_m_c['SADS']['sbQ_rel'])
+                    reach_outputs['dschg_gssf'], fill_if_was_fill(
+                        dsch_m_c['SADS']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
+
                 reach_outputs['dschg_isf'] = np.append(
-                    reach_outputs['dschg_isf'],
-                    MISSING_VALUE_FLT)
+                    reach_outputs['dschg_isf'], fill_if_was_fill(
+                        dsch_m_uc['SIC4DVar']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
                 reach_outputs['dschg_gisf'] = np.append(
-                    reach_outputs['dschg_gisf'],
-                    MISSING_VALUE_FLT)
+                    reach_outputs['dschg_gisf'], fill_if_was_fill(
+                        dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999,
+                        MISSING_VALUE_FLT))
 
                 for key in ['length', 'node_dist', 'area', 'area_u',
                             'area_det', 'area_det_u', 'area_of_ht', 'width',
@@ -451,7 +533,8 @@ class L2HRRiverTile(Product):
                             'slope2', 'metro_q_c', 'bam_q_c', 'hivdi_q_c',
                             'momma_q_c', 'sads_q_c', 'sic4dvar_q_c',
                             'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
-                            'momma_q_uc', 'sads_q_uc', 'sic4dvar_q_uc']:
+                            'momma_q_uc', 'sads_q_uc', 'sic4dvar_q_uc',
+                            'layovr_val']:
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
@@ -719,9 +802,10 @@ class ShapeWriterMixIn(object):
         self.write_shape_xml(shp_fname.replace('.shp', '.shp.xml'))
         with open(shp_fname.replace('.shp', '.prj'), 'w') as ofp:
             ofp.write((
-                'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",'+
-                'SPHEROID["WGS_1984",6378137,298.257223563]],'+
-                'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'))
+                'GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",' +
+                'SPHEROID["WGS_1984",6378137,298.257223563]],' +
+                'PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]]\n'
+            ))
 
 
 class RiverTileNodes(Product, ShapeWriterMixIn):
@@ -988,7 +1072,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
+                    Total one-sigma uncertainty in
                     the node width.""")],
                 ])],
         ['area_total',
@@ -1018,8 +1102,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    total estimated water surface area area_total.""")],
+                    Total one-sigma uncertainty in the total estimated water
+                    surface area area_total.""")],
                 ])],
         ['area_detct',
          odict([['dtype', 'f8'],
@@ -1047,7 +1131,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
+                    Total one-sigma uncertainty in
                     the surface area of the detected water pixels.""")],
                 ])],
         ['area_wse',
@@ -1075,8 +1159,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Value indicating an estimate of the height error due to
-                    layover (TBD).""")],
+                    Estimate of the systematic error in WSE due to layover.
+                    """)],
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],
@@ -1134,37 +1218,45 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'summary quality indicator for the node'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'node_qual'],
-                ['flag_meanings', textjoin("""good suspect bad""")],
-                ['flag_masks', 'TBD'],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_meanings', textjoin("""good suspect degraded bad""")],
+                ['flag_values', np.array([0, 1, 2, 3]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 2],
+                ['valid_max', 3],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the node measurement.
                     Value of 0 indicates a nominal measurement, 1 indicates a
-                    suspect measurement, and 2 indicates a bad quality
-                    measurement.
+                    suspect measurement, 2 indicates a degraded quality
+                    measurement, and 3 indicates a bad measurement.
                     """)],
                 ])],
         ['node_q_b',
          odict([['dtype', 'i4'],
-                ['long_name', 'summary quality indicator for the node'],
+                ['long_name', 'bitwise quality indicator for the node'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'node_qual_bitwise'],
-                ['flag_meanings', textjoin(
-                    """sig0_qual_suspect  
-                    classification_qual_suspect  
-                    geolocation_qual_suspect  
-                    water_fraction_suspect  
-                    blocking_width_suspect  
-                    bright_land  
-                    far_range_suspect  
-                    near_range_suspect  
-                    wse_outlier  
-                    wse_bad""")],
+                ['flag_meanings', textjoin("""
+                    sig0_qual_suspect
+                    classification_qual_suspect
+                    geolocation_qual_suspect
+                    water_fraction_suspect
+                    blocking_width_suspect
+                    bright_land
+                    few_sig0_observations
+                    few_area_observations
+                    few_wse_observations
+                    far_range_suspect
+                    near_range_suspect
+                    classification_qual_degraded
+                    geolocation_qual_degraded
+                    wse_outlier
+                    wse_bad
+                    no_sig0_observations
+                    no_area_observations
+                    no_wse_observations
+                    no_pixels""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
                     QUAL_IND_CLASS_QUAL_SUSPECT,
@@ -1172,22 +1264,32 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     QUAL_IND_WATER_FRAC_SUSPECT,
                     QUAL_IND_BLOCK_WIDTH_SUSPECT,
                     QUAL_IND_BRIGHT_LAND_SUSPECT,
+                    QUAL_IND_FEW_SIG0_PIX,
+                    QUAL_IND_FEW_AREA_PIX,
+                    QUAL_IND_FEW_WSE_PIX,
                     QUAL_IND_FAR_RANGE_SUSPECT,
                     QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAL_IND_CLASS_QUAL_DEGRADED,
+                    QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
                     QUAL_IND_WSE_OUTLIER,
-                    QUAL_IND_WSE_BAD
+                    QUAL_IND_WSE_BAD,
+                    QUAL_IND_NO_SIG0_PIX,
+                    QUAL_IND_NO_AREA_PIX,
+                    QUAL_IND_NO_WSE_PIX,
+                    QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 268435456],
+                ['valid_max', 529297311],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the node measurement. If this 
-                     word is interpreted as an unsigned integer, a value of 0 
-                    indicates good data, values less than 32768 represent 
-                    suspect data, and values greater than or equal to 32768 
-                    represent bad data.""")],
+                    Bitwise quality indicator for the node measurement. If this
+                    word is interpreted as an unsigned integer, a value of 0
+                    indicates good data, values less than 262144 represent
+                    suspect data, values greater than or equal to 262144 but
+                    less than 8388608 represent degraded data, and values
+                    greater than or equal to 8388608 represent bad data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -1282,16 +1384,17 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'quality of the cross-over calibration'],
                 ['short_name', 'height_cor_xover_qual'],
-                ['flag_meanings', textjoin("""TBD""")],
-                ['flag_masks', 'TBD'],
-                ['flag_values', 'TBD'],
+                ['flag_meanings', textjoin("""good suspect bad""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Quality of the cross-over calibration.""")],
+                    Quality of the cross-over calibration. A value of 0
+                    indicates a nominal measurement, 1 indicates a suspect
+                    measurement, and 2 indicates a bad measurement.""")],
                 ])],
         ['rdr_sig0',
          odict([['dtype', 'f8'],
@@ -1482,6 +1585,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'xovr_cal_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Height correction from KaRIn crossover calibration. 
@@ -1636,6 +1740,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['lat_u'] = node_outputs['latitude_u']
             klass['lon_u'] = node_outputs['longitud_u']
             klass['wse'] = node_outputs['wse']
+            klass['wse_u'] = node_outputs['wse_u']
             klass['wse_r_u'] = node_outputs['wse_r_u']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
@@ -1645,7 +1750,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['area_tot_u'] = node_outputs['area_u']
             klass['area_wse'] = node_outputs['area_of_ht']
             klass['xtrk_dist'] = node_outputs['xtrack']
-            klass['n_good_pix'] = node_outputs['nobs']
+            klass['n_good_pix'] = node_outputs['n_good_pix']
             klass['rdr_sig0'] = node_outputs['rdr_sig0']
             klass['rdr_sig0_u'] = node_outputs['rdr_sig0_u']
             klass['geoid_hght'] = node_outputs['geoid_hght']
@@ -1667,23 +1772,10 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['river_name'] = node_outputs['river_name']
 
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
-                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length']:
+                        'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
+                        'node_q', 'node_q_b', 'xovr_cal_q', 'layovr_val']:
                 klass[key] = node_outputs[key]
 
-            # set quality flag...
-            # if blocking widths are bad
-            klass['node_q'] = np.zeros(node_outputs['nobs'].shape).astype(
-                klass.VARIABLES['node_q']['dtype'])
-            klass['node_q'][node_outputs['node_blocked'] == 1] |= 1
-            # if node-level heights are bad
-            klass['node_q'][node_outputs['wse'] < -500] |= 1
-            klass['node_q'][node_outputs['wse'] > 8000] |= 1
-            # if xtrk is too near/far
-            klass['node_q'][np.abs(node_outputs['xtrack']) < 10000] |= 1
-            klass['node_q'][np.abs(node_outputs['xtrack']) > 60000] |= 1
-            # TO-DO: WSE outlier quality flag
-            # TO-DO: populate bitwise quality flag
-            klass['node_q_b'][:] = MISSING_VALUE_INT9
         return klass
 
     @classmethod
@@ -1792,6 +1884,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 getattr(self, key), getattr(other, key))))
         return klass
 
+
 class RiverTileReaches(Product, ShapeWriterMixIn):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
@@ -1841,8 +1934,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                  'Longitude of the centerline of the reach from prior database'],
                 ['short_name', 'centerline_longitude'],
                 ['units', 'degrees_east'],
-                ['valid_min', 0],
-                ['valid_max', 360],
+                ['valid_min', -180],
+                ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""""")],
@@ -2094,8 +2187,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
-                    the reach width.""")],
+                    Total one-sigma uncertainty in the reach width.""")],
                 ])],
         ['width_c',
          odict([['dtype', 'f8'],
@@ -2124,8 +2216,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    constrained reach width.""")],
+                    Total one-sigma uncertainty in the constrained reach
+                    width.""")],
                 ])],
         ['area_total',
          odict([['dtype', 'f8'],
@@ -2155,8 +2247,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    total estimated water surface area area_total.""")],
+                    Total one-sigma uncertainty in the total estimated water
+                    surface area area_total.""")],
                 ])],
         ['area_detct',
          odict([['dtype', 'f8'],
@@ -2184,8 +2276,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in
-                    the surface area of the detected water pixels.""")],
+                    Total one-sigma uncertainty in the surface area of the
+                    detected water pixels.""")],
                 ])],
         ['area_wse',
          odict([['dtype', 'f8'],
@@ -2229,8 +2321,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Total one-sigma uncertainty (random and systematic) in the
-                    change in the cross-sectional area.""")],
+                    Total one-sigma uncertainty in the change in the
+                    cross-sectional area.""")],
                 ])],
         ['layovr_val',
          odict([['dtype', 'f8'],
@@ -2243,8 +2335,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Value indicating an estimate of the height error due to
-                    layover (TBD). """)],
+                    Estimate of the systematic error in WSE due to layover.
+                    """)],
                 ])],
         ['node_dist',
          odict([['dtype', 'f8'],
@@ -3208,18 +3300,70 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'summary quality indicator for the reach'],
                 ['standard_name', 'status_flag'],
                 ['short_name', 'reach_qual'],
-                ['flag_meanings', textjoin("""good suspect bad""")],
-                ['flag_masks', 'TBD'],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_meanings', textjoin("""good suspect degraded bad""")],
+                ['flag_values', np.array([0, 1, 2, 3]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 2],
+                ['valid_max', 3],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the reach measurement.
-                    A value of 0 indicates a nominal measurement, 1 is a suspect
-                    measurement, and 2 indicates a bad measurement.""")],
+                    A value of 0 indicates a nominal measurement, 1 indicates a
+                    suspect measurement, 2 indicates a degraded measurement,
+                    and 3 indicates a bad measurement.""")],
+                ])],
+        ['reach_q_b',
+         odict([['dtype', 'i4'],
+                ['long_name', 'bitwise quality indicator for the reach'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'reach_qual_bitwise'],
+                ['flag_meanings', textjoin("""
+                    sig0_qual_suspect
+                    classification_qual_suspect
+                    geolocation_qual_suspect
+                    water_fraction_suspect
+                    bright_land
+                    few_area_observations
+                    few_wse_observations
+                    far_range_suspect
+                    near_range_suspect
+                    partially_observed
+                    classification_qual_degraded
+                    geolocation_qual_degraded
+                    below_min_fit_points
+                    no_area_observations
+                    no_wse_observations
+                    no_pixels""")],
+                ['flag_masks', np.array([
+                    QUAL_IND_SIG0_QUAL_SUSPECT,
+                    QUAL_IND_CLASS_QUAL_SUSPECT,
+                    QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
+                    QUAL_IND_WATER_FRAC_SUSPECT,
+                    QUAL_IND_BRIGHT_LAND_SUSPECT,
+                    QUAL_IND_FEW_AREA_PIX,
+                    QUAL_IND_FEW_WSE_PIX,
+                    QUAL_IND_FAR_RANGE_SUSPECT,
+                    QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAL_IND_PARTIAL_OBS,
+                    QUAL_IND_CLASS_QUAL_DEGRADED,
+                    QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    QUAL_IND_MIN_FIT_POINTS,
+                    QUAL_IND_NO_AREA_PIX,
+                    QUAL_IND_NO_WSE_PIX,
+                    QUAL_IND_NO_OBS]).astype('i4')],
+                ['valid_min', 0],
+                ['valid_max', 504163471],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the reach measurement. If
+                    this word is interpreted as an unsigned integer, a value of
+                    0 indicates good data, values less than 262144 represent
+                    suspect data, values greater than or equal to 262144 but
+                    less than 8388608 represent degraded data, and values
+                    greater than or equal to 8388608 represent bad data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -3331,17 +3475,19 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
          odict([['dtype', 'i2'],
                 ['long_name', 'quality of the cross-over calibration'],
                 ['short_name', 'height_cor_xover_qual'],
-                ['flag_meanings', textjoin("""TBD""")],
-                ['flag_masks', 'TBD'],
-                ['flag_values', 'TBD'],
+                ['flag_meanings', textjoin("""good suspect bad""")],
+                ['flag_values', np.array([0, 1, 2]).astype('i2')],
                 ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert','Basic'],
-                ['coordinates', 'p_lon p_lat'],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Quality of the cross-over calibration.""")],
+                    Quality of the cross-over calibration. A value of 0
+                    indicates a nominal measurement, 1 indicates a suspect
+                    measurement, and 2 indicates a bad measurement.""")],
                 ])],
+
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
@@ -3504,6 +3650,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['valid_max', 10],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'xovr_cal_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Height correction from KaRIn crossover calibration. 
@@ -3675,7 +3822,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Mean annual flow from the prior river datavase.""")],
+                    Mean annual flow from the prior river database.""")],
                 ])],
         ['p_dam_id',
          odict([['dtype', 'i4'],
@@ -3724,6 +3871,25 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['comment', textjoin("""
                     Mode of the number of channels in the reach from the
                     prior river database.""")],
+                ])],
+        ['p_low_slp',
+         odict([['dtype', 'i2'],
+                ['long_name', 'low slope flag'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'low_slope_flag'],
+                ['flag_meanings', textjoin("""
+                    low_slope_false low_slope_true""")],
+                ['flag_values', np.array([0, 1]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 1],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Low-slope flag from the prior river database. A nonzero
+                    value indicates that the reach slope is considered to be
+                    low. Low-slope reaches are handled differently than other
+                    reaches by the MetroMan discharge algorithm.""")],
                 ])],
     ])
     for name, reference in VARIABLES.items():
@@ -3778,11 +3944,16 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
             klass['p_dam_id'] = reach_outputs['grand_id']
             klass['ice_clim_f'] = reach_outputs['ice_clim_f']
+            klass['p_low_slp'] = reach_outputs['p_low_slp']
             klass['river_name'] = reach_outputs['river_name']
+            klass['reach_q'] = reach_outputs['reach_q']
+            klass['reach_q_b'] = reach_outputs['reach_q_b']
+            klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
+            klass['layovr_val'] = reach_outputs['layovr_val']
 
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
-                        'p_lat', 'p_lon', 'ice_clim_f', 'river_name']:
+                        'p_lat', 'p_lon']:
                 klass[key] = reach_outputs[key]
 
 
@@ -3854,19 +4025,12 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
                 cl_lat[ii, 0:this_len] = reach_outputs['centerline_lat'][ii]
 
-            # Wrap longitude into [0, 360) interval
-            mask = np.logical_and(cl_lon >= -180, cl_lon < 0)
-            cl_lon[mask] += 360
-
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
 
             # set quality flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
-
-            # set quality bad if partial flag is set
-            klass['reach_q'] = klass['partial_f']
 
         return klass
 

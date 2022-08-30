@@ -162,13 +162,19 @@ class RiverNode:
     def min(self, var, goodvar='good'):
         """Return min of a variable"""
         good = getattr(self, goodvar)
-        vmin = np.min(getattr(self, var)[good])
+        try:
+            vmin = np.min(getattr(self, var)[good])
+        except ValueError:
+            vmax = np.nan
         return vmin
 
     def max(self, var, goodvar='good'):
         """Return max of a variable"""
         good = getattr(self, goodvar)
-        vmax = np.max(getattr(self, var)[good])
+        try:
+            vmax = np.max(getattr(self, var)[good])
+        except ValueError:
+            vmax = np.nan
         return vmax
 
     def ptp(self, var, goodvar='good'):
@@ -180,7 +186,10 @@ class RiverNode:
     def percentile(self, var, q, goodvar='good'):
         """Return qth percentile of a variable"""
         good = getattr(self, goodvar)
-        percentile = np.percentile(getattr(self, var)[good], q)
+        try:
+            percentile = np.percentile(getattr(self, var)[good], q)
+        except IndexError:
+            return np.nan
         return percentile
 
     def sum(self, var, goodvar='good'):

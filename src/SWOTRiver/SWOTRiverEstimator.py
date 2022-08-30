@@ -13,7 +13,9 @@ import scipy.stats
 import scipy.ndimage
 import statsmodels.api
 import logging
+import warnings
 import piecewise_regression
+from scipy.ndimage.morphology import binary_dilation
 
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
@@ -26,14 +28,23 @@ from RiverObs import RiverNode
 from RiverObs import RiverReach
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
-
+from SWOTRiver.errors import RiverObsException
 from Centerline.Centerline import Centerline, CenterLineException
-from scipy.ndimage.morphology import binary_dilation
 
 LOGGER = logging.getLogger(__name__)
 
 REACH_WSE_SYS_UNCERT = 0.09  # m
 SLOPE_SYS_UNCERT = 0.000003  # m/m
+
+NEAR_RANGE_XTRACK_THRESHOLD = 10000
+FAR_RANGE_XTRACK_TRESHOLD = 60000
+
+MIN_VALID_WSE = -500
+MAX_VALID_WSE = 8000
+
+TOO_FEW_PIXELS_THRESHOLD = 10
+
+BLOCKING_WIDTH_THRESHOLD_FRACTION = 0.90
 
 class SWOTRiverEstimator(SWOTL2):
     """
@@ -167,8 +178,45 @@ class SWOTRiverEstimator(SWOTL2):
         Minimum distance between breakpoints, as a proportion of the input data
         range for piecewise linear outlier detection algorithm.
     outlier_min_dist_to_edge : float (0-1), default 0.1
-        Minimum distance from edge to a breakpoint, as a proportion of the input data
-        range for piecewise linear outlier detection algorithm.
+        Minimum distance from edge to a breakpoint, as a proportion of the
+        input data range for piecewise linear outlier detection algorithm.
+    pixc_qual_handling : str, default None
+        Describes approach for pixel cloud quality handling. Options are
+        'None', which ignores the pixel cloud quality data, 'nominal', which
+        uses the standard quality handling described in ATBD, and
+        'experimental', which is a testing state for new features.
+    geo_qual_wse_suspect: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC geolocation qual map
+        to a suspect wse measurement.
+    geo_qual_wse_degraded: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC geolocation qual map
+        to a degraded wse measurement.
+    geo_qual_wse_bad: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC geolocation qual map
+        to a bad wse measurement.
+    class_qual_area_suspect: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC classification qual
+        map to a suspect area measurement.
+    class_qual_area_degraded: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC classification qual
+        map to a degraded area measurement.
+    class_qual_area_bad: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC classification qual
+        map to a bad area measurement.
+    sig0_qual_suspect: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC sig0 qual map to a
+        suspect sig0 measurement.
+    sig0_qual_bad: 32 bit hex, default None
+        Bitwise word describing which bits from the PIXC sig0 qual map to a
+        bad sig0 measurement.
+    num_good_sus_pix_thresh_wse: Minimum number of good and suspect pixels
+        required to use only good/suspect data in node aggregation for wse.
+    num_good_sus_pix_thresh_area: Minimum number of good and suspect pixels
+        required to use only good/suspect data in node aggregation for area.
+    use_bright_land: Boolean value, if True we use bright land in pixel
+        assignment and aggregations (mark as suspect), if False do not use
+        in pixel assignment.
+
     The final set of keywords are projection options for pyproj. See Notes.
     Notes
     -----
@@ -230,6 +278,11 @@ class SWOTRiverEstimator(SWOTL2):
                  load_tide_fes_kwd='load_tide_fes',
                  load_tide_got_kwd='load_tide_got',
                  pole_tide_kwd='pole_tide',
+                 bright_land_flag_kwd='bright_land_flag',
+                 classification_qual_kwd='classification_qual',
+                 geolocation_qual_kwd='geolocation_qual',
+                 sig0_qual_kwd='sig0_qual',
+                 layover_impact_kwd='layover_impact',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -255,6 +308,18 @@ class SWOTRiverEstimator(SWOTL2):
                  outlier_breakpoint_min_dist=None,
                  outlier_edge_min_dist=None,
                  outlier_n_boot=None,
+                 pixc_qual_handling=None,
+                 geo_qual_wse_suspect=None,
+                 geo_qual_wse_degraded=None,
+                 geo_qual_wse_bad=None,
+                 class_qual_area_suspect=None,
+                 class_qual_area_degraded=None,
+                 class_qual_area_bad=None,
+                 sig0_qual_suspect=None,
+                 sig0_qual_bad=None,
+                 num_good_sus_pix_thresh_wse=None,
+                 num_good_sus_pix_thresh_area=None,
+                 use_bright_land=None,
                  **proj_kwds):
 
         self.trim_ends = trim_ends
@@ -275,6 +340,9 @@ class SWOTRiverEstimator(SWOTL2):
         self.outlier_breakpoint_min_dist = outlier_breakpoint_min_dist
         self.outlier_edge_min_dist = outlier_edge_min_dist
         self.outlier_n_boot = outlier_n_boot
+        self.num_good_sus_pix_thresh_wse = num_good_sus_pix_thresh_wse
+        self.num_good_sus_pix_thresh_area = num_good_sus_pix_thresh_area
+        self.use_bright_land = use_bright_land
 
         # Classification inputs
         self.class_kwd = class_kwd
@@ -310,6 +378,7 @@ class SWOTRiverEstimator(SWOTL2):
             **proj_kwds)
 
         self.create_index_file()
+
         if np.ma.is_masked(self.lat):
             mask = self.lat.mask
         else:
@@ -318,8 +387,33 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
 
+        if pixc_qual_handling not in [None, 'nominal', 'experimental']:
+            raise Exception('AUX Param key: pixc_qual_handling has unexpected '+
+                            'value: %s'%pixc_qual_handling)
+
+        # set quality masks from input PIXC quality flags
+        classification_qual = self.get(classification_qual_kwd)
+        geolocation_qual = self.get(geolocation_qual_kwd)
+        bright_land_flag = self.get(bright_land_flag_kwd)
+
+        # Update mask of pixels to reject from pixel assignment with
+        # commanded bitmasks from aux param file applied to classification_qual
+        # and geolocation_qual.
+        mask = np.logical_or.reduce([
+            mask, class_qual_area_bad & classification_qual > 0,
+            geo_qual_wse_bad & geolocation_qual > 0])
+
+        # Exclude bright land as well if self.use_bright_land is False
+        if not self.use_bright_land:
+            mask = np.logical_or(mask, bright_land_flag > 0)
+
         # skip NaNs in dheight_dphase
+
         good = ~mask
+        if good.sum() == 0:
+            LOGGER.warning("No useable pixels found in input PIXC file")
+            raise RiverObsException(
+                "No useable pixels found in input PIXC file")
         for key in ['lat', 'lon', 'x', 'y', 'klass', 'h_noise',
                     'img_x', 'img_y']:
             try:
@@ -353,7 +447,13 @@ class SWOTRiverEstimator(SWOTL2):
             ['geoid', geoid_kwd], ['solid_earth_tide', solid_earth_tide_kwd],
             ['load_tide_fes', load_tide_fes_kwd],
             ['load_tide_got', load_tide_got_kwd],
-            ['pole_tide', pole_tide_kwd]]
+            ['pole_tide', pole_tide_kwd],
+            ['layover_impact', layover_impact_kwd],
+            ['geolocation_qual', geolocation_qual_kwd],
+            ['classification_qual', classification_qual_kwd],
+            ['sig0_qual', sig0_qual_kwd],
+            ['bright_land_flag', bright_land_flag_kwd],
+        ]
 
         for dset_name, keyword in datasets2load:
             try:
@@ -364,6 +464,29 @@ class SWOTRiverEstimator(SWOTL2):
             except KeyError:
                 value = None
             setattr(self, dset_name, value)
+
+        # Set PIXC quality masks for use in aggregation using commanded bitmasks
+        # from aux param file. Set as attributes of self so they may be used
+        # later in node aggregation.
+        self.is_area_degraded = (
+            class_qual_area_degraded & self.classification_qual > 0)
+        self.is_area_suspect = (
+            class_qual_area_suspect & self.classification_qual > 0)
+
+        self.is_wse_degraded = (
+            geo_qual_wse_degraded & self.geolocation_qual > 0)
+        self.is_wse_suspect = geo_qual_wse_suspect & self.geolocation_qual > 0
+
+        self.is_sig0_bad = sig0_qual_bad & self.sig0_qual > 0
+        self.is_sig0_suspect = sig0_qual_suspect & self.sig0_qual > 0
+
+        PIXC_GEO_QUAL_XOVR_SUSPECT = 2**6
+        PIXC_GEO_QUAL_XOVR_BAD = 2**23
+
+        self.is_xovercal_suspect = (
+            self.geolocation_qual & PIXC_GEO_QUAL_XOVR_SUSPECT) > 0
+        self.is_xovercal_degraded = (
+            self.geolocation_qual & PIXC_GEO_QUAL_XOVR_BAD) > 0
 
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
@@ -402,7 +525,8 @@ class SWOTRiverEstimator(SWOTL2):
 
                 except AttributeError:
                     self.pixel_area = 10.0 * np.zeros(len(self.h_noise))
-                    print("could not find correct pixel area parameters")
+                    LOGGER.warning(
+                        "could not find correct pixel area parameters")
 
         # need to scale pixel area by the subsampling factor if subsampling
         if self.subsample_factor > 1:
@@ -430,19 +554,30 @@ class SWOTRiverEstimator(SWOTL2):
                     index = self.klass == k
                     self.isWater[index] = 1
             self.segment_water_class(self.preseg_dilation_iter)
+
         else:
             self.seg_label = None
 
-        # set which class pixels to use for heights (should be modified
-        # by layover flag later)
         if len(self.use_heights) == len(self.class_list):
-            self.h_flg = np.zeros(np.shape(self.h_noise))
+            self.wse_class_flg = np.zeros(np.shape(self.h_noise), dtype='bool')
             for i, k in enumerate(class_list):
                 if self.use_heights[i]:
                     index = self.klass == k
-                    self.h_flg[index] = 1
+                    self.wse_class_flg[index] = True
+
         else:
-            self.h_flg = None
+            self.wse_class_flg = None
+
+        # Use wse_class_flg and is_wse_degraded to make self.h_flg
+        if self.wse_class_flg is None:
+            self.h_flg = np.logical_not(self.is_wse_degraded)
+        else:
+            self.h_flg = np.logical_and(
+                self.wse_class_flg, np.logical_not(self.is_wse_degraded))
+
+        # Set area / sig0 flg based on degraded area / bad sig0
+        self.area_flg = np.logical_not(self.is_area_degraded)
+        self.sig0_flg = np.logical_not(self.is_sig0_bad)
 
         LOGGER.debug('Data loaded')
 
@@ -455,13 +590,14 @@ class SWOTRiverEstimator(SWOTL2):
     def flatten_interferogram(self):
         """Flattens the pixel cloud interferogram"""
         # range index is self.img_x, azi is self.img_y
+        LOGGER.debug('flatten_interferogram')
         try:
             import cnes.modules.geoloc.lib.geoloc as geoloc
             from cnes.common.lib.my_variables import \
                 GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE
 
         except ImportError:
-            print("Can't flatten interferogram as swotCNES not found.")
+            LOGGER.warning("Can't flatten interferogram as swotCNES not found.")
             return
 
         try:
@@ -477,14 +613,19 @@ class SWOTRiverEstimator(SWOTL2):
                     'pixel_cloud': {'illumination_time': 
                      self.nc['pixel_cloud']['illumination_time'][:]}}
         except KeyError:
-            print("Can't flatten interferogram as TVP not in pixel cloud.")
+            LOGGER.warning(
+                "Can't flatten interferogram as TVP not in pixel cloud.")
             return
 
         hgt_2d = np.nan*np.ones((np.max(self.img_y)+1, np.max(self.img_x)+1))
         hgt_2d[self.img_y, self.img_x] = self.h_noise
 
         # do a 2d median filter on the heights
-        hgt_filt = scipy.ndimage.generic_filter(hgt_2d, np.nanmedian, size=11)
+        # following line raises a Warning (all-NaN slice encountered)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            hgt_filt = scipy.ndimage.generic_filter(
+                hgt_2d, np.nanmedian, size=11)
 
         target_xyz = geoloc.convert_llh2ecef(
             self.lat, self.lon, hgt_filt[self.img_y, self.img_x],
@@ -550,6 +691,7 @@ class SWOTRiverEstimator(SWOTL2):
     def get_reaches(self, reach_db_path, clip=False, clip_buffer=0.1,
                     day_of_year=None):
         """Get all of the reaches using a ReachExtractor."""
+        LOGGER.debug('get_reaches')
         self.clip = clip
         self.clip_buffer = clip_buffer
 
@@ -628,6 +770,7 @@ class SWOTRiverEstimator(SWOTL2):
         Returns a list containing a RiverReach instance for each reach in the
         bounding box.
         """
+        LOGGER.debug('process_reaches')
         # assign the reaches
         if self.use_ext_dist_coef:
             river_obs_list, reach_idx_list, ireach_list = \
@@ -671,14 +814,17 @@ class SWOTRiverEstimator(SWOTL2):
                 smooth=smooth,
                 alpha=alpha,
                 max_iter=max_iter)
+
             # compute node mask to be used for reach aggregation
             ww = 1 / (river_reach.wse_r_u**2)
-            river_reach.mask = self.get_reach_mask(river_reach.node_ss,
-                                                   river_reach.wse,
-                                                   ww,
-                                                   min_fit_points)
-            river_reach_collection.append(river_reach)
+            river_reach.mask = self.get_reach_mask(
+                river_reach.node_ss, river_reach.wse, ww, min_fit_points)
 
+            # Use node mask to set wse_outlier bit in node_q_b
+            river_reach.node_q_b[~river_reach.mask] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER)
+
+            river_reach_collection.append(river_reach)
             LOGGER.debug('reach processed')
 
         out_river_reach_collection = []
@@ -1059,34 +1205,27 @@ class SWOTRiverEstimator(SWOTL2):
                               self.lon[self.river_obs.in_channel],
                               self.h_noise[self.river_obs.in_channel])
 
-        # Add the observations
-        self.river_obs.add_obs('h_noise', self.h_noise)
-        self.river_obs.add_obs('h_flg', (self.h_flg > 0))
-        self.river_obs.add_obs('lon', self.lon)
-        self.river_obs.add_obs('lat', self.lat)
-        self.river_obs.add_obs('xobs', self.x)
-        self.river_obs.add_obs('yobs', self.y)
-        self.river_obs.add_obs('inundated_area', self.inundated_area)
-
+        # Load these datasets from input file and add obsevations to
+        # self.river_obs.
         dsets_to_load = [
-            'h_noise', 'h_flg', 'lon', 'lat', 'xobs', 'yobs', 'inundated_area'
-        ]
-
-        other_obs_keys = [
+            'h_noise', 'h_flg', 'wse_class_flg', 'area_flg', 'sig0_flg', 'lon',
+            'lat', 'inundated_area', 'klass', 'pixel_area',
             'xtrack', 'sig0', 'sig0_uncert', 'water_frac', 'water_frac_uncert',
             'ifgram', 'power1', 'power2', 'phase_noise_std', 'dh_dphi',
             'dlat_dphi', 'dlon_dphi', 'num_rare_looks', 'num_med_looks',
             'false_detection_rate', 'missed_detection_rate', 'darea_dheight',
             'looks_to_efflooks', 'geoid', 'solid_earth_tide', 'load_tide_fes',
-            'load_tide_got', 'pole_tide']
+            'load_tide_got', 'pole_tide', 'is_area_degraded',
+            'is_area_suspect', 'is_wse_degraded', 'is_wse_suspect',
+            'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag',
+            'is_xovercal_suspect', 'is_xovercal_degraded', 'layover_impact']
 
-        for name in other_obs_keys:
+        for name in dsets_to_load:
             value = getattr(self, name)
             if value is not None:
                 if name is 'looks_to_efflooks':
                     value = value + np.zeros(np.shape(self.lat))
                 self.river_obs.add_obs(name, value)
-                dsets_to_load.append(name)
 
         # need to get array of land/water edge classes
         # to decode/encode the classification routine 
@@ -1101,12 +1240,6 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
 
-        self.river_obs.add_obs('klass', self.klass)
-        dsets_to_load.append('klass')
-
-        self.river_obs.add_obs('pixel_area', self.pixel_area)
-        dsets_to_load.append('pixel_area')
-
         # Adjust heights to geoid and do tide corrections 
         # (need to do before load_nodes or it is not updated in nodes)
         mask = np.logical_and(
@@ -1116,6 +1249,12 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.solid_earth_tide[mask] +
             self.river_obs.load_tide_fes[mask] +
             self.river_obs.pole_tide[mask])
+
+        # add these separately since input/output names don't match
+        self.river_obs.add_obs('xobs', self.x)
+        self.river_obs.add_obs('yobs', self.y)
+        dsets_to_load.append('xobs')
+        dsets_to_load.append('yobs')
 
         self.river_obs.load_nodes(dsets_to_load)
         LOGGER.debug('Observations added to nodes')
@@ -1132,39 +1271,85 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             xtrack_median = None
 
-        lon_median = np.asarray(
-            self.river_obs.get_node_stat('sincos_median', 'lon',
-                                         goodvar='h_flg'))
-        lat_median = np.asarray(self.river_obs.get_node_stat('median', 'lat',
-                                                             goodvar='h_flg'))
+        # Compute number of good+sus pixels in wse / area masks
+        n_pix_wse_good_sus = np.array(
+            self.river_obs.get_node_stat('countGood', 'h_flg'))
+        n_pix_area_good_sus = np.array(
+            self.river_obs.get_node_stat('countGood', 'area_flg'))
+
+        # Use good/suspect aggregations if number of pixels used is greater or
+        # equal to num_good_sus_pix_thresh_(wse/area)
+        mask_good_sus_wse = (
+            n_pix_wse_good_sus >= self.num_good_sus_pix_thresh_wse)
+        mask_good_sus_area = (
+            n_pix_area_good_sus >= self.num_good_sus_pix_thresh_area)
+
+        # prints warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            lon_median = np.asarray(self.river_obs.get_node_stat(
+                'sincos_median', 'lon', goodvar='h_flg'))
+            lon_median[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'sincos_median', 'lon', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
+            lat_median = np.asarray(self.river_obs.get_node_stat(
+                'median', 'lat', goodvar='h_flg'))
+            lat_median[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'median', 'lat', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
         ds = np.asarray(self.river_obs.get_node_stat('value', 'ds'))
 
         # number of good heights
         nobs_h = np.asarray(self.river_obs.get_node_stat('countGood', 'h_flg'))
+        nobs_h[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('countGood', 'wse_class_flg')
+            )[~mask_good_sus_wse]
 
         # heights using only "good" heights
-        wse = np.asarray(self.river_obs.get_node_stat(
-                'median', 'h_noise', goodvar='h_flg'))
-        wse_r_u = np.asarray(
-            self.river_obs.get_node_stat('std', 'h_noise', goodvar='h_flg'))
-        wse_std = wse_r_u
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            wse = np.asarray(self.river_obs.get_node_stat(
+                    'median', 'h_noise', goodvar='h_flg'))
+            wse[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'median', 'h_noise', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
 
-        # The following are estimates of river width
-        width_ptp = np.asarray(self.river_obs.get_node_stat('width_ptp', ''))
-        width_std = np.asarray(self.river_obs.get_node_stat('width_std', ''))
+            wse_r_u = np.asarray(self.river_obs.get_node_stat(
+                'std', 'h_noise', goodvar='h_flg'))
+            wse_r_u[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'std', 'h_noise', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+
+        wse_std = wse_r_u
 
         # These are area based estimates, the nominal SWOT approach
         area = np.asarray(
             self.river_obs.get_node_stat('sum', 'inundated_area'))
-
-        rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
-            'median', 'sig0', goodvar='h_flg'))
+        area[~mask_good_sus_area] = np.asarray(
+            self.river_obs.get_node_stat(
+                'sum', 'inundated_area', goodvar='good'))[~mask_good_sus_area]
 
         # area of pixels used to compute heights
         area_of_ht = np.asarray(self.river_obs.get_node_stat(
             'sum', 'inundated_area', goodvar='h_flg'))
-        width_area = np.asarray(
-            self.river_obs.get_node_stat('width_area', 'inundated_area'))
+        area_of_ht[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat(
+                'sum', 'inundated_area', goodvar='wse_class_flg')
+            )[~mask_good_sus_wse]
+
+        width_area = np.asarray(self.river_obs.get_node_stat(
+            'width_area', 'inundated_area'))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
+                'median', 'sig0', goodvar='h_flg'))
 
         # get the aggregated heights and widths with their corresponding
         # uncertainty estimates all in one shot
@@ -1173,14 +1358,27 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             node_aggs = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
-                area_method=self.area_agg_method, goodvar='h_flg')
+                area_method=self.area_agg_method, goodvar_wse='h_flg',
+                goodvar_area='area_flg', goodvar_sig0='sig0_flg')
+
+            node_aggs_w_degraded = self.river_obs.get_node_agg(
+                height_method=self.height_agg_method,
+                area_method=self.area_agg_method, goodvar_wse='wse_class_flg',
+                goodvar_area='good', goodvar_sig0='sig0_flg')
 
             latitude_u = node_aggs['lat_u']
+            latitude_u[~mask_good_sus_wse] = node_aggs_w_degraded[
+                'lat_u'][~mask_good_sus_wse]
+
             longitud_u = node_aggs['lon_u']
+            latitude_u[~mask_good_sus_wse] = node_aggs_w_degraded[
+                'lon_u'][~mask_good_sus_wse]
+
             rdr_sig0 = node_aggs['sig0']
             rdr_sig0_u = node_aggs['sig0_u']
 
             if self.area_agg_method is not 'orig':
+
                 width_area = node_aggs['width_area']
                 width_u = node_aggs['width_area_u']
                 area = node_aggs['area']
@@ -1189,10 +1387,37 @@ class SWOTRiverEstimator(SWOTL2):
                 area_det_u = node_aggs['area_det_u']
                 area_of_ht = node_aggs['area']
 
+                # Use degraded pix as well when not enough good/suspect pix
+                width_area[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'width_area'][~mask_good_sus_area]
+                width_u[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'width_area_u'][~mask_good_sus_area]
+                area[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'area'][~mask_good_sus_area]
+                area_u[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'area_u'][~mask_good_sus_area]
+                area_det[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'area_det'][~mask_good_sus_area]
+                area_det_u[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'area_det_u'][~mask_good_sus_area]
+                area_of_ht[~mask_good_sus_area] = node_aggs_w_degraded[
+                    'area'][~mask_good_sus_area]
+
             if self.height_agg_method is not 'orig':
                 wse = node_aggs['h']
-                wse_std = node_aggs['h_std']  # height_uncert_std
-                wse_r_u = node_aggs['h_u']    # height_uncert_multilook
+                wse[~mask_good_sus_wse] = node_aggs_w_degraded[
+                    'h'][~mask_good_sus_wse]
+
+                # height_uncert_std
+                wse_std = node_aggs['h_std']
+                wse_std[~mask_good_sus_wse] = node_aggs_w_degraded[
+                    'h_std'][~mask_good_sus_wse]
+
+                # height_uncert_multilook
+                wse_r_u = node_aggs['h_u']
+                wse_r_u[~mask_good_sus_wse] = node_aggs_w_degraded[
+                    'h_u'][~mask_good_sus_wse]
+
                 area_of_ht = area
 
         # geoid heights and tide corrections weighted by height uncertainty
@@ -1200,26 +1425,71 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        geoid_hght[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
         solid_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'solid_earth_tide',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        solid_tide[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'solid_earth_tide',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
         load_tidef = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_fes',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        load_tidef[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'load_tide_fes',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
         load_tideg = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'load_tide_got',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        load_tideg[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'load_tide_got',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
+
         pole_tide = np.asarray(
             self.river_obs.get_node_stat('height_weighted_mean',
                                          'pole_tide',
                                          goodvar='h_flg',
                                          method=self.height_agg_method))
+        pole_tide[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'pole_tide',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
+
+        layovr_val = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'layover_impact',
+                                         goodvar='h_flg',
+                                         method=self.height_agg_method))
+        layovr_val[~mask_good_sus_wse] = np.asarray(
+            self.river_obs.get_node_stat('height_weighted_mean',
+                                         'layover_impact',
+                                         goodvar='wse_class_flg',
+                                         method=self.height_agg_method)
+                                         )[~mask_good_sus_wse]
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1241,16 +1511,13 @@ class SWOTRiverEstimator(SWOTL2):
         max_n = np.array(self.river_obs.get_node_stat('max', 'n'))
         blocking_width = reach.blocking_widths[self.river_obs.populated_nodes]
 
-        # test at 5% inside of blocking width
-        test_width = blocking_width * 0.90
-        nanmask = np.isfinite(test_width)  # mask NaN's to avoid warning
-        is_blocked = np.empty_like(nanmask)
-        is_blocked[nanmask] = np.logical_or(
-            np.logical_and(test_width[nanmask] < 0,
-                           min_n[nanmask] < test_width[nanmask]),
-            np.logical_and(test_width[nanmask] > 0,
-                           max_n[nanmask] > test_width[nanmask]))
-        is_blocked = np.logical_or(is_blocked, nanmask)
+        # test at 10% inside of blocking width
+        test_width = blocking_width * BLOCKING_WIDTH_THRESHOLD_FRACTION
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            is_blocked = np.logical_or(
+                np.logical_and(test_width < 0, min_n < test_width),
+                np.logical_and(test_width > 0, max_n > test_width))
 
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
@@ -1273,17 +1540,169 @@ class SWOTRiverEstimator(SWOTL2):
 
         prior_s = np.cumsum(reach.node_length)
 
+        # total number of pixels assigned to each node
+        n_pix = np.array(self.river_obs.get_node_stat('count', 'x'))
+
+        # Number of pixels that are in wse class types for each node
+        n_pix_wse_class = np.array(
+            self.river_obs.get_node_stat('countGood', 'wse_class_flg'))
+
+        # Number of pixels used for wse/area/sig0 for each node
+        n_pix_wse = n_pix_wse_good_sus
+        n_pix_wse[~mask_good_sus_wse] = n_pix_wse_class[~mask_good_sus_wse]
+
+        n_pix_area = n_pix_area_good_sus
+        n_pix_area[~mask_good_sus_area] = n_pix[~mask_good_sus_area]
+
+        n_pix_sig0 = np.array(
+            self.river_obs.get_node_stat('countGood', 'sig0_flg'))
+
+        # Number of pixels with suspect wse/area/sig0 used in aggregations for
+        # each node
+        n_pix_wse_suspect = np.array(self.river_obs.get_node_stat(
+            'sum', 'is_wse_suspect', goodvar='h_flg'))
+        n_pix_area_suspect = np.array(self.river_obs.get_node_stat(
+            'sum', 'is_area_suspect', goodvar='area_flg'))
+        n_pix_sig0_suspect = np.array(self.river_obs.get_node_stat(
+            'sum', 'is_sig0_suspect', goodvar='sig0_flg'))
+
+        # Number of pixels with degraded wse/area that were rejected for each
+        # node
+        n_pix_wse_degraded = np.array(self.river_obs.get_node_stat(
+            'sum', 'is_wse_degraded', goodvar='wse_class_flg'))
+        n_pix_area_degraded = np.array(self.river_obs.get_node_stat(
+            'sum', 'is_area_degraded'))
+
+        # Create node_q_b quality bitwise flag
+        node_q_b = np.zeros(lat_median.shape, dtype='i4')
+
+        # bit 0 / sig0_qual_suspect
+        node_q_b[n_pix_sig0_suspect > 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_SIG0_QUAL_SUSPECT)
+
+        # bit 1 / classification_qual_suspect
+        node_q_b[n_pix_area_suspect > 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_SUSPECT)
+
+        # bit 2 / geolocation_qual_suspect
+        node_q_b[n_pix_wse_suspect > 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_SUSPECT)
+
+        # bit 3 / water_fraction_suspect
+        WATER_FRAC_SUSPECT_THRESHOLD = 3
+        water_frac_max = np.array(self.river_obs.get_node_stat(
+            'max', 'water_frac', goodvar='area_flg'))
+        water_frac_max[~mask_good_sus_area] = np.array(
+            self.river_obs.get_node_stat('max', 'water_frac', goodvar='good')
+            )[~mask_good_sus_area]
+        node_q_b[water_frac_max > WATER_FRAC_SUSPECT_THRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_WATER_FRAC_SUSPECT);
+
+        # bit 4 / blocking_width_suspect
+        node_q_b[is_blocked] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT)
+
+        # bit 7 / bright_land
+        n_pix_bright_land = np.array(
+            self.river_obs.get_node_stat('sum', 'bright_land_flag'))
+        node_q_b[n_pix_bright_land > 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
+
+        # bit (9/few_sig0_observations) / (10/few_area_observations) /
+        # (11/few_wse_observations)
+        node_q_b[n_pix_sig0 < TOO_FEW_PIXELS_THRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX)
+        node_q_b[n_pix_area < TOO_FEW_PIXELS_THRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_FEW_AREA_PIX)
+        node_q_b[n_pix_wse < TOO_FEW_PIXELS_THRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX)
+
+        # bit 13 / far_range_suspect
+        node_q_b[np.abs(xtrack_median) > FAR_RANGE_XTRACK_TRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
+
+        # bit 14 / near_range_suspect
+        node_q_b[np.abs(xtrack_median) < NEAR_RANGE_XTRACK_THRESHOLD] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
+
+        # bit 18 / classification_qual_degraded
+        # Only set if not enough pixels for good/sus only aggregations and
+        # degraded data is actually used (n_pix_area_degraded>0).
+        node_q_b[np.logical_and(
+            ~mask_good_sus_area, n_pix_area_degraded > 0)] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED)
+
+        # bit 19 / geolocation_qual_degraded
+        # Only set if not enough pixels for good/sus only aggregations, and
+        # n_pix_wse_degraded is not zero
+        node_q_b[np.logical_and(
+            ~mask_good_sus_wse, n_pix_wse_degraded > 0)] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_DEGRADED)
+
+        # bit 23 / wse_outlier will be set in later stage of processing when
+        # reach masks are generated)
+
+        # bit 24 / wse_bad
+        node_q_b[np.logical_or(wse < MIN_VALID_WSE, wse > MAX_VALID_WSE)] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
+
+        # bit 25 / no_sig0_observations
+        node_q_b[n_pix_sig0 == 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
+
+        # bit 26 / no_area_observations
+        node_q_b[n_pix_area == 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
+
+        # bit 27 / no_wse_observations
+        node_q_b[n_pix_wse == 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
+
+        # bit 28 / no_pixels
+        node_q_b[n_pix == 0] |= (
+            SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX)
+
+        # Create node_q from node_q_b
+        thresh_sus = 1
+        thresh_deg = SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED
+        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER
+
+        node_q = np.zeros(lat_median.shape, dtype='i2')
+        node_q[node_q_b >= thresh_sus] = 1
+        node_q[node_q_b >= thresh_deg] = 2
+        node_q[node_q_b >= thresh_bad] = 3
+
+        # create xovr_cal_q
+        xovr_cal_q = np.zeros(lat_median.shape, dtype='i2')
+        n_pix_xovercal_suspect = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_suspect', goodvar='h_flg'))
+        n_pix_xovercal_suspect[~mask_good_sus_wse] = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_suspect', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+        xovr_cal_q[n_pix_xovercal_suspect > 0] = 1
+
+        n_pix_xovercal_degraded = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_degraded', goodvar='h_flg'))
+        n_pix_xovercal_degraded[~mask_good_sus_wse] = np.array(
+            self.river_obs.get_node_stat(
+                'sum', 'is_xovercal_degraded', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
+        xovr_cal_q[n_pix_xovercal_degraded > 0] = 2
+
+        # if no valid pixels for height, set xovr_cal_q to BAD
+        xovr_cal_q[n_pix_wse == 0] = 2
+
         # type cast node outputs and pack it up for RiverReach constructor
         river_reach_kw_args = {
             'lat': lat_median.astype('float64'),
             'lon': lon_median.astype('float64'),
             'x': x_median.astype('float64'),
             'y': y_median.astype('float64'),
-            'nobs': nobs.astype('int32'),
             's': s_median.astype('float64'),
             'ds': ds.astype('float64'),
-            'w_ptp': width_ptp.astype('float64'),
-            'w_std': width_std.astype('float64'),
             'w_area': width_area.astype('float64'),
             'w_db': width_db.astype('float64'),
             'area': area.astype('float64'),
@@ -1294,7 +1713,9 @@ class SWOTRiverEstimator(SWOTL2):
             'wse': wse.astype('float64'),
             'wse_std': wse_std.astype('float64'),
             'wse_r_u': wse_r_u.astype('float64'),
+            'nobs': nobs.astype('int32'),
             'nobs_h': nobs_h.astype('int32'),
+            'n_good_pix': n_pix_wse.astype('int32'),
             'node_indx': node_indx.astype('int64'),
             'reach_indx': reach_index.astype('int64'),
             'rdr_sig0': rdr_sig0.astype('float64'),
@@ -1327,11 +1748,18 @@ class SWOTRiverEstimator(SWOTL2):
             'node_ss': prior_s[self.river_obs.populated_nodes],
             'populated_nodes': self.river_obs.populated_nodes,
             'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape),
-            'river_name': reach.river_name[self.river_obs.populated_nodes]
+            'river_name': reach.river_name[self.river_obs.populated_nodes],
+            'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
+            'layovr_val': layovr_val.astype('float64')
         }
 
+        # Get wse_u from RSS of random wse_r_u and REACH_WSE_SYS_UNCERT
+        river_reach_kw_args['wse_u'] = np.sqrt(
+            river_reach_kw_args['wse_r_u']**2 + REACH_WSE_SYS_UNCERT**2
+            ).astype('float64')
+
         if xtrack_median is not None:
-            river_reach_kw_args['xtrack'] = xtrack_median
+            river_reach_kw_args['xtrack'] = xtrack_median.astype('float64')
         else:
             river_reach_kw_args['xtrack'] = None
 
@@ -1396,6 +1824,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['width'] = np.sum(river_reach.area)/reach_stats['length']
         reach_stats['width_u'] = np.sqrt(np.sum(
             river_reach.area_u**2)) / reach_stats['length']
+        reach_stats['layovr_val'] = np.sqrt(np.sum(
+            river_reach.layovr_val[river_reach.mask]**2))
 
         reach_stats['loc_offset'] = (
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
@@ -1472,7 +1902,7 @@ class SWOTRiverEstimator(SWOTL2):
                 dx = ss[0] - ss[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
-                reach_stats['slope_r_u'] = slope_u * 0.01    # m/m
+                reach_stats['slope_r_u'] = slope_u * 0.0001    # m/m
                 reach_stats['height_r_u'] = height_u * 0.01  # m
                 reach_stats['slope_u'] = np.sqrt(
                     SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
@@ -1494,8 +1924,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         # do fit on geoid heights for reach-level outputs
         gg = river_reach.geoid_hght
-        # make changes here
-        #mask = self.get_reach_mask(ss, gg, ww, min_fit_points)
         if mask.sum() >= min_fit_points:
             geoid_fit = statsmodels.api.WLS(
                 gg[mask], SS[mask], weights=ww[mask]).fit()
@@ -1562,25 +1990,106 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['ice_clim_f'] = reach.metadata['iceflag']
         reach_stats['river_name'] = reach.metadata['river_name']
 
+
+        # Avoid letting fill value of -9999 from PRD propagate into outputs
+        # (these variables are just passed through from PRD to RiverTile).
+        def fill_if_was_fill(value, other_fill, fill):
+            return value if value != other_fill else fill
+
+        reach_stats['p_low_slp'] = fill_if_was_fill(
+            reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
+
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
 
-        reach_stats['dschg_msf'] = dsch_m_uc['MetroMan']['sbQ_rel']
-        reach_stats['dschg_bsf'] = dsch_m_uc['BAM']['sbQ_rel']
-        reach_stats['dschg_hsf'] = dsch_m_uc['HiVDI']['sbQ_rel']
-        reach_stats['dschg_osf'] = dsch_m_uc['MOMMA']['sbQ_rel']
-        reach_stats['dschg_ssf'] = dsch_m_uc['SADS']['sbQ_rel']
-        reach_stats['dschg_isf'] = dsch_m_uc['SIC4DVar']['sbQ_rel']
+        reach_stats['dschg_msf'] = fill_if_was_fill(
+            dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_bsf'] = fill_if_was_fill(
+            dsch_m_uc['BAM']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_hsf'] = fill_if_was_fill(
+            dsch_m_uc['HiVDI']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_osf'] = fill_if_was_fill(
+            dsch_m_uc['MOMMA']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_ssf'] = fill_if_was_fill(
+            dsch_m_uc['SADS']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_isf'] = fill_if_was_fill(
+            dsch_m_uc['SIC4DVar']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
 
-        reach_stats['dschg_gmsf'] = dsch_m_c['MetroMan']['sbQ_rel']
-        reach_stats['dschg_gbsf'] = dsch_m_c['BAM']['sbQ_rel']
-        reach_stats['dschg_ghsf'] = dsch_m_c['HiVDI']['sbQ_rel']
-        reach_stats['dschg_gosf'] = dsch_m_c['MOMMA']['sbQ_rel']
-        reach_stats['dschg_gssf'] = dsch_m_c['SADS']['sbQ_rel']
-        reach_stats['dschg_gisf'] = dsch_m_c['SIC4DVar']['sbQ_rel']
+        reach_stats['dschg_gmsf'] = fill_if_was_fill(
+            dsch_m_c['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_gbsf'] = fill_if_was_fill(
+            dsch_m_c['BAM']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_ghsf'] = fill_if_was_fill(
+            dsch_m_c['HiVDI']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_gosf'] = fill_if_was_fill(
+            dsch_m_c['MOMMA']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_gssf'] = fill_if_was_fill(
+            dsch_m_c['SADS']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
+        reach_stats['dschg_gisf'] = fill_if_was_fill(
+            dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
 
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
+
+        # Set reach_q_b
+        # Start by bitwise OR-ing all the node_q_b of the good (non-outlier)
+        # nodes node_q_b qual flag together.
+        reach_q_b = np.bitwise_or.reduce(river_reach.node_q_b[mask])
+
+        # bitwise AND of node_q_b used to set bits 26-28
+        reach_q_b_and = np.bitwise_and.reduce(river_reach.node_q_b[mask])
+
+        # The following bits are not given by logically OR-ing all the
+        # node_q_b flags together.
+
+        # unset bit 4
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT
+
+        # unset bit 9
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX
+
+        # unset bit 15 / re-set it with partially_observed
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
+        if reach_stats['frac_obs'] < 0.5:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
+
+        # unset bits 23 and 24
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD
+
+        # overwrite 25 / below_min_fit_points
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_SIG0_PIX
+        if mask.sum() < min_fit_points:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS
+
+        # overwrite bit 26 / no_area_observations if ALL node_q_b bit 26 is set
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX
+        if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_AREA_PIX
+
+        # overwrite bit 27 / no_wse_observations if ALL node_q_b bit 27 is set
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX
+        if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_WSE_PIX
+
+        # overwrite bit 28 / no_observations if ALL node_q_b bit 28 is set
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_NO_OBS
+        if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_OBS:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_OBS
+
+        reach_q = 0
+        if reach_q_b >= 1:
+            reach_q = 1
+        elif (reach_q_b >=
+              SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED):
+            reach_q = 2
+        elif reach_q_b >= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS:
+            reach_q = 3
+
+        reach_stats['reach_q_b'] = reach_q_b
+        reach_stats['reach_q'] = reach_q
+        reach_stats['xovr_cal_q'] = max(
+            river_reach.xovr_cal_q[mask], default=2)
 
         river_reach.metadata = reach_stats
         return river_reach
@@ -1784,20 +2293,16 @@ class SWOTRiverEstimator(SWOTL2):
             # handle indexing for masked reaches
             this_reach_edges = np.ma.flatnotmasked_edges(
                 np.ma.masked_array(river_reach.wse, mask=~river_reach.mask))
-            this_reach_len = river_reach.node_ss[this_reach_edges[1]] \
-                             - river_reach.node_ss[this_reach_edges[0]]
-            if first_node == 0:
-                # No upstream reach. Do not adjust first node location
-                first_node_masked = 0
-            else:
-                # Adjust first node location based on upstream masked nodes
-                first_node_masked = first_node - np.sum(
-                    ~mask[:first_node + this_reach_edges[0]])
+            this_reach_len = (river_reach.node_ss[this_reach_edges[1]]
+                              - river_reach.node_ss[this_reach_edges[0]])
+
+            first_node_masked = first_node - np.sum(~mask[:first_node])
             last_node_masked = first_node_masked + np.sum(river_reach.mask) - 1
 
             # window size and sigma for Gaussian averaging
             window_size = np.min([max_window_size, this_reach_len])
             sigma = np.max([min_sigma, window_size / window_size_sigma_ratio])
+
             # smooth h_n_ave, and get slope
             slope = np.polyfit(ss[mask], wse[mask], 1)[0]
             heights_detrend = wse[mask] - slope * ss[mask]
@@ -1851,7 +2356,12 @@ class SWOTRiverEstimator(SWOTL2):
         :param min_fit_points: minimum number of points needed to flag outliers
         :return: reach mask where good nodes are 1 and bad nodes are 0
         """
-        mask = np.logical_and(hh > -500, hh < 8000)
+        mask = np.logical_and(hh > MIN_VALID_WSE, hh < MAX_VALID_WSE)
+        if (ww[mask] == 0).any():
+            LOGGER.warning(
+                "get_reach_mask: Removing invalid wse_r_u (Inf) values!")
+            mask = np.logical_and(mask, ww > 0)
+
         if self.outlier_method is not None and mask.sum() > min_fit_points:
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
@@ -1890,9 +2400,7 @@ class SWOTRiverEstimator(SWOTL2):
              downstream reaches.
         """
         this_id = river_reach.reach_indx[0]
-        other_ids = [
-            item.reach_indx[0] for item in river_reach_collection
-        ]
+        other_ids = [item.reach_indx[0] for item in river_reach_collection]
 
         # get up/dn id from prior db
         prior_s = river_reach.prior_node_ss
@@ -2124,7 +2632,9 @@ class SWOTRiverEstimator(SWOTL2):
             first_and_last_node_c).T
         if self.use_multiple_reaches:
             wse_out = wse_out[first_node:end_slice]
-        return wse_out, height_u, slope_u
+
+        # Return height_u and slope_u as scalars
+        return wse_out, height_u.item(), slope_u.item()
 
     @staticmethod
     def compute_bayes_estimator(Ry, Rv, H):

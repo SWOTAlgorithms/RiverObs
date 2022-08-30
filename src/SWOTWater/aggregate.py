@@ -14,12 +14,12 @@ Author (s): Brent Williams
 import sys
 import numpy as np
 import scipy.stats
+import warnings
 
 from scipy import interpolate
 
 from SWOTWater.constants import AGG_CLASSES
 FLOAT_EPS = sys.float_info.epsilon
-
 
 def simple(in_var, metric='mean', pcnt=68):
     """
@@ -29,24 +29,25 @@ def simple(in_var, metric='mean', pcnt=68):
     in_var = 1d list or array of a given variable for all pixels over a feature 
              (river node, raster bin, lake)
     """
-    if metric == 'mean':
-        out_var = np.mean(in_var)
-    elif metric == 'median':
-        out_var = np.median(in_var)
-    elif metric == 'sum':
-        out_var = np.sum(in_var)
-    elif metric == 'std':
-        out_var = np.std(in_var)
-    elif metric == 'pcnt':
-        out_var = np.percentile(in_var, pcnt)
-    elif metric == 'count':
-        out_var = np.sum(np.ones(np.shape(in_var)))
-    elif metric == 'mode':
-        out_var,_ = scipy.stats.mode(in_var)
-    else:
-        out_var = None
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if metric == 'mean':
+            out_var = np.mean(in_var)
+        elif metric == 'median':
+            out_var = np.median(in_var)
+        elif metric == 'sum':
+            out_var = np.sum(in_var)
+        elif metric == 'std':
+            out_var = np.std(in_var)
+        elif metric == 'pcnt':
+            out_var = np.percentile(in_var, pcnt)
+        elif metric == 'count':
+            out_var = np.sum(np.ones(np.shape(in_var)))
+        elif metric == 'mode':
+            out_var,_ = scipy.stats.mode(in_var)
+        else:
+            out_var = None
     return out_var
-
 
 def sig0_with_uncerts(
         sig0, good, sig0_std,
@@ -258,7 +259,7 @@ def height_uncert_multilook(
 
 
 def height_with_uncerts(
-        height,  good, num_rare_looks, num_med_looks,
+        height, good, num_rare_looks, num_med_looks,
         ifgram, power1, power2, look_to_efflooks, dh_dphi,
         dlat_dphi, dlon_dphi, height_std=1.0, method='weight'):
     """
@@ -269,7 +270,7 @@ def height_with_uncerts(
     """
     # first aggregate the heights
     height_out, weight_norm = height_only(
-        height,  good, height_std=height_std, method=method)
+        height, good, height_std=height_std, method=method)
 
     # now compute uncertainties
     height_std_out = height_uncert_std(
@@ -553,8 +554,11 @@ def area_with_uncert(
         dark_water_klasses=dark_water_klasses,
         method=method)
 
-    # normalize to get area percent error
-    area_pcnt_uncert = area_unc/abs(area_agg)*100.0
+    # Hide divide by zero warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # normalize to get area percent error
+        area_pcnt_uncert = area_unc/abs(area_agg)*100.0
     return area_agg, area_unc, area_pcnt_uncert
 
 
