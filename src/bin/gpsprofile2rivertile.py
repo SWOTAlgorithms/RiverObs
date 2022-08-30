@@ -23,6 +23,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('gps_profile', help='GPS profile file')
     parser.add_argument('out_riverobs_file', help='Output NetCDF file')
+    parser.add_argument('out_pixcvec_file', help='Output PIXCVec file')
     parser.add_argument('rdf_file', help='Static config params')
     parser.add_argument(
         '-l', '--log-level', type=str, default="info",
@@ -30,7 +31,8 @@ def main():
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
-             'warning': logging.WARNING, 'error': logging.ERROR}[args.log_level]
+             'warning': logging.WARNING, 'error': logging.ERROR
+            }[args.log_level]
     format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     logging.basicConfig(level=level, format=format)
 
@@ -38,13 +40,14 @@ def main():
     config.rdfParse(args.rdf_file)
     config = dict(config)
 
-    LOGGER.debug('Converting GPS profile to netCDF4 file')
-
+    LOGGER.info('Converting GPS profile to netCDF4 file')
     # handle both formats: official nc product, and old-style text format
     try:
-        gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(args.gps_profile)
+        gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(
+            args.gps_profile)
     except OSError:
-        gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(args.gps_profile)
+        gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(
+            args.gps_profile)
 
     # write out a fake pixc, which is just the official format version
     # (with some extra made-up fields to get riverobs to run correctly)
@@ -68,7 +71,8 @@ def main():
     LOGGER.debug('Computing bounding box')
     bbox = gpsnc.compute_bounding_box()
 
-    estimator = SWOTRiver.Estimate.CalValToRiverTile(fake_pixc_fname)
+    estimator = SWOTRiver.Estimate.CalValToRiverTile(
+        fake_pixc_fname, args.out_pixcvec_file)
     estimator.load_config(config)
 
     # generate empty output file on errors

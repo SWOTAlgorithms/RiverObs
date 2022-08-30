@@ -428,11 +428,12 @@ class CalValToRiverTile(L2PixcToRiverTile):
     """
     Class for running calval data through rivertype-type processing.
     """
-    def __init__(self, calval_file):
+    def __init__(self, calval_file, index_file):
         """
         Constructs the CalValToRiverTile class instance.
         """
         self.pixc_file = calval_file
+        self.index_file = index_file
         self.is_new_pixc = False
         self.day_of_year = None
 
@@ -462,7 +463,7 @@ class CalValToRiverTile(L2PixcToRiverTile):
             'use_heights': self.config['use_heights'],
             'min_points': self.config['min_points'],
             'trim_ends': False, 'store_obs': False, 'store_reaches': False,
-            'output_file': None,
+            'output_file': self.index_file,
             'proj': 'laea', 'x_0': 0, 'y_0': 0, 'lat_0': None, 'lon_0': None,
             'subsample_factor': 1,
             'height_agg_method': self.config['height_agg_method'],
