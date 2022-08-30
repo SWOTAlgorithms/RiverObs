@@ -14,6 +14,7 @@ Author (s): Brent Williams
 import sys
 import numpy as np
 import scipy.stats
+import warnings
 
 from scipy import interpolate
 
@@ -28,20 +29,24 @@ def simple(in_var, metric='mean', pcnt=68):
     in_var = 1d list or array of a given variable for all pixels over a feature 
              (river node, raster bin, lake)
     """
-    if metric == 'mean':
-        out_var = np.mean(in_var)
-    elif metric == 'median':
-        out_var = np.median(in_var)
-    elif metric == 'sum':
-        out_var = np.sum(in_var)
-    elif metric == 'std':
-        out_var = np.std(in_var)
-    elif metric == 'pcnt':
-        out_var = np.percentile(in_var, pcnt)
-    elif metric == 'count':
-        out_var = np.sum(np.ones(np.shape(in_var)))
-    elif metric == 'mode':
-        out_var,_ = scipy.stats.mode(in_var)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if metric == 'mean':
+            out_var = np.mean(in_var)
+        elif metric == 'median':
+            out_var = np.median(in_var)
+        elif metric == 'sum':
+            out_var = np.sum(in_var)
+        elif metric == 'std':
+            out_var = np.std(in_var)
+        elif metric == 'pcnt':
+            out_var = np.percentile(in_var, pcnt)
+        elif metric == 'count':
+            out_var = np.sum(np.ones(np.shape(in_var)))
+        elif metric == 'mode':
+            out_var,_ = scipy.stats.mode(in_var)
+        else:
+            out_var = None
     return out_var
 
 def sig0_with_uncerts(
@@ -61,8 +66,8 @@ def sig0_with_uncerts(
 
     OUTPUTS:
     sig0_agg     = aggregated sig0
-    sig0_std_out = sample std of sig0
-    sig0_uncert  = estimate of sig0_agg 1-sigma uncertainty
+    sig_std_out = sample std of sig0
+    sig_uncert  = estimate of sig0_agg 1-sigma uncertainty
     """
     # just do a simple average of sig0, nothing fancy
     sig0_agg = simple(sig0[good], metric='mean')
@@ -89,6 +94,7 @@ def sig0_with_uncerts(
         sig_uncert = np.nan
         sig_std_out = np.nan
     return sig0_agg, sig_std_out, sig_uncert
+
 
 def height_only(height, good, height_std=1.0, method='weight'):
     """
@@ -121,12 +127,11 @@ def height_only(height, good, height_std=1.0, method='weight'):
         weight = np.ones(np.shape(height)) 
     elif method == 'weight':
         # inverse height variance weighting
-        weight = np.ones(np.shape(height))/(height_std)**2
+        weight = np.ones(np.shape(height))/height_std**2
     else:
         raise Exception("Unknown height aggregation method: {}".format(method))
     height_agg = simple(weight[good]*height[good], metric='sum')
     weight_sum = simple(weight[good], metric='sum')
-    num_pixels = simple(height[good], metric='count')
 
     weight_sum_pixc = np.ones(np.shape(weight))
     weight_sum_pixc[good] = weight_sum
@@ -138,6 +143,7 @@ def height_only(height, good, height_std=1.0, method='weight'):
     weight_norm = weight / weight_sum_pixc
 
     return height_out, weight_norm
+
 
 def height_uncert_std(
         height, good, num_rare_looks, num_med_looks, height_std=1.0,
@@ -181,6 +187,7 @@ def height_uncert_std(
 
     return height_std_out
 
+
 def height_uncert_multilook(
         ifgram, power1, power2, weight_norm, good, num_rare_looks,
         looks_to_efflooks, dh_dphi, dlat_dphi, dlon_dphi):
@@ -208,12 +215,12 @@ def height_uncert_multilook(
     Brent Williams, 2018, JPL Memo
     """
     # multilook the rare interferogram over the raster bin
-    #  by averaging certain fields
+    # by averaging certain fields
     agg_real = simple(np.real(ifgram[good])*weight_norm[good])
     agg_imag = simple(np.imag(ifgram[good])*weight_norm[good])
     agg_p1 = simple(power1[good]*weight_norm[good])
     agg_p2 = simple(power2[good]*weight_norm[good])
-    num_pixels = simple(power1[good],'count')
+    num_pixels = simple(power1[good], 'count')
 
     # compute coherence
     coh = abs(agg_real + 1j *agg_imag)/np.sqrt(agg_p1*agg_p2)
@@ -227,7 +234,8 @@ def height_uncert_multilook(
     # get phase noise variance using CRB
     phase_var = (0.5 / num_looks) * (1.0-coh**2)/(coh**2)
     # TODO: Probably want to set a more reasonable phase variance
-    if phase_var < FLOAT_EPS: phase_var = FLOAT_EPS
+    if phase_var < FLOAT_EPS:
+        phase_var = FLOAT_EPS
 
     agg_dh_dphi = simple(dh_dphi[good]*weight_norm[good])
     agg_dh_dphi2 = simple(dh_dphi[good]**2*weight_norm[good])
@@ -249,8 +257,9 @@ def height_uncert_multilook(
 
     return height_uncert_out, lat_uncert_out, lon_uncert_out
 
+
 def height_with_uncerts(
-        height,  good, num_rare_looks, num_med_looks,
+        height, good, num_rare_looks, num_med_looks,
         ifgram, power1, power2, look_to_efflooks, dh_dphi,
         dlat_dphi, dlon_dphi, height_std=1.0, method='weight'):
     """
@@ -261,7 +270,7 @@ def height_with_uncerts(
     """
     # first aggregate the heights
     height_out, weight_norm = height_only(
-        height,  good, height_std=height_std, method=method)
+        height, good, height_std=height_std, method=method)
 
     # now compute uncertainties
     height_std_out = height_uncert_std(
@@ -273,6 +282,7 @@ def height_with_uncerts(
         num_rare_looks, look_to_efflooks, dh_dphi, dlat_dphi, dlon_dphi)
     return (height_out, height_std_out, height_uncert_out, lat_uncert_out,
             lon_uncert_out)
+
 
 def area_only(
         pixel_area, water_fraction, klass, good,
@@ -332,6 +342,10 @@ def area_only(
     I = np.zeros(np.shape(pixel_area))
     I[(Idw + Idw_in + Ide) > 0] = 1.0  # all pixels near water
 
+    # set water fractions greater than 3 to 3 to handle water frac outliers
+    # TO-DO: propagate to node-level quality?
+    water_fraction = np.where(water_fraction < 3, water_fraction, 3)
+
     if method == 'simple':
         area_agg = simple(pixel_area[good] * Idw[good], metric='sum')
         num_pixels = simple(Idw[good], metric='sum')
@@ -348,6 +362,7 @@ def area_only(
     else:
         raise Exception("Unknown area aggregation method: {}".format(method))
     return area_agg, num_pixels
+
 
 def area_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
@@ -513,6 +528,7 @@ def area_uncert(
         std_out = std_alpha
     return std_out
 
+
 def area_with_uncert(
         pixel_area, water_fraction, water_fraction_uncert, darea_dheight,
         klass, Pfd, Pmd, good, Pca=0.9, Pw=0.5, Ptf=0.5, ref_dem_std=10,
@@ -538,17 +554,23 @@ def area_with_uncert(
         dark_water_klasses=dark_water_klasses,
         method=method)
 
-    # normalize to get area percent error
-    area_pcnt_uncert = area_unc/abs(area_agg)*100.0
+    # Hide divide by zero warning
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        # normalize to get area percent error
+        area_pcnt_uncert = area_unc/abs(area_agg)*100.0
     return area_agg, area_unc, area_pcnt_uncert
+
 
 def get_sensor_index(pixc):
     """ Return the sensor index for a pixel cloud from illumination time """
-    f = interpolate.interp1d(pixc['tvp']['time'], range(len(pixc['tvp']['time'])))
+    f = interpolate.interp1d(pixc['tvp']['time'],
+                             range(len(pixc['tvp']['time'])))
     illumination_time = pixc['pixel_cloud']['illumination_time'].data[
         np.logical_not(pixc['pixel_cloud']['illumination_time'].mask)]
     sensor_index = (np.rint(f(illumination_time))).astype(int).flatten()
     return sensor_index
+
 
 def flatten_interferogram(
         ifgram, plus_y_antenna_xyz, minus_y_antenna_xyz, target_xyz, tvp_index,
@@ -567,7 +589,7 @@ def flatten_interferogram(
 
     # Compute the corresponding reference phase and flatten the interferogram
     phase_ref = -2*np.pi / wavelength*(dist_e - dist_r)
-    interferogram_flatten  = ifgram*np.exp(-1.j*phase_ref)
+    interferogram_flatten = ifgram*np.exp(-1.j*phase_ref)
 
     return interferogram_flatten
 

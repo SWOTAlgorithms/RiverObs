@@ -39,16 +39,19 @@ def main():
     config = dict(config)
 
     LOGGER.debug('Converting GPS profile to netCDF4 file')
-    
+
     # handle both formats: official nc product, and old-style text format
     try:
         gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(args.gps_profile)
     except OSError:
         gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(args.gps_profile)
+
     # write out a fake pixc, which is just the official format version
     # (with some extra made-up fields to get riverobs to run correctly)
     gps_profile_basename = os.path.basename(args.gps_profile)
-    fake_pixc_fname = 'pixc_{}.nc'.format(os.path.splitext(gps_profile_basename)[0])
+    fake_pixc_fname = 'pixc_{}.nc'.format(
+        os.path.splitext(gps_profile_basename)[0])
+
     #fake_pixc_fname.replace('.txt','.nc') # output needs to be a .nc file
     gpsnc.to_ncfile(fake_pixc_fname)
 
@@ -56,10 +59,10 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if key in ['geolocation_method', 'reach_db_path', 'height_agg_method',
-                   'area_agg_method', 'slope_method', 'outlier_method']:
+                   'area_agg_method', 'slope_method', 'outlier_method',
+                   'pixc_quality_handling']:
             if config[key].lower() != 'none':
                 continue
-        print(key)
         config[key] = ast.literal_eval(config[key])
 
     LOGGER.debug('Computing bounding box')

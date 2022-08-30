@@ -52,8 +52,8 @@ def get_simple_node_id(node_id, reach_id):
     return np.floor((node_id.astype(int) - (reach_id-1)*1000)/10).astype(int)
 
 
-def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
-             title=None, prd_heights=False):
+def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
+             title=None, prd_heights=False, plot_bit_qual=False):
     # plots the water surface elevation (wse) for each node, for the observed
     # and truth data, and the fit for the reach
     reach_id = int(reach_id)
@@ -65,6 +65,7 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
     node_i = data.nodes['reach_id'] == reach_id
     node_id = data.nodes['node_id'][node_i]
     node_q = data.nodes['node_q'][node_i]
+    node_q_b = data.nodes['node_q_b'][node_i]
     node_i_truth = truth.nodes['reach_id'] == reach_id
     data_df = data_df[node_i]
     truth_df = truth_df[node_i_truth]
@@ -84,24 +85,55 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
     reach_wse = data.reaches['wse'][reach_i]
     truth_reach_wse = truth.reaches['wse'][reach_i_truth]
     reach_slope = data.reaches['slope'][reach_i]
+    reach_slope2 = data.reaches['slope2'][reach_i]
     truth_slope = truth.reaches['slope'][reach_i_truth]
     reach_width = data.reaches['width'][reach_i]
-    truth_width = truth.reaches['width'][reach_i_truth]
     reach_xtrk = data.reaches['xtrk_dist'][reach_i]
     reach_xtrk = str(round(reach_xtrk[0] / 1000, 1))
 
     axis.errorbar(node_p_dist, wse, wse_r_u, fmt='o',
                   markersize=2, label='node wse', zorder=0)
     # plot the bad quality nodes in different colour
-    qual_mask = node_q == 1
-    axis.errorbar(node_p_dist[qual_mask], wse[qual_mask], wse_r_u[qual_mask],
+    sus_qual_mask = node_q == 1
+    deg_qual_mask = node_q == 2
+    bad_qual_mask = node_q == 3
+    axis.errorbar(node_p_dist[bad_qual_mask], wse[bad_qual_mask],
+                  wse_r_u[bad_qual_mask],
                   fmt='o',
+                  color='red',
                   markersize=2,
                   markerfacecolor='red',
+                  markeredgecolor='red',
+                  markeredgewidth=1,
                   label='bad qual',
                   zorder=1)
+    axis.errorbar(node_p_dist[deg_qual_mask], wse[deg_qual_mask],
+                  wse_r_u[deg_qual_mask],
+                  fmt='o',
+                  color='orange',
+                  markersize=2,
+                  markerfacecolor='orange',
+                  markeredgecolor='orange',
+                  markeredgewidth=1,
+                  label='degraded qual',
+                  zorder=1)
+    axis.errorbar(node_p_dist[sus_qual_mask], wse[sus_qual_mask],
+                  wse_r_u[sus_qual_mask],
+                  fmt='o',
+                  color='yellow',
+                  markersize=2,
+                  markerfacecolor='yellow',
+                  markeredgecolor='yellow',
+                  markeredgewidth=1,
+                  label='suspect qual',
+                  zorder=1)
+    if plot_bit_qual:
+        for node_dist, wse, node_q in zip(node_p_dist, wse, node_q_b):
+            axis.text(
+                node_dist, wse+0.5, node_q, fontsize=3, color='lightgrey')
     axis.plot(node_p_dist_truth, truth_wse, 'kx',
               markersize=2, label='truth', zorder=10)
+
     axis2 = axis.twiny()
     node_id = node_id - node_id[0] + 11  # no reach in node_id, for readability
     axis2.plot(node_id, avg_wse*np.ones(len(node_id)))
@@ -113,32 +145,39 @@ def plot_wse(data, truth, errors, reach_id, axis, reach_fit=True,
           'truth wse is', truth_reach_wse, '\n',
           'reach slope is', reach_slope, '\n',
           'truth slope is', truth_slope, '\n')
-    if reach_fit:
-        # reset around PRD center
-        reach_center_dist = np.mean(node_p_dist_truth)
-        ss = node_p_dist_truth - reach_center_dist
-        ss_min = min(ss)
-        ss_max = max(ss)
-        fit_x = [ss_min, 0, ss_max] + reach_center_dist
-        # get slope end-points using slope and PRD center height
-        obs_fit_y = [reach_wse + ss_min*reach_slope,
-                     reach_wse,
-                     reach_wse + ss_max*reach_slope]
-        truth_fit_y = [truth_reach_wse + ss_min*truth_slope,
-                       truth_reach_wse,
-                       truth_reach_wse + ss_max*truth_slope]
-        axis.plot(fit_x, truth_fit_y, '--', markersize=10,
-                  color='r', label='truth fit')
-        axis.plot(fit_x, obs_fit_y, '--', markersize=10,
-                  color='b', label='obs fit')
-        axis.plot(np.mean(node_p_dist_truth), reach_wse, 'b*', markersize=5,
-                  color='g', label='obs wse', zorder=1)
-        axis.plot(np.mean(node_p_dist_truth), truth_reach_wse,
-                  'r*', markersize=5, label='truth wse', zorder=0)
-        axis.axvline(x=reach_center_dist, ls='--', lw=0.2)
-        # plot the wse_r_u shading
-        axis.fill_between(node_p_dist, wse + 3*wse_r_u, wse - 3*wse_r_u,
-                          facecolor='gray', alpha=0.3, interpolate=True)
+
+    # plot the reach slope
+    # reset around PRD center
+    reach_center_dist = np.mean(node_p_dist_truth)
+    ss = node_p_dist_truth - reach_center_dist
+    ss_min = min(ss)
+    ss_max = max(ss)
+    fit_x = [ss_min, 0, ss_max] + reach_center_dist
+    # get slope end-points using slope and PRD center height
+    obs_fit_y = [reach_wse + ss_min*reach_slope,
+                 reach_wse,
+                 reach_wse + ss_max*reach_slope]
+    truth_fit_y = [truth_reach_wse + ss_min*truth_slope,
+                   truth_reach_wse,
+                   truth_reach_wse + ss_max*truth_slope]
+    axis.plot(fit_x, truth_fit_y, '--', markersize=10,
+              color='r', label='truth fit')
+    axis.plot(fit_x, obs_fit_y, '--', markersize=10,
+              color='b', label='obs fit')
+    axis.plot(np.mean(node_p_dist_truth), reach_wse, 'b*', markersize=5,
+              color='g', label='obs wse', zorder=1)
+    axis.plot(np.mean(node_p_dist_truth), truth_reach_wse,
+              'r*', markersize=5, label='truth wse', zorder=0)
+    axis.axvline(x=reach_center_dist, ls='--', lw=0.2)
+    # plot the wse_r_u shading
+    axis.fill_between(node_p_dist, wse + 3*wse_r_u, wse - 3*wse_r_u,
+                      facecolor='gray', alpha=0.3, interpolate=True)
+    if plot_slope2:
+        # plot enhanced reach slope
+        obs_fit_y2 = [reach_wse + ss_min * reach_slope2, reach_wse,
+                      reach_wse + ss_max * reach_slope2]
+        axis.plot(fit_x, obs_fit_y2, '--', markersize=10, color='g',
+                  label='slp2 fit')
     if prd_heights:
         axis.plot(node_p_dist, data.nodes['p_wse'][node_i],
                   'D', markersize=2, label='PRD wse')

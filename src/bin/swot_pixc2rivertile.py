@@ -13,42 +13,59 @@ Optional args:
 
 template config file:
 
-width_db_file             (-) = None
-use_width_db              (-) = False
-reach_db_path             (-) = /u/turner-z0/fore/work/rivertile/new-reach-db/20190415
-class_list                (-) = [2, 3, 4, 22, 23, 24]
-use_fractional_inundation (-) = [True, True, False, False, False, False]
-use_segmentation          (-) = [False, True, True, False, True, True]
-use_heights               (-) = [False, False, True, False, False, False]
-min_points                (-) = 100
-clip_buffer               (-) = 20.0
-ds                        (-) = None
-refine_centerline         (-) = False
-smooth                    (-) = 0.01
-alpha                     (-) = 1
-max_iter                  (-) = 1
-scalar_max_width          (-) = 600.0
-minobs                    (-) = 10
-trim_ends                 (-) = False
-min_fit_points            (-) = 3
-do_improved_geolocation   (-) = False
-geolocation_method        (-) = taylor
-height_agg_method         (-) = weight
-area_agg_method           (-) = composite
-preseg_dilation_iter      (-) = 0
-slope_method              (-) = weighted
+reach_db_path               (-) = REPLACE_ME
+class_list                  (-) = [2, 3, 4, 5, 6, 7]
+use_fractional_inundation   (-) = [True, True, False, False, False, False]
+use_segmentation            (-) = [False, True, True, True, True, True]
+use_heights                 (-) = [False, True, True, False, True, True]
+min_points                  (-) = 0
+minobs                      (-) = 1
+trim_ends                   (-) = False
+min_fit_points              (-) = 2
+do_improved_geolocation     (-) = True
+geolocation_method          (-) = taylor
+height_agg_method           (-) = weight
+area_agg_method             (-) = composite
+slope_method                (-) = bayes
+prior_wse_method            (-) = fit
+prior_unc_alpha             (-) = 3.0
+char_length_tau             (-) = 10000
+use_multiple_reaches        (-) = True
+use_ext_dist_coef           (-) = True
+outlier_method              (-) = piecewise_linear
+outlier_abs_thresh          (-) = 1.5
+outlier_rel_thresh          (-) = 68
+outlier_upr_thresh          (-) = 80
+outlier_iter_num            (-) = 30
+outlier_breakpoint_min_dist (-) = 0.1
+outlier_edge_min_dist       (-) = 0.1
+outlier_n_boot              (-) = 10
+pixc_quality_handling       (-) = nominal
+num_good_sus_pix_thresh_wse  (-) = 1
+num_good_sus_pix_thresh_area (-) = 1
+use_bright_land              (-) = True
+geo_qual_wse_suspect         (-) = 0x0000ffff
+geo_qual_wse_degraded        (-) = 0x01ff0000
+geo_qual_wse_bad             (-) = 0xfe000000
+class_qual_area_suspect      (-) = 0x0000ffff
+class_qual_area_degraded     (-) = 0x01ff0000
+class_qual_area_bad          (-) = 0xfe000000
+sig0_qual_suspect            (-) = 0x01ffffff
+sig0_qual_bad                (-) = 0xfe000000
 
 Config file just has processing parameters, no filenames (shape_file_root
 will be overwritten in SDS env with "prior_rivers" in current
 working directory by SDS pre-processor).
 
 For using with GDEMs change to these key/value pairs:
-class_list                (-) = [4,24]
-use_fractional_inundation (-) = [False, False]
-use_segmentation          (-) = [True, True]
-use_heights               (-) = [True, False]
-preseg_dilation_iter      (-) = 1
+class_list                (-) = [4, 5, 24]
+use_fractional_inundation (-) = [False, False, False]
+use_segmentation          (-) = [True, True, True]
+use_heights               (-) = [True, True, True]
+do_improved_geolocation   (-) = False
 slope_method              (-) = first_to_last
+use_ext_dist_coef         (-) = False
+outlier_method            (-) = None
 
 Author (s): Alex Fore
 """
@@ -66,6 +83,7 @@ from SWOTRiver.products.pixcvec import L2PIXCVector
 from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger('swot_pixc2rivertile')
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -96,7 +114,8 @@ def main():
     # (excluding strings)
     for key in config.keys():
         if key in ['geolocation_method', 'reach_db_path', 'height_agg_method',
-                   'area_agg_method', 'slope_method', 'outlier_method']:
+                   'area_agg_method', 'slope_method', 'outlier_method',
+                   'prior_wse_method', 'pixc_quality_handling']:
             if config[key].lower() != 'none':
                 continue
         config[key] = ast.literal_eval(config[key])
@@ -136,6 +155,7 @@ def main():
 
     if args.gdem_file is not None:
         os.remove(pixc_file)
+
 
 if __name__ == "__main__":
     main()

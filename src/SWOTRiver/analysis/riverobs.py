@@ -329,6 +329,7 @@ def get_passfail(is_lake = False):
             'area_tot e (%)': [15, 30],
             'wse e (cm)': [10, 20],
             'slp e (cm/km)':[1.7, 3.4],
+            'slp2 e (cm/km)': [1.7, 3.4]
         }
     else:
         passfail = {
@@ -355,7 +356,8 @@ def get_truth_classes():
                       21602600311, 21602600371, 21602600871, 21602600891,
                       21602601451, 21602700051, 21602700071, 23221000021,
                       23267000111, 23267000131, 23267000201, 23267000271,
-                      23267000371, 21602600241],
+                      23267000371, 21602600241, 81130400011, 74292300011,
+                      74292100211],
         'tribs': [74230900151, 74291800111, 74291700051, 74291800081,
                   74284300051, 74284300061, 74100600051, 74100600061,
                   74100600071, 74100600081, 74100600551, 74100600561,
@@ -474,20 +476,20 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     bounds = {
         'min_xtrk': 10000,
         'max_xtrk': 60000,
-        'min_width': 100,
+        'min_width': 80,
         'min_area': 800000,
         'min_length': 8000,
         'min_obs_frac': 0.5,
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 0.5
+        'min_xtrk_ratio': 1.0
     }
     msk=[]
 
     # define some extra masking criteria for each reach based on node values
     obs_area_frac = np.empty(np.size(data.reaches['reach_id']))
-    truth_ratio = np.empty(np.size(data.reaches['reach_id']))
+    # truth_ratio = np.empty(np.size(data.reaches['reach_id']))
     xtrk_ratio = np.empty(np.size(data.reaches['reach_id']))
     for index, reach in enumerate(data.reaches['reach_id']):
         reach_scene = scene[index]
@@ -495,17 +497,17 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         scene_mask = [s == reach_scene for s in scene_nodes]
         node_mask = np.logical_and(data.nodes['reach_id'] == reach,
                                    scene_mask)
-        node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
-                                         scene_mask)
+        # node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
+        #                                  scene_mask)
         n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
-        n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
+        # n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
         n_prd = len(data.nodes['node_id'][node_mask])
         n_good_xtrk = np.sum(
             np.logical_and(np.abs(data.nodes['xtrk_dist'][node_mask]) > 10000,
                            np.abs(data.nodes['xtrk_dist'][node_mask]) < 60000))
 
         obs_area_frac[index] = n_good_data / n_prd
-        truth_ratio[index] = n_good_data / n_good_truth
+        # truth_ratio[index] = n_good_data / n_good_truth
         xtrk_ratio[index] = n_good_xtrk / n_prd
 
     # some quick plots
@@ -543,24 +545,21 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     # plt.show()
 
     if truth:
-        msk = np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              > bounds['min_xtrk']),#),
-              np.logical_and((np.abs(truth.reaches['xtrk_dist'])
-                              < bounds['max_xtrk']),#),
-              np.logical_and((truth.reaches['width']
-                              > bounds['min_width']),#100),
-              np.logical_and((truth.reaches['area_total']
-                              > bounds['min_area']),
-              np.logical_and((truth.reaches['p_length']
-                              >= bounds['min_length']),
-              np.logical_and(data.reaches['obs_frac_n']
-                             >= bounds['min_obs_frac'],
-                  truth.reaches['dark_frac']
-                             <= bounds['max_dark_frac']))))))
+        msk = np.logical_and.reduce([
+            np.abs(truth.reaches['xtrk_dist']) > bounds['min_xtrk'],
+            np.abs(truth.reaches['xtrk_dist']) < bounds['max_xtrk'],
+            truth.reaches['width'] > bounds['min_width'],
+            truth.reaches['area_total'] > bounds['min_area'],
+            truth.reaches['p_length'] >= bounds['min_length'],
+            data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+            truth.reaches['dark_frac'] <= bounds['max_dark_frac']
+        ])
         # add the node-level filters to the mask
-        msk = np.logical_and(msk, obs_area_frac > bounds['min_area_obs_frac'])
-        msk = np.logical_and(msk, truth_ratio > bounds['min_truth_ratio'])
-        msk = np.logical_and(msk, xtrk_ratio > bounds['min_xtrk_ratio'])
+        msk = np.logical_and.reduce([
+            msk,
+            obs_area_frac >= bounds['min_area_obs_frac'], #truth_ratio >= bounds['min_truth_ratio'],
+            xtrk_ratio >= bounds['min_xtrk_ratio']
+        ])
         if print_table:
             passfail = {
                 'Truth width (m)': [bounds['min_width'], 'flip'],
@@ -687,8 +686,9 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
 
 def print_metrics(
         metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, preamble=None, with_slope=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None, passfail={}):
+        dark_frac=None, preamble=None, with_slope=True, with_slope2=True,
+        with_width=True, with_node_avg=False, reach_len=None,
+        with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
@@ -701,6 +701,9 @@ def print_metrics(
     if with_slope:
         table['slp e (cm/km)'] = metrics['slope'][msk]
         table['slope (cm/km)'] = metrics['slope_t'][msk]
+    if with_slope2:
+        table['slp2 e (cm/km)'] = metrics['slope2'][msk]
+        table['slope2 (cm/km)'] = metrics['slope2_t'][msk]
     table['area_tot e (%)'] = metrics['area_total'][msk]
     table['area_det e (%)'] = metrics['area_detct'][msk]
     if with_width:

@@ -23,21 +23,16 @@ from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger(__name__)
 
+
 class L2PixcToRiverTile(object):
     """
     Class for running RiverObs on a SWOT L2 PixelCloud data product
     """
-    def __init__(self, l2pixc_file, index_file, is_new_pixc=None):
+    def __init__(self, l2pixc_file, index_file):
         self.pixc_file = l2pixc_file
         self.index_file = index_file
-        self.is_new_pixc = is_new_pixc
+        self.is_new_pixc = False
         self.node_outputs, self.reach_outputs = None, None
-
-        # if is_new_pixc is not supplied, test pixc file to see if it is true
-        if self.is_new_pixc is None:
-            self.is_new_pixc = False
-            with netCDF4.Dataset(self.pixc_file) as ifp:
-                self.is_new_pixc = 'pixel_cloud' in ifp.groups
 
         # compute day of year
         try:
@@ -83,7 +78,6 @@ class L2PixcToRiverTile(object):
             else:
                 data_dict = (ifp.variables if not self.is_new_pixc else
                              ifp.groups['pixel_cloud'])
-
                 lat = np.asarray(data_dict['latitude'][:])
                 lon = np.asarray(data_dict['longitude'][:])
 
@@ -107,10 +101,24 @@ class L2PixcToRiverTile(object):
 
         # ...etc for more validation tests
 
-    def do_river_processing(self):
-        """Does the river processing"""
-        LOGGER.info('do_river_processing')
-        print(self.config['trim_ends'])
+    def enforce_config(self):
+        """
+        Enforces entries and default values in the aux param input config
+        dictionary.
+        """
+        LOGGER.info('enforce_config')
+
+        qual_words = ("geo_qual_wse_suspect",
+                      "geo_qual_wse_degraded",
+                      "geo_qual_wse_bad",
+                      "class_qual_area_suspect",
+                      "class_qual_area_degraded",
+                      "class_qual_area_bad",
+                      "sig0_qual_suspect",
+                      "sig0_qual_bad")
+        for word in qual_words:
+            if word not in self.config:
+                self.config[word] = 0x00000000
 
         if 'fractional_inundation_kwd' not in self.config:
             self.config['fractional_inundation_kwd'] = 'water_frac'
@@ -125,17 +133,58 @@ class L2PixcToRiverTile(object):
             self.config['preseg_dilation_iter'] = 0
 
         if 'slope_method' not in self.config:
-            self.config['slope_method'] = 'weighted'
+            self.config['slope_method'] = 'bayes'
+
+        if 'prior_unc_alpha' not in self.config:
+            self.config['prior_unc_alpha'] = 1.5
+
+        if 'char_length_tau' not in self.config:
+            self.config['char_length_tau'] = 10000
+
+        if 'prior_wse_method' not in self.config:
+            self.config['prior_wse_method'] = 'fit'
+
+        if 'use_multiple_reaches' not in self.config:
+            self.config['use_multiple_reaches'] = False
 
         if 'use_ext_dist_coef' not in self.config:
             self.config['use_ext_dist_coef'] = True
 
-        # Set sub-params of iterative_linear outlier flagging method to
-        # None if outlier_method is not iterative_linear
-        if self.config['outlier_method'] != 'iterative_linear':
-            for key in ['outlier_abs_thresh', 'outlier_rel_thresh',
-                        'outlier_upr_thresh', 'outlier_iter_num']:
+        if 'pixc_qual_handling' not in self.config:
+            self.config['pixc_qual_handling'] = None
+
+        if 'num_good_sus_pix_thresh_wse' not in self.config:
+            self.config['num_good_sus_pix_thresh_wse'] = 1
+
+        if 'num_good_sus_pix_thresh_area' not in self.config:
+            self.config['num_good_sus_pix_thresh_area'] = 1
+
+        if 'use_bright_land' not in self.config:
+            self.config['use_bright_land'] = True
+
+        # set values to None for iterative_linear only keywords
+        if self.config['outlier_method'] is None:
+            for key in ['outlier_rel_thresh', 'outlier_breakpoint_min_dist',
+                        'outlier_edge_min_dist', 'outlier_abs_thresh',
+                        'outlier_upr_thresh', 'outlier_n_boot',
+                        'outlier_iter_num']:
                 self.config[key] = None
+        elif self.config['outlier_method'] != 'iterative_linear':
+            for key in ['outlier_rel_thresh']:
+                self.config[key] = None
+
+        # set values to None for piecewise_linear only keywords
+        elif self.config['outlier_method'] != 'piecewise_linear':
+            for key in ['outlier_breakpoint_min_dist',
+                        'outlier_edge_min_dist',
+                        'outlier_n_boot']:
+                self.config[key] = None
+
+    def do_river_processing(self):
+        """Does the river processing"""
+        LOGGER.info('do_river_processing')
+
+        self.enforce_config()
 
         # key/value arguments for constructing SWOTRiverEstimator
         kwargs = {
@@ -145,8 +194,10 @@ class L2PixcToRiverTile(object):
             'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
             'class_list': self.config['class_list'],
             'xtrack_kwd': 'cross_track',
-            'fractional_inundation_kwd': self.config['fractional_inundation_kwd'],
-            'use_fractional_inundation': self.config['use_fractional_inundation'],
+            'fractional_inundation_kwd': (
+                self.config['fractional_inundation_kwd']),
+            'use_fractional_inundation': (
+                self.config['use_fractional_inundation']),
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],
             'min_points': self.config['min_points'],
@@ -158,13 +209,35 @@ class L2PixcToRiverTile(object):
             'area_agg_method': self.config['area_agg_method'],
             'preseg_dilation_iter': self.config['preseg_dilation_iter'],
             'slope_method': self.config['slope_method'],
+            'prior_unc_alpha': self.config['prior_unc_alpha'],
+            'char_length_tau': self.config['char_length_tau'],
+            'prior_wse_method': self.config['prior_wse_method'],
+            'use_multiple_reaches': self.config['use_multiple_reaches'],
             'use_ext_dist_coef': self.config['use_ext_dist_coef'],
             'outlier_method': self.config['outlier_method'],
             'outlier_abs_thresh': self.config['outlier_abs_thresh'],
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
-            }
+            'outlier_breakpoint_min_dist': (
+                self.config['outlier_breakpoint_min_dist']),
+            'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
+            'outlier_n_boot': self.config['outlier_n_boot'],
+            'pixc_qual_handling': self.config['pixc_qual_handling'],
+            'geo_qual_wse_suspect': self.config['geo_qual_wse_suspect'],
+            'geo_qual_wse_degraded': self.config['geo_qual_wse_degraded'],
+            'geo_qual_wse_bad': self.config['geo_qual_wse_bad'],
+            'class_qual_area_suspect': self.config['class_qual_area_suspect'],
+            'class_qual_area_degraded': self.config['class_qual_area_degraded'],
+            'class_qual_area_bad': self.config['class_qual_area_bad'],
+            'sig0_qual_suspect': self.config['sig0_qual_suspect'],
+            'sig0_qual_bad': self.config['sig0_qual_bad'],
+            'num_good_sus_pix_thresh_wse': (
+                self.config['num_good_sus_pix_thresh_wse']),
+            'num_good_sus_pix_thresh_area': (
+                self.config['num_good_sus_pix_thresh_area']),
+            'use_bright_land': self.config['use_bright_land'],
+        }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
             self.pixc_file, **kwargs)
@@ -231,15 +304,10 @@ class L2PixcToRiverTile(object):
             self.config['do_improved_geolocation']):
             return
 
-        if not self.is_new_pixc:
-            print("Sensor information not provided, skipping improved ",
-                  "geolocation")
-            return
-
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
         except ModuleNotFoundError:
-            print("Cant load CNES improved geolocation, skipping!")
+            LOGGER.warning("Cant load CNES improved geolocation, skipping!")
             return
 
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
@@ -264,15 +332,9 @@ class L2PixcToRiverTile(object):
         """Matches the pixels from pixcvector to input pixc"""
         LOGGER.info('match_pixc_idx')
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
-
-            if self.is_new_pixc:
-                nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
-                azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
-                rng_index = ifp.groups['pixel_cloud']['range_index'][:]
-            else:
-                nr_pixels = ifp.nr_pixels
-                azi_index = ifp.variables['azimuth_index'][:]
-                rng_index = ifp.variables['range_index'][:]
+            nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
+            azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
+            rng_index = ifp.groups['pixel_cloud']['range_index'][:]
 
             pixc_idx = np.array(azi_index * int(nr_pixels) + rng_index)
 
@@ -294,6 +356,7 @@ class L2PixcToRiverTile(object):
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
         LOGGER.info('build_products')
+
         # If lake flag is set don't output width, area, or slope.
         try:
             for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
@@ -384,6 +447,8 @@ class CalValToRiverTile(L2PixcToRiverTile):
         """Does the river processing"""
         LOGGER.info('do_river_processing')
 
+        self.enforce_config()
+
         kwargs = {
             'bounding_box': self.compute_bounding_box(),
             'lat_kwd': 'latitude', 'lon_kwd': 'longitude',
@@ -410,6 +475,28 @@ class CalValToRiverTile(L2PixcToRiverTile):
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
+            'outlier_abs_thresh': self.config['outlier_abs_thresh'],
+            'outlier_rel_thresh': self.config['outlier_rel_thresh'],
+            'outlier_upr_thresh': self.config['outlier_upr_thresh'],
+            'outlier_iter_num': self.config['outlier_iter_num'],
+            'outlier_breakpoint_min_dist': (
+                self.config['outlier_breakpoint_min_dist']),
+            'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
+            'outlier_n_boot': self.config['outlier_n_boot'],
+            'pixc_qual_handling': self.config['pixc_qual_handling'],
+            'geo_qual_wse_suspect': self.config['geo_qual_wse_suspect'],
+            'geo_qual_wse_degraded': self.config['geo_qual_wse_degraded'],
+            'geo_qual_wse_bad': self.config['geo_qual_wse_bad'],
+            'class_qual_area_suspect': self.config['class_qual_area_suspect'],
+            'class_qual_area_degraded': self.config['class_qual_area_degraded'],
+            'class_qual_area_bad': self.config['class_qual_area_bad'],
+            'sig0_qual_suspect': self.config['sig0_qual_suspect'],
+            'sig0_qual_bad': self.config['sig0_qual_bad'],
+            'num_good_sus_pix_thresh_wse': (
+                self.config['num_good_sus_pix_thresh_wse']),
+            'num_good_sus_pix_thresh_area': (
+                self.config['num_good_sus_pix_thresh_area']),
+            'use_bright_land': self.config['use_bright_land'],
             }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
@@ -463,7 +550,7 @@ class CalValToRiverTile(L2PixcToRiverTile):
         self.prd_reaches = river_estimator.reaches
 
     def do_improved_geolocation(self):
-        logger.warning(
+        LOGGER.warning(
             'do_improved_geolocation not implemented for CalValToRiverTile')
 
 

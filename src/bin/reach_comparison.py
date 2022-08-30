@@ -28,6 +28,7 @@ import pdb
 import matplotlib.pyplot as plt
 import warnings
 import pandas as pd
+from pathlib import Path
 
 from os import path
 from plot_reach_stats import load_and_accumulate
@@ -35,8 +36,9 @@ from plot_riverobs import NodePlots, ParamPlots, HeightPlots
 from collections import namedtuple
 
 
-def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
-                    truth_only=False, scene_filter=None):
+def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
+                    truth_rivertile, pge, truth_basedir=None, truth_only=False,
+                    scene_filter=None):
     # get all pixc files 'rivertile.nc' and find associated truth file
     missing_truth_count = 0
     if truth_only:
@@ -47,12 +49,18 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
                                                      'river_data',
                                                      'rivertile.nc'))
     else:
-        proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*',
-                                                     slc_dir,
-                                                     pixc_dir,
-                                                     proc_rivertile,
-                                                     'river_data',
-                                                     'rivertile.nc'))
+        if pge:
+            # Filenames have different format due to using PGE stand in
+            proc_rivertile_list = glob.glob(
+                os.path.join(basedir, '*', '*', slc_dir, pixc_dir,
+                             proc_rivertile, 'river_data', '*RiverTile*.nc'))
+        else:
+            proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*',
+                                                         slc_dir,
+                                                         pixc_dir,
+                                                         proc_rivertile,
+                                                         'river_data',
+                                                         'rivertile.nc'))
     if scene_filter:  # only keep tiles matching the input scene
         proc_rivertile_list = [k for k in proc_rivertile_list
                                if scene_filter in k]
@@ -61,8 +69,9 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
     truth_rivertile_list = []
     for index, rivertile in enumerate(proc_rivertile_list):
         if os.path.exists(rivertile):
-            truth_file = get_truth_file(proc_rivertile, pixc_dir, rivertile,
-                                    truth_dir, truth_only)
+            truth_file = get_truth_file(
+                proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
+                truth_basedir, truth_only)
             if os.path.exists(truth_file):
                 truth_rivertile_list.append(truth_file)
             else:
@@ -79,15 +88,23 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile, truth_dir,
     return proc_rivertile_list, truth_rivertile_list
 
 
-def get_truth_file(proc_dir, pixc_dir, proc_rivertile,
-                   truth_dir, truth_only=False):
+def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_rivertile,
+                   basedir, truth_basedir=None, truth_only=False):
+    proc_file_parts = proc_rivertile.split('/')
     if truth_only:
-        n_char = len(proc_dir) + 1 + len('river_data/rivertile.nc')
+        n_char = len(proc_dir) + 1 + len(proc_file_parts[-1] + '/'
+                                         + proc_file_parts[-2])
     else:
-        n_char = len(proc_dir) + len(pixc_dir) \
-                 + 1 + len('river_data/rivertile.nc') + 1
+        n_char = len(proc_dir) + len(pixc_dir) + 1 \
+                 + len(proc_file_parts[-1] + '/' + proc_file_parts[-2]) + 1
     path = proc_rivertile[0:-n_char]
-    truth_file = path + truth_dir + '/river_data/rivertile.nc'
+    if truth_basedir:
+        truth_path = proc_rivertile.replace(basedir, truth_basedir)[0:-n_char]
+        truth_file = glob.glob(os.path.join(
+            truth_path, truth_rivertile, '*', '*iver*ile*.nc'))[0]
+    else:
+        truth_file = glob.glob(os.path.join(
+            path, truth_rivertile, '*', '*iver*ile*.nc'))[0]
     return truth_file
 
 
@@ -255,12 +272,19 @@ def get_gdem_from_rivertile(rivertile_file):
 
 
 def get_pixcvec_from_rivertile(rivertile_file):
-    # gets a pixcvec file from an input rivertile.nc. Hard coded, user beware.
+    # gets a pixcvec file from an input rivertile. Hard coded.
+    # TODO: make more general
     pixcvec_file = rivertile_file[0:-12] + '/pixcvec.nc'
     if path.exists(pixcvec_file):
         return pixcvec_file
     else:
-        print('Missing pixcvec file, continuing...')
+        # pixcvec not found, try PGE format instead
+        pixcvec_file = rivertile_file[0:-65] + 'PIXCVecRiver' \
+                       + rivertile_file[-56:]
+    if path.exists(pixcvec_file):
+        return pixcvec_file
+    else:
+        print('Could not find pixcvec file.')
         return None
 
 
@@ -271,6 +295,9 @@ def main():
     parser.add_argument('truth_rivertile', type=str, default=None,
                         help='truth rivertile file (or basename)')
     parser.add_argument('--basedir', help='base directory of processing')
+    parser.add_argument('--truth_basedir', type=str, default=None,
+                        help='base directory of truth processing. Only use if'
+                             'different than nominal processing.')
     parser.add_argument('-sb', '--slc_basename', type=str, default=None,
                         help='slc directory basename')
     parser.add_argument('-pb', '--pixc_basename', type=str, default=None,
@@ -293,6 +320,10 @@ def main():
                                         'Options are tribs, non_linear, '
                                         'edge_node, partial_truth, multi_chn,'
                                         'bad_reach, wrong_dir, linear.')
+    parser.add_argument('-pge', '--pge', action='store_true', default=None,
+                        help='Flag that signifies we are looking for '
+                             'pge-generated files. These have different names '
+                             'and require a flag to correctly be found.')
 
     args = parser.parse_args()
 
@@ -308,12 +339,13 @@ def main():
                                             args.pixc_basename,
                                             args.proc_rivertile,
                                             args.truth_rivertile,
+                                            args.pge,
+                                            args.truth_basedir,
                                             args.truth_only,
                                             args.scene_filter)
-    metrics, good_rivertile_list, good_truth_list = get_errors(proc_list,
-                                                               truth_list,
-                                                               args.test_boolean,
-                                                               args.truth_filter)
+
+    metrics, good_rivertile_list, good_truth_list = get_errors(
+        proc_list, truth_list, args.test_boolean, args.truth_filter)
 
     # start plotting at the error percentile of interest
     n_reaches = len(metrics['reach'])
