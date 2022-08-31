@@ -1693,13 +1693,14 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[n_pix_wse < TOO_FEW_PIXELS_THRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX)
 
-        # bit 13 / far_range_suspect
-        node_q_b[np.abs(xtrack_median) > FAR_RANGE_XTRACK_TRESHOLD] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
-
-        # bit 14 / near_range_suspect
-        node_q_b[np.abs(xtrack_median) < NEAR_RANGE_XTRACK_THRESHOLD] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
+        # bit 13 / far_range_suspect and bit 14 / near_range_suspect
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            node_q_b[np.abs(xtrack_median) > FAR_RANGE_XTRACK_TRESHOLD] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
+            # bit 14 / near_range_suspect
+            node_q_b[np.abs(xtrack_median) < NEAR_RANGE_XTRACK_THRESHOLD] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
 
         # bit 18 / classification_qual_degraded
         # Only set if not enough pixels for good/sus only aggregations and
@@ -2045,8 +2046,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
 
-        reach_stats['dark_frac'] = (
-            1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reach_stats['dark_frac'] = (
+                1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up'] > 0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn'] > 0).sum()
