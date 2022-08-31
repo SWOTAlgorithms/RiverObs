@@ -162,13 +162,14 @@ class L2PixcToRiverTile(object):
         if 'use_bright_land' not in self.config:
             self.config['use_bright_land'] = True
 
-        # set values to None for iterative_linear only keywords
+        # set values to None for outlier rejection only keywords
         if self.config['outlier_method'] is None:
             for key in ['outlier_rel_thresh', 'outlier_breakpoint_min_dist',
                         'outlier_edge_min_dist', 'outlier_abs_thresh',
                         'outlier_upr_thresh', 'outlier_n_boot',
                         'outlier_iter_num']:
                 self.config[key] = None
+        # set values to None for iterative_linear only keywords
         elif self.config['outlier_method'] != 'iterative_linear':
             for key in ['outlier_rel_thresh']:
                 self.config[key] = None
