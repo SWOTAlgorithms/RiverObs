@@ -71,22 +71,29 @@ class GPSProfile(RiverNCProductMixIn, Product):
 
     @classmethod
     def from_ncfile(cls, gps_profile_file):
-        product = super(GPSProfile, cls).from_ncfile(gps_profile_file)
+        """
+        Overrides the superclass from_ncfile with custom constructor code
+        that sets some important datasets for RiverObs
+        """
+        klass = super(GPSProfile, cls).from_ncfile(gps_profile_file)
+
         # Create dummy classification field filled with constant value of 0
-        classification = np.zeros(product.latitude.shape)
+        classification = np.zeros(klass.latitude.shape)
+
         # use the position_3drss_formal_error to throw out bad data
         # by setting classification
-        classification[product.position_3drss_formal_error > 0.25] = 1
-        setattr(product, 'classification', classification)
-        # make fake range and azimuth indices so that segmentation algorithms work
-        # in riverobs processing
-        range_index = np.zeros(product.latitude.shape)
-        azimuth_index = np.zeros(product.latitude.shape) + 2
+        classification[klass.position_3drss_formal_error > 0.25] = 1
+        klass.classification = classification
+
+        # Make fake range and azimuth indices so that segmentation algorithms
+        # work in riverobs processing
+        range_index = np.zeros(klass.latitude.shape)
+        azimuth_index = np.zeros(klass.latitude.shape) + 2
         rind = np.arange(len(classification[classification==0]), dtype=int)
         range_index[classification==0] = rind
-        setattr(product, 'azimuth_index', azimuth_index)
-        setattr(product, 'range_index', range_index)
-        return product
+        klass.azimuth_index = azimuth_index
+        klass.range_index = range_index
+        return klass
 
     @classmethod
     def from_native(cls, gps_profile_file):
@@ -132,7 +139,9 @@ class GPSProfile(RiverNCProductMixIn, Product):
         klass.time = swot_tt
         klass.latitude = latitude
         klass.longitude = longitude
-        klass.height_water = height # put it in water_height since we dont have cor fields
+
+         # put it in water_height since we dont have cor fields
+        klass.height_water = height
         klass.classification = classification
         klass.azimuth_index = azimuth_index
         klass.range_index = range_index
