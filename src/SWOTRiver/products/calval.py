@@ -46,7 +46,7 @@ class GPSProfile(RiverNCProductMixIn, Product):
         ['time_tai', {'dtype': 'f8'}],
         ['latitude', {'dtype': 'f8'}],
         ['longitude', {'dtype': 'f8'}],
-        ['height', {'dtype': 'f8'}],
+        ['height_arp', {'dtype': 'f8'}],
         ['x', {'dtype': 'f8'}],
         ['y', {'dtype': 'f8'}],
         ['z', {'dtype': 'f8'}],
@@ -76,23 +76,27 @@ class GPSProfile(RiverNCProductMixIn, Product):
         that sets some important datasets for RiverObs
         """
         klass = super(GPSProfile, cls).from_ncfile(gps_profile_file)
+        
+        # if classification is not populated, make a fake one 
+        if np.sum(klass.classification) is np.ma.masked:
+            classification = np.zeros(klass.latitude.shape)
 
-        # Create dummy classification field filled with constant value of 0
-        classification = np.zeros(klass.latitude.shape)
+            # use the position_3drss_formal_error to throw out bad data
+            # by setting classification
+            classification[klass.position_3drss_formal_error > 0.25] = 1
+            klass.classification = classification
 
-        # use the position_3drss_formal_error to throw out bad data
-        # by setting classification
-        classification[klass.position_3drss_formal_error > 0.25] = 1
-        klass.classification = classification
-
-        # Make fake range and azimuth indices so that segmentation algorithms
-        # work in riverobs processing
-        range_index = np.zeros(klass.latitude.shape)
-        azimuth_index = np.zeros(klass.latitude.shape) + 2
-        rind = np.arange(len(classification[classification==0]), dtype=int)
-        range_index[classification==0] = rind
-        klass.azimuth_index = azimuth_index
-        klass.range_index = range_index
+        # if range_ and azmuth_index are not populate, make fake ones
+        if (np.sum(klass.range_index) is np.ma.masked) or (
+                np.sum(klass.azimuth_index) is np.ma.masked):
+            # Make fake range and azimuth indices so that segmentation algorithms
+            # work in riverobs processing
+            range_index = np.zeros(klass.latitude.shape)
+            azimuth_index = np.zeros(klass.latitude.shape) + 2
+            rind = np.arange(len(classification[classification==0]), dtype=int)
+            range_index[classification==0] = rind
+            klass.azimuth_index = azimuth_index
+            klass.range_index = range_index
         return klass
 
     @classmethod
