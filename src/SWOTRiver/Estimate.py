@@ -31,7 +31,6 @@ class L2PixcToRiverTile(object):
     def __init__(self, l2pixc_file, index_file):
         self.pixc_file = l2pixc_file
         self.index_file = index_file
-        self.is_new_pixc = False
         self.node_outputs, self.reach_outputs = None, None
 
         # compute day of year
@@ -76,10 +75,15 @@ class L2PixcToRiverTile(object):
                     lon = np.array([getattr(ifp, item) for item in lon_keys])
 
             else:
-                data_dict = (ifp.variables if not self.is_new_pixc else
-                             ifp.groups['pixel_cloud'])
-                lat = np.asarray(data_dict['latitude'][:])
-                lon = np.asarray(data_dict['longitude'][:])
+                try:
+                    lat = np.asarray(
+                        ifp.groups['pixel_cloud'].variables['latitude'][:])
+                    lon = np.asarray(
+                        ifp.groups['pixel_cloud'].variables['longitude'][:])
+                except KeyError:
+                    lat = np.asarray(ifp.variables['latitude'][:])
+                    lon = np.asarray(ifp.variables['longitude'][:])
+
 
         # wrap to [-180, 180) interval
         lon[lon >= 180] -= 360
@@ -427,7 +431,7 @@ class L2PixcToRiverTile(object):
 
 class CalValToRiverTile(L2PixcToRiverTile):
     """
-    Class for running calval data through rivertype-type processing.
+    Class for running calval data through rivertile-type processing.
     """
     def __init__(self, calval_file, index_file):
         """
@@ -435,7 +439,6 @@ class CalValToRiverTile(L2PixcToRiverTile):
         """
         self.pixc_file = calval_file
         self.index_file = index_file
-        self.is_new_pixc = False
         self.day_of_year = None
 
     def compute_bounding_box(self):
