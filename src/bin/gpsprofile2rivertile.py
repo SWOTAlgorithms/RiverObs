@@ -28,6 +28,9 @@ def main():
     parser.add_argument(
         '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
+    parser.add_argument(
+        '-u', '--use-orig-file', action='store_true', default=False,
+        help="use the original file instead of writing it to disc and using that")
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
@@ -40,23 +43,27 @@ def main():
     config.rdfParse(args.rdf_file)
     config = dict(config)
 
-    LOGGER.info('Converting GPS profile to netCDF4 file')
-    # handle both formats: official nc product, and old-style text format
-    try:
-        gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(
-            args.gps_profile)
-    except OSError:
-        gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(
-            args.gps_profile)
+    if args.use_orig_file:
+        LOGGER.info('Using input file as though it is a pixc file')
+        fake_pixc_fname = args.gps_profile
+    else:
+        LOGGER.info('Converting GPS profile to netCDF4 file')
+        # handle both formats: official nc product, and old-style text format
+        try:
+            gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(
+                args.gps_profile)
+        except OSError:
+            gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(
+                args.gps_profile)
+        # write out a fake pixc, which is just the official format version
+        # (with some extra made-up fields to get riverobs to run correctly)
+        gps_profile_basename = os.path.basename(args.gps_profile)
+        fake_pixc_fname = 'pixc_{}.nc'.format(
+            os.path.splitext(gps_profile_basename)[0])
 
-    # write out a fake pixc, which is just the official format version
-    # (with some extra made-up fields to get riverobs to run correctly)
-    gps_profile_basename = os.path.basename(args.gps_profile)
-    fake_pixc_fname = 'pixc_{}.nc'.format(
-        os.path.splitext(gps_profile_basename)[0])
-
-    #fake_pixc_fname.replace('.txt','.nc') # output needs to be a .nc file
-    gpsnc.to_ncfile(fake_pixc_fname)
+        #fake_pixc_fname.replace('.txt','.nc') # output needs to be a .nc file
+        gpsnc.to_ncfile(fake_pixc_fname)
+        
 
     # typecast most config values with eval since RDF won't do it for me
     # (excluding strings)
@@ -68,8 +75,6 @@ def main():
                 continue
         config[key] = ast.literal_eval(config[key])
 
-    LOGGER.debug('Computing bounding box')
-    bbox = gpsnc.compute_bounding_box()
 
     estimator = SWOTRiver.Estimate.CalValToRiverTile(
         fake_pixc_fname, args.out_pixcvec_file)
