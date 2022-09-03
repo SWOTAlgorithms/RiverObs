@@ -25,7 +25,7 @@ class RiverNCProductMixIn(object):
         return (self.longitude[mask].min(), self.latitude[mask].min(),
                 self.longitude[mask].max(), self.latitude[mask].max())
 
-class GPSProfile(RiverNCProductMixIn, Product):
+class CalValPixelCloud(RiverNCProductMixIn, Product):
     ATTRIBUTES = odict([
         ['Conventions',{}],
         ['title',{}],
@@ -64,21 +64,21 @@ class GPSProfile(RiverNCProductMixIn, Product):
         ['gnss_wet_tropo_cor', {'dtype': 'f8'}],
         ['classification', {'dtype': 'u1'}],
         ['azimuth_index', {'dtype': 'i4'}],
-        ['range_index', {'dtype': 'i4'}]
+        ['range_index', {'dtype': 'i4'}],
+        ['height', {'dtype': 'f8'}]
         ])
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
 
     @classmethod
-    def from_ncfile(cls, gps_profile_file):
-        """
-        Overrides the superclass from_ncfile with custom constructor code
-        that sets some important datasets for RiverObs
-        """
-        klass = super(GPSProfile, cls).from_ncfile(gps_profile_file)
-        
+    def from_drifter_nc(cls, gps_profile_file):
+        """converts official calval format drifter data to calvalpixc"""
+        klass = cls()
+        # populate "height" with height_water
+        klass.height = height_water.copy()
+
         # if classification is not populated, make a fake one 
-        if np.sum(klass.classification) is np.ma.masked:
+        if 'classification' not in klass.variables:
             classification = np.zeros(klass.latitude.shape)
 
             # use the position_3drss_formal_error to throw out bad data
@@ -87,8 +87,8 @@ class GPSProfile(RiverNCProductMixIn, Product):
             klass.classification = classification
 
         # if range_ and azmuth_index are not populate, make fake ones
-        if (np.sum(klass.range_index) is np.ma.masked) or (
-                np.sum(klass.azimuth_index) is np.ma.masked):
+        if ('azimuth_index' not in klass.variables) or (
+                'range_index' not in klass.variables):
             # Make fake range and azimuth indices so that segmentation algorithms
             # work in riverobs processing
             range_index = np.zeros(klass.latitude.shape)
@@ -100,7 +100,12 @@ class GPSProfile(RiverNCProductMixIn, Product):
         return klass
 
     @classmethod
-    def from_native(cls, gps_profile_file):
+    def from_drifter_shp(cls, gps_profile_file):
+        """TODO: implement shp file GNSS drift data to calvalpixc converter"""
+        return None
+
+    @classmethod
+    def from_drifter_native(cls, gps_profile_file):
         """Creates GPSProfile class instance from native format text file"""
         with open(gps_profile_file, 'r') as ifp:
             lines = ifp.readlines()
@@ -151,4 +156,15 @@ class GPSProfile(RiverNCProductMixIn, Product):
         klass.range_index = range_index
         return klass
 
+    @classmethod
+    def from_geotif(cls, geotif_file):
+        """TODO: implement geotif-to-calvalpixc converter"""
+        #TODO: implement
+        return None
 
+    @classmethod
+    def from_pt(cls, pt_file, swot_time)
+        """TODO: implement pressure transducers-to-calvalpixc converter for closest time"""
+        return None
+
+    
