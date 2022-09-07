@@ -22,15 +22,13 @@ def main():
     """Sample script for running calval data through RiverObs"""
     parser = argparse.ArgumentParser()
     parser.add_argument('gps_profile', help='GPS profile file')
-    parser.add_argument('out_riverobs_file', help='Output NetCDF file')
+    parser.add_argument('out_pixc_file', help='Output pixc file')
+    parser.add_argument('out_riverobs_file', help='Output river NETCDF file')
     parser.add_argument('out_pixcvec_file', help='Output PIXCVec file')
     parser.add_argument('rdf_file', help='Static config params')
     parser.add_argument(
         '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
-    parser.add_argument(
-        '-u', '--use-orig-file', action='store_true', default=False,
-        help="use the original file instead of writing it to disc and using that")
     args = parser.parse_args()
 
     level = {'debug': logging.DEBUG, 'info': logging.INFO,
@@ -43,27 +41,10 @@ def main():
     config.rdfParse(args.rdf_file)
     config = dict(config)
 
-    if args.use_orig_file:
-        LOGGER.info('Using input file as though it is a pixc file')
-        fake_pixc_fname = args.gps_profile
-    else:
-        LOGGER.info('Converting GPS profile to netCDF4 file')
-        # handle both formats: official nc product, and old-style text format
-        try:
-            gpsnc = SWOTRiver.products.calval.GPSProfile.from_ncfile(
-                args.gps_profile)
-        except OSError:
-            gpsnc = SWOTRiver.products.calval.GPSProfile.from_native(
-                args.gps_profile)
-        # write out a fake pixc, which is just the official format version
-        # (with some extra made-up fields to get riverobs to run correctly)
-        gps_profile_basename = os.path.basename(args.gps_profile)
-        fake_pixc_fname = 'pixc_{}.nc'.format(
-            os.path.splitext(gps_profile_basename)[0])
-
-        #fake_pixc_fname.replace('.txt','.nc') # output needs to be a .nc file
-        gpsnc.to_ncfile(fake_pixc_fname)
-        
+    pixc_simple = SWOTRiver.products.calval.SimplePixelCloud.from_any(
+        args.gps_profile)
+    # TODO: no need to write the file if it already is a SimplePixelCloud
+    pixc_simple.to_ncfile(args.out_pixc_file)
 
     # typecast most config values with eval since RDF won't do it for me
     # (excluding strings)
@@ -77,7 +58,7 @@ def main():
 
 
     estimator = SWOTRiver.Estimate.CalValToRiverTile(
-        fake_pixc_fname, args.out_pixcvec_file)
+        args.out_pixc_file, args.out_pixcvec_file)
     estimator.load_config(config)
 
     # generate empty output file on errors
