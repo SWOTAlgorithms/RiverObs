@@ -24,6 +24,10 @@ from pyproj import Proj
 
 import warnings
 
+import logging
+LOGGER = logging.getLogger('calval')
+
+
 class RiverNCProductMixIn(object):
     """MixIn class implementing some common methods for calval data"""
     def compute_bounding_box(self):

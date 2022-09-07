@@ -16,7 +16,7 @@ import SWOTRiver.Estimate
 import SWOTRiver.products.calval
 from SWOTRiver.errors import RiverObsException
 
-LOGGER = logging.getLogger('gps_prof2river')
+LOGGER = logging.getLogger('calval2river')
 
 def main():
     """Sample script for running calval data through RiverObs"""
