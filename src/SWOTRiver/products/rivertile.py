@@ -1279,7 +1279,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 529297311],
+                ['valid_max', 529297055],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],

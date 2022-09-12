@@ -1754,8 +1754,11 @@ class SWOTRiverEstimator(SWOTL2):
         }
 
         # Get wse_u from RSS of random wse_r_u and REACH_WSE_SYS_UNCERT
-        river_reach_kw_args['wse_u'] = np.sqrt(
-            river_reach_kw_args['wse_r_u']**2 + REACH_WSE_SYS_UNCERT**2
+        river_reach_kw_args['wse_u'] = MISSING_VALUE_FLT * np.ones(
+            river_reach_kw_args['wse_r_u'].shape)
+        mask = river_reach_kw_args['wse_r_u'] > 0
+        river_reach_kw_args['wse_u'][mask] = np.sqrt(
+            river_reach_kw_args['wse_r_u'][mask]**2 + REACH_WSE_SYS_UNCERT**2
             ).astype('float64')
 
         if xtrack_median is not None:
