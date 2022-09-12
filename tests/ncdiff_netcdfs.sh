@@ -22,10 +22,10 @@ if [ "$#" -eq 4 ]; then
 norm=$4
 fi
 
-echo "Comparing $infile1 to $infile2 and placing results in $outdir directory"
+echo "ncdiff_netcdfs.sh: Comparing $infile1 to $infile2 and placing results in $outdir directory"
 
 # make temporary files without nans and with _FillValue=1E36
-echo "making temporary files without nans and with _FillValue=1E36"
+# echo "making temporary files without nans and with _FillValue=1E36"
 tmp1=infile1_nonan.nc
 tmp2=infile2_nonan.nc
 mkdir $outdir
@@ -53,14 +53,14 @@ tmp1=infile1_norm.nc
 tmp2=infile2_norm.nc
 fi
 # make difference files
-echo "making difference files"
+# echo "making difference files"
 
 ncdiff $tmp1 $tmp2 diff.nc
 ncdiff $tmp2 $tmp2 perfectdiff.nc
 
 
 # make mean diff files and text report
-echo "making mean difference files and report"
+# echo "making mean difference files and report"
 ncwa diff.nc mean_diff.nc
 ncwa perfectdiff.nc mean_perfectdiff.nc
 
@@ -72,7 +72,7 @@ substring.csh '<' "" tmpdump3
 grep -v '>' tmpdump3 > mean_diff.txt
 
 # make mean square diff files and text report
-echo "making rms difference files and report"
+# echo "making rms difference files and report"
 ncwa -y rms diff.nc rms_diff.nc
 ncwa -y rms perfectdiff.nc rms_perfectdiff.nc
 ncdump rms_diff.nc > tmpdump

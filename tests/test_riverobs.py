@@ -74,9 +74,10 @@ class TestRiverTile():
                         except AssertionError:
                             any_fail = True
                             # stdout will be printed on assertion failure
-                            print(('In test_in_valid_range: /%s/%s failed; '
-                                   '%f %f %f')%(group, key, value, valid_min,
-                                   valid_max))
+                            print((
+                                'Test failure in test_in_valid_range: '
+                                '/%s/%s failed; %f %f %f')%(
+                                    group, key, value, valid_min, valid_max))
                             break
 
         # Re-raise AssertionError if any failed the test
