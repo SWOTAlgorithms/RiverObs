@@ -1760,9 +1760,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['pole_tide'] = node_outputs['pole_tide']
             klass['flow_angle'] = node_outputs['flow_dir']
             # compute node distance from prior
-            klass['node_dist'] = np.sqrt(
-                (node_outputs['x']-node_outputs['x_prior'])**2 +
-                (node_outputs['y']-node_outputs['y_prior'])**2)
+            klass['node_dist'] = np.ones(
+                node_outputs['x'].shape)*MISSING_VALUE_FLT
+            mask = node_outputs['x'] != MISSING_VALUE_FLT
+            klass['node_dist'][mask] = np.sqrt(
+                (node_outputs['x'][mask]-node_outputs['x_prior'][mask])**2 +
+                (node_outputs['y'][mask]-node_outputs['y_prior'][mask])**2)
+
             klass['dark_frac'] = node_outputs['dark_frac']
 
             klass['p_dam_id'] = node_outputs['grand_id']
