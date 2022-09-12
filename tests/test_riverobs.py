@@ -8,9 +8,6 @@ Author (s): Alex Fore
 
 Regression tests for RiverTile / RiverObs
 
-Generate test data with:
-./runit.sh 
-
 Execute tests with:
 pytest -v test_riverobs.py
 
@@ -76,7 +73,7 @@ class TestRiverTile():
                     # useful on AssertionError (versus ().all() reduction)
                     for value in values:
                         assert np.logical_and(
-                            value >= valid_min, value <= valid_max).all()
+                            value >= valid_min, value <= valid_max)
 
     def test_inf_nan(self, rivertile_tester):
         """Checks for non-finite values in floating point rivertile outputs"""
@@ -124,6 +121,20 @@ class TestRiverTile():
         ref_rt = rivertile_tester.ref_rivertile
         # Check that same nodes have valid wse in test and ref
         assert (test_rt.reaches.wse.mask == ref_rt.reaches.wse.mask).all()
+
+    def test_sensible_outputs(self, rivertile_tester):
+        """
+        Checks that there are not any insensible combinations of outputs
+        """
+        test_rt = rivertile_tester.test_rivertile
+
+        # Test that any node with area has a width
+        valid_area_mask = ~test_rt.nodes.area_total.mask
+        assert not test_rt.nodes.width[valid_area_mask].mask.any()
+
+        # Test that any reach with valid slope also has valid wse
+        valid_slope_mask = ~test_rt.reaches.slope.mask
+        assert not test_rt.reaches.wse[valid_slope_mask].mask.any()
 
     def test_prior_river_database_fields(self, rivertile_tester):
         """
