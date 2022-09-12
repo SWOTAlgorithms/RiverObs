@@ -36,4 +36,4 @@ class_qual_area_degraded           = 0x01ff0000
 class_qual_area_bad                = 0xfe000000
 sig0_qual_suspect                  = 0x01ffffff
 sig0_qual_bad                      = 0xfe000000
-reach_db_path = inputs/SWOT_RiverDatabase_Nom_565_224R_20200101T000000_21000101T000000_20220820T000000_v113.nc
+reach_db_path = inputs/SWOT_RiverDatabase_Nom_578_086L_20200101T000000_21000101T000000_20220820T000000_v113.nc
