@@ -50,6 +50,7 @@ class TestRiverTile():
 
     def test_in_valid_range(self, rivertile_tester):
         """Checks that all variables are within the valid range"""
+        any_fail = False
         test_rt = rivertile_tester.test_rivertile
         for group in test_rt.GROUPS:
             for key in test_rt[group].variables:
@@ -65,15 +66,22 @@ class TestRiverTile():
                     values = test_rt[group][key]
                     values = values.data[values.data != fill_value]
 
-                    # stdout will be printed on assertion failure (following
-                    # line will tell us which variable failed).
-                    print('In test_in_valid_range: /%s/%s'%(group, key))
-
-                    # If we iterate over values like this, output will be more
-                    # useful on AssertionError (versus ().all() reduction)
+                    # Iterate over values, print first value to fail and break
                     for value in values:
-                        assert np.logical_and(
-                            value >= valid_min, value <= valid_max)
+                        try:
+                            assert np.logical_and(
+                                value >= valid_min, value <= valid_max)
+                        except AssertionError:
+                            any_fail = True
+                            # stdout will be printed on assertion failure
+                            print(('In test_in_valid_range: /%s/%s failed; '
+                                   '%f %f %f')%(group, key, value, valid_min,
+                                   valid_max))
+                            break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
 
     def test_inf_nan(self, rivertile_tester):
         """Checks for non-finite values in floating point rivertile outputs"""
