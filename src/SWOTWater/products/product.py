@@ -68,7 +68,8 @@ class ProductTesterMixIn(object):
     def test_product(self):
         """Calls suite of validation tests"""
         any_fail = False
-        for tester in [self.test_inf_nan, self.test_in_valid_range]:
+        for tester in [self.test_inf_nan, self.test_in_valid_range,
+                       self.test_qual_valid_max]:
             try:
                 tester()
             except AssertionError:
@@ -76,6 +77,34 @@ class ProductTesterMixIn(object):
                 continue
 
         # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_qual_valid_max(self):
+        """Checks that quality flags have correct valid_max"""
+        for group in self.GROUPS:
+            try:
+                print('Testing group in test_qual_valid_max: %s'%group)
+                self[group].test_qual_valid_max()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        any_fail = False
+        for var in self.VARIABLES:
+            if('flag_meanings' in self.VARIABLES[var] and
+               'flag_masks' in self.VARIABLES[var]):
+
+                try:
+                    valid_max = self.VARIABLES[var]['valid_max']
+                    sum_flag_masks = self.VARIABLES[var]['flag_masks'].sum()
+                    assert valid_max == sum_flag_masks
+                except AssertionError:
+                    any_fail = True
+                    print(('TEST FAILURE in test_qual_valid_max: %s %d '
+                           'expected %d'%(var, valid_max, sum_flag_masks)))
+
+        # Re-raise AssertionError if any failed the test
         if any_fail:
             raise AssertionError
 

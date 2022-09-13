@@ -58,17 +58,10 @@ class TestRiverTile():
         # This test has been refactored into ProductTesterMixIn
         rivertile_tester.test_rivertile.test_inf_nan()
 
-    def test_node_q_b_valid_max(self, rivertile_tester):
-        """Checks that node_q_b valid_max is correct"""
-        test_rt = rivertile_tester.test_rivertile
-        node_q_b_dict = test_rt.nodes.VARIABLES['node_q_b']
-        assert node_q_b_dict['flag_masks'].sum() == node_q_b_dict['valid_max']
-
-    def test_reach_q_b_valid_max(self, rivertile_tester):
-        """Checks that reach_q_b valid_max is correct"""
-        test_rt = rivertile_tester.test_rivertile
-        reach_q_b_dict = test_rt.reaches.VARIABLES['reach_q_b']
-        assert reach_q_b_dict['flag_masks'].sum() == reach_q_b_dict['valid_max']
+    def test_qual_valid_max(self, rivertile_tester):
+        """Checks that quality flags have correct valid_max"""
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_qual_valid_max()
 
     def test_populated_nodes(self, rivertile_tester):
         """
