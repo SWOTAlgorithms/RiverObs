@@ -791,7 +791,7 @@ class ShapeWriterMixIn(object):
                                 datetime.datetime(2000, 1, 1) +
                                 datetime.timedelta(
                                 seconds=this_property[in_dset])
-                                ).strftime('%Y-%m-%dT%H:%M%SZ')
+                                ).strftime('%Y-%m-%dT%H:%M:%SZ')
                         except (OverflowError, ValueError):
                             this_property[out_dset] = 'no_data'
 
