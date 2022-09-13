@@ -50,54 +50,13 @@ class TestRiverTile():
 
     def test_in_valid_range(self, rivertile_tester):
         """Checks that all variables are within the valid range"""
-        any_fail = False
-        test_rt = rivertile_tester.test_rivertile
-        for group in test_rt.GROUPS:
-            for key in test_rt[group].variables:
-                var_dict = test_rt[group].VARIABLES[key]
-
-                # If variable lacks valid_min/max/fill_value skip it
-                with contextlib.suppress(KeyError):
-                    valid_min = var_dict['valid_min']
-                    valid_max = var_dict['valid_max']
-                    fill_value = var_dict['_FillValue']
-
-                    # Reject fill values before assertion
-                    values = test_rt[group][key]
-                    values = values.data[values.data != fill_value]
-
-                    # Iterate over values, print first value to fail and break
-                    for value in values:
-                        try:
-                            assert np.logical_and(
-                                value >= valid_min, value <= valid_max)
-                        except AssertionError:
-                            any_fail = True
-                            # stdout will be printed on assertion failure
-                            print((
-                                'Test failure in test_in_valid_range: '
-                                '/%s/%s failed; %f %f %f')%(
-                                    group, key, value, valid_min, valid_max))
-                            break
-
-        # Re-raise AssertionError if any failed the test
-        if any_fail:
-            raise AssertionError
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_in_valid_range()
 
     def test_inf_nan(self, rivertile_tester):
         """Checks for non-finite values in floating point rivertile outputs"""
-        test_rt = rivertile_tester.test_rivertile
-        for group in test_rt.GROUPS:
-            for key in test_rt[group].variables:
-                # just test floating point types
-                if test_rt[group].VARIABLES[key]['dtype'][0] not in ['f',]:
-                    continue
-
-                # Don't need to reject fill values here (they are finite)
-                values = test_rt[group][key].data
-                print('In test_inf_nan: /%s/%s'%(group, key))
-                for value in values.flatten():
-                    assert np.isfinite(value)
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_inf_nan()
 
     def test_node_q_b_valid_max(self, rivertile_tester):
         """Checks that node_q_b valid_max is correct"""

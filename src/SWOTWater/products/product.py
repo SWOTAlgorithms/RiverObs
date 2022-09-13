@@ -12,6 +12,7 @@ import os
 import sys
 import warnings
 import textwrap
+import contextlib
 import numpy as np
 import netCDF4 as nc
 
@@ -60,6 +61,95 @@ def sort_variable_attribute_odict(in_odict):
         if key in in_odict:
             attr_list.append([key, in_odict[key]])
     return odict(attr_list)
+
+
+class ProductTesterMixIn(object):
+    """Contains validation methods defined on product classes"""
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_inf_nan, self.test_in_valid_range]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_inf_nan(self):
+        """Checks for non-finite values in floating point rivertile outputs"""
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                print('Testing group: %s'%group)
+                self[group].test_inf_nan()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            # just test floating point types
+            if self.VARIABLES[var]['dtype'][0] not in ['f',]:
+                continue
+
+            # Don't need to reject fill values here (they are finite)
+            # Iterate over values, print first value to fail and break
+            values = self[var].data
+            for value in values.flatten():
+                try:
+                    assert np.isfinite(value)
+                except AssertionError:
+                    any_fail = True
+                    print('Test failure in test_inf_nan: %s'%var)
+                    break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
+    def test_in_valid_range(self):
+        """Checks that all variables are within the valid range"""
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                print('Testing group: %s'%group)
+                self[group].test_in_valid_range()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            # If variable lacks valid_min/max/fill_value skip it
+            with contextlib.suppress(KeyError):
+                valid_min = self.VARIABLES[var]['valid_min']
+                valid_max = self.VARIABLES[var]['valid_max']
+                fill_value = self.VARIABLES[var]['_FillValue']
+
+                # Reject fill values before assertion
+                values = self[var]
+                values = values.data[values.data != fill_value]
+
+                # Iterate over values, print first value to fail and break
+                for value in values:
+                    try:
+                        assert np.logical_and(
+                            value >= valid_min, value <= valid_max)
+                    except AssertionError:
+                        any_fail = True
+                        # stdout will be printed on assertion failure
+                        print((
+                            'Test failure in test_in_valid_range: '
+                            '%s failed; %f %f %f')%(
+                                var, value, valid_min, valid_max))
+                        break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
 
 class Product(object):
     """Base class for SWOT-like data products.

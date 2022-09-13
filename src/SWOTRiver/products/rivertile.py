@@ -18,7 +18,8 @@ import xml.etree.ElementTree
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
-from SWOTWater.products.product import Product, FILL_VALUES, textjoin
+from SWOTWater.products.product import \
+    Product, FILL_VALUES, textjoin, ProductTesterMixIn
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
@@ -260,7 +261,7 @@ for key in ['Conventions', 'title', 'platform', 'short_name', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
-class L2HRRiverTile(Product):
+class L2HRRiverTile(ProductTesterMixIn, Product):
     UID = "l2_hr_rivertile"
     ATTRIBUTES = odict()
     GROUPS = odict([
@@ -808,7 +809,7 @@ class ShapeWriterMixIn(object):
             ))
 
 
-class RiverTileNodes(Product, ShapeWriterMixIn):
+class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
@@ -1889,7 +1890,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         return klass
 
 
-class RiverTileReaches(Product, ShapeWriterMixIn):
+class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
