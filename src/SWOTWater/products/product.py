@@ -84,7 +84,7 @@ class ProductTesterMixIn(object):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group: %s'%group)
+                print('Testing group in test_inf_nan: %s'%group)
                 self[group].test_inf_nan()
             except AssertionError:
                 any_fail = True
@@ -96,15 +96,12 @@ class ProductTesterMixIn(object):
                 continue
 
             # Don't need to reject fill values here (they are finite)
-            # Iterate over values, print first value to fail and break
             values = self[var].data
-            for value in values.flatten():
-                try:
-                    assert np.isfinite(value)
-                except AssertionError:
-                    any_fail = True
-                    print('Test failure in test_inf_nan: %s'%var)
-                    break
+            try:
+                assert np.isfinite(values).all()
+            except AssertionError:
+                any_fail = True
+                print('TEST FAILURE in test_inf_nan: %s'%var)
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
@@ -115,7 +112,7 @@ class ProductTesterMixIn(object):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group: %s'%group)
+                print('Testing group in test_in_valid_range: %s'%group)
                 self[group].test_in_valid_range()
             except AssertionError:
                 any_fail = True
@@ -141,7 +138,7 @@ class ProductTesterMixIn(object):
                         any_fail = True
                         # stdout will be printed on assertion failure
                         print((
-                            'Test failure in test_in_valid_range: '
+                            'TEST FAILURE in test_in_valid_range: '
                             '%s failed; %f %f %f')%(
                                 var, value, valid_min, valid_max))
                         break
