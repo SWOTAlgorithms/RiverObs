@@ -1152,7 +1152,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'metric of layover effect'],
                 ['short_name', 'layover_value'],
                 ['units', 'm'],
-                ['valid_min', 0],
+                ['valid_min', -999999],
                 ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
