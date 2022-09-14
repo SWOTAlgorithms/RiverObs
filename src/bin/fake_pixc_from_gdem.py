@@ -143,6 +143,8 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['geolocation_qual'] = np.zeros(pixc_shape, np.int32)
         out_pixc_dsets['sig0_qual'] = np.zeros(pixc_shape, np.int32)
         out_pixc_dsets['pixc_line_qual'] = np.zeros(gdem_shape[0], np.int32)
+        out_pixc_dsets['pixc_line_to_tvp'] = np.arange(
+            0, gdem_shape[0]*subsample_factor, subsample_factor)
 
         if make_sig0:
             out_pixc_dsets['sig0'] =  media_attenuation[mask]**2
@@ -154,7 +156,7 @@ def fake_pixc_from_gdem(
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
                     ('points', 'complex_depth'))
-            elif varname == 'pixc_line_qual':
+            elif varname in ['pixc_line_qual', 'pixc_line_to_tvp']:
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
                     ('num_pixc_lines',))
