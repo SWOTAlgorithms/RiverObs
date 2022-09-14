@@ -83,6 +83,14 @@ def fake_pixc_from_gdem(
         longitude[longitude>180] -= 360
         elevation = ifp_gdem.variables['elevation'][:][::subsample_factor]
         make_sig0 = False
+
+        # extend the inner/outer, lat/lon bounding box, so truth processing can
+        # cover the whole gdem area
+        setattr(ofp, 'outer_first_longitude', longitude.min())
+        setattr(ofp, 'inner_last_longitude', longitude.max())
+        setattr(ofp, 'outer_first_latitude', latitude.max())
+        setattr(ofp, 'inner_last_latitude', latitude.min())
+
         try:
             media_attenuation = ifp_gdem['media_attenuation'][:][::subsample_factor]
             make_sig0 = True
