@@ -45,7 +45,6 @@ QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
 QUAL_IND_NO_PIXELS = 268435456                  # bit 28
 
 # define constants for each reach-level quality bit
-QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
 QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
 QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
 QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
@@ -792,7 +791,7 @@ class ShapeWriterMixIn(object):
                                 datetime.datetime(2000, 1, 1) +
                                 datetime.timedelta(
                                 seconds=this_property[in_dset])
-                                ).strftime('%Y-%m-%dT%H:%M%SZ')
+                                ).strftime('%Y-%m-%dT%H:%M:%SZ')
                         except (OverflowError, ValueError):
                             this_property[out_dset] = 'no_data'
 
@@ -1257,7 +1256,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     no_sig0_observations
                     no_area_observations
                     no_wse_observations
-                    no_pixels""")],
+                    no_observations""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
                     QUAL_IND_CLASS_QUAL_SUSPECT,
@@ -3324,7 +3323,6 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['standard_name', 'status_flag'],
                 ['short_name', 'reach_qual_bitwise'],
                 ['flag_meanings', textjoin("""
-                    sig0_qual_suspect
                     classification_qual_suspect
                     geolocation_qual_suspect
                     water_fraction_suspect
@@ -3339,9 +3337,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     below_min_fit_points
                     no_area_observations
                     no_wse_observations
-                    no_pixels""")],
+                    no_observations""")],
                 ['flag_masks', np.array([
-                    QUAL_IND_SIG0_QUAL_SUSPECT,
                     QUAL_IND_CLASS_QUAL_SUSPECT,
                     QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
                     QUAL_IND_WATER_FRAC_SUSPECT,
@@ -3358,7 +3355,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     QUAL_IND_NO_WSE_PIX,
                     QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 504163471],
+                ['valid_max', 504163470],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
