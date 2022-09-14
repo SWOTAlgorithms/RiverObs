@@ -2045,6 +2045,9 @@ class SWOTRiverEstimator(SWOTL2):
         # The following bits are not given by logically OR-ing all the
         # node_q_b flags together.
 
+        # unset bit 1
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_SIG0_QUAL_SUSPECT
+
         # unset bit 4
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT
 
