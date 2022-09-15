@@ -3952,7 +3952,6 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['reach_q_b'] = reach_outputs['reach_q_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
-
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
                         'p_lat', 'p_lon']:
@@ -4030,7 +4029,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
 
-            # set quality flag on less than 1/2 reach observed
+            # set partially observed flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
