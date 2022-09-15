@@ -135,3 +135,35 @@ class TestRiverTile():
             print('test_prior_river_database_fields: /reaches/%s'%var)
             for test_value, ref_value in zip(test_values, ref_values):
                 assert test_value == ref_value
+
+    def test_bitwise_and_summary_qual_consistency(self, rivertile_tester):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        node_degraded_thresh = 262144
+        node_bad_thresh = 8388608
+        reach_degraded_thresh = 262144
+        reach_bad_thresh = 33554432
+        test_rt = rivertile_tester.test_rivertile
+        for reach_bit_q, reach_sum_q in zip(
+                test_rt.reaches['reach_q_b'], test_rt.reaches['reach_q']):
+            if reach_bit_q == 0:
+                assert reach_sum_q == 0
+            elif reach_bit_q < reach_degraded_thresh:
+                assert reach_sum_q == 1
+            elif reach_bit_q < reach_bad_thresh:
+                assert reach_sum_q == 2
+            elif reach_bit_q >= reach_bad_thresh:
+                assert reach_sum_q == 3
+
+        for node_bit_q, node_sum_q in zip(
+                test_rt.nodes['node_q_b'], test_rt.nodes['node_q']):
+            if node_bit_q == 0:
+                assert node_sum_q == 0
+            elif node_bit_q < node_degraded_thresh:
+                assert node_sum_q == 1
+            elif node_bit_q < node_bad_thresh:
+                assert node_sum_q == 2
+            elif node_bit_q >= node_bad_thresh:
+                assert node_sum_q == 3
