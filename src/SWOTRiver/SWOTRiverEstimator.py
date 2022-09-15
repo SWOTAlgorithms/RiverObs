@@ -816,13 +816,15 @@ class SWOTRiverEstimator(SWOTL2):
                 max_iter=max_iter)
 
             # compute node mask to be used for reach aggregation
-            ww = 1 / (river_reach.wse_r_u**2)
+            ww = 1 / (river_reach.wse_r_u ** 2)
             river_reach.mask = self.get_reach_mask(
                 river_reach.node_ss, river_reach.wse, ww, min_fit_points)
 
             # Use node mask to set wse_outlier bit in node_q_b
             river_reach.node_q_b[~river_reach.mask] |= (
                 SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER)
+            # update summary qual flag to include outlier nodes
+            river_reach.node_q[~river_reach.mask] = 3
 
             river_reach_collection.append(river_reach)
             LOGGER.debug('reach processed')
