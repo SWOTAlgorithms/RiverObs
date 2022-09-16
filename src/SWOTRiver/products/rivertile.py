@@ -1284,12 +1284,13 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the node measurement. If this
-                    word is interpreted as an unsigned integer, a value of 0
-                    indicates good data, values less than 262144 represent
-                    suspect data, values greater than or equal to 262144 but
-                    less than 8388608 represent degraded data, and values
-                    greater than or equal to 8388608 represent bad data.""")],
+                    Bitwise quality indicator for the node measurement. If
+                    this word is interpreted as an unsigned integer, a value of
+                    0 indicates good data, values greater than 0 but less than
+                    262144 represent suspect data, values greater than or equal
+                    to 262144 but less than 8388608 represent degraded data,
+                    and values greater than or equal to 8388608 represent bad
+                    data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -3360,12 +3361,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the reach measurement. If
+                    Bitwise quality indicator for the reach measurements. If
                     this word is interpreted as an unsigned integer, a value of
-                    0 indicates good data, values less than 262144 represent
-                    suspect data, values greater than or equal to 262144 but
-                    less than 8388608 represent degraded data, and values
-                    greater than or equal to 8388608 represent bad data.""")],
+                    0 indicates good data, values greater than 0 but less than
+                    262144 represent suspect data, values greater than or equal
+                    to 262144 but less than 8388608 represent degraded data,
+                    and values greater than or equal to 8388608 represent bad
+                    data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
