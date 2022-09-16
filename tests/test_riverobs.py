@@ -149,8 +149,8 @@ class TestRiverTile():
         for reach_id, reach_bit_q, reach_sum_q in zip(
                 test_rt.reaches['reach_id'], test_rt.reaches['reach_q_b'],
                 test_rt.reaches['reach_q']):
-            reach_fail_str = "Failed at reach", reach_id, \
-                             "Bit qual", reach_bit_q
+            reach_fail_str = f"Failed at reach {reach_id} Bit qual " \
+                             f"{reach_bit_q}"
             if reach_bit_q == 0:
                 assert reach_sum_q == 0, reach_fail_str
             elif reach_bit_q < reach_degraded_thresh:
@@ -163,7 +163,7 @@ class TestRiverTile():
         for node_id, node_bit_q, node_sum_q in zip(
                 test_rt.nodes['node_id'], test_rt.nodes['node_q_b'],
                 test_rt.nodes['node_q']):
-            node_fail_str = "Failed at node ", node_id, "Bit qual", node_bit_q
+            node_fail_str = f"Failed at node {node_id} Bit qual {node_bit_q}"
             if node_bit_q == 0:
                 assert node_sum_q == 0, node_fail_str
             elif node_bit_q < node_degraded_thresh:
