@@ -83,6 +83,14 @@ def fake_pixc_from_gdem(
         longitude[longitude>180] -= 360
         elevation = ifp_gdem.variables['elevation'][:][::subsample_factor]
         make_sig0 = False
+
+        # extend the inner/outer, lat/lon bounding box, so truth processing can
+        # cover the whole gdem area
+        setattr(ofp, 'outer_first_longitude', longitude.min())
+        setattr(ofp, 'inner_last_longitude', longitude.max())
+        setattr(ofp, 'outer_first_latitude', latitude.max())
+        setattr(ofp, 'inner_last_latitude', latitude.min())
+
         try:
             media_attenuation = ifp_gdem['media_attenuation'][:][::subsample_factor]
             make_sig0 = True
@@ -143,6 +151,8 @@ def fake_pixc_from_gdem(
         out_pixc_dsets['geolocation_qual'] = np.zeros(pixc_shape, np.int32)
         out_pixc_dsets['sig0_qual'] = np.zeros(pixc_shape, np.int32)
         out_pixc_dsets['pixc_line_qual'] = np.zeros(gdem_shape[0], np.int32)
+        out_pixc_dsets['pixc_line_to_tvp'] = np.arange(
+            0, gdem_shape[0]*subsample_factor, subsample_factor)
 
         if make_sig0:
             out_pixc_dsets['sig0'] =  media_attenuation[mask]**2
@@ -154,7 +164,7 @@ def fake_pixc_from_gdem(
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
                     ('points', 'complex_depth'))
-            elif varname == 'pixc_line_qual':
+            elif varname in ['pixc_line_qual', 'pixc_line_to_tvp']:
                 var = ofp.createVariable(
                     '/pixel_cloud/'+varname, varvalue.dtype.str,
                     ('num_pixc_lines',))
