@@ -18,7 +18,8 @@ import xml.etree.ElementTree
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
-from SWOTWater.products.product import Product, FILL_VALUES, textjoin
+from SWOTWater.products.product import \
+    Product, FILL_VALUES, textjoin, ProductTesterMixIn
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
@@ -259,7 +260,7 @@ for key in ['Conventions', 'title', 'platform', 'short_name', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
-class L2HRRiverTile(Product):
+class L2HRRiverTile(ProductTesterMixIn, Product):
     UID = "l2_hr_rivertile"
     ATTRIBUTES = odict()
     GROUPS = odict([
@@ -807,7 +808,7 @@ class ShapeWriterMixIn(object):
             ))
 
 
-class RiverTileNodes(Product, ShapeWriterMixIn):
+class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
@@ -1283,12 +1284,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the node measurement. If this
-                    word is interpreted as an unsigned integer, a value of 0
-                    indicates good data, values less than 262144 represent
-                    suspect data, values greater than or equal to 262144 but
-                    less than 8388608 represent degraded data, and values
-                    greater than or equal to 8388608 represent bad data.""")],
+                    Bitwise quality indicator for the node measurement. If
+                    this word is interpreted as an unsigned integer, a value of
+                    0 indicates good data, values greater than 0 but less than
+                    262144 represent suspect data, values greater than or equal
+                    to 262144 but less than 8388608 represent degraded data,
+                    and values greater than or equal to 8388608 represent bad
+                    data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -1681,7 +1683,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['source', 'Lehner et al. (2011)'],
                 ['units', '1'],
                 ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_max', 40000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -1888,7 +1890,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         return klass
 
 
-class RiverTileReaches(Product, ShapeWriterMixIn):
+class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
@@ -3359,12 +3361,13 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the reach measurement. If
+                    Bitwise quality indicator for the reach measurements. If
                     this word is interpreted as an unsigned integer, a value of
-                    0 indicates good data, values less than 262144 represent
-                    suspect data, values greater than or equal to 262144 but
-                    less than 8388608 represent degraded data, and values
-                    greater than or equal to 8388608 represent bad data.""")],
+                    0 indicates good data, values greater than 0 but less than
+                    262144 represent suspect data, values greater than or equal
+                    to 262144 but less than 8388608 represent degraded data,
+                    and values greater than or equal to 8388608 represent bad
+                    data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -3760,7 +3763,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'reach width variability'],
                 ['short_name', 'prior_width_variability'],
                 ['units', 'm'],
-                ['valid_min', 10],
+                ['valid_min', 0],
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
@@ -3832,7 +3835,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['source', 'Lehner et al. (2011)'],
                 ['units', '1'],
                 ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_max', 40000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -3951,7 +3954,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['reach_q_b'] = reach_outputs['reach_q_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
-
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
                         'p_lat', 'p_lon']:
@@ -4029,7 +4031,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
 
-            # set quality flag on less than 1/2 reach observed
+            # set partially observed flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 

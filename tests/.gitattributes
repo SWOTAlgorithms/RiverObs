@@ -1,0 +1,6 @@
+inputs/SWOT_L2_HR_PIXC_001_565_224R_20190221T041238_20190221T041249_DG00_01.nc filter=lfs diff=lfs merge=lfs -text
+inputs/SWOT_RiverDatabase_Nom_565_224R_20200101T000000_21000101T000000_20220820T000000_v113.nc filter=lfs diff=lfs merge=lfs -text
+reference_case/pv.nc filter=lfs diff=lfs merge=lfs -text
+reference_case/rt.nc filter=lfs diff=lfs merge=lfs -text
+inputs/SWOT_L2_HR_PIXC_001_578_086L_20190221T145823_20190221T145827_DG00_01.nc filter=lfs diff=lfs merge=lfs -text
+inputs/SWOT_RiverDatabase_Nom_578_086L_20200101T000000_21000101T000000_20220820T000000_v113.nc filter=lfs diff=lfs merge=lfs -text
