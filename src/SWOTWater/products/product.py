@@ -762,9 +762,9 @@ class Product(object):
 
         if np.ma.isMaskedArray(value):
             # if mask array use .data
-            valid = np.logical_and(value.data != fill, ~np.isnan(value))
+            valid = np.logical_and(value.data != fill, np.isfinite(value))
         else:
-            valid = np.logical_and(value != fill, ~np.isnan(value))
+            valid = np.logical_and(value != fill, np.isfinite(value))
 
         quantized_values = quantized_fill * np.ones(value.shape)
         if dtype[0] in ['i', 'u']:
