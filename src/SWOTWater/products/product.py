@@ -185,6 +185,9 @@ class ProductTesterMixIn(object):
             except AssertionError:
                 any_fail = True
                 LOGGER.warning('TEST FAILURE in test_inf_nan: %s'%var)
+            except TypeError:
+                # raised if time_str
+                continue
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
