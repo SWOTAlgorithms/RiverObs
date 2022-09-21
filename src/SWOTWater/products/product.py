@@ -83,7 +83,7 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_qual_bits(self):
+    def test_qual_bits(self, prefix=''):
         """
         Checks that quality flags have no bits set that are not in flag_masks
         """
@@ -91,7 +91,7 @@ class ProductTesterMixIn(object):
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_qual_bits: %s'%group)
-                self[group].test_qual_bits()
+                self[group].test_qual_bits(prefix=prefix+'/'+group+'/')
             except AssertionError:
                 any_fail = True
                 continue
@@ -121,20 +121,20 @@ class ProductTesterMixIn(object):
                         LOGGER.warning((
                             'TEST FAILURE in test_qual_bits: '
                             '%s failed; %d %d')%(
-                                var, value, sum_flag_masks))
+                                prefix+var, value, sum_flag_masks))
                         break
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
             raise AssertionError
 
-    def test_qual_valid_max(self):
+    def test_qual_valid_max(self, prefix=''):
         """Checks that quality flags have correct valid_max"""
         any_fail = False
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_qual_valid_max: %s'%group)
-                self[group].test_qual_valid_max()
+                self[group].test_qual_valid_max(prefix=prefix+'/'+group+'/')
             except AssertionError:
                 any_fail = True
                 continue
@@ -152,19 +152,19 @@ class ProductTesterMixIn(object):
                     any_fail = True
                     LOGGER.warning(
                         ('TEST FAILURE in test_qual_valid_max: %s %d '
-                         'expected %d'%(var, valid_max, sum_flag_masks)))
+                         'expected %d'%(prefix+var, valid_max, sum_flag_masks)))
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
             raise AssertionError
 
-    def test_inf_nan(self):
+    def test_inf_nan(self, prefix=''):
         """Checks for non-finite values in floating point rivertile outputs"""
         any_fail = False
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_inf_nan: %s'%group)
-                self[group].test_inf_nan()
+                self[group].test_inf_nan(prefix=prefix+'/'+group+'/')
             except AssertionError:
                 any_fail = True
                 continue
@@ -184,7 +184,8 @@ class ProductTesterMixIn(object):
                 assert np.isfinite(values).all()
             except AssertionError:
                 any_fail = True
-                LOGGER.warning('TEST FAILURE in test_inf_nan: %s'%var)
+                LOGGER.warning(
+                    'TEST FAILURE in test_inf_nan: %s'%(prefix+var))
             except TypeError:
                 # raised if time_str
                 continue
@@ -193,13 +194,13 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_in_valid_range(self):
+    def test_in_valid_range(self, prefix=''):
         """Checks that all variables are within the valid range"""
         any_fail = False
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_in_valid_range: %s'%group)
-                self[group].test_in_valid_range()
+                self[group].test_in_valid_range(prefix=prefix+'/'+group+'/')
             except AssertionError:
                 any_fail = True
                 continue
@@ -229,7 +230,7 @@ class ProductTesterMixIn(object):
                         LOGGER.warning((
                             'TEST FAILURE in test_in_valid_range: '
                             '%s failed; %f %f %f')%(
-                                var, value, valid_min, valid_max))
+                                prefix+var, value, valid_min, valid_max))
                         break
 
         # Re-raise AssertionError if any failed the test
