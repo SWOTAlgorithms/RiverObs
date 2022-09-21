@@ -11,6 +11,7 @@ import copy
 import os
 import sys
 import warnings
+import logging
 import textwrap
 import contextlib
 import numpy as np
@@ -18,6 +19,8 @@ import netCDF4 as nc
 
 import SWOTWater.products.netcdf as netcdf
 from SWOTWater.products.constants import FILL_VALUES
+
+LOGGER = logging.getLogger(__name__)
 
 FIELD_WARNING = "I'm afraid I can't do that. {} is not in {}"
 
@@ -87,7 +90,7 @@ class ProductTesterMixIn(object):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group in test_qual_bits: %s'%group)
+                LOGGER.debug('Testing group in test_qual_bits: %s'%group)
                 self[group].test_qual_bits()
             except AssertionError:
                 any_fail = True
@@ -115,7 +118,7 @@ class ProductTesterMixIn(object):
                     except AssertionError:
                         any_fail = True
                         # stdout will be printed on assertion failure
-                        print((
+                        LOGGER.warning((
                             'TEST FAILURE in test_qual_bits: '
                             '%s failed; %d %d')%(
                                 var, value, sum_flag_masks))
@@ -130,7 +133,7 @@ class ProductTesterMixIn(object):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group in test_qual_valid_max: %s'%group)
+                LOGGER.debug('Testing group in test_qual_valid_max: %s'%group)
                 self[group].test_qual_valid_max()
             except AssertionError:
                 any_fail = True
@@ -147,8 +150,9 @@ class ProductTesterMixIn(object):
                     assert valid_max == sum_flag_masks
                 except AssertionError:
                     any_fail = True
-                    print(('TEST FAILURE in test_qual_valid_max: %s %d '
-                           'expected %d'%(var, valid_max, sum_flag_masks)))
+                    LOGGER.warning(
+                        ('TEST FAILURE in test_qual_valid_max: %s %d '
+                         'expected %d'%(var, valid_max, sum_flag_masks)))
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
@@ -159,7 +163,7 @@ class ProductTesterMixIn(object):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group in test_inf_nan: %s'%group)
+                LOGGER.debug('Testing group in test_inf_nan: %s'%group)
                 self[group].test_inf_nan()
             except AssertionError:
                 any_fail = True
@@ -180,7 +184,10 @@ class ProductTesterMixIn(object):
                 assert np.isfinite(values).all()
             except AssertionError:
                 any_fail = True
-                print('TEST FAILURE in test_inf_nan: %s'%var)
+                LOGGER.warning('TEST FAILURE in test_inf_nan: %s'%var)
+            except TypeError:
+                # raised if time_str
+                continue
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
@@ -191,7 +198,7 @@ class ProductTesterMixIn(object):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group in test_in_valid_range: %s'%group)
+                LOGGER.debug('Testing group in test_in_valid_range: %s'%group)
                 self[group].test_in_valid_range()
             except AssertionError:
                 any_fail = True
@@ -219,7 +226,7 @@ class ProductTesterMixIn(object):
                     except AssertionError:
                         any_fail = True
                         # stdout will be printed on assertion failure
-                        print((
+                        LOGGER.warning((
                             'TEST FAILURE in test_in_valid_range: '
                             '%s failed; %f %f %f')%(
                                 var, value, valid_min, valid_max))
