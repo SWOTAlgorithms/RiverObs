@@ -1665,8 +1665,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Create node_q from node_q_b
         thresh_sus = 1
-        thresh_deg = SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED
-        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER
+        thresh_deg = (
+            SWOTRiver.products.rivertile.QUAL_IND_NODE_DEGRADED_THRESHOLD)
+        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_NODE_BAD_THRESHOLD
 
         node_q = np.zeros(lat_median.shape, dtype='i2')
         node_q[node_q_b >= thresh_sus] = 1
@@ -2087,8 +2088,10 @@ class SWOTRiverEstimator(SWOTL2):
         # Create reach_q from reach_q_b
         reach_q = 0
         thresh_sus = 1
-        thresh_deg = SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED
-        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS
+        thresh_deg = (
+            SWOTRiver.products.rivertile.QUAL_IND_REACH_DEGRADED_THRESHOLD)
+        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_REACH_BAD_THRESHOLD
+
         if thresh_sus <= reach_q_b < thresh_deg:
             reach_q = 1
         elif thresh_deg <= reach_q_b < thresh_bad:

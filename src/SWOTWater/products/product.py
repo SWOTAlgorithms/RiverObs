@@ -80,8 +80,51 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
+    def test_qual_bits(self):
+        """
+        Checks that quality flags have no bits set that are not in flag_masks
+        """
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                print('Testing group in test_qual_bits: %s'%group)
+                self[group].test_qual_bits()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            if('flag_meanings' in self.VARIABLES[var] and
+               'flag_masks' in self.VARIABLES[var]):
+
+                fill_value = self.VARIABLES[var]['_FillValue']
+                flag_masks = self.VARIABLES[var]['flag_masks']
+
+                # Reject fill values before assertion
+                values = self[var]
+                values = values.data[values.data != fill_value]
+
+                # Iterate over values, print first value to fail and break
+                for value in values:
+                    try:
+                        sum_flag_masks = np.bitwise_or.reduce(flag_masks)
+                        assert (value & ~sum_flag_masks) == 0
+                    except AssertionError:
+                        any_fail = True
+                        # stdout will be printed on assertion failure
+                        print((
+                            'TEST FAILURE in test_qual_bits: '
+                            '%s failed; %d %d')%(
+                                var, value, sum_flag_masks))
+                        break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
     def test_qual_valid_max(self):
         """Checks that quality flags have correct valid_max"""
+        any_fail = False
         for group in self.GROUPS:
             try:
                 print('Testing group in test_qual_valid_max: %s'%group)
@@ -90,14 +133,14 @@ class ProductTesterMixIn(object):
                 any_fail = True
                 continue
 
-        any_fail = False
         for var in self.VARIABLES:
             if('flag_meanings' in self.VARIABLES[var] and
                'flag_masks' in self.VARIABLES[var]):
 
                 try:
                     valid_max = self.VARIABLES[var]['valid_max']
-                    sum_flag_masks = self.VARIABLES[var]['flag_masks'].sum()
+                    flag_masks = self.VARIABLES[var]['flag_masks']
+                    sum_flag_masks = np.bitwise_or.reduce(flag_masks)
                     assert valid_max == sum_flag_masks
                 except AssertionError:
                     any_fail = True

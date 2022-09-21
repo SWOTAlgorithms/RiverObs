@@ -61,6 +61,13 @@ QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
 QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
 QUAL_IND_NO_OBS = 268435456                     # bit 28
 
+# Node degraded/bad threshold values
+QUAL_IND_NODE_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
+QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_WSE_OUTLIER
+
+# Reach degraded/bad threshold values
+QUAL_IND_REACH_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
+QUAL_IND_REACH_BAD_THRESHOLD = QUAL_IND_MIN_FIT_POINTS
 
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
@@ -267,6 +274,38 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
         ['nodes', 'RiverTileNodes'],
         ['reaches', 'RiverTileReaches'],
     ])
+
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_summary_vs_bit_qual, super().test_product]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_summary_vs_bit_qual(self):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                print('Testing group in test_summary_vs_bit_qual: %s'%group)
+                self[group].test_summary_vs_bit_qual()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
 
     def sort(self):
         """sorts self according to the PDD"""
@@ -1726,6 +1765,50 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
     ])
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
+
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_summary_vs_bit_qual, super().test_product]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_summary_vs_bit_qual(self):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        any_fail = False
+        for node_id, node_q_b, node_q in zip(
+                self.node_id, self.node_q_b, self.node_q):
+
+            try:
+                if node_q_b == 0:
+                    assert node_q == 0
+                elif node_q_b < QUAL_IND_NODE_DEGRADED_THRESHOLD:
+                    assert node_q == 1
+                elif node_q_b < QUAL_IND_NODE_BAD_THRESHOLD:
+                    assert node_q == 2
+                else:
+                    assert node_q == 3
+            except AssertionError:
+                any_fail = True
+                print((
+                    'TEST FAILURE in test_summary_vs_bit_qual: '
+                    'node_id: %d failed; %d %d')%(
+                        node_id, node_q, node_q_b))
+                break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
 
     @classmethod
     def from_riverobs(cls, node_outputs):
@@ -3903,6 +3986,50 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             reference['dimensions'] = DIMENSIONS_CENTERLINES
         else:
             reference['dimensions'] = DIMENSIONS_REACHES
+
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_summary_vs_bit_qual, super().test_product]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_summary_vs_bit_qual(self):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        any_fail = False
+        for reach_id, reach_q_b, reach_q in zip(
+                self.reach_id, self.reach_q_b, self.reach_q):
+
+            try:
+                if reach_q_b == 0:
+                    assert reach_q == 0
+                elif reach_q_b < QUAL_IND_REACH_DEGRADED_THRESHOLD:
+                    assert reach_q == 1
+                elif reach_q_b < QUAL_IND_REACH_BAD_THRESHOLD:
+                    assert reach_q == 2
+                else:
+                    assert reach_q == 3
+            except AssertionError:
+                any_fail = True
+                print((
+                    'TEST FAILURE in test_summary_vs_bit_qual: '
+                    'reach_id: %d failed; %d %d')%(
+                        reach_id, reach_q, reach_q_b))
+                break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
 
     @classmethod
     def from_riverobs(cls, reach_outputs, reach_collection):
