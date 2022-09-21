@@ -101,10 +101,22 @@ def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_rivertile,
     if truth_basedir:
         truth_path = proc_rivertile.replace(basedir, truth_basedir)[0:-n_char]
         truth_file = glob.glob(os.path.join(
-            truth_path, truth_rivertile, '*', '*iver*ile*.nc'))[0]
+            truth_path, truth_rivertile, '*', '*iver*ile*.nc'))
+        if truth_file:
+            truth_file = truth_file[0]
+        else:
+            truth_file = ''
+            print('Missing truth:', truth_path + truth_rivertile +
+                  '/river_data/rivertile.nc')
     else:
         truth_file = glob.glob(os.path.join(
-            path, truth_rivertile, '*', '*iver*ile*.nc'))[0]
+            path, truth_rivertile, '*', '*iver*ile*.nc'))
+        if truth_file:
+            truth_file = truth_file[0]
+        else:
+            truth_file = ''
+            print('Missing truth:', path + truth_rivertile +
+                  '/river_data/rivertile.nc')
     return truth_file
 
 
