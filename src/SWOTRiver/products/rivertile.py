@@ -23,6 +23,8 @@ from SWOTWater.products.product import \
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
+LOGGER = logging.getLogger(__name__)
+
 # define constants for each node-level quality bit
 QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
 QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
@@ -297,7 +299,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
         any_fail = False
         for group in self.GROUPS:
             try:
-                print('Testing group in test_summary_vs_bit_qual: %s'%group)
+                LOGGER.debug('Testing group in test_qual_bits: %s'%group)
                 self[group].test_summary_vs_bit_qual()
             except AssertionError:
                 any_fail = True
@@ -1800,7 +1802,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     assert node_q == 3
             except AssertionError:
                 any_fail = True
-                print((
+                LOGGER.warning((
                     'TEST FAILURE in test_summary_vs_bit_qual: '
                     'node_id: %d failed; %d %d')%(
                         node_id, node_q, node_q_b))
@@ -4021,7 +4023,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     assert reach_q == 3
             except AssertionError:
                 any_fail = True
-                print((
+                LOGGER.warning((
                     'TEST FAILURE in test_summary_vs_bit_qual: '
                     'reach_id: %d failed; %d %d')%(
                         reach_id, reach_q, reach_q_b))
