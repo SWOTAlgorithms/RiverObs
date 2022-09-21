@@ -101,8 +101,11 @@ class ProductTesterMixIn(object):
                 flag_masks = self.VARIABLES[var]['flag_masks']
 
                 # Reject fill values before assertion
-                values = self[var]
-                values = values.data[values.data != fill_value]
+                if np.ma.isMaskedArray(self[var]):
+                    values = self[var].data
+                else:
+                    values = self[var]
+                values = values[values != fill_value]
 
                 # Iterate over values, print first value to fail and break
                 for value in values:
@@ -168,7 +171,11 @@ class ProductTesterMixIn(object):
                 continue
 
             # Don't need to reject fill values here (they are finite)
-            values = self[var].data
+            if np.ma.isMaskedArray(self[var]):
+                values = self[var].data
+            else:
+                values = self[var]
+
             try:
                 assert np.isfinite(values).all()
             except AssertionError:
@@ -198,8 +205,11 @@ class ProductTesterMixIn(object):
                 fill_value = self.VARIABLES[var]['_FillValue']
 
                 # Reject fill values before assertion
-                values = self[var]
-                values = values.data[values.data != fill_value]
+                if np.ma.isMaskedArray(self[var]):
+                    values = self[var].data
+                else:
+                    values = self[var]
+                values = values[values != fill_value]
 
                 # Iterate over values, print first value to fail and break
                 for value in values:
