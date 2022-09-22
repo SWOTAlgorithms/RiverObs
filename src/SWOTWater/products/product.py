@@ -72,7 +72,7 @@ class ProductTesterMixIn(object):
         """Calls suite of validation tests"""
         any_fail = False
         for tester in [self.test_inf_nan, self.test_in_valid_range,
-                       self.test_qual_valid_max]:
+                       self.test_qual_valid_max, self.test_qual_vs_flag_masks]:
             try:
                 tester()
             except AssertionError:
@@ -83,15 +83,17 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_qual_bits(self, prefix=''):
+    def test_qual_vs_flag_masks(self, prefix=''):
         """
         Checks that quality flags have no bits set that are not in flag_masks
         """
         any_fail = False
         for group in self.GROUPS:
             try:
-                LOGGER.debug('Testing group in test_qual_bits: %s'%group)
-                self[group].test_qual_bits(prefix=prefix+'/'+group+'/')
+                LOGGER.debug(
+                    'Testing group in test_qual_vs_flag_masks: %s'%group)
+                self[group].test_qual_vs_flag_masks(
+                    prefix=prefix+'/'+group+'/')
             except AssertionError:
                 any_fail = True
                 continue
@@ -100,29 +102,25 @@ class ProductTesterMixIn(object):
             if('flag_meanings' in self.VARIABLES[var] and
                'flag_masks' in self.VARIABLES[var]):
 
-                fill_value = self.VARIABLES[var]['_FillValue']
                 flag_masks = self.VARIABLES[var]['flag_masks']
 
-                # Reject fill values before assertion
                 if np.ma.isMaskedArray(self[var]):
                     values = self[var].data
                 else:
                     values = self[var]
-                values = values[values != fill_value]
 
                 # Iterate over values, print first value to fail and break
-                for value in values:
-                    try:
-                        sum_flag_masks = np.bitwise_or.reduce(flag_masks)
-                        assert (value & ~sum_flag_masks) == 0
-                    except AssertionError:
-                        any_fail = True
-                        # stdout will be printed on assertion failure
-                        LOGGER.warning((
-                            'TEST FAILURE in test_qual_bits: '
-                            '%s failed; %d %d')%(
-                                prefix+var, value, sum_flag_masks))
-                        break
+                sum_flag_masks = np.bitwise_or.reduce(flag_masks)
+                mask_invalid = values & ~sum_flag_masks > 0
+                try:
+                    assert (~mask_invalid).all()
+                except AssertionError:
+                    any_fail = True
+                    # stdout will be printed on assertion failure
+                    LOGGER.warning((
+                        'TEST FAILURE in test_qual_vs_flag_masks: '
+                        '%s failed; %d %d')%(
+                            prefix+var, values[mask_invalid][0], sum_flag_masks))
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
@@ -206,11 +204,11 @@ class ProductTesterMixIn(object):
                 continue
 
         for var in self.VARIABLES:
-            # If variable lacks valid_min/max/fill_value skip it
+            # If variable lacks valid_min/max skip it
             with contextlib.suppress(KeyError):
                 valid_min = self.VARIABLES[var]['valid_min']
                 valid_max = self.VARIABLES[var]['valid_max']
-                fill_value = self.VARIABLES[var]['_FillValue']
+                fill_value = self._getfill(var)
 
                 # Reject fill values before assertion
                 if np.ma.isMaskedArray(self[var]):
@@ -219,19 +217,19 @@ class ProductTesterMixIn(object):
                     values = self[var]
                 values = values[values != fill_value]
 
-                # Iterate over values, print first value to fail and break
-                for value in values:
-                    try:
-                        assert np.logical_and(
-                            value >= valid_min, value <= valid_max)
-                    except AssertionError:
-                        any_fail = True
-                        # stdout will be printed on assertion failure
-                        LOGGER.warning((
-                            'TEST FAILURE in test_in_valid_range: '
-                            '%s failed; %f %f %f')%(
-                                prefix+var, value, valid_min, valid_max))
-                        break
+                mask_invalid = np.logical_not(np.logical_and(
+                    values >= valid_min, values <= valid_max))
+
+                try:
+                    assert (~mask_invalid).all()
+                except AssertionError:
+                    any_fail = True
+                    # stdout will be printed on assertion failure
+                    LOGGER.warning((
+                        'TEST FAILURE in test_in_valid_range: '
+                        '%s failed; %f %f %f')%(
+                            prefix+var, values[mask_invalid][0], valid_min,
+                            valid_max))
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
