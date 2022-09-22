@@ -229,7 +229,6 @@ class ProductTesterMixIn(object):
                     # Just the first offending value is printed here
                     value = values[mask_invalid][0]
                     if self.VARIABLES[var]['dtype'] == 'c8':
-                        from IPython import embed; embed()
                         LOGGER.warning((
                             'TEST FAILURE in test_in_valid_range: '
                             '%s failed; %f %f %f %f')%(
