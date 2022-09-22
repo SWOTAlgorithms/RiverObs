@@ -227,11 +227,25 @@ class ProductTesterMixIn(object):
                     any_fail = True
                     # stdout will be printed on assertion failure
                     # Just the first offending value is printed here
-                    LOGGER.warning((
-                        'TEST FAILURE in test_in_valid_range: '
-                        '%s failed; %f %f %f')%(
-                            prefix+var, values[mask_invalid][0], valid_min,
-                            valid_max))
+                    value = values[mask_invalid][0]
+                    if self.VARIABLES[var]['dtype'] == 'c8':
+                        from IPython import embed; embed()
+                        LOGGER.warning((
+                            'TEST FAILURE in test_in_valid_range: '
+                            '%s failed; %f %f %f %f')%(
+                                prefix+var, value.real, value.imag, valid_min,
+                                valid_max))
+                    elif self.VARIABLES[var]['dtype'][0] in ['i', 'u']:
+                        LOGGER.warning((
+                            'TEST FAILURE in test_in_valid_range: '
+                            '%s failed; %d %d %d')%(
+                                prefix+var, value, valid_min, valid_max))
+                    else:
+                        LOGGER.warning((
+                            'TEST FAILURE in test_in_valid_range: '
+                            '%s failed; %f %f %f')%(
+                                prefix+var, value, valid_min, valid_max))
+
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
@@ -839,6 +853,7 @@ class Product(object):
         out_value = np.ma.masked_array(
             data=quantized_values, dtype=dtype, fill_value=quantized_fill,
             mask=np.logical_not(valid))
+
         self[my_var] = out_value
 
     def requantize(self):

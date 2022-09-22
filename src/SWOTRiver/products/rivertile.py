@@ -1898,8 +1898,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 data[key] = np.array([
                     record['properties'][key] for record in records])
         for key, value in data.items():
-            if key in ['reach_id', 'node_id']:
-                value = value.astype('int')
+            if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
+                value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
         return klass
 
@@ -4215,8 +4215,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     record['properties'][key] for record in records])
 
         for key, value in data.items():
-            if key in ['reach_id', 'node_id', 'rch_id_up', 'rch_id_dn']:
-                value = value.astype('int')
+            if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
+                value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
         return klass
 
