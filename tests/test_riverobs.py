@@ -136,39 +136,10 @@ class TestRiverTile():
             for test_value, ref_value in zip(test_values, ref_values):
                 assert test_value == ref_value
 
-    def test_bitwise_and_summary_qual_consistency(self, rivertile_tester):
+    def test_summary_vs_bit_qual(self, rivertile_tester):
         """
         Checks that the summary quality flags match what they should be based
         on the bitwise quality flags.
         """
-        node_degraded_thresh = 262144
-        node_bad_thresh = 8388608
-        reach_degraded_thresh = 262144
-        reach_bad_thresh = 33554432
-        test_rt = rivertile_tester.test_rivertile
-        for reach_id, reach_bit_q, reach_sum_q in zip(
-                test_rt.reaches['reach_id'], test_rt.reaches['reach_q_b'],
-                test_rt.reaches['reach_q']):
-            reach_fail_str = f"Failed at reach {reach_id} Bit qual " \
-                             f"{reach_bit_q}"
-            if reach_bit_q == 0:
-                assert reach_sum_q == 0, reach_fail_str
-            elif reach_bit_q < reach_degraded_thresh:
-                assert reach_sum_q == 1, reach_fail_str
-            elif reach_bit_q < reach_bad_thresh:
-                assert reach_sum_q == 2, reach_fail_str
-            elif reach_bit_q >= reach_bad_thresh:
-                assert reach_sum_q == 3, reach_fail_str
-
-        for node_id, node_bit_q, node_sum_q in zip(
-                test_rt.nodes['node_id'], test_rt.nodes['node_q_b'],
-                test_rt.nodes['node_q']):
-            node_fail_str = f"Failed at node {node_id} Bit qual {node_bit_q}"
-            if node_bit_q == 0:
-                assert node_sum_q == 0, node_fail_str
-            elif node_bit_q < node_degraded_thresh:
-                assert node_sum_q == 1, node_fail_str
-            elif node_bit_q < node_bad_thresh:
-                assert node_sum_q == 2, node_fail_str
-            elif node_bit_q >= node_bad_thresh:
-                assert node_sum_q == 3, node_fail_str
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_summary_vs_bit_qual()
