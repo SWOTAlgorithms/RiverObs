@@ -117,6 +117,7 @@ class ProductTesterMixIn(object):
                 except AssertionError:
                     any_fail = True
                     # stdout will be printed on assertion failure
+                    # Just the first offending value is printed here
                     LOGGER.warning((
                         'TEST FAILURE in test_qual_vs_flag_masks: '
                         '%s failed; %d %d')%(
@@ -225,6 +226,7 @@ class ProductTesterMixIn(object):
                 except AssertionError:
                     any_fail = True
                     # stdout will be printed on assertion failure
+                    # Just the first offending value is printed here
                     LOGGER.warning((
                         'TEST FAILURE in test_in_valid_range: '
                         '%s failed; %f %f %f')%(
