@@ -68,13 +68,13 @@ def sort_variable_attribute_odict(in_odict):
 
 class ProductTesterMixIn(object):
     """Contains validation methods defined on product classes"""
-    def test_product(self):
+    def test_product(self, use_mask=False):
         """Calls suite of validation tests"""
         any_fail = False
         for tester in [self.test_inf_nan, self.test_in_valid_range,
                        self.test_qual_valid_max, self.test_qual_vs_flag_masks]:
             try:
-                tester()
+                tester(use_mask=use_mask)
             except AssertionError:
                 any_fail = True
                 continue
@@ -83,7 +83,7 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_qual_vs_flag_masks(self, prefix=''):
+    def test_qual_vs_flag_masks(self, prefix='', use_mask=False):
         """
         Checks that quality flags have no bits set that are not in flag_masks
         """
@@ -93,7 +93,7 @@ class ProductTesterMixIn(object):
                 LOGGER.debug(
                     'Testing group in test_qual_vs_flag_masks: %s'%group)
                 self[group].test_qual_vs_flag_masks(
-                    prefix=prefix+'/'+group+'/')
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
             except AssertionError:
                 any_fail = True
                 continue
@@ -104,10 +104,12 @@ class ProductTesterMixIn(object):
 
                 flag_masks = self.VARIABLES[var]['flag_masks']
 
-                if np.ma.isMaskedArray(self[var]):
-                    values = self[var].data
-                else:
-                    values = self[var]
+                values = self[var]
+                if np.ma.isMaskedArray(values):
+                    if use_mask:
+                        values = values.data[~values.mask]
+                    else:
+                        values = values.data
 
                 # Iterate over values, print first value to fail and break
                 sum_flag_masks = np.bitwise_or.reduce(flag_masks)
@@ -127,13 +129,16 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_qual_valid_max(self, prefix=''):
+    def test_qual_valid_max(self, prefix='', use_mask=False):
         """Checks that quality flags have correct valid_max"""
+        # Note use_mask has no action in this method (it is there for a common
+        # interface to test_* methods)
         any_fail = False
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_qual_valid_max: %s'%group)
-                self[group].test_qual_valid_max(prefix=prefix+'/'+group+'/')
+                self[group].test_qual_valid_max(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
             except AssertionError:
                 any_fail = True
                 continue
@@ -157,13 +162,14 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_inf_nan(self, prefix=''):
+    def test_inf_nan(self, prefix='', use_mask=False):
         """Checks for non-finite values in floating point rivertile outputs"""
         any_fail = False
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_inf_nan: %s'%group)
-                self[group].test_inf_nan(prefix=prefix+'/'+group+'/')
+                self[group].test_inf_nan(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
             except AssertionError:
                 any_fail = True
                 continue
@@ -174,10 +180,12 @@ class ProductTesterMixIn(object):
                 continue
 
             # Don't need to reject fill values here (they are finite)
-            if np.ma.isMaskedArray(self[var]):
-                values = self[var].data
-            else:
-                values = self[var]
+            values = self[var]
+            if np.ma.isMaskedArray(values):
+                if use_mask:
+                    values = values.data[~values.mask]
+                else:
+                    values = values.data
 
             try:
                 assert np.isfinite(values).all()
@@ -193,13 +201,14 @@ class ProductTesterMixIn(object):
         if any_fail:
             raise AssertionError
 
-    def test_in_valid_range(self, prefix=''):
+    def test_in_valid_range(self, prefix='', use_mask=False):
         """Checks that all variables are within the valid range"""
         any_fail = False
         for group in self.GROUPS:
             try:
                 LOGGER.debug('Testing group in test_in_valid_range: %s'%group)
-                self[group].test_in_valid_range(prefix=prefix+'/'+group+'/')
+                self[group].test_in_valid_range(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
             except AssertionError:
                 any_fail = True
                 continue
@@ -212,10 +221,12 @@ class ProductTesterMixIn(object):
                 fill_value = self._getfill(var)
 
                 # Reject fill values before assertion
-                if np.ma.isMaskedArray(self[var]):
-                    values = self[var].data
-                else:
-                    values = self[var]
+                values = self[var]
+                if np.ma.isMaskedArray(values):
+                    if use_mask:
+                        values = values.data[~values.mask]
+                    else:
+                        values = values.data
                 values = values[values != fill_value]
 
                 mask_invalid = np.logical_not(np.logical_and(
