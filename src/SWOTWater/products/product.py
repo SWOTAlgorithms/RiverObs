@@ -11,12 +11,16 @@ import copy
 import os
 import sys
 import warnings
+import logging
 import textwrap
+import contextlib
 import numpy as np
 import netCDF4 as nc
 
 import SWOTWater.products.netcdf as netcdf
 from SWOTWater.products.constants import FILL_VALUES
+
+LOGGER = logging.getLogger(__name__)
 
 FIELD_WARNING = "I'm afraid I can't do that. {} is not in {}"
 
@@ -60,6 +64,203 @@ def sort_variable_attribute_odict(in_odict):
         if key in in_odict:
             attr_list.append([key, in_odict[key]])
     return odict(attr_list)
+
+
+class ProductTesterMixIn(object):
+    """Contains validation methods defined on product classes"""
+    def test_product(self, use_mask=False):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_inf_nan, self.test_in_valid_range,
+                       self.test_qual_valid_max, self.test_qual_vs_flag_masks]:
+            try:
+                tester(use_mask=use_mask)
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_qual_vs_flag_masks(self, prefix='', use_mask=False):
+        """
+        Checks that quality flags have no bits set that are not in flag_masks
+        """
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                LOGGER.debug(
+                    'Testing group in test_qual_vs_flag_masks: %s'%group)
+                self[group].test_qual_vs_flag_masks(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            if('flag_meanings' in self.VARIABLES[var] and
+               'flag_masks' in self.VARIABLES[var]):
+
+                flag_masks = self.VARIABLES[var]['flag_masks']
+
+                values = self[var]
+                if np.ma.isMaskedArray(values):
+                    if use_mask:
+                        values = values.data[~values.mask]
+                    else:
+                        values = values.data
+
+                # Iterate over values, print first value to fail and break
+                sum_flag_masks = np.bitwise_or.reduce(flag_masks)
+                mask_invalid = values & ~sum_flag_masks > 0
+                try:
+                    assert (~mask_invalid).all()
+                except AssertionError:
+                    any_fail = True
+                    # stdout will be printed on assertion failure
+                    # Just the first offending value is printed here
+                    LOGGER.warning((
+                        'TEST FAILURE in test_qual_vs_flag_masks: '
+                        '%s failed; %d %d')%(
+                            prefix+var, values[mask_invalid][0], sum_flag_masks))
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
+    def test_qual_valid_max(self, prefix='', use_mask=False):
+        """Checks that quality flags have correct valid_max"""
+        # Note use_mask has no action in this method (it is there for a common
+        # interface to test_* methods)
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                LOGGER.debug('Testing group in test_qual_valid_max: %s'%group)
+                self[group].test_qual_valid_max(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            if('flag_meanings' in self.VARIABLES[var] and
+               'flag_masks' in self.VARIABLES[var]):
+
+                try:
+                    valid_max = self.VARIABLES[var]['valid_max']
+                    flag_masks = self.VARIABLES[var]['flag_masks']
+                    sum_flag_masks = np.bitwise_or.reduce(flag_masks)
+                    assert valid_max == sum_flag_masks
+                except AssertionError:
+                    any_fail = True
+                    LOGGER.warning(
+                        ('TEST FAILURE in test_qual_valid_max: %s %d '
+                         'expected %d'%(prefix+var, valid_max, sum_flag_masks)))
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
+    def test_inf_nan(self, prefix='', use_mask=False):
+        """Checks for non-finite values in floating point rivertile outputs"""
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                LOGGER.debug('Testing group in test_inf_nan: %s'%group)
+                self[group].test_inf_nan(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            # just test floating point types
+            if self.VARIABLES[var]['dtype'][0] not in ['f',]:
+                continue
+
+            # Don't need to reject fill values here (they are finite)
+            values = self[var]
+            if np.ma.isMaskedArray(values):
+                if use_mask:
+                    values = values.data[~values.mask]
+                else:
+                    values = values.data
+
+            try:
+                assert np.isfinite(values).all()
+            except AssertionError:
+                any_fail = True
+                LOGGER.warning(
+                    'TEST FAILURE in test_inf_nan: %s'%(prefix+var))
+            except TypeError:
+                # raised if time_str
+                continue
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
+    def test_in_valid_range(self, prefix='', use_mask=False):
+        """Checks that all variables are within the valid range"""
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                LOGGER.debug('Testing group in test_in_valid_range: %s'%group)
+                self[group].test_in_valid_range(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for var in self.VARIABLES:
+            # If variable lacks valid_min/max skip it
+            with contextlib.suppress(KeyError):
+                valid_min = self.VARIABLES[var]['valid_min']
+                valid_max = self.VARIABLES[var]['valid_max']
+                fill_value = self._getfill(var)
+
+                # Reject fill values before assertion
+                values = self[var]
+                if np.ma.isMaskedArray(values):
+                    if use_mask:
+                        values = values.data[~values.mask]
+                    else:
+                        values = values.data
+                values = values[values != fill_value]
+
+                mask_invalid = np.logical_not(np.logical_and(
+                    values >= valid_min, values <= valid_max))
+
+                try:
+                    assert (~mask_invalid).all()
+                except AssertionError:
+                    any_fail = True
+                    # stdout will be printed on assertion failure
+                    # Just the first offending value is printed here
+                    value = values[mask_invalid][0]
+                    if self.VARIABLES[var]['dtype'] == 'c8':
+                        LOGGER.warning((
+                            'TEST FAILURE in test_in_valid_range: '
+                            '%s failed; %f %f %f %f')%(
+                                prefix+var, value.real, value.imag, valid_min,
+                                valid_max))
+                    elif self.VARIABLES[var]['dtype'][0] in ['i', 'u']:
+                        LOGGER.warning((
+                            'TEST FAILURE in test_in_valid_range: '
+                            '%s failed; %d %d %d')%(
+                                prefix+var, value, valid_min, valid_max))
+                    else:
+                        LOGGER.warning((
+                            'TEST FAILURE in test_in_valid_range: '
+                            '%s failed; %f %f %f')%(
+                                prefix+var, value, valid_min, valid_max))
+
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
 
 class Product(object):
     """Base class for SWOT-like data products.
@@ -646,9 +847,9 @@ class Product(object):
 
         if np.ma.isMaskedArray(value):
             # if mask array use .data
-            valid = np.logical_and(value.data != fill, ~np.isnan(value))
+            valid = np.logical_and(value.data != fill, np.isfinite(value))
         else:
-            valid = np.logical_and(value != fill, ~np.isnan(value))
+            valid = np.logical_and(value != fill, np.isfinite(value))
 
         quantized_values = quantized_fill * np.ones(value.shape)
         if dtype[0] in ['i', 'u']:
@@ -662,6 +863,7 @@ class Product(object):
         out_value = np.ma.masked_array(
             data=quantized_values, dtype=dtype, fill_value=quantized_fill,
             mask=np.logical_not(valid))
+
         self[my_var] = out_value
 
     def requantize(self):
@@ -682,7 +884,10 @@ class Product(object):
     def reset_valid_minmax(self):
         """open up valid data range to whole range of datatype"""
         print ('resetting valid min/max range')
-        # handle variables not in a group
+        for group in self.GROUPS:
+            print('group: ', group)
+            self[group].reset_valid_minmax()
+
         for key, variable in self.VARIABLES.items():
             if variable is not None:
                 print ('variable: ', key)
@@ -692,18 +897,6 @@ class Product(object):
                     info = np.finfo(variable['dtype'])
                 variable['valid_min'] = info.min
                 variable['valid_max'] = info.max
-        # handle variables in groups
-        for groupkey, group in self._groups.items():
-            print('group: ', groupkey)
-            for key, variable in group.VARIABLES.items():
-                if variable is not None:
-                    print ('\tvariable: ', key)
-                    try:
-                        info = np.iinfo(variable['dtype'])
-                    except ValueError:
-                        info = np.finfo(variable['dtype'])
-                    variable['valid_min'] = info.min
-                    variable['valid_max'] = info.max
 
 class MutableProduct(Product):
     """A product with forms as instance attributes, not class attributes

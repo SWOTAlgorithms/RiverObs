@@ -1,5 +1,3 @@
-nodes/*
-reaches/*
-index.nc
-inputs/reaches.idx
-inputs/reaches.dat
+test_case/rt.nc
+test_case/pv.nc
+ncdiffs/*
