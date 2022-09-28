@@ -53,8 +53,6 @@ class PressureTransducers():
     with some methods to read the PT files (that have many PTs in them)
     and create the PT objects
     """
-    pts = []
-    num_pts = 0
     @classmethod
     def from_native(cls, pt_file):
         """
@@ -184,8 +182,9 @@ class Drifter(RiverNCProductMixIn, Product):
                     klass = cls.from_shp(drifter_file)
                 except fiona.errors.DriverError:
                     # catch the fiona error and raise something more useful
-                    raise NotImplementedError(
-                        "input file type not supported by Drifter class: {}".format(drifter_file))
+                    raise NotImplementedError((
+                        "input file type not supported by Drifter class: {}"
+                        ).format(drifter_file))
         return klass
 
     @classmethod
