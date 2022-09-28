@@ -52,7 +52,7 @@ def main():
     config = dict(config)
 
     if args.format == 'drifter':
-        # Use file extension to determine class method to use
+        # Use file extension to determine Drifter classmethod to use
         if args.input_file.lower().endswith('.nc'):
             drifter = Drifter.from_ncfile(args.input_file)
 
@@ -61,8 +61,10 @@ def main():
 
         elif args.input_file.lower().endswith('.txt'):
             drifter = Drifter.from_native(args.input_file)
+
         else:
             raise Exception("Unknown drifter file format!")
+
         pixc_simple = SimplePixelCloud.from_drifter(drifter)
 
     elif args.format == 'geotiff':
@@ -70,14 +72,14 @@ def main():
 
     elif args.format == 'pt':
         pixc_simple = SimplePixelCloud.from_pressure_transducer(
-            args.input_file, swot_time=None)
+            args.input_file)
 
     elif args.format == 'simple_pixc':
         pixc_simple = SimplePixelCloud.from_ncfile(args.input_file)
 
     output_pixc_file = args.out_pixc_file
 
-    # If not specified use a tempfile and clean it up later
+    # If args.out_pixc_file not specified use a tempfile and clean it later
     if args.out_pixc_file is None:
         fid, output_pixc_file = tempfile.mkstemp()
     pixc_simple.to_ncfile(output_pixc_file)

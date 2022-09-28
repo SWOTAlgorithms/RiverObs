@@ -379,8 +379,8 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         classif[good] = 1
         klass.classification = classif[good]
 
-        #create the fake slant-plane indices
-        M,N = np.shape(height)
+        # Create the fake slant-plane indices
+        M, N = np.shape(height)
         az = np.arange(M)
         r = np.arange(N)
         R, Az = np.meshgrid(r, az)
@@ -396,7 +396,7 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         return klass
 
     @classmethod
-    def from_pressure_transducer(cls, pt_file, swot_time, maxtime=1000):
+    def from_pressure_transducer(cls, pt_file, swot_time=None, maxtime=1000):
         """pressure transducer converter for closest time"""
         pts = PressureTransducers.from_native(pt_file)
         wse = np.zeros(len(pts.pts)) * np.nan
