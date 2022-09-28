@@ -3,7 +3,6 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 """
 
 from __future__ import absolute_import, division, print_function
-
 import os
 import scipy.ndimage
 import numpy as np
@@ -841,13 +840,15 @@ class SWOTRiverEstimator(SWOTL2):
                 max_iter=max_iter)
 
             # compute node mask to be used for reach aggregation
-            ww = 1 / (river_reach.wse_r_u**2)
+            ww = 1 / (river_reach.wse_r_u ** 2)
             river_reach.mask = self.get_reach_mask(
                 river_reach.node_ss, river_reach.wse, ww, min_fit_points)
 
             # Use node mask to set wse_outlier bit in node_q_b
             river_reach.node_q_b[~river_reach.mask] |= (
                 SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER)
+            # update summary qual flag to include outlier nodes
+            river_reach.node_q[~river_reach.mask] = 3
 
             river_reach_collection.append(river_reach)
             LOGGER.debug('reach processed')
@@ -1741,8 +1742,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Create node_q from node_q_b
         thresh_sus = 1
-        thresh_deg = SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED
-        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_WSE_OUTLIER
+        thresh_deg = (
+            SWOTRiver.products.rivertile.QUAL_IND_NODE_DEGRADED_THRESHOLD)
+        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_NODE_BAD_THRESHOLD
 
         node_q = np.zeros(lat_median.shape, dtype='i2')
         node_q[node_q_b >= thresh_sus] = 1
@@ -1831,8 +1833,11 @@ class SWOTRiverEstimator(SWOTL2):
         }
 
         # Get wse_u from RSS of random wse_r_u and REACH_WSE_SYS_UNCERT
-        river_reach_kw_args['wse_u'] = np.sqrt(
-            river_reach_kw_args['wse_r_u']**2 + REACH_WSE_SYS_UNCERT**2
+        river_reach_kw_args['wse_u'] = MISSING_VALUE_FLT * np.ones(
+            river_reach_kw_args['wse_r_u'].shape)
+        mask = river_reach_kw_args['wse_r_u'] > 0
+        river_reach_kw_args['wse_u'][mask] = np.sqrt(
+            river_reach_kw_args['wse_r_u'][mask]**2 + REACH_WSE_SYS_UNCERT**2
             ).astype('float64')
 
         if xtrack_median is not None:
@@ -2121,6 +2126,9 @@ class SWOTRiverEstimator(SWOTL2):
         # The following bits are not given by logically OR-ing all the
         # node_q_b flags together.
 
+        # unset bit 1
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_SIG0_QUAL_SUSPECT
+
         # unset bit 4
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT
 
@@ -2156,15 +2164,19 @@ class SWOTRiverEstimator(SWOTL2):
         if reach_q_b_and & SWOTRiver.products.rivertile.QUAL_IND_NO_OBS:
             reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_NO_OBS
 
+        # Create reach_q from reach_q_b
         reach_q = 0
-        if reach_q_b >= 1:
-            reach_q = 1
-        elif (reach_q_b >=
-              SWOTRiver.products.rivertile.QUAL_IND_CLASS_QUAL_DEGRADED):
-            reach_q = 2
-        elif reach_q_b >= SWOTRiver.products.rivertile.QUAL_IND_MIN_FIT_POINTS:
-            reach_q = 3
+        thresh_sus = 1
+        thresh_deg = (
+            SWOTRiver.products.rivertile.QUAL_IND_REACH_DEGRADED_THRESHOLD)
+        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_REACH_BAD_THRESHOLD
 
+        if thresh_sus <= reach_q_b < thresh_deg:
+            reach_q = 1
+        elif thresh_deg <= reach_q_b < thresh_bad:
+            reach_q = 2
+        elif reach_q_b >= thresh_bad:
+            reach_q = 3
         reach_stats['reach_q_b'] = reach_q_b
         reach_stats['reach_q'] = reach_q
         reach_stats['xovr_cal_q'] = max(

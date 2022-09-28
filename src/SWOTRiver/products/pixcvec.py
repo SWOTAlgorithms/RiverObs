@@ -11,13 +11,14 @@ import warnings
 import numpy as np
 from collections import OrderedDict as odict
 
-from SWOTWater.products.product import Product, FILL_VALUES, textjoin
+from SWOTWater.products.product import \
+    Product, FILL_VALUES, textjoin, ProductTesterMixIn
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 from SWOTRiver.products.rivertile import RIVER_PRODUCT_ATTRIBUTES
 
-class L2PIXCVector(Product):
+class L2PIXCVector(ProductTesterMixIn, Product):
     UID = "l2_hr_pixcvector"
 
     # copied from L2HRPIXC

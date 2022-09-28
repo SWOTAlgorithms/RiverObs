@@ -18,9 +18,12 @@ import xml.etree.ElementTree
 from shapely.geometry import Point, mapping, LineString
 from collections import OrderedDict as odict
 
-from SWOTWater.products.product import Product, FILL_VALUES, textjoin
+from SWOTWater.products.product import \
+    Product, FILL_VALUES, textjoin, ProductTesterMixIn
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
+
+LOGGER = logging.getLogger(__name__)
 
 # define constants for each node-level quality bit
 QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
@@ -44,7 +47,6 @@ QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
 QUAL_IND_NO_PIXELS = 268435456                  # bit 28
 
 # define constants for each reach-level quality bit
-QUAL_IND_SIG0_QUAL_SUSPECT = 1                  # bit 0
 QUAL_IND_CLASS_QUAL_SUSPECT = 2                 # bit 1
 QUAL_IND_GEOLOCATION_QUAL_SUSPECT = 4           # bit 2
 QUAL_IND_WATER_FRAC_SUSPECT = 8                 # bit 3
@@ -61,6 +63,13 @@ QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
 QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
 QUAL_IND_NO_OBS = 268435456                     # bit 28
 
+# Node degraded/bad threshold values
+QUAL_IND_NODE_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
+QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_WSE_OUTLIER
+
+# Reach degraded/bad threshold values
+QUAL_IND_REACH_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
+QUAL_IND_REACH_BAD_THRESHOLD = QUAL_IND_MIN_FIT_POINTS
 
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
@@ -260,13 +269,45 @@ for key in ['Conventions', 'title', 'platform', 'short_name', 'platform']:
     RIVERTILE_ATTRIBUTES[key]['value'] = RIVERTILE_ATTRIBUTES[key]['docstr']
 
 
-class L2HRRiverTile(Product):
+class L2HRRiverTile(ProductTesterMixIn, Product):
     UID = "l2_hr_rivertile"
     ATTRIBUTES = odict()
     GROUPS = odict([
         ['nodes', 'RiverTileNodes'],
         ['reaches', 'RiverTileReaches'],
     ])
+
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_summary_vs_bit_qual, super().test_product]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_summary_vs_bit_qual(self):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        any_fail = False
+        for group in self.GROUPS:
+            try:
+                LOGGER.debug('Testing group in test_qual_bits: %s'%group)
+                self[group].test_summary_vs_bit_qual()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
 
     def sort(self):
         """sorts self according to the PDD"""
@@ -791,7 +832,7 @@ class ShapeWriterMixIn(object):
                                 datetime.datetime(2000, 1, 1) +
                                 datetime.timedelta(
                                 seconds=this_property[in_dset])
-                                ).strftime('%Y-%m-%dT%H:%M%SZ')
+                                ).strftime('%Y-%m-%dT%H:%M:%SZ')
                         except (OverflowError, ValueError):
                             this_property[out_dset] = 'no_data'
 
@@ -808,7 +849,7 @@ class ShapeWriterMixIn(object):
             ))
 
 
-class RiverTileNodes(Product, ShapeWriterMixIn):
+class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
@@ -1153,7 +1194,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['long_name', 'metric of layover effect'],
                 ['short_name', 'layover_value'],
                 ['units', 'm'],
-                ['valid_min', 0],
+                ['valid_min', -999999],
                 ['valid_max', 999999],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -1256,7 +1297,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     no_sig0_observations
                     no_area_observations
                     no_wse_observations
-                    no_pixels""")],
+                    no_observations""")],
                 ['flag_masks', np.array([
                     QUAL_IND_SIG0_QUAL_SUSPECT,
                     QUAL_IND_CLASS_QUAL_SUSPECT,
@@ -1279,17 +1320,18 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 529297311],
+                ['valid_max', 529297055],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the node measurement. If this
-                    word is interpreted as an unsigned integer, a value of 0
-                    indicates good data, values less than 262144 represent
-                    suspect data, values greater than or equal to 262144 but
-                    less than 8388608 represent degraded data, and values
-                    greater than or equal to 8388608 represent bad data.""")],
+                    Bitwise quality indicator for the node measurement. If
+                    this word is interpreted as an unsigned integer, a value of
+                    0 indicates good data, values greater than 0 but less than
+                    262144 represent suspect data, values greater than or equal
+                    to 262144 but less than 8388608 represent degraded data,
+                    and values greater than or equal to 8388608 represent bad
+                    data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -1682,7 +1724,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 ['source', 'Lehner et al. (2011)'],
                 ['units', '1'],
                 ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_max', 40000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -1726,6 +1768,50 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
 
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_summary_vs_bit_qual, super().test_product]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_summary_vs_bit_qual(self):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        any_fail = False
+        for node_id, node_q_b, node_q in zip(
+                self.node_id, self.node_q_b, self.node_q):
+
+            try:
+                if node_q_b == 0:
+                    assert node_q == 0
+                elif node_q_b < QUAL_IND_NODE_DEGRADED_THRESHOLD:
+                    assert node_q == 1
+                elif node_q_b < QUAL_IND_NODE_BAD_THRESHOLD:
+                    assert node_q == 2
+                else:
+                    assert node_q == 3
+            except AssertionError:
+                any_fail = True
+                LOGGER.warning((
+                    'TEST FAILURE in test_summary_vs_bit_qual: '
+                    'node_id: %d failed; %d %d')%(
+                        node_id, node_q, node_q_b))
+                break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
     @classmethod
     def from_riverobs(cls, node_outputs):
         """
@@ -1760,9 +1846,13 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
             klass['pole_tide'] = node_outputs['pole_tide']
             klass['flow_angle'] = node_outputs['flow_dir']
             # compute node distance from prior
-            klass['node_dist'] = np.sqrt(
-                (node_outputs['x']-node_outputs['x_prior'])**2 +
-                (node_outputs['y']-node_outputs['y_prior'])**2)
+            klass['node_dist'] = np.ones(
+                node_outputs['x'].shape)*MISSING_VALUE_FLT
+            mask = node_outputs['x'] != MISSING_VALUE_FLT
+            klass['node_dist'][mask] = np.sqrt(
+                (node_outputs['x'][mask]-node_outputs['x_prior'][mask])**2 +
+                (node_outputs['y'][mask]-node_outputs['y_prior'][mask])**2)
+
             klass['dark_frac'] = node_outputs['dark_frac']
 
             klass['p_dam_id'] = node_outputs['grand_id']
@@ -1808,8 +1898,8 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
                 data[key] = np.array([
                     record['properties'][key] for record in records])
         for key, value in data.items():
-            if key in ['reach_id', 'node_id']:
-                value = value.astype('int')
+            if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
+                value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
         return klass
 
@@ -1885,7 +1975,7 @@ class RiverTileNodes(Product, ShapeWriterMixIn):
         return klass
 
 
-class RiverTileReaches(Product, ShapeWriterMixIn):
+class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     ATTRIBUTES = RIVERTILE_ATTRIBUTES.copy()
     ATTRIBUTES['title'] = {
@@ -3319,7 +3409,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['standard_name', 'status_flag'],
                 ['short_name', 'reach_qual_bitwise'],
                 ['flag_meanings', textjoin("""
-                    sig0_qual_suspect
                     classification_qual_suspect
                     geolocation_qual_suspect
                     water_fraction_suspect
@@ -3334,9 +3423,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     below_min_fit_points
                     no_area_observations
                     no_wse_observations
-                    no_pixels""")],
+                    no_observations""")],
                 ['flag_masks', np.array([
-                    QUAL_IND_SIG0_QUAL_SUSPECT,
                     QUAL_IND_CLASS_QUAL_SUSPECT,
                     QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
                     QUAL_IND_WATER_FRAC_SUSPECT,
@@ -3353,17 +3441,18 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     QUAL_IND_NO_WSE_PIX,
                     QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 504163471],
+                ['valid_max', 504163470],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the reach measurement. If
+                    Bitwise quality indicator for the reach measurements. If
                     this word is interpreted as an unsigned integer, a value of
-                    0 indicates good data, values less than 262144 represent
-                    suspect data, values greater than or equal to 262144 but
-                    less than 8388608 represent degraded data, and values
-                    greater than or equal to 8388608 represent bad data.""")],
+                    0 indicates good data, values greater than 0 but less than
+                    262144 represent suspect data, values greater than or equal
+                    to 262144 but less than 8388608 represent degraded data,
+                    and values greater than or equal to 8388608 represent bad
+                    data.""")],
                 ])],
         ['dark_frac',
          odict([['dtype', 'f8'],
@@ -3759,7 +3848,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['long_name', 'reach width variability'],
                 ['short_name', 'prior_width_variability'],
                 ['units', 'm'],
-                ['valid_min', 10],
+                ['valid_min', 0],
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
@@ -3831,7 +3920,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                 ['source', 'Lehner et al. (2011)'],
                 ['units', '1'],
                 ['valid_min', 0],
-                ['valid_max', 10000],
+                ['valid_max', 40000],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -3900,6 +3989,50 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
         else:
             reference['dimensions'] = DIMENSIONS_REACHES
 
+    def test_product(self):
+        """Calls suite of validation tests"""
+        any_fail = False
+        for tester in [self.test_summary_vs_bit_qual, super().test_product]:
+            try:
+                tester()
+            except AssertionError:
+                any_fail = True
+                continue
+
+        # Re-raise AssertionError if any test failed
+        if any_fail:
+            raise AssertionError
+
+    def test_summary_vs_bit_qual(self):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        any_fail = False
+        for reach_id, reach_q_b, reach_q in zip(
+                self.reach_id, self.reach_q_b, self.reach_q):
+
+            try:
+                if reach_q_b == 0:
+                    assert reach_q == 0
+                elif reach_q_b < QUAL_IND_REACH_DEGRADED_THRESHOLD:
+                    assert reach_q == 1
+                elif reach_q_b < QUAL_IND_REACH_BAD_THRESHOLD:
+                    assert reach_q == 2
+                else:
+                    assert reach_q == 3
+            except AssertionError:
+                any_fail = True
+                LOGGER.warning((
+                    'TEST FAILURE in test_summary_vs_bit_qual: '
+                    'reach_id: %d failed; %d %d')%(
+                        reach_id, reach_q, reach_q_b))
+                break
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
     @classmethod
     def from_riverobs(cls, reach_outputs, reach_collection):
         """
@@ -3950,7 +4083,6 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['reach_q_b'] = reach_outputs['reach_q_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
-
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
                         'p_lat', 'p_lon']:
@@ -4028,7 +4160,7 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
             klass['centerline_lon'] = cl_lon
             klass['centerline_lat'] = cl_lat
 
-            # set quality flag on less than 1/2 reach observed
+            # set partially observed flag on less than 1/2 reach observed
             klass['partial_f'] = np.zeros(reach_outputs['frac_obs'].shape)
             klass['partial_f'][reach_outputs['frac_obs'] < 0.5] = 1
 
@@ -4083,8 +4215,8 @@ class RiverTileReaches(Product, ShapeWriterMixIn):
                     record['properties'][key] for record in records])
 
         for key, value in data.items():
-            if key in ['reach_id', 'node_id', 'rch_id_up', 'rch_id_dn']:
-                value = value.astype('int')
+            if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
+                value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
         return klass
 

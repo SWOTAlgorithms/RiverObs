@@ -1,157 +1,145 @@
 #!/usr/bin/env python
 '''
-Analyze RiverObs outputs.
+Copyright (c) 2018-, California Institute of Technology ("Caltech"). U.S.
+Government sponsorship acknowledged.
+All rights reserved.
+
+Author (s): Alex Fore
+
+Regression tests for RiverTile / RiverObs
+
+Execute tests with:
+pytest -v test_riverobs.py
+
+To execute tests with debugging:
+pytest -v test_riverobs.py --capture=no
 '''
 import os
 import netCDF4
 import pytest
-import shapefile
+import contextlib
 import numpy as np
 
-class RiverTilePart(object):
-    '''Class for part of RiverTile product (nodes/reaches)'''
-    @classmethod
-    def from_shapefile(cls, filename):
-        '''makes self from a filename'''
-        klass = cls()
-        ifp = shapefile.Reader(filename)
-        records = np.array(ifp.records())
-        fields = ifp.fields[1:]
-        for ii, field in enumerate(fields):
-            setattr(klass, field[0], records[:, ii])
-        return klass
-
-class RiverTile(object):
-    '''Class for RiverTile shapefile products'''
-    @classmethod
-    def from_shapefiles(cls, node_filename, reach_filename):
-        '''makes self from two shapefiles (nodes.shp/reaches.shp)'''
-        klass = cls()
-        klass.nodes = RiverTilePart.from_shapefile(node_filename)
-        klass.reaches = RiverTilePart.from_shapefile(reach_filename)
-        return klass
-
-    @classmethod
-    def from_ncfile(cls, filename):
-        '''Constructifies self from a netcdf file'''
-        klass = cls()
-        with netCDF4.Dataset(filename, 'r') as ifp:
-            for group in ifp.groups.keys():
-                setattr(klass, group, RiverTilePart())
-                for key, value in ifp.groups[group].variables.items():
-                    setattr(getattr(klass, group), key, value[:])
-        return klass
-
-class Index(object):
-    """class for index file"""
-    @classmethod
-    def from_ncfile(cls, filename):
-        """makes self from a netcdf file"""
-        klass = cls()
-        with netCDF4.Dataset(filename, 'r') as ifp:
-            for varname, varvalue in ifp.variables.items():
-                setattr(klass, varname, varvalue[:])
-        return klass
-
+from SWOTRiver.products.rivertile import L2HRRiverTile
+from SWOTRiver.products.pixcvec import L2PIXCVector
 
 class RiverObsTester(object):
-    def __init__(self, nodes_shpbase, reaches_shpbase, index_file,
-                 flat_height=100, std_height=0.005):
+    def __init__(self, test_rivertile_ncfile, test_pixcvec_ncfile,
+                 ref_rivertile_ncfile, ref_pixcvec_ncfile):
 
-        self.rivertile = RiverTile.from_shapefiles(
-            nodes_shpbase, reaches_shpbase)
-        self.index = Index.from_ncfile(index_file)
-        self.flat_height = flat_height
-        self.std_height = std_height
+        self.test_rivertile = L2HRRiverTile.from_ncfile(test_rivertile_ncfile)
+        self.test_pixcvec = L2PIXCVector.from_ncfile(test_pixcvec_ncfile)
+        self.ref_rivertile = L2HRRiverTile.from_ncfile(ref_rivertile_ncfile)
+        self.ref_pixcvec = L2PIXCVector.from_ncfile(ref_pixcvec_ncfile)
 
-    @staticmethod
-    def _get_stat(values):
-        values_ = values[values==values]
-        return {'mean': np.mean(values_), 'std': np.std(values_)}
-
-    def get_index_stats(self):
-        stats = {}
-        for key, value in self.index.__dict__.items():
-            stats[key] = self._get_stat(value)
-        return stats
-
-    def get_rivertile_stats(self):
-        stats = {}
-        for part in ['nodes', 'reaches']:
-            this_base = getattr(self.rivertile, part)
-            stats[part] = {}
-            for key, value in this_base.__dict__.items():
-                stats[part][key] = self._get_stat(value)
-        return stats
-
-    def analyze(self):
-        """Analyze rivertile outputs for expected values"""
-        self.stats = {
-            'rivertile': self.get_rivertile_stats(),
-            'index': self.get_index_stats()}
-
-
-class TestNosiyFlatRiverTile():
+class TestRiverTile():
     @pytest.fixture(scope='class')
-    def rivertile_tester(
-        self, nodes_shpbase=None, reaches_shpbase=None, index_file=None):
+    def rivertile_tester(self):
         """Constructs the RiverTileTester class instance to use for testing"""
 
-        if nodes_shpbase is None:
-            nodes_shpbase = os.path.join(os.getcwd(), 'nodes', 'nodes')
-            reaches_shpbase = os.path.join(os.getcwd(), 'reaches', 'reaches')
-            index_file = os.path.join(os.getcwd(), 'index.nc')
-
+        test_rivertile_ncfile = os.path.join(os.getcwd(), 'test_case', 'rt.nc')
+        test_pixcvec_ncfile = os.path.join(os.getcwd(), 'test_case', 'pv.nc')
+        ref_rivertile_ncfile = os.path.join(
+            os.getcwd(), 'reference_case', 'rt.nc')
+        ref_pixcvec_ncfile = os.path.join(
+            os.getcwd(), 'reference_case', 'pv.nc')
         rivertile_tester = RiverObsTester(
-            nodes_shpbase, reaches_shpbase, index_file, flat_height=100.0,
-            std_height=0.005)
-
-        rivertile_tester.analyze()
+            test_rivertile_ncfile, test_pixcvec_ncfile, ref_rivertile_ncfile,
+            ref_pixcvec_ncfile)
         return rivertile_tester
 
-    def test_reach_height(self, rivertile_tester):
-        """tests the reach average heights"""
-        for key in ['h_no', 'h_nr', 'h_nw']:
-            mean_height = rivertile_tester.stats[
-                'rivertile']['reaches'][key]['mean']
-            assert rivertile_tester.flat_height == pytest.approx(
-                mean_height, abs=rivertile_tester.std_height/10)
+    def test_in_valid_range(self, rivertile_tester):
+        """Checks that all variables are within the valid range"""
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_in_valid_range()
 
-    def test_node_height(self, rivertile_tester):
-        """tests the node average heights"""
-        mean_height = rivertile_tester.stats[
-            'rivertile']['nodes']['h_n_ave']['mean']
-        assert rivertile_tester.flat_height == pytest.approx(
-            mean_height, abs=rivertile_tester.std_height/10)
+    def test_inf_nan(self, rivertile_tester):
+        """Checks for non-finite values in floating point rivertile outputs"""
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_inf_nan()
 
-    def test_pixc_height(self, rivertile_tester):
-        """tests the pixc average heights"""
-        mean_height = rivertile_tester.stats[
-            'index']['height_vectorproc']['mean']
-        assert rivertile_tester.flat_height == pytest.approx(
-            mean_height, abs=rivertile_tester.std_height/10)
+    def test_qual_valid_max(self, rivertile_tester):
+        """Checks that quality flags have correct valid_max"""
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_qual_valid_max()
 
-    def test_pixc_height_std(self, rivertile_tester):
-        """tests the pixc std of the height"""
-        std_height = rivertile_tester.stats[
-            'index']['height_vectorproc']['std']
-        assert rivertile_tester.std_height == pytest.approx(
-            std_height, abs=rivertile_tester.std_height/100)
+    def test_populated_nodes(self, rivertile_tester):
+        """
+        Checks that the same nodes are populated in the test and reference
+        RiverTiles
+        """
+        test_rt = rivertile_tester.test_rivertile
+        ref_rt = rivertile_tester.ref_rivertile
+        # Check that same nodes have valid wse in test and ref
+        assert (test_rt.nodes.wse.mask == ref_rt.nodes.wse.mask).all()
 
-    def test_areas(self, rivertile_tester):
-        """Checks the nodes and reaches have same area"""
-        node_area = rivertile_tester.rivertile.nodes.area.sum()
-        reach_area = rivertile_tester.rivertile.reaches.area.sum()
-        assert node_area == pytest.approx(reach_area, abs=10)
+    def test_populated_reaches(self, rivertile_tester):
+        """
+        Checks that the same nodes are populated in the test and reference
+        RiverTiles
+        """
+        test_rt = rivertile_tester.test_rivertile
+        ref_rt = rivertile_tester.ref_rivertile
+        # Check that same nodes have valid wse in test and ref
+        assert (test_rt.reaches.wse.mask == ref_rt.reaches.wse.mask).all()
 
-    def test_unique_node_assingment(self, rivertile_tester):
-        """Ensures no PIXC pixels are double-assinged to nodes"""
-        idx = np.array([
-            rivertile_tester.index.range_index,
-            rivertile_tester.index.azimuth_index])
-        assert idx.shape == np.unique(idx, axis=1).shape
+    def test_sensible_outputs(self, rivertile_tester):
+        """
+        Checks that there are not any insensible combinations of outputs
+        """
+        test_rt = rivertile_tester.test_rivertile
 
-    def test_no_nans(self, rivertile_tester):
-        """Checks for nans in node heights"""
-        node_hgt = rivertile_tester.rivertile.nodes.h_a_ave
-        assert all(node_hgt == node_hgt)
+        # Test that any node with area has a width
+        valid_area_mask = ~test_rt.nodes.area_total.mask
+        assert not test_rt.nodes.width[valid_area_mask].mask.any()
+
+        # Test that any reach with valid slope also has valid wse
+        valid_slope_mask = ~test_rt.reaches.slope.mask
+        assert not test_rt.reaches.wse[valid_slope_mask].mask.any()
+
+    def test_prior_river_database_fields(self, rivertile_tester):
+        """
+        Checks that various PRD fields in the output product are unchanged
+        """
+        test_rt = rivertile_tester.test_rivertile
+        ref_rt = rivertile_tester.ref_rivertile
+
+        prd_node_vars = [
+            'reach_id', 'node_id', 'lat_prior', 'lon_prior', 'p_wse',
+            'p_wse_var', 'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
+            'p_dam_id', 'p_n_ch_max', 'p_n_ch_mod']
+
+        prd_reach_vars = [
+            'reach_id', 'centerline_lat', 'centerline_lon', 'p_lat', 'p_lon',
+            'river_name', 'ice_clim_f', 'n_reach_up', 'n_reach_dn',
+            'rch_id_up', 'rch_id_dn', 'p_wse', 'p_wse_var', 'p_width',
+            'p_wid_var', 'p_n_nodes', 'p_dist_out', 'p_length', 'p_maf',
+            'p_dam_id', 'p_n_ch_max', 'p_n_ch_mod', 'p_low_slp']
+
+        for var in prd_node_vars:
+            test_values = test_rt.nodes[var]
+            test_values = test_values[~test_values.mask].flatten()
+
+            ref_values = ref_rt.nodes[var]
+            ref_values = ref_values[~ref_values.mask].flatten()
+            print('test_prior_river_database_fields: /nodes/%s'%var)
+            for test_value, ref_value in zip(test_values, ref_values):
+                assert test_value == ref_value
+
+        for var in prd_reach_vars:
+            test_values = test_rt.reaches[var]
+            test_values = test_values[~test_values.mask].flatten()
+
+            ref_values = ref_rt.reaches[var]
+            ref_values = ref_values[~ref_values.mask].flatten()
+            print('test_prior_river_database_fields: /reaches/%s'%var)
+            for test_value, ref_value in zip(test_values, ref_values):
+                assert test_value == ref_value
+
+    def test_summary_vs_bit_qual(self, rivertile_tester):
+        """
+        Checks that the summary quality flags match what they should be based
+        on the bitwise quality flags.
+        """
+        # This test has been refactored into ProductTesterMixIn
+        rivertile_tester.test_rivertile.test_summary_vs_bit_qual()

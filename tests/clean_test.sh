@@ -1,6 +1,3 @@
 #!/usr/bin/env bash
-rm -f index.nc
-rm -rf nodes
-rm -rf reaches
-rm -f inputs/reaches.dat
-rm -f inputs/reaches.idx
+rm -f test_case/rt.nc test_case/pv.nc
+rm -rf ncdiffs
