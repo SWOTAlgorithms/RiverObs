@@ -11,22 +11,31 @@ import ast
 import argparse
 import logging
 import warnings
+import tempfile
 
 import RDF
 import SWOTRiver.Estimate
-import SWOTRiver.products.calval
+from SWOTRiver.products.calval import SimplePixelCloud, Drifter
 from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger('calval2rivertile')
 
+FORMATS = ['simple_pixc', 'drifter', 'geotiff', 'pt']
+
 def main():
     """Sample script for running calval data through RiverObs"""
     parser = argparse.ArgumentParser()
-    parser.add_argument('gps_profile', help='GPS profile file')
-    parser.add_argument('out_pixc_file', help='Output pixc file')
-    parser.add_argument('out_riverobs_file', help='Output river NETCDF file')
-    parser.add_argument('out_pixcvec_file', help='Output PIXCVec file')
+    parser.add_argument('input_file', help='Input calval file to process')
+    parser.add_argument(
+        'format', help='Input calval file format', choices=FORMATS)
+    parser.add_argument(
+        'out_riverobs_file', help='Output RiverTile NETCDF file')
+    parser.add_argument('out_pixcvec_file', help='Output PIXCVecRiver file')
     parser.add_argument('rdf_file', help='Static config params')
+    parser.add_argument(
+        'out_pixc_file',
+        help='If specified, write reformatted SimplePixelCloud to this file',
+        default=None, nargs='?')
     parser.add_argument(
         '-l', '--log-level', type=str, default="info",
         help="logging level, one of: debug info warning error")
@@ -42,10 +51,36 @@ def main():
     config.rdfParse(args.rdf_file)
     config = dict(config)
 
-    pixc_simple = SWOTRiver.products.calval.SimplePixelCloud.from_any(
-        args.gps_profile)
-    # TODO: no need to write the file if it already is a SimplePixelCloud
-    pixc_simple.to_ncfile(args.out_pixc_file)
+    if args.format == 'drifter':
+        # Use file extension to determine class method to use
+        if args.input_file.lower().endswith('.nc'):
+            drifter = Drifter.from_ncfile(args.input_file)
+
+        elif args.input_file.lower().endswith('.shp'):
+            drifter = Drifter.from_shp(args.input_file)
+
+        elif args.input_file.lower().endswith('.txt'):
+            drifter = Drifter.from_native(args.input_file)
+        else:
+            raise Exception("Unknown drifter file format!")
+        pixc_simple = SimplePixelCloud.from_drifter(drifter)
+
+    elif args.format == 'geotiff':
+        pixc_simple = SimplePixelCloud.from_geotif(args.input_file)
+
+    elif args.format == 'pt':
+        pixc_simple = SimplePixelCloud.from_pressure_transducer(
+            args.input_file, swot_time=None)
+
+    elif args.format == 'simple_pixc':
+        pixc_simple = SimplePixelCloud.from_ncfile(args.input_file)
+
+    output_pixc_file = args.out_pixc_file
+
+    # If not specified use a tempfile and clean it up later
+    if args.out_pixc_file is None:
+        fid, output_pixc_file = tempfile.mkstemp()
+    pixc_simple.to_ncfile(output_pixc_file)
 
     # typecast most config values with eval since RDF won't do it for me
     # (excluding strings)
@@ -59,7 +94,7 @@ def main():
 
 
     estimator = SWOTRiver.Estimate.CalValToRiverTile(
-        args.out_pixc_file, args.out_pixcvec_file)
+        output_pixc_file, args.out_pixcvec_file)
     estimator.load_config(config)
 
     # generate empty output file on errors
@@ -76,6 +111,10 @@ def main():
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         estimator.rivertile_product.to_ncfile(args.out_riverobs_file)
+
+    # Delete tempfile if args.out_pixc_file is not specified
+    if args.out_pixc_file is None:
+        os.remove(output_pixc_file)
 
 if __name__ == "__main__":
     main()

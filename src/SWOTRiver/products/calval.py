@@ -166,28 +166,6 @@ class Drifter(RiverNCProductMixIn, Product):
         reference['dimensions'] = DIMENSIONS
 
     @classmethod
-    def from_any(cls, drifter_file):
-        """try to read the type of drifter data depending on file format"""
-        klass = None
-        # TODO: maybe there is a better way of doing this...
-        try:
-            klass = cls.from_ncfile(drifter_file)
-        except OSError:
-            # not a nc file
-            try:
-                klass = cls.from_native(drifter_file)
-            except (UnicodeDecodeError, KeyError):
-                # not a text file
-                try:
-                    klass = cls.from_shp(drifter_file)
-                except fiona.errors.DriverError:
-                    # catch the fiona error and raise something more useful
-                    raise NotImplementedError((
-                        "input file type not supported by Drifter class: {}"
-                        ).format(drifter_file))
-        return klass
-
-    @classmethod
     def from_shp(cls, drifter_file):
         """converter for shp file GNSS drift data"""
         # read in the shape file
@@ -293,8 +271,8 @@ class Drifter(RiverNCProductMixIn, Product):
         current instance into multiple instances, optionally writting to 
         output files.
         """
-        # TODO: inplement it
-        return []
+        raise NotImplementedError(
+            "Drifter.split_profiles not implemented yet!")
 
 class SimplePixelCloud(RiverNCProductMixIn, Product):
     """
@@ -337,29 +315,8 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         reference['dimensions'] = DIMENSIONS
 
     @classmethod
-    def from_any(cls, infile):
-        """try to read and convert various file types/formats"""
-        # TODO: maybe there is better way of doing this...
-        try:
-            # catch warnings as error to check if input file is a SimplePixelCloud product
-            # TODO: there is probablly a better way of doing this...
-            with warnings.catch_warnings():
-                warnings.filterwarnings("error")
-                klass = cls.from_ncfile(infile)
-        except (OSError, UserWarning):
-            try:
-                klass = cls.from_drifter(infile)
-            except NotImplementedError: 
-                try:
-                    klass = cls.from_geotif(infile)
-                except (KeyError, AttributeError):
-                    klass = cls.from_pressure_transducer(infile, None)
-        return klass
-
-    @classmethod
-    def from_drifter(cls, drifter_file):
+    def from_drifter(cls, drft):
         """converter for various formats of drifter data"""
-        drft = Drifter.from_any(drifter_file)
         klass = cls()
 
         # set the needed variables
