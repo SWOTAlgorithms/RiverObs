@@ -10,13 +10,14 @@ import os
 import ast
 import argparse
 import logging
+import warnings
 
 import RDF
 import SWOTRiver.Estimate
 import SWOTRiver.products.calval
 from SWOTRiver.errors import RiverObsException
 
-LOGGER = logging.getLogger('calval2river')
+LOGGER = logging.getLogger('calval2rivertile')
 
 def main():
     """Sample script for running calval data through RiverObs"""
@@ -70,7 +71,11 @@ def main():
 
     # Build and write a rivertile-style output file
     estimator.build_products()
-    estimator.rivertile_product.to_ncfile(args.out_riverobs_file)
+
+    # Suppress litany of warnings from Product class writer
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        estimator.rivertile_product.to_ncfile(args.out_riverobs_file)
 
 if __name__ == "__main__":
     main()

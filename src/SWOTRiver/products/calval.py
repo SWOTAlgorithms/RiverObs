@@ -5,28 +5,22 @@ All rights reserved.
 
 Author (s): Alex Fore, Brent Williams
 
-
 This module is for various products we want to run through RiverObs for calval
 activities.
 '''
 
 import os
+import warnings
+import logging
 import datetime
+import fiona
+import pyproj
 import numpy as np
 from collections import OrderedDict as odict
 
 from SWOTWater.products.product import Product
 
-import fiona
-import fiona.crs
-import pyproj
-from pyproj import Proj
-
-import warnings
-
-import logging
-LOGGER = logging.getLogger('calval')
-
+LOGGER = logging.getLogger(__name__)
 
 class RiverNCProductMixIn(object):
     """MixIn class implementing some common methods for calval data"""
@@ -98,7 +92,8 @@ class PressureTransducers():
             wse = np.array([float(d) for d in data[key]])
             # convert time to swot-time
             swot_tt = np.ones(wse.shape) * np.nan
-            for ii, (date, time) in enumerate(zip(data['YYYYMMDD'], data['HHMMSS'])):
+            for ii, (date, time) in enumerate(
+                    zip(data['YYYYMMDD'], data['HHMMSS'])):
                 year = int(date[0:4])
                 month = int(date[4:6])
                 day = int(date[6:])
@@ -111,7 +106,9 @@ class PressureTransducers():
             # assuming UTM zone 10
             northing = pos[key][0]
             easting = pos[key][1]
-            myProj = Proj("+proj=utm +zone=10 +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+            myProj = pyproj.Proj(
+                ("+proj=utm +zone=10 +north +ellps=WGS84 +datum=WGS84 "
+                 "+units=m +no_defs"))
             lon, lat = myProj(easting, northing, inverse=True)
             # set the product
             this_pt.wse = wse
@@ -198,24 +195,30 @@ class Drifter(RiverNCProductMixIn, Product):
         with fiona.open(drifter_file) as ifp:
             orig_proj = pyproj.Proj(ifp.crs)
             records = list(ifp)
+
         # define the output projection to WGS83 to convert to lat/lon
         dest_proj = pyproj.Proj(init='EPSG:4269')
+
         # get the basic variables
         wse = np.array([r['properties']['wse_83elev'] for r in records])
         wse_flag = np.array([r['properties']['wse_flag'] for r in records])
         xy = np.array([r['geometry']['coordinates'] for r in records])
         lon, lat = pyproj.transform(orig_proj, dest_proj, xy[:,0], xy[:,1])
-        
+
         # get the time in swot format
         swot_tt = np.ones(len(records)) * np.nan
         for ii, record in enumerate(records):
             this_date = str(record['properties']['date'])
             time_utc = record['properties']['time_utc']
+
             # covert time_utc to date and time
             date = '{}'.format(int(this_date[4:8])) + this_date[0:4]
             times = time_utc.split(':')
-            #put leading zeros in if less than 10 
-            time = str(int(times[0])).zfill(2) + str(int(times[1])).zfill(2) + str(int(times[2])).zfill(2)
+
+            # put leading zeros in if less than 10
+            time = (
+                str(int(times[0])).zfill(2) + str(int(times[1])).zfill(2) +
+                str(int(times[2])).zfill(2))
             year = int(date[-4:])
             day = int(date[-6:-4])
             month = int(date[0:-6])
@@ -225,16 +228,18 @@ class Drifter(RiverNCProductMixIn, Product):
 
             dt = datetime.datetime(year, month, day, hour, minute, second)
             swot_tt[ii] = (dt-datetime.datetime(2000,1,1)).total_seconds()
-        
+
         #create Drifter instance
-        mask = wse_flag >= 0 # only values of 1 and 0, 1 is better quality, 0 is more suspect
+        # only values of 1 and 0, 1 is better quality, 0 is more suspect
+        mask = wse_flag >= 0
         klass = cls()
         klass.wse = wse[mask]
         klass.height_water = wse[mask]
         klass.latitude = lat[mask]
         klass.longitude = lon[mask]
         klass.time = swot_tt[mask]
-        # TODO: figure out how to handle quality. For now assume everything is good
+
+        # TODO: handle quality, for now assume everything is good
         klass.position_3drss_formal_error = np.zeros(np.shape(wse[mask]))
         return klass
 
@@ -278,7 +283,8 @@ class Drifter(RiverNCProductMixIn, Product):
         # put wse in water_height and wse fields since we dont have cor fields
         klass.height_water = height
         klass.wse = height
-        # TODO: figure out how to handle quality.  For now assume everything is good
+
+        # TODO: Handle quality.  For now assume everything is good
         klass.position_3drss_formal_error = np.zeros(latitude.shape)
         return klass
 
@@ -351,25 +357,30 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
                     klass = cls.from_pressure_transducer(infile, None)
         return klass
 
-    @classmethod 
+    @classmethod
     def from_drifter(cls, drifter_file):
         """converter for various formats of drifter data"""
         drft = Drifter.from_any(drifter_file)
         klass = cls()
+
         # set the needed variables
         for key in klass.VARIABLES.keys():
             try:
                 klass[key] = drft[key]
             except AttributeError:
                 LOGGER.warning('key {} not in SimplePixelCloud'.format(key))
+
         # get the mask for good pixels
         good = drft.position_3drss_formal_error < 0.25
+
         # populate height with height_water
         klass.height = drft.height_water
+
         # create fake classification variable
         classification = np.zeros(drft.latitude.shape)
         classification[good] = 1
         klass.classification = classification
+
         # Make fake range and azimuth indices so that segmentation algorithms
         # work in riverobs processing
         range_index = np.zeros(drft.latitude.shape)
@@ -383,29 +394,35 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
     @classmethod
     def from_geotif(cls, geotif_file):
         """converter for water height-only geotifs"""
+
         # try to import the geotif modules from the python repo
         try:
             import util.geotif
         except ModuleNotFoundError:
-            LOGGER.warning("Cant load python repo geotif module, skipping!")
-            return None
+            LOGGER.warning("Unable to load util.geotif module!")
+            raise ModuleNotFoundError
+
         # read the geotif
         wse, extent, chunk = util.geotif.read_geotif(geotif_file)
         tx = util.geotif.get_lat_lon_tx(geotif_file)
+
         # mask out the non-water pixels
         good = (wse[:,:,0]>-1000)
         lat, lon = util.geotif.get_lat_lon(tx, extent, chunk, mask=good)
         height = wse[:,:,0]
+
         # populate the variables
         klass = cls()
         klass.height = height[good]
         klass.wse = height[good]
         klass.latitude = lat[good]
         klass.longitude = lon[good]
+
         # create the fake classification
         classif = np.zeros_like(height)
         classif[good] = 1
         klass.classification = classif[good]
+
         #create the fake slant-plane indices
         M,N = np.shape(height)
         az = np.arange(M)
@@ -413,6 +430,7 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         R, Az = np.meshgrid(r, az)
         klass.azimuth_index = Az[good]
         klass.range_index = R[good]
+
         # compute the pixel_area from the grid spacing
         # so that area/width estimates also work
         M, N = np.shape(height)
@@ -431,9 +449,11 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         ptime = np.zeros(len(pts.pts)) * np.nan
         dtime = np.zeros(len(pts.pts)) * np.nan
         classification = np.ones(len(pts.pts))
+
         if swot_time is None:
             # use the first time of the first PT
             swot_time = pts.pts[0].time
+
         for ii, pt in enumerate(pts.pts):
             # compute the index of closest time
             dt = np.abs(pt.time - swot_time)
@@ -443,9 +463,11 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
             lon[ii] = pt.longitude
             ptime[ii] = pt.time[ind]
             dtime[ii] = dt[ind]
+
         # create the fake classification
         classification = np.ones(len(pts.pts))
         classification[dtime>maxtime] = 0
+
         # make fake azimuth and range indices...all disjoint
         azimuth_index = np.arange(len(pts.pts)) * 5
         range_index = np.arange(len(pts.pts)) * 5
@@ -462,11 +484,11 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
     @classmethod
     def from_lidar(cls, lidar_file):
         """TODO: implement converter"""
-        return None
+        raise NotImplementedError(
+            "SimplePixelCloud.from_lidar not implemented!")
 
     @classmethod
     def from_airborne_imagery(cls, water_mask_file):
         """TODO: implement converter"""
-        return None
-
-
+        raise NotImplementedError(
+            "SimplePixelCloud.from_airborne_imagery not implemented!")
