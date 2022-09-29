@@ -15,7 +15,8 @@ import tempfile
 
 import RDF
 import SWOTRiver.Estimate
-from SWOTRiver.products.calval import SimplePixelCloud, Drifter
+from SWOTRiver.products.calval import \
+    SimplePixelCloud, Drifter, PressureTransducers
 from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger('calval2rivertile')
@@ -72,7 +73,7 @@ def main():
 
     elif args.format == 'pt':
         pixc_simple = SimplePixelCloud.from_pressure_transducer(
-            args.input_file)
+            PressureTransducers.from_native(args.input_file))
 
     elif args.format == 'simple_pixc':
         pixc_simple = SimplePixelCloud.from_ncfile(args.input_file)

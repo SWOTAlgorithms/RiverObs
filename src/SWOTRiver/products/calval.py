@@ -33,10 +33,11 @@ class RiverNCProductMixIn(object):
 class PressureTransducer(Product):
     """Class for pressure transducer data"""
     ATTRIBUTES = odict([
-        ['ID',{'dtype':'str', 'value':''}],
-        ['latitude',{'dtype':'f8', 'value':None}],
-        ['longitude',{'dtype':'f8', 'value':None}],
-        ['river_mile',{'dtype':'f8', 'value':None}],
+        ['ID', {'dtype':'str', 'value': ''}],
+        ['latitude', {'dtype':' f8', 'value': None}],
+        ['longitude', {'dtype': 'f8', 'value': None}],
+        ['river_mile', {'dtype': 'f8', 'value': None}],
+        ['time_tai', {'dtype': 'f8', 'value': None}],
         ])
     GROUPS = odict()
     DIMENSIONS = odict([['record', 0]])
@@ -44,6 +45,7 @@ class PressureTransducer(Product):
         ['time', {'dtype': 'f8'}],
         ['wse', {'dtype': 'f8'}],
         ])
+
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
 
@@ -81,13 +83,13 @@ class PressureTransducers():
                     if (value.isspace() or value is ''):
                         value = 'nan'
                     data[key].append(value)
+
         pts = []
         # now create the PT objects
         for key in pos.keys():
-            this_pt = PressureTransducer()
-            for d in data[key]:
-                float(d)
+
             wse = np.array([float(d) for d in data[key]])
+
             # convert time to swot-time
             swot_tt = np.ones(wse.shape) * np.nan
             for ii, (date, time) in enumerate(
@@ -100,6 +102,7 @@ class PressureTransducers():
                 second = int(time[4:])
                 dt = datetime.datetime(year, month, day, hour, minute, second)
                 swot_tt[ii] = (dt-datetime.datetime(2000,1,1)).total_seconds()
+
             # convert Northing, easting to lat/lon
             # assuming UTM zone 10
             northing = pos[key][0]
@@ -108,35 +111,39 @@ class PressureTransducers():
                 ("+proj=utm +zone=10 +north +ellps=WGS84 +datum=WGS84 "
                  "+units=m +no_defs"))
             lon, lat = myProj(easting, northing, inverse=True)
+
             # set the product
+            this_pt = PressureTransducer()
             this_pt.wse = wse
             this_pt.time_tai = swot_tt
             this_pt.river_mile = pos[key][2]
             this_pt.longitude = lon
             this_pt.latitude = lat
             this_pt.ID = key
+
             # append this pt object to list
             pts.append(this_pt)
-        # instantiate this object
-        PTs = cls()
-        PTs.pts = pts
-        PTs.num_pts = len(pts)
-        return PTs
+
+        # instantiate class and return
+        klass = cls()
+        klass.pts = pts
+        klass.num_pts = len(pts)
+        return klass
 
 class Drifter(RiverNCProductMixIn, Product):
     """This is the GPS/GNSS drifter class/object of river profiles."""
     ATTRIBUTES = odict([
-        ['Conventions',{}],
-        ['title',{}],
-        ['institution',{}],
-        ['source',{}],
-        ['history',{}],
-        ['platform',{}],
-        ['description',{}],
-        ['ellipsoid_semi_major_axis',{}],
-        ['ellipsoid_flattening',{}],
-        ['xref_input_gnss_files',{}],
-        ['xref_input_height_offset_files',{}],
+        ['Conventions', {}],
+        ['title', {}],
+        ['institution', {}],
+        ['source', {}],
+        ['history', {}],
+        ['platform', {}],
+        ['description', {}],
+        ['ellipsoid_semi_major_axis', {}],
+        ['ellipsoid_flattening', {}],
+        ['xref_input_gnss_files', {}],
+        ['xref_input_height_offset_files', {}],
         ])
     GROUPS = odict()
     DIMENSIONS = odict([['record', 0]])
@@ -162,6 +169,7 @@ class Drifter(RiverNCProductMixIn, Product):
         ['model_wet_tropo_cor', {'dtype': 'f8'}],
         ['gnss_wet_tropo_cor', {'dtype': 'f8'}],
         ])
+
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
 
@@ -187,24 +195,10 @@ class Drifter(RiverNCProductMixIn, Product):
         for ii, record in enumerate(records):
             this_date = str(record['properties']['date'])
             time_utc = record['properties']['time_utc']
-
-            # covert time_utc to date and time
-            date = '{}'.format(int(this_date[4:8])) + this_date[0:4]
-            times = time_utc.split(':')
-
-            # put leading zeros in if less than 10
-            time = (
-                str(int(times[0])).zfill(2) + str(int(times[1])).zfill(2) +
-                str(int(times[2])).zfill(2))
-            year = int(date[-4:])
-            day = int(date[-6:-4])
-            month = int(date[0:-6])
-            hour = int(time[0:2])
-            minute = int(time[2:4])
-            second = int(time[4:])
-
-            dt = datetime.datetime(year, month, day, hour, minute, second)
-            swot_tt[ii] = (dt-datetime.datetime(2000,1,1)).total_seconds()
+            this_datetime = datetime.datetime.strptime(
+                this_date+time_utc, '%Y%m%d%H:%M:%S')
+            swot_tt[ii] = (
+                this_datetime-datetime.datetime(2000,1,1)).total_seconds()
 
         #create Drifter instance
         # only values of 1 and 0, 1 is better quality, 0 is more suspect
@@ -396,9 +390,8 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         return klass
 
     @classmethod
-    def from_pressure_transducer(cls, pt_file, swot_time=None, maxtime=1000):
+    def from_pressure_transducer(cls, pts, swot_time=None, maxtime=1000):
         """pressure transducer converter for closest time"""
-        pts = PressureTransducers.from_native(pt_file)
         wse = np.zeros(len(pts.pts)) * np.nan
         lat = np.zeros(len(pts.pts)) * np.nan
         lon = np.zeros(len(pts.pts)) * np.nan
