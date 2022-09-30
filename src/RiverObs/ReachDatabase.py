@@ -129,7 +129,7 @@ class ReachExtractor(object):
         day_of_year=None):
 
         if day_of_year is None:
-            LOGGER.warn(
+            LOGGER.warning(
                 "Day of year not specified, not extracting ice flag!")
 
         lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box

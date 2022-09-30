@@ -42,8 +42,8 @@ class L2PixcToRiverTile(object):
             datetime_ = datetime.datetime.strptime(t_str_start[0:4], '%Y')
             self.day_of_year = (datetime_start-datetime_).days+1
         except (AttributeError, ValueError):
-            LOGGER.warn('Unable to parse day of year from PIXC input file,'+
-                        'not doing ice flagging!')
+            LOGGER.warning('Unable to parse day of year from PIXC input file,'+
+                           'not doing ice flagging!')
             self.day_of_year = None
 
     def load_config(self, config):
@@ -57,6 +57,7 @@ class L2PixcToRiverTile(object):
         LOGGER.info('compute_bounding_box')
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
             if from_attrs:
+                # Get bounding box from attributes
                 lat_keys = [a+'_'+b+'_latitude' for a in ('inner', 'outer')
                     for b in ('first', 'last')]
                 lon_keys = [a+'_'+b+'_longitude' for a in ('inner', 'outer')
@@ -65,7 +66,7 @@ class L2PixcToRiverTile(object):
                     lat = np.array([getattr(ifp, item) for item in lat_keys])
                     lon = np.array([getattr(ifp, item) for item in lon_keys])
 
-                # if older pixc format
+                # if older pixel cloud format
                 except AttributeError:
                     lat_keys = [a+'_'+b+'_lat' for a in ('inner', 'outer')
                         for b in ('first', 'last')]
@@ -75,10 +76,18 @@ class L2PixcToRiverTile(object):
                     lon = np.array([getattr(ifp, item) for item in lon_keys])
 
             else:
-                data_dict = ifp.groups['pixel_cloud']
+                # Get bounding box from lat lon in file
+                try:
+                    lat = np.asarray(
+                        ifp.groups['pixel_cloud'].variables['latitude'][:])
+                    lon = np.asarray(
+                        ifp.groups['pixel_cloud'].variables['longitude'][:])
 
-                lat = np.asarray(data_dict['latitude'][:])
-                lon = np.asarray(data_dict['longitude'][:])
+                # SimplePixelCloud format does not have pixel_cloud group
+                except KeyError:
+                    lat = np.asarray(ifp.variables['latitude'][:])
+                    lon = np.asarray(ifp.variables['longitude'][:])
+
 
         # wrap to [-180, 180) interval
         lon[lon >= 180] -= 360
@@ -100,9 +109,12 @@ class L2PixcToRiverTile(object):
 
         # ...etc for more validation tests
 
-    def do_river_processing(self):
-        """Does the river processing"""
-        LOGGER.info('do_river_processing')
+    def enforce_config(self):
+        """
+        Enforces entries and default values in the aux param input config
+        dictionary.
+        """
+        LOGGER.info('enforce_config')
 
         qual_words = ("geo_qual_wse_suspect",
                       "geo_qual_wse_degraded",
@@ -158,13 +170,14 @@ class L2PixcToRiverTile(object):
         if 'use_bright_land' not in self.config:
             self.config['use_bright_land'] = True
 
-        # set values to None for iterative_linear only keywords
+        # set values to None for outlier rejection only keywords
         if self.config['outlier_method'] is None:
             for key in ['outlier_rel_thresh', 'outlier_breakpoint_min_dist',
                         'outlier_edge_min_dist', 'outlier_abs_thresh',
                         'outlier_upr_thresh', 'outlier_n_boot',
                         'outlier_iter_num']:
                 self.config[key] = None
+        # set values to None for iterative_linear only keywords
         elif self.config['outlier_method'] != 'iterative_linear':
             for key in ['outlier_rel_thresh']:
                 self.config[key] = None
@@ -175,6 +188,12 @@ class L2PixcToRiverTile(object):
                         'outlier_edge_min_dist',
                         'outlier_n_boot']:
                 self.config[key] = None
+
+    def do_river_processing(self):
+        """Does the river processing"""
+        LOGGER.info('do_river_processing')
+
+        self.enforce_config()
 
         # key/value arguments for constructing SWOTRiverEstimator
         kwargs = {
@@ -377,7 +396,7 @@ class L2PixcToRiverTile(object):
                 self.prd_reaches)
 
         except TypeError:
-            LOGGER.warn('Output products are empty')
+            LOGGER.warning('Output products are empty')
             self.rivertile_product = L2HRRiverTile()
 
         # add in a bunch more stuff from PIXC
@@ -412,3 +431,170 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.nodes.rdr_pol = \
             np.ones(self.rivertile_product.nodes.rdr_pol.shape, dtype='S1')
         self.rivertile_product.nodes.rdr_pol[:] = pol[0]
+
+
+class CalValToRiverTile(L2PixcToRiverTile):
+    """
+    Class for running calval data through rivertile-type processing.
+    """
+    def __init__(self, calval_file, index_file):
+        """
+        Constructs the CalValToRiverTile class instance.
+        """
+        self.pixc_file = calval_file
+        self.index_file = index_file
+        self.day_of_year = None
+
+    def compute_bounding_box(self):
+        return super().compute_bounding_box(from_attrs=False)
+
+    def validate_inputs(self):
+        # don't validate anything
+        logger.warning('validate_inputs not implemented for CalValToRiverTile')
+
+    def do_river_processing(self):
+        """Does the river processing"""
+        LOGGER.info('do_river_processing')
+
+        self.enforce_config()
+
+        kwargs = {
+            'bounding_box': self.compute_bounding_box(),
+            'lat_kwd': 'latitude', 'lon_kwd': 'longitude',
+            'class_kwd': 'classification', 'height_kwd': 'height',
+            'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
+            'class_list': [self.config['class_list']],
+            'xtrack_kwd': 'cross_track',
+            'fractional_inundation_kwd': None,
+            'use_fractional_inundation': [None,],
+            'use_segmentation': self.config['use_segmentation'],
+            'use_heights': self.config['use_heights'],
+            'min_points': self.config['min_points'],
+            'trim_ends': False, 'store_obs': False, 'store_reaches': False,
+            'output_file': self.index_file,
+            'proj': 'laea', 'x_0': 0, 'y_0': 0, 'lat_0': None, 'lon_0': None,
+            'subsample_factor': 1,
+            'height_agg_method': self.config['height_agg_method'],
+            'area_agg_method': self.config['area_agg_method'],
+            'preseg_dilation_iter': 0,
+            'slope_method': self.config['slope_method'],
+            'use_ext_dist_coef': self.config['use_ext_dist_coef'],
+            'outlier_method': self.config['outlier_method'],
+            'outlier_abs_thresh': self.config['outlier_abs_thresh'],
+            'outlier_rel_thresh': self.config['outlier_rel_thresh'],
+            'outlier_upr_thresh': self.config['outlier_upr_thresh'],
+            'outlier_iter_num': self.config['outlier_iter_num'],
+            'outlier_abs_thresh': self.config['outlier_abs_thresh'],
+            'outlier_rel_thresh': self.config['outlier_rel_thresh'],
+            'outlier_upr_thresh': self.config['outlier_upr_thresh'],
+            'outlier_iter_num': self.config['outlier_iter_num'],
+            'outlier_breakpoint_min_dist': (
+                self.config['outlier_breakpoint_min_dist']),
+            'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
+            'outlier_n_boot': self.config['outlier_n_boot'],
+            'pixc_qual_handling': self.config['pixc_qual_handling'],
+            'geo_qual_wse_suspect': self.config['geo_qual_wse_suspect'],
+            'geo_qual_wse_degraded': self.config['geo_qual_wse_degraded'],
+            'geo_qual_wse_bad': self.config['geo_qual_wse_bad'],
+            'class_qual_area_suspect': self.config['class_qual_area_suspect'],
+            'class_qual_area_degraded': self.config['class_qual_area_degraded'],
+            'class_qual_area_bad': self.config['class_qual_area_bad'],
+            'sig0_qual_suspect': self.config['sig0_qual_suspect'],
+            'sig0_qual_bad': self.config['sig0_qual_bad'],
+            'num_good_sus_pix_thresh_wse': (
+                self.config['num_good_sus_pix_thresh_wse']),
+            'num_good_sus_pix_thresh_area': (
+                self.config['num_good_sus_pix_thresh_area']),
+            'use_bright_land': self.config['use_bright_land'],
+            }
+
+        river_estimator = SWOTRiver.SWOTRiverEstimator(
+            self.pixc_file, **kwargs)
+
+        river_estimator.get_reaches(
+            self.config['reach_db_path'], day_of_year=self.day_of_year)
+
+        if len(river_estimator.reaches) == 0:
+            LOGGER.info('No valid reaches in PRD for this PIXC data')
+        else:
+            self.reach_collection = river_estimator.process_reaches(
+                minobs=self.config['minobs'],
+                min_fit_points=self.config['min_fit_points'],
+                enhanced=True)
+
+            if len(self.reach_collection) > 0:
+                reach_variables = list(self.reach_collection[0].metadata.keys())
+                node_variables = list(self.reach_collection[0].__dict__.keys())
+                node_variables.remove('ds')
+                node_variables.remove('metadata')
+
+                num_nodes_per_reach = [
+                    len(item.lat) for item in self.reach_collection]
+                num_nodes = sum(num_nodes_per_reach)
+
+                self.node_outputs = {}
+                self.reach_outputs = {}
+                for node_variable in node_variables:
+                    self.node_outputs[node_variable] = np.concatenate(
+                        [getattr(reach, node_variable) for reach in
+                         self.reach_collection])
+
+                for reach_variable in reach_variables:
+                    self.reach_outputs[reach_variable] = np.squeeze(np.array(
+                        [reach.metadata[reach_variable] for reach in
+                         self.reach_collection]))
+
+                self.node_outputs['reach_idx'] = np.zeros(
+                    self.node_outputs['lat'].shape).astype('int32')
+                i_start = 0
+                for ireach, num_nodes in enumerate(num_nodes_per_reach):
+                    self.node_outputs['reach_idx'][
+                        i_start:i_start + num_nodes] = ireach
+                    i_start = i_start + num_nodes
+
+            else:
+                LOGGER.info('Reach collection has zero entries')
+
+        # save for use later to fill in missing nodes/reaches
+        self.prd_reaches = river_estimator.reaches
+
+    def do_improved_geolocation(self):
+        LOGGER.warning(
+            'do_improved_geolocation not implemented for CalValToRiverTile')
+
+
+    def build_products(self):
+        """Constructs the L2HRRiverTile data product / updates the index file"""
+        LOGGER.info('build_products')
+        # If lake flag is set don't output width, area, or slope.
+        try:
+            for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
+                if self.reach_outputs['lake_flag'][ireach] != 0:
+                    self.reach_outputs['slope'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['slope2'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['slope_u'][ireach] = MISSING_VALUE_FLT
+                    # TODO mask out slope2_u and slope?_r_u datasets when available
+                    self.reach_outputs['width'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['width_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['area'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['area_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['area_det'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['area_det_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['area_of_ht'][ireach] = MISSING_VALUE_FLT
+
+                    mask = self.node_outputs['reach_indx'] == reach_id
+                    self.node_outputs['w_area'][mask] = MISSING_VALUE_FLT
+                    self.node_outputs['width_u'][mask] = MISSING_VALUE_FLT
+                    self.node_outputs['area'][mask] = MISSING_VALUE_FLT
+                    self.node_outputs['area_det'][mask] = MISSING_VALUE_FLT
+                    self.node_outputs['area_of_ht'][mask] = MISSING_VALUE_FLT
+                    self.node_outputs['area_u'][mask] = MISSING_VALUE_FLT
+                    self.node_outputs['area_det_u'][mask] = MISSING_VALUE_FLT
+
+            self.rivertile_product = L2HRRiverTile.from_riverobs(
+                self.node_outputs, self.reach_outputs, self.reach_collection,
+                self.prd_reaches)
+
+        except TypeError:
+            LOGGER.warning('Output products are empty')
+            self.rivertile_product = L2HRRiverTile()
