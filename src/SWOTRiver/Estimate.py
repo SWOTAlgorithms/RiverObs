@@ -57,6 +57,7 @@ class L2PixcToRiverTile(object):
         LOGGER.info('compute_bounding_box')
         with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
             if from_attrs:
+                # Get bounding box from attributes
                 lat_keys = [a+'_'+b+'_latitude' for a in ('inner', 'outer')
                     for b in ('first', 'last')]
                 lon_keys = [a+'_'+b+'_longitude' for a in ('inner', 'outer')
@@ -65,7 +66,7 @@ class L2PixcToRiverTile(object):
                     lat = np.array([getattr(ifp, item) for item in lat_keys])
                     lon = np.array([getattr(ifp, item) for item in lon_keys])
 
-                # if older pixc format
+                # if older pixel cloud format
                 except AttributeError:
                     lat_keys = [a+'_'+b+'_lat' for a in ('inner', 'outer')
                         for b in ('first', 'last')]
@@ -75,11 +76,14 @@ class L2PixcToRiverTile(object):
                     lon = np.array([getattr(ifp, item) for item in lon_keys])
 
             else:
+                # Get bounding box from lat lon in file
                 try:
                     lat = np.asarray(
                         ifp.groups['pixel_cloud'].variables['latitude'][:])
                     lon = np.asarray(
                         ifp.groups['pixel_cloud'].variables['longitude'][:])
+
+                # SimplePixelCloud format does not have pixel_cloud group
                 except KeyError:
                     lat = np.asarray(ifp.variables['latitude'][:])
                     lon = np.asarray(ifp.variables['longitude'][:])
