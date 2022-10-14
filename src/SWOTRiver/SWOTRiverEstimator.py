@@ -2778,11 +2778,11 @@ class SWOTRiverEstimator(SWOTL2):
         ----------
         returns the input mask array
         """
+        # generate pseudo-random seeds for initial breakpoint start values
         seed_table = {}
         keys = range(MIN_VALID_WSE, MAX_VALID_WSE + 1)
         for i, key in enumerate(keys):
             seed_table[key] = i * int((2 ** 32 + 1) / (len(keys) - 1))
-        # invalid wse values already removed before passing to this function
         seed = seed_table[int(np.nanmean(y))]
         np.random.seed(seed)
         min_allowed_bp = np.quantile(x, self.outlier_edge_min_dist)
