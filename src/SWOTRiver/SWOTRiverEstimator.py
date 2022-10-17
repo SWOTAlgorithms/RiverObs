@@ -2778,8 +2778,16 @@ class SWOTRiverEstimator(SWOTL2):
         ----------
         returns the input mask array
         """
+        # generate pseudo-random seeds for initial breakpoint start values
+        seed = int((np.nanmean(y) - MIN_VALID_WSE)*1e6) % 2**32
+        np.random.seed(seed)
+        min_allowed_bp = np.quantile(x, self.outlier_edge_min_dist)
+        max_allowed_bp = np.quantile(x, 1 - self.outlier_edge_min_dist)
+        start_values = np.random.uniform(
+            low=min_allowed_bp, high=max_allowed_bp, size=n_breakpoints)
         pw_fit = piecewise_regression.Fit(
-            x, y, n_breakpoints=n_breakpoints,
+            x, y, start_values=start_values,
+            n_breakpoints=n_breakpoints,
             min_distance_between_breakpoints=self.outlier_breakpoint_min_dist,
             min_distance_to_edge=self.outlier_edge_min_dist,
             n_boot=self.outlier_n_boot,
