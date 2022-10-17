@@ -274,7 +274,7 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     measurement). Values of 0, 1, and 2 indicate that the
                     surface is not ice covered, may or may not be partially
                     or fully ice covered, and fully ice covered, respectively.
-                    A value of 157 indicates that this flag is not available.
+                    A value of 127 indicates that this flag is not available.
                     """)],
                 ])],
         ['ice_dyn_f',
@@ -295,7 +295,7 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     analysis of external satellite optical data. Values of
                     0, 1, and 2 indicate that the surface is not ice covered,
                     partially ice covered, and fully ice covered,
-                    respectively. A value of 157 indicates that this flag is
+                    respectively. A value of 127 indicates that this flag is
                     not available.""")],
                 ])],
         ['pixc_index',
