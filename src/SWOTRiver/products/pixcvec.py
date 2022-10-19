@@ -258,12 +258,14 @@ class L2PIXCVector(ProductTesterMixIn, Product):
         ['ice_clim_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'climatological ice cover flag'],
+                ['standard_name', 'status_flag'],
                 ['institution', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover uncertain_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i1')],
                 ['valid_min', 0],
                 ['valid_max', 2],
+                ['source', 'Yang et al. (2020)'],
                 ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Climatological ice cover flag indicating whether the
@@ -272,18 +274,20 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     measurement). Values of 0, 1, and 2 indicate that the
                     surface is not ice covered, may or may not be partially
                     or fully ice covered, and fully ice covered, respectively.
-                    A value of 255 indicates that this flag is not available.
+                    A value of 127 indicates that this flag is not available.
                     """)],
                 ])],
         ['ice_dyn_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'dynamical ice cover flag'],
+                ['standard_name', 'status_flag'],
                 ['institution', 'University of North Carolina'],
                 ['flag_meanings', textjoin("""
                     no_ice_cover partial_ice_cover full_ice_cover""")],
                 ['flag_values', np.array([0, 1, 2]).astype('i1')],
                 ['valid_min', 0],
                 ['valid_max', 2],
+                ['source', 'Yang et al. (2020)'],
                 ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
                 ['comment', textjoin("""
                     Dynamic ice cover flag indicating whether the pixel is
@@ -291,7 +295,7 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     analysis of external satellite optical data. Values of
                     0, 1, and 2 indicate that the surface is not ice covered,
                     partially ice covered, and fully ice covered,
-                    respectively. A value of 255 indicates that this flag is
+                    respectively. A value of 127 indicates that this flag is
                     not available.""")],
                 ])],
         ['pixc_index',

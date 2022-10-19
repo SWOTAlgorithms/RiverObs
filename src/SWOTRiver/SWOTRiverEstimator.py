@@ -12,6 +12,7 @@ import scipy.stats
 import scipy.ndimage
 import statsmodels.api
 import logging
+import contextlib
 import warnings
 import piecewise_regression
 from scipy.ndimage.morphology import binary_dilation
@@ -37,6 +38,7 @@ SLOPE_SYS_UNCERT = 0.000003  # m/m
 
 NEAR_RANGE_XTRACK_THRESHOLD = 10000
 FAR_RANGE_XTRACK_TRESHOLD = 60000
+WATER_FRAC_SUSPECT_THRESHOLD = 3
 
 MIN_VALID_WSE = -500
 MAX_VALID_WSE = 8000
@@ -376,7 +378,8 @@ class SWOTRiverEstimator(SWOTL2):
             subsample_factor=subsample_factor,
             **proj_kwds)
 
-        self.create_index_file()
+        if self.output_file is not None:
+            self.create_index_file()
 
         if np.ma.is_masked(self.lat):
             mask = self.lat.mask
@@ -391,9 +394,15 @@ class SWOTRiverEstimator(SWOTL2):
                             'value: %s'%pixc_qual_handling)
 
         # set quality masks from input PIXC quality flags
-        classification_qual = self.get(classification_qual_kwd)
-        geolocation_qual = self.get(geolocation_qual_kwd)
-        bright_land_flag = self.get(bright_land_flag_kwd)
+        try:
+            classification_qual = self.get(classification_qual_kwd)
+            geolocation_qual = self.get(geolocation_qual_kwd)
+            bright_land_flag = self.get(bright_land_flag_kwd)
+        except KeyError:
+            LOGGER.warning("PIXC Quality flags not found in input file")
+            classification_qual = np.zeros(mask.shape, dtype='u4')
+            geolocation_qual = np.zeros(mask.shape, dtype='u4')
+            bright_land_flag = np.zeros(mask.shape, dtype='u4')
 
         # Update mask of pixels to reject from pixel assignment with
         # commanded bitmasks from aux param file applied to classification_qual
@@ -467,31 +476,45 @@ class SWOTRiverEstimator(SWOTL2):
         # Set PIXC quality masks for use in aggregation using commanded bitmasks
         # from aux param file. Set as attributes of self so they may be used
         # later in node aggregation.
-        self.is_area_degraded = (
-            class_qual_area_degraded & self.classification_qual > 0)
-        self.is_area_suspect = (
-            class_qual_area_suspect & self.classification_qual > 0)
-
-        self.is_wse_degraded = (
-            geo_qual_wse_degraded & self.geolocation_qual > 0)
-        self.is_wse_suspect = geo_qual_wse_suspect & self.geolocation_qual > 0
-
-        self.is_sig0_bad = sig0_qual_bad & self.sig0_qual > 0
-        self.is_sig0_suspect = sig0_qual_suspect & self.sig0_qual > 0
-
         PIXC_GEO_QUAL_XOVR_SUSPECT = 2**6
         PIXC_GEO_QUAL_XOVR_BAD = 2**23
 
-        self.is_xovercal_suspect = (
-            self.geolocation_qual & PIXC_GEO_QUAL_XOVR_SUSPECT) > 0
-        self.is_xovercal_degraded = (
-            self.geolocation_qual & PIXC_GEO_QUAL_XOVR_BAD) > 0
+        if self.classification_qual is not None:
+            self.is_area_degraded = (
+                class_qual_area_degraded & self.classification_qual > 0)
+            self.is_area_suspect = (
+                class_qual_area_suspect & self.classification_qual > 0)
+        else:
+            self.is_area_degraded = np.zeros(self.lat.shape, dtype='bool')
+            self.is_area_suspect = np.zeros(self.lat.shape, dtype='bool')
+
+        if self.geolocation_qual is not None:
+            self.is_wse_degraded = (
+                geo_qual_wse_degraded & self.geolocation_qual > 0)
+            self.is_wse_suspect = (
+                geo_qual_wse_suspect & self.geolocation_qual > 0)
+            self.is_xovercal_suspect = (
+                self.geolocation_qual & PIXC_GEO_QUAL_XOVR_SUSPECT) > 0
+            self.is_xovercal_degraded = (
+                self.geolocation_qual & PIXC_GEO_QUAL_XOVR_BAD) > 0
+        else:
+            self.is_wse_degraded = np.zeros(self.lat.shape, dtype='bool')
+            self.is_wse_suspect = np.zeros(self.lat.shape, dtype='bool')
+            self.is_xovercal_suspect = np.zeros(self.lat.shape, dtype='bool')
+            self.is_xovercal_degraded = np.zeros(self.lat.shape, dtype='bool')
+
+        if self.sig0_qual is not None:
+            self.is_sig0_bad = sig0_qual_bad & self.sig0_qual > 0
+            self.is_sig0_suspect = sig0_qual_suspect & self.sig0_qual > 0
+        else:
+            self.is_sig0_bad = np.zeros(self.lat.shape, dtype='bool')
+            self.is_sig0_suspect = np.zeros(self.lat.shape, dtype='bool')
 
         try:
             self.looks_to_efflooks = self.getatt(looks_to_efflooks_kwd)
             if self.looks_to_efflooks == 'None':
                 self.looks_to_efflooks = 1.75  # set to default value
-        except KeyError:
+        except (AttributeError, KeyError):
             self.looks_to_efflooks = None
 
         # Try to read the pixel area from the L2 file, or compute it
@@ -545,8 +568,9 @@ class SWOTRiverEstimator(SWOTL2):
                     self.inundated_area[index] = (self.pixel_area[
                         index] * self.fractional_inundation[index])
 
-        # Segment the image into disjoint features
-        if len(self.use_segmentation) == len(self.class_list):
+        if (self.use_segmentation is not None and
+            len(self.use_segmentation) == len(self.class_list)):
+            # Segment the image into disjoint features
             self.isWater = np.zeros(np.shape(self.h_noise))
             for i, k in enumerate(class_list):
                 if self.use_segmentation[i]:
@@ -596,21 +620,22 @@ class SWOTRiverEstimator(SWOTL2):
                 GEN_RAD_EARTH_EQ, GEN_RAD_EARTH_POLE
 
         except ImportError:
-            LOGGER.warning("Can't flatten interferogram as swotCNES not found.")
+            LOGGER.warning(
+                "Can't flatten interferogram as swotCNES not found.")
             return
 
         try:
             tvp_plus_y_antenna_xyz = (
-                self.nc['tvp']['plus_y_antenna_x'][:],
-                self.nc['tvp']['plus_y_antenna_y'][:],
-                self.nc['tvp']['plus_y_antenna_z'][:])
+                self.nc.groups['tvp']['plus_y_antenna_x'][:],
+                self.nc.groups['tvp']['plus_y_antenna_y'][:],
+                self.nc.groups['tvp']['plus_y_antenna_z'][:])
             tvp_minus_y_antenna_xyz = (
-                self.nc['tvp']['minus_y_antenna_x'][:],
-                self.nc['tvp']['minus_y_antenna_y'][:],
-                self.nc['tvp']['minus_y_antenna_z'][:])
-            pixc = {'tvp': {'time': self.nc['tvp']['time'][:]},
+                self.nc.groups['tvp']['minus_y_antenna_x'][:],
+                self.nc.groups['tvp']['minus_y_antenna_y'][:],
+                self.nc.groups['tvp']['minus_y_antenna_z'][:])
+            pixc = {'tvp': {'time': self.nc.groups['tvp']['time'][:]},
                     'pixel_cloud': {'illumination_time': 
-                     self.nc['pixel_cloud']['illumination_time'][:]}}
+                     self.nc.groups['pixel_cloud']['illumination_time'][:]}}
         except KeyError:
             LOGGER.warning(
                 "Can't flatten interferogram as TVP not in pixel cloud.")
@@ -905,7 +930,11 @@ class SWOTRiverEstimator(SWOTL2):
             LOGGER.debug('Reach %d/%d Reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
 
-            seg_label = self.seg_label.copy()
+            try:
+                seg_label = self.seg_label.copy()
+            except AttributeError:
+                # if self.seg_label is None
+                seg_label = None
 
             # save node x and y in list for min-dist calculation later
             node_x_list.extend(self.reaches[i_reach].x.data.tolist())
@@ -1197,18 +1226,19 @@ class SWOTRiverEstimator(SWOTL2):
         y_prior = y_prior[self.river_obs.populated_nodes]
         reach_index = np.ones(len(node_indx)) * (reach_idx)
 
-        self.write_index_file(self.img_x[self.river_obs.in_channel],
-                              self.img_y[self.river_obs.in_channel],
-                              reach.node_indx[self.river_obs.index],
-                              self.river_obs.d, self.river_obs.s,
-                              self.river_obs.n, reach_idx,
-                              segOut, self.lat[self.river_obs.in_channel],
-                              self.lon[self.river_obs.in_channel],
-                              self.h_noise[self.river_obs.in_channel])
+        if self.output_file is not None:
+            self.write_index_file(self.img_x[self.river_obs.in_channel],
+                                  self.img_y[self.river_obs.in_channel],
+                                  reach.node_indx[self.river_obs.index],
+                                  self.river_obs.d, self.river_obs.s,
+                                  self.river_obs.n, reach_idx,
+                                  segOut, self.lat[self.river_obs.in_channel],
+                                  self.lon[self.river_obs.in_channel],
+                                  self.h_noise[self.river_obs.in_channel])
 
         # Load these datasets from input file and add obsevations to
         # self.river_obs.
-        dsets_to_load = [
+        dsets = [
             'h_noise', 'h_flg', 'wse_class_flg', 'area_flg', 'sig0_flg', 'lon',
             'lat', 'inundated_area', 'klass', 'pixel_area',
             'xtrack', 'sig0', 'sig0_uncert', 'water_frac', 'water_frac_uncert',
@@ -1221,9 +1251,11 @@ class SWOTRiverEstimator(SWOTL2):
             'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag',
             'is_xovercal_suspect', 'is_xovercal_degraded', 'layover_impact']
 
-        for name in dsets_to_load:
+        dsets_to_load = []
+        for name in dsets:
             value = getattr(self, name)
             if value is not None:
+                dsets_to_load.append(name)
                 if name is 'looks_to_efflooks':
                     value = value + np.zeros(np.shape(self.lat))
                 self.river_obs.add_obs(name, value)
@@ -1241,15 +1273,19 @@ class SWOTRiverEstimator(SWOTL2):
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
 
-        # Adjust heights to geoid and do tide corrections 
+        # Adjust heights to geoid and do tide corrections
         # (need to do before load_nodes or it is not updated in nodes)
-        mask = np.logical_and(
-            self.river_obs.geoid > -200, self.river_obs.geoid < 200)
-        self.river_obs.h_noise[mask] -= (
-            self.river_obs.geoid[mask] +
-            self.river_obs.solid_earth_tide[mask] +
-            self.river_obs.load_tide_fes[mask] +
-            self.river_obs.pole_tide[mask])
+        try:
+            mask = np.logical_and(
+                self.river_obs.geoid > -200, self.river_obs.geoid < 200)
+            self.river_obs.h_noise[mask] -= (
+                self.river_obs.geoid[mask] +
+                self.river_obs.solid_earth_tide[mask] +
+                self.river_obs.load_tide_fes[mask] +
+                self.river_obs.pole_tide[mask])
+        except AttributeError:
+            LOGGER.warning(
+                'Unable to adjust heights to geoid or do tide corrections')
 
         # add these separately since input/output names don't match
         self.river_obs.add_obs('xobs', self.x)
@@ -1270,7 +1306,7 @@ class SWOTRiverEstimator(SWOTL2):
             xtrack_median = np.asarray(
                 self.river_obs.get_node_stat('median', 'xtrack'))
         else:
-            xtrack_median = None
+            xtrack_median = np.nan*np.ones(nobs.shape)
 
         # Compute number of good+sus pixels in wse / area masks
         n_pix_wse_good_sus = np.array(
@@ -1349,13 +1385,23 @@ class SWOTRiverEstimator(SWOTL2):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
-                'median', 'sig0', goodvar='h_flg'))
+            try:
+                rdr_sig0 = np.asarray(self.river_obs.get_node_stat(
+                    'median', 'sig0', goodvar='h_flg'))
+            except AttributeError:
+                rdr_sig0 = np.nan*np.ones(area.shape)
 
         # get the aggregated heights and widths with their corresponding
         # uncertainty estimates all in one shot
-        if self.height_agg_method is 'orig' and self.area_agg_method is 'orig':
-            pass
+        if self.height_agg_method == 'orig' and self.area_agg_method == 'orig':
+            # copy some of these over for the output products
+            area_det = area
+            area_u = np.nan*np.ones(area.shape)
+            width_u = np.nan*np.ones(area.shape)
+            area_det_u = np.nan*np.ones(area.shape)
+            rdr_sig0_u = np.nan*np.ones(area.shape)
+            latitude_u = np.nan*np.ones(area.shape)
+            longitud_u = np.nan*np.ones(area.shape)
         else:
             node_aggs = self.river_obs.get_node_agg(
                 height_method=self.height_agg_method,
@@ -1422,75 +1468,98 @@ class SWOTRiverEstimator(SWOTL2):
                 area_of_ht = area
 
         # geoid heights and tide corrections weighted by height uncertainty
-        geoid_hght = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
-                                         goodvar='h_flg',
-                                         method=self.height_agg_method))
-        geoid_hght[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
-                                         goodvar='wse_class_flg',
-                                         method=self.height_agg_method)
-                                         )[~mask_good_sus_wse]
-        solid_tide = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'solid_earth_tide',
-                                         goodvar='h_flg',
-                                         method=self.height_agg_method))
-        solid_tide[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'solid_earth_tide',
-                                         goodvar='wse_class_flg',
-                                         method=self.height_agg_method)
-                                         )[~mask_good_sus_wse]
+        try:
+            geoid_hght = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
+                                             goodvar='h_flg',
+                                             method=self.height_agg_method))
+            geoid_hght[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean', 'geoid',
+                                             goodvar='wse_class_flg',
+                                             method=self.height_agg_method)
+                                             )[~mask_good_sus_wse]
+        except AttributeError:
+            geoid_hght = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'geoid', goodvar = 'h_flg'))
 
-        load_tidef = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'load_tide_fes',
-                                         goodvar='h_flg',
-                                         method=self.height_agg_method))
-        load_tidef[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'load_tide_fes',
-                                         goodvar='wse_class_flg',
-                                         method=self.height_agg_method)
-                                         )[~mask_good_sus_wse]
+        try:
+            solid_tide = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'solid_earth_tide',
+                                             goodvar='h_flg',
+                                             method=self.height_agg_method))
+            solid_tide[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'solid_earth_tide',
+                                             goodvar='wse_class_flg',
+                                             method=self.height_agg_method)
+                                             )[~mask_good_sus_wse]
+        except AttributeError:
+            solid_tide = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'solid_earth_tide', goodvar='h_flg'))
 
-        load_tideg = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'load_tide_got',
-                                         goodvar='h_flg',
-                                         method=self.height_agg_method))
-        load_tideg[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'load_tide_got',
-                                         goodvar='wse_class_flg',
-                                         method=self.height_agg_method)
-                                         )[~mask_good_sus_wse]
+        try:
+            load_tidef = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'load_tide_fes',
+                                             goodvar='h_flg',
+                                             method=self.height_agg_method))
+            load_tidef[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'load_tide_fes',
+                                             goodvar='wse_class_flg',
+                                             method=self.height_agg_method)
+                                             )[~mask_good_sus_wse]
+        except AttributeError:
+            load_tidef = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'load_tide_fes', goodvar='h_flg'))
 
+        try:
+            load_tideg = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'load_tide_got',
+                                             goodvar='h_flg',
+                                             method=self.height_agg_method))
+            load_tideg[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'load_tide_got',
+                                             goodvar='wse_class_flg',
+                                             method=self.height_agg_method)
+                                             )[~mask_good_sus_wse]
+        except AttributeError:
+            load_tideg = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'load_tide_got', goodvar='h_flg'))
 
-        pole_tide = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'pole_tide',
-                                         goodvar='h_flg',
-                                         method=self.height_agg_method))
-        pole_tide[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'pole_tide',
-                                         goodvar='wse_class_flg',
-                                         method=self.height_agg_method)
-                                         )[~mask_good_sus_wse]
+        try:
+            pole_tide = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'pole_tide',
+                                             goodvar='h_flg',
+                                             method=self.height_agg_method))
+            pole_tide[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'pole_tide',
+                                             goodvar='wse_class_flg',
+                                             method=self.height_agg_method)
+                                             )[~mask_good_sus_wse]
+        except AttributeError:
+            pole_tide = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'pole_tide', goodvar='h_flg'))
 
-        layovr_val = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'layover_impact',
-                                         goodvar='h_flg',
-                                         method=self.height_agg_method))
-        layovr_val[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat('height_weighted_mean',
-                                         'layover_impact',
-                                         goodvar='wse_class_flg',
-                                         method=self.height_agg_method)
-                                         )[~mask_good_sus_wse]
+        try:
+            layovr_val = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'layover_impact',
+                                             goodvar='h_flg',
+                                             method=self.height_agg_method))
+            layovr_val[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat('height_weighted_mean',
+                                             'layover_impact',
+                                             goodvar='wse_class_flg',
+                                             method=self.height_agg_method)
+                                             )[~mask_good_sus_wse]
+        except AttributeError:
+            layovr_val = np.nan*np.ones(area.shape)
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1531,13 +1600,17 @@ class SWOTRiverEstimator(SWOTL2):
             self.river_obs.populated_nodes]
 
         fit_xx = np.array([np.ones(x_median.shape), x_median, y_median]).T
-        fit = statsmodels.api.OLS(xtrack_median, fit_xx).fit()
-        dxt_dx = fit.params[1]
-        dxt_dy = fit.params[2]
-        xt_angle = np.arctan2(dxt_dy, dxt_dx)
-        at_angle = xt_angle-np.pi/2
-        tangent_angle = np.arctan2(tangent[:, 1], tangent[:, 0])
-        flow_dir = np.rad2deg(tangent_angle - at_angle) % 360
+
+        if xtrack_median is not None:
+            fit = statsmodels.api.OLS(xtrack_median, fit_xx).fit()
+            dxt_dx = fit.params[1]
+            dxt_dy = fit.params[2]
+            xt_angle = np.arctan2(dxt_dy, dxt_dx)
+            at_angle = xt_angle-np.pi/2
+            tangent_angle = np.arctan2(tangent[:, 1], tangent[:, 0])
+            flow_dir = np.rad2deg(tangent_angle - at_angle) % 360
+        else:
+            flow_dir = np.nan*np.ones(area.shape)
 
         prior_s = np.cumsum(reach.node_length)
 
@@ -1590,24 +1663,27 @@ class SWOTRiverEstimator(SWOTL2):
             SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_SUSPECT)
 
         # bit 3 / water_fraction_suspect
-        WATER_FRAC_SUSPECT_THRESHOLD = 3
-        water_frac_max = np.array(self.river_obs.get_node_stat(
-            'max', 'water_frac', goodvar='area_flg'))
-        water_frac_max[~mask_good_sus_area] = np.array(
-            self.river_obs.get_node_stat('max', 'water_frac', goodvar='good')
-            )[~mask_good_sus_area]
-        node_q_b[water_frac_max > WATER_FRAC_SUSPECT_THRESHOLD] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_WATER_FRAC_SUSPECT);
+        # If water_frac not an attribute of nodes, skip (GPS profiles)
+        with contextlib.suppress(AttributeError):
+            water_frac_max = np.array(self.river_obs.get_node_stat(
+                'max', 'water_frac', goodvar='area_flg'))
+            water_frac_max[~mask_good_sus_area] = np.array(
+                self.river_obs.get_node_stat('max', 'water_frac',
+                goodvar='good'))[~mask_good_sus_area]
+            node_q_b[water_frac_max > WATER_FRAC_SUSPECT_THRESHOLD] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_WATER_FRAC_SUSPECT);
 
         # bit 4 / blocking_width_suspect
         node_q_b[is_blocked] |= (
             SWOTRiver.products.rivertile.QUAL_IND_BLOCK_WIDTH_SUSPECT)
 
         # bit 7 / bright_land
-        n_pix_bright_land = np.array(
-            self.river_obs.get_node_stat('sum', 'bright_land_flag'))
-        node_q_b[n_pix_bright_land > 0] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
+        # If bright_land_flag not an attribute of nodes, skip (GPS profiles)
+        with contextlib.suppress(AttributeError):
+            n_pix_bright_land = np.array(
+                self.river_obs.get_node_stat('sum', 'bright_land_flag'))
+            node_q_b[n_pix_bright_land > 0] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_BRIGHT_LAND_SUSPECT)
 
         # bit (9/few_sig0_observations) / (10/few_area_observations) /
         # (11/few_wse_observations)
@@ -1618,13 +1694,14 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[n_pix_wse < TOO_FEW_PIXELS_THRESHOLD] |= (
             SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX)
 
-        # bit 13 / far_range_suspect
-        node_q_b[np.abs(xtrack_median) > FAR_RANGE_XTRACK_TRESHOLD] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
-
-        # bit 14 / near_range_suspect
-        node_q_b[np.abs(xtrack_median) < NEAR_RANGE_XTRACK_THRESHOLD] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
+        # bit 13 / far_range_suspect and bit 14 / near_range_suspect
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            node_q_b[np.abs(xtrack_median) > FAR_RANGE_XTRACK_TRESHOLD] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
+            # bit 14 / near_range_suspect
+            node_q_b[np.abs(xtrack_median) < NEAR_RANGE_XTRACK_THRESHOLD] |= (
+                SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
 
         # bit 18 / classification_qual_degraded
         # Only set if not enough pixels for good/sus only aggregations and
@@ -1974,8 +2051,10 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
 
-        reach_stats['dark_frac'] = (
-            1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            reach_stats['dark_frac'] = (
+                1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up'] > 0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn'] > 0).sum()
@@ -2699,8 +2778,16 @@ class SWOTRiverEstimator(SWOTL2):
         ----------
         returns the input mask array
         """
+        # generate pseudo-random seeds for initial breakpoint start values
+        seed = int((np.nanmean(y) - MIN_VALID_WSE)*1e6) % 2**32
+        np.random.seed(seed)
+        min_allowed_bp = np.quantile(x, self.outlier_edge_min_dist)
+        max_allowed_bp = np.quantile(x, 1 - self.outlier_edge_min_dist)
+        start_values = np.random.uniform(
+            low=min_allowed_bp, high=max_allowed_bp, size=n_breakpoints)
         pw_fit = piecewise_regression.Fit(
-            x, y, n_breakpoints=n_breakpoints,
+            x, y, start_values=start_values,
+            n_breakpoints=n_breakpoints,
             min_distance_between_breakpoints=self.outlier_breakpoint_min_dist,
             min_distance_to_edge=self.outlier_edge_min_dist,
             n_boot=self.outlier_n_boot,
