@@ -464,15 +464,10 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
             fit_error.append(err)
     return np.array(fit_error)
         
-def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
-                     print_table=False):
-    # find reaches where the height profile linear fit is not that good
-    # so we can filter out bogus/non-realistic reaches from the analysis
-    fit_error = []#compute_reach_fit_error(truth, scene, scene_nodes)
-    #print("p_length",truth.reaches['p_length'][truth.reaches['p_length']>0])
-    #print("p_n_nodes",truth.reaches['p_n_nodes'][truth.reaches['p_n_nodes']>0]*200)
-    # now make the mask
-    # msk = np.logical_and(truth.reaches['width']>0, truth.reaches['area_total']>0)
+def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
+    # Filters an input set of reaches based on SWOT science requirement bounds.
+    msk = []
+
     bounds = {
         'min_xtrk': 10000,
         'max_xtrk': 60000,
@@ -485,64 +480,23 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         'min_truth_ratio': 0.2,
         'min_xtrk_ratio': 1.0
     }
-    msk=[]
 
     # define some extra masking criteria for each reach based on node values
     obs_area_frac = np.empty(np.size(data.reaches['reach_id']))
-    # truth_ratio = np.empty(np.size(data.reaches['reach_id']))
     xtrk_ratio = np.empty(np.size(data.reaches['reach_id']))
     for index, reach in enumerate(data.reaches['reach_id']):
         reach_scene = scene[index]
-        # can have multiple reaches with same reach id in dataset
         scene_mask = [s == reach_scene for s in scene_nodes]
         node_mask = np.logical_and(data.nodes['reach_id'] == reach,
                                    scene_mask)
-        # node_truth_mask = np.logical_and(truth.nodes['reach_id'] == reach,
-        #                                  scene_mask)
         n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
-        # n_good_truth = np.sum(truth.nodes['area_total'][node_truth_mask] > 0)
         n_prd = len(data.nodes['node_id'][node_mask])
         n_good_xtrk = np.sum(
             np.logical_and(np.abs(data.nodes['xtrk_dist'][node_mask]) > 10000,
                            np.abs(data.nodes['xtrk_dist'][node_mask]) < 60000))
 
         obs_area_frac[index] = n_good_data / n_prd
-        # truth_ratio[index] = n_good_data / n_good_truth
         xtrk_ratio[index] = n_good_xtrk / n_prd
-
-    # some quick plots
-    # plt.hist(obs_area_frac)
-    # plt.xlabel('Observed fraction for area')
-    # plt.show()
-    # plt.hist(truth_ratio)
-    # plt.xlabel('n_good_nom / n_good_truth')
-    # plt.show()
-    # plt.hist(xtrk_ratio)
-    # plt.xlabel('Proportion of nodes within xtrk bounds')
-    # plt.show()
-    # sc = plt.scatter(obs_area_frac, truth_ratio, c=metrics['area_total'],
-    #                  cmap=plt.cm.coolwarm)
-    # cbar = plt.colorbar(sc)
-    # plt.clim(-40, 40)
-    # cbar.set_label('area total error', rotation=270)
-    # plt.xlabel('Observed fraction for area')
-    # plt.ylabel('n_good_nom / n_good_truth')
-    # plt.title('Truth ratio vs obs frac with area total error')
-    # plt.show()
-    # plt.scatter(truth_ratio, metrics['area_total'], cmap=plt.cm.coolwarm)
-    # plt.clim(-40, 40)
-    # plt.xlabel('n_good_nom / n_good_truth')
-    # plt.ylabel('area total error (%)')
-    # plt.title('Truth ratio vs area total error')
-    # plt.ylim(-40, 40)
-    # plt.show()
-    # plt.scatter(obs_area_frac, metrics['area_total'], cmap=plt.cm.coolwarm)
-    # plt.clim(-40, 40)
-    # plt.xlabel('Area observed fraction')
-    # plt.ylabel('area total error (%)')
-    # plt.title('Area observed frac vs area total error')
-    # plt.ylim(-40,40)
-    # plt.show()
 
     if truth:
         msk = np.logical_and.reduce([
@@ -557,7 +511,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
         # add the node-level filters to the mask
         msk = np.logical_and.reduce([
             msk,
-            obs_area_frac >= bounds['min_area_obs_frac'], #truth_ratio >= bounds['min_truth_ratio'],
+            obs_area_frac >= bounds['min_area_obs_frac'],
             xtrk_ratio >= bounds['min_xtrk_ratio']
         ])
         if print_table:
@@ -598,12 +552,12 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
                                                   fname=None, precision=6,
                                                   passfail=passfail)
 
-        return msk, fit_error, bounds, truth.reaches['dark_frac'],\
+        return msk, bounds, truth.reaches['dark_frac'],\
                truth.reaches['p_length']
     else:
-        return msk, fit_error, bounds, [], []
+        return msk, bounds, [], []
 
-#
+
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
 
@@ -685,10 +639,10 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
 
 
 def print_metrics(
-        metrics, truth, scene=None, msk=None, fit_error=None,
-        dark_frac=None, preamble=None, with_slope=True, with_slope2=True,
-        with_width=True, with_node_avg=False, reach_len=None,
-        with_wse_r_u=True, fname=None, passfail={}):
+        metrics, truth, scene=None, msk=None, dark_frac=None, preamble=None,
+        with_slope=True, with_slope2=True, with_width=True,
+        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None,
+        passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)

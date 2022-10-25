@@ -305,9 +305,13 @@ def main():
         proc_rivertile = args.proc_rivertile
         truth_rivertile = args.truth_rivertile
         if os.path.isdir(proc_rivertile):
-            proc_rivertile = os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
+            proc_rivertile = os.path.join(
+                proc_rivertile, 'river_data', 'rivertile.nc'
+            )
         if os.path.isdir(truth_rivertile):
-            truth_rivertile = os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
+            truth_rivertile = os.path.join(
+                truth_rivertile, 'river_data', 'rivertile.nc'
+            )
 
         metrics, truth, data, scene, \
         scene_nodes, sig0, has_reach_data = load_and_accumulate(
@@ -315,9 +319,10 @@ def main():
 
     # get pass/fail and mask for science requirements
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, bounds, dark_frac, reach_len = \
+    msk, bounds, dark_frac, reach_len = \
         SWOTRiver.analysis.riverobs.mask_for_sci_req(
-            metrics, truth, data, scene, scene_nodes, sig0=sig0)
+            truth, data, scene, scene_nodes
+        )
 
     # generate output filenames for metric tables and images
     if args.print_me:
@@ -364,8 +369,7 @@ def main():
 
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
-        metrics, truth, scene, msk, fit_error,
-        dark_frac,
+        metrics, truth, scene, msk, dark_frac,
         with_node_avg=True,
         passfail=passfail,
         reach_len=reach_len,
@@ -382,8 +386,6 @@ def main():
                 c=reach_len[msk]/1e3)
     ax1.set(xlabel='slope (cm/km)', ylabel='slope error (cm/km)')
     ax1.set_title('reach length (km)')
-    #ax1.colorbar()
-    #fig.colorbar(reach_len[msk]/1e3, ax=ax1)
     ax1.grid()
 
     ax2.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk],

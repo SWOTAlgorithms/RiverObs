@@ -175,9 +175,10 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
 
     if len(metrics['area_total']) > 0:
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
-        msk, fit_error, bounds, dark_frac, reach_len = \
+        msk, bounds, dark_frac, reach_len = \
             SWOTRiver.analysis.riverobs.mask_for_sci_req(
-                metrics, truth, data, scene, scene_nodes, sig0=sig0)
+                truth, data, scene, scene_nodes
+            )
         preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                    + str(bounds['max_xtrk']) + " km and width>" \
                    + str(bounds['min_width']) + " m and area>" \
