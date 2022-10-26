@@ -4,8 +4,10 @@
 This is a package written initially by
 [Ernesto Rodriguez](mailto:ernesto.rodriguez@jpl.nasa.gov) to estimate
 various river parameters starting from remote sensing data.
-[Alex Fore](mailto:alexander.fore@jpl.nasa.gov) and [Brent Williams](mailto:brent.a.williams@jpl.nasa.gov) have also provided
-code to reflect the evolving SWOT project.
+[Alex Fore](mailto:alexander.fore@jpl.nasa.gov), [Brent Williams](mailto:brent.a.williams@jpl.nasa.gov), 
+[Cassie Stuurman](mailto:cassie.stuurman@jpl.nasa.gov), [Rui Wei](mailto:rui.wei@jpl.nasa.gov), 
+and [Renato P.M. Frasson](mailto:renato.prata.de.moraes.frasson@jpl.nasa.gov) have also provided code 
+to reflect the evolving SWOT project.
 The code is currently maintained by the SWOT Algorithm Definition Team.
 
 Detailed installation instructions are in the Install.md file.
@@ -19,10 +21,10 @@ usage: swot_pixc2rivertile.py [-h] [--shpbasedir SHPBASEDIR] [-l LOG_LEVEL]
                               pixc_file out_riverobs_file out_pixc_vector_file
                               rdf_file
 ```
-where ```pixc_file``` is the SWOT high-resolution pixel cloud data product, ```out_riverobs_file``` is the filename of the output rivertile data product, ```out_pixc_vector_file``` is the filename of the output pixel cloud vector data product, ```rdf_file``` is the configuration file (see [this link](https://github.com/SWOTAlgorithms/RiverObs/blob/develop/src/bin/swot_pixc2rivertile.py#L13)) for the recomended configuration). Additionally there are some optional arguments: ```--shpbasedir SHPBASEDIR``` will write out the nodes and reaches as shapefile format (written as netCDF to ```out_riverobs_file```), ```-l LOG_LEVEL``` controls the verbosity of the logging, and ```--gdem-file GDEM_FILE``` will create a pixc_file from the GDEM file and run RiverObs on that as a type of truth processing.
+where ```pixc_file``` is the SWOT high-resolution pixel cloud data product, ```out_riverobs_file``` is the filename of the output rivertile data product, ```out_pixc_vector_file``` is the filename of the output pixel cloud vector data product, ```rdf_file``` is the configuration file (see [this link](https://github.com/SWOTAlgorithms/RiverObs/blob/develop/src/bin/swot_pixc2rivertile.py#L13)) for the recommended configuration). Additionally there are some optional arguments: ```--shpbasedir SHPBASEDIR``` will write out the nodes and reaches as shapefile format (written as netCDF to ```out_riverobs_file```), ```-l LOG_LEVEL``` controls the verbosity of the logging, and ```--gdem-file GDEM_FILE``` will create a pixc_file from the GDEM file and run RiverObs on that as a type of truth processing.
 
 # Prior Reach Database
-RiverObs requires a prior reach and node database. The database contains fixed node locations, reach boundaries, and high-resolution reach centerlines. It is distributed as a set of netcdf files, broken by continent (first two characters in the file name) and "major basins" in the continent (3rd and 4th characters in the file name). Metadata describing the database fields and the current version of the database is available here http://gaia.geosci.unc.edu/SWORD/SWORD_v08_iceflag.zip. 
+RiverObs requires a prior reach and node database. The database contains fixed node locations, reach boundaries, and high-resolution reach centerlines. It is distributed as a set of netcdf files, broken by continent (first two characters in the file name) and "major basins" in the continent (3rd and 4th characters in the file name). Metadata describing the database fields and the current version of the database is available [here](http://gaia.geosci.unc.edu/SWORD/). 
 
 ## Summary of packages provided
 

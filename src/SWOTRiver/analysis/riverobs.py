@@ -476,10 +476,10 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
     bounds = {
         'min_xtrk': 10000,
         'max_xtrk': 60000,
-        'min_width': 80,
+        'min_width': 100,
         'min_area': 800000,
         'min_length': 8000,
-        'min_obs_frac': 0.5,
+        'min_obs_frac': 1.0,
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
@@ -551,7 +551,7 @@ def mask_for_sci_req(metrics, truth, data, scene, scene_nodes=None, sig0=None,
             truth.reaches['width'] > bounds['min_width'],
             truth.reaches['area_total'] > bounds['min_area'],
             truth.reaches['p_length'] >= bounds['min_length'],
-            data.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+            truth.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
             truth.reaches['dark_frac'] <= bounds['max_dark_frac']
         ])
         # add the node-level filters to the mask
