@@ -250,6 +250,7 @@ def match_nodes(truth, data):
     for name in truth.nodes.variables:
         new_nodes[name] = truth.nodes[name][true_mapping]
     truth.nodes = new_nodes
+    return data_mapping, true_mapping
 
 def compute_average_node_error(data, truth):
     err_out = np.zeros(np.shape(data.reaches['reach_id']))+np.nan
