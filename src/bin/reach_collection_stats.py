@@ -14,7 +14,7 @@ from plotnine import *
 from plot_reach_stats import load_and_accumulate
 from reach_comparison import get_input_files
 
-def load_data_df(data_files, truth_files=None, test_bool=None):
+def load_data_to_df(data_files, truth_files=None, test_bool=None):
     # takes all input filenames and forms some dataframes out of their data
     # and metrics
     data_nodes_df = pd.DataFrame()
@@ -29,7 +29,7 @@ def load_data_df(data_files, truth_files=None, test_bool=None):
     for index, filename in enumerate(data_files):
         if test_counter < 5:
             # get the error of that scene
-            try:
+            if rivertile_list[index] and truth_list[index]:
                 metrics, truth, data, scene, scene_nodes, sig0, \
                 has_reach_data = load_and_accumulate(
                     filename, truth_files[index]
@@ -113,13 +113,8 @@ def load_data_df(data_files, truth_files=None, test_bool=None):
                                     truth.reaches['dark_frac'])
                             )
 
-                if test_bool:  # only increment counter if user is in 'test' mode
+                if test_bool:  # only increment counter when in 'test' mode
                     test_counter = index
-            except FileNotFoundError:
-                # not sure this ever happens, consider removing
-                print('\032[93mData rivertile', filename,
-                      'has no matching truth rivertile', truth_files[index],
-                      '\032[0m')
 
     return (data_nodes_df, truth_nodes_df, data_reaches_df,
             truth_reaches_df, metrics_df)
@@ -699,7 +694,9 @@ def main():
 
     # load and accumulate data
     node_df, node_df_truth, reach_df, reach_df_truth, \
-    reach_metrics_df = load_data_df(data_files, truth_files, args.test_boolean)
+    reach_metrics_df = load_data_to_df(
+        data_files, truth_files, args.test_boolean
+    )
 
     # get node-level errors
     node_metrics_df = get_node_errors(node_df, node_df_truth)

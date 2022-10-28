@@ -68,21 +68,16 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
         raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
     for index, rivertile in enumerate(proc_rivertile_list):
-        if os.path.exists(rivertile):
-            truth_file = get_truth_file(
-                proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
-                truth_basedir, truth_only)
-            if os.path.exists(truth_file):
-                truth_rivertile_list.append(truth_file)
-            else:
-                warn_str = 'Truth rivertile file ' + truth_file + ' does not exist.'
-                warnings.warn(warn_str)
-                truth_rivertile_list.append(None)
-                missing_truth_count += 1
+        truth_file = get_truth_file(
+            proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
+            truth_basedir, truth_only)
+        if os.path.exists(truth_file):
+            truth_rivertile_list.append(truth_file)
         else:
-            # this should never happen
-            raise Exception('Input rivertile file', rivertile,
-                            'does not exist')
+            warn_str = 'Truth rivertile file ' + truth_file + ' does not exist.'
+            warnings.warn(warn_str)
+            truth_rivertile_list.append(None)
+            missing_truth_count += 1
     print('total missing truths = ', missing_truth_count, 'out of',
           len(proc_rivertile_list), 'files.')
     return proc_rivertile_list, truth_rivertile_list
