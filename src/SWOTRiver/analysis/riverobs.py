@@ -58,16 +58,14 @@ class ReachPlot():
             else:
                 outliers = np.logical_or(
                     (dep<outlierlim[0]),(dep>outlierlim[1]))
-                #indep = independent.copy()
                 dep[dep<outlierlim[0]] = outlierlim[0]
                 dep[dep>outlierlim[1]] = outlierlim[1]
         not_outliers = np.logical_not(outliers)
         scatter = self.axis.scatter(
             indep[not_outliers], dep[not_outliers], c=col[not_outliers],
             cmap=CMAP)
-        scatter_out = self.axis.scatter(
-            indep[outliers], dep[outliers], c=col[outliers],
-            cmap=CMAP, marker = '+')
+        self.axis.scatter(indep[outliers], dep[outliers], c=col[outliers],
+            cmap=CMAP, marker='+')
         colorbar = plt.colorbar(scatter)
         colorbar.set_label(color_key)
         self.plot_requirements()
@@ -98,12 +96,10 @@ class HeightVsAreaPlot(ReachPlot):
 
 class AreaPlot(ReachPlot):
     def plot(self):
-        #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total)
         super().plot(true_area, self.metrics['area_total'], 'xtrk_dist', outlierlim=(-50,50))
 
     def plot_requirements(self):
-        #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total[self.msk])
         buff = 100
         # set up the default legend and y-axis for req. for rivers
@@ -126,7 +122,6 @@ class AreaPlot(ReachPlot):
         self.axis.plot(req_x, [i*15, i*15], '--y')
         self.axis.plot(tsm_x, [i*15, i*15], '--r')
         self.axis.set_xlim((0, np.amax(true_area)+buff))
-        #self.axis.set_ylim((-50,50))
         self.axis.legend(legnd, ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.15))
         i = -1
         self.axis.plot(goal_x, [i*25, i*25], '--g')
@@ -144,12 +139,10 @@ class AreaPlot(ReachPlot):
 
 class HeightPlot(ReachPlot):
     def plot(self):
-        #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total)
         super().plot(true_area, self.metrics['wse'], 'xtrk_dist', outlierlim=(-50,50))
 
     def plot_requirements(self):
-        #true_area = np.sqrt(self.truth.reaches.area_detct)
         true_area = np.sqrt(self.truth.area_total[self.msk])
         buff = 100
         legnd = ['BSM for $A>(250m)^2$', 'BSM for $A>1 km^2$',
@@ -163,7 +156,6 @@ class HeightPlot(ReachPlot):
         self.axis.plot(req_x, [i*10, i*10], '--y')
         self.axis.plot(tsm_x, [i*11, i*11], '--r')
         self.axis.set_xlim((0,np.amax(true_area)+buff))
-        #self.axis.set_ylim((-50,50))
         self.axis.legend(legnd, ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.15)) # ,
         i = -1
         self.axis.plot(goal_x, [i*25, i*25], '--y')
@@ -266,7 +258,6 @@ def compute_average_node_error(data, truth):
         nodes_t = truth.nodes['node_id'][inds_t]
         wse = data.nodes['wse'][inds]
         s0 = data.nodes['rdr_sig0'][inds].filled(fill_value=-10)
-        #print(s0)
         wgt = data.nodes['wse_u'][inds]**2
         wse_t = truth.nodes['wse'][inds_t]
         for node in nodes:
@@ -277,8 +268,6 @@ def compute_average_node_error(data, truth):
                 w[wgt[nodes==node]<0.00001] = 10000000
                 diff_wse.append((d_wse - t_wse))
                 weight.append(w)
-                #print("wse: ",wse[nodes==node])
-                #print("s0: ",s0[nodes==node])
                 sig0.append(s0[nodes==node])
         # exclude outliers
         p_68 = np.nanpercentile(np.abs(diff_wse),68)
@@ -303,7 +292,6 @@ def get_metrics(truth, data, msk=None, with_slope=True, with_width=True,
         'area_total': (
             (data.area_total[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
         'area_detct':(
-            #(data.area_detct[msk] - truth.area_detct[msk]) / truth.area_detct[msk]) * 100.0,
             (data.area_detct[msk] - truth.area_total[msk]) / truth.area_total[msk]) * 100.0,
         'wse': (data.wse[msk] - truth.wse[msk]) * 1e2,#convert m to cm
 
@@ -432,33 +420,25 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
     fit_error = []
     if truth:
         for reach, scene_id in zip(truth.reaches['reach_id'], np.array(scene)):
-            inds = (truth.nodes['reach_id'] == reach)
-            inds = np.logical_and(truth.nodes['reach_id'] == reach, 
+            inds = np.logical_and(truth.nodes['reach_id'] == reach,
                 np.array(scene_nodes) == scene_id)
             print("scene_nodes",np.array(scene_nodes)[inds], reach, truth.nodes['reach_id'][inds])
             print("reach, wse, node_id", reach, truth.nodes['wse'][inds], truth.nodes['node_id'][inds])
-            ind = (truth.reaches['reach_id'] == reach)
             try:
                 y0 = truth.nodes['wse'][inds]
                 x0 = truth.nodes['node_id'][inds]
                 # check masked array
                 x1 = x0[y0.mask == False]
                 y1 = y0[y0.mask == False]
-                # handle bad values set to large fill value or anomolously large wse
+                # handle bad values set to large fill value or anomalously large wse
                 x2 = x1[np.abs(y1) < 1e11]
                 y2 = y1[np.abs(y1) < 1e11]
-                #print("reach, x1, y1",reach, x1, y1)
                 # exclude nans and infs
                 y = y2[np.isfinite(y2)]
                 x = x2[np.isfinite(y2)]
-                #print("reach, x, y",reach, x, y)
                 z = np.polyfit( x, y, 1)
                 p = np.poly1d(z)
-                #err = np.nanmean(np.sqrt((y - p(x))**2))*100 #in cm
                 err = np.nanmax(np.sqrt((y - p(x))**2))*100 #in cm
-                #print("reach, z, err",reach, z, err)
-                #if reach == 73216000741:#81140200151:#81130400121:
-                #    print("reach,reach,x,y,z,err", reach, int(truth.reaches['reach_id'][ind][0]) ,x,y,z,err)
             except np.linalg.LinAlgError:
                 err = 1000000000
                 print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
@@ -674,13 +654,10 @@ def print_metrics(
         table['xtrk (km)'] = truth['xtrk_dist'][msk]/1e3
     if scene is not None:
         table['scene_pass_tile'] = np.array(scene)[msk]
-    #if fit_error is not None:
-    #    table['fit_error (cm)'] = np.array(fit_error)[msk]
     if dark_frac is not None:
         table['dark_frac'] = np.array(dark_frac)[msk]
     if reach_len is not None:
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
-
 
     SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, precision=5, passfail=passfail, fname=fname)
     return table
