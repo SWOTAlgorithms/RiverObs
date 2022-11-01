@@ -444,11 +444,58 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
                 print("linAlgError caught. truth.nodes[wse]:",truth.nodes['wse'][inds])
             fit_error.append(err)
     return np.array(fit_error)
-        
-def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
-    # Filters an input set of reaches based on SWOT science requirement bounds.
-    msk = []
 
+
+def reach_num_for_sci_bounds(truth_reaches, obs_reaches, bounds,
+                             obs_area_frac, xtrk_ratio):
+    """
+    Compute the number of reaches filtered out by each science bound
+
+    Parameters
+    ----------
+    truth_reaches: truth data of a reach collection
+    obs_reaches: swot observations of a reach collection
+    bounds: science bounds dictionary (defined in mask_for_sci_req)
+    obs_area_frac: the fraction of area-observed node over the total
+                   number of node in each reach
+    xtrk_ratio: the fraction of nodes within cross-track bound over
+                the total number of node in each reach
+
+    Returns
+    -------
+    Returns dictionary of filtered reach numbers for each science bound.
+    """
+    rch_num_total = np.size(truth_reaches['xtrk_dist'])
+    reach_counts = {
+        'rch_num_total': rch_num_total,
+        'bad_xtrk': rch_num_total - np.sum(np.logical_or(
+            np.abs(truth_reaches['xtrk_dist']) < bounds['min_xtrk'],
+            np.abs(truth_reaches['xtrk_dist']) > bounds['max_xtrk'])),
+        'bad_width': rch_num_total - \
+                     np.sum(truth_reaches['width'] < bounds['min_width']),
+        'bad_area': rch_num_total - \
+                    np.sum(truth_reaches['area_total'] < bounds['min_area']),
+        'bad_length': rch_num_total - \
+                      np.sum(truth_reaches['p_length'] < bounds['min_length']),
+        'bad_obs_frac': rch_num_total - \
+                        np.sum(obs_reaches['obs_frac_n'] < bounds[
+                            'min_obs_frac']),
+        'bad_dark_frac': rch_num_total - \
+                         np.sum(obs_reaches['dark_frac'] < bounds[
+                             'max_dark_frac']),
+        'bad_qual': rch_num_total - \
+                    np.sum(
+                        obs_reaches['reach_q_b'] > bounds['max_qual_flag']),
+        'bad_obs_area_frac': rch_num_total - \
+                             np.sum(
+                                 obs_area_frac < bounds['min_area_obs_frac']),
+        'bad_xtrk_ratio': rch_num_total - \
+                          np.sum(xtrk_ratio < bounds['min_xtrk_ratio'])
+    }
+    return reach_counts
+
+def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
+    # Filters an input set of reaches based on SWOT science requirement bounds
     bounds = {
         'min_xtrk': 10000,
         'max_xtrk': 60000,
@@ -459,7 +506,8 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
         'max_dark_frac': 1,
         'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 1.0
+        'min_xtrk_ratio': 1.0,
+        'max_qual_flag': 8192
     }
 
     # define some extra masking criteria for each reach based on node values
@@ -479,6 +527,12 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
         obs_area_frac[index] = n_good_data / n_prd
         xtrk_ratio[index] = n_good_xtrk / n_prd
 
+    rch_count = reach_num_for_sci_bounds(truth.reaches,
+                                         data.reaches,
+                                         bounds,
+                                         obs_area_frac,
+                                         xtrk_ratio)
+
     if truth:
         msk = np.logical_and.reduce([
             np.abs(truth.reaches['xtrk_dist']) > bounds['min_xtrk'],
@@ -487,7 +541,8 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
             truth.reaches['area_total'] > bounds['min_area'],
             truth.reaches['p_length'] >= bounds['min_length'],
             truth.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
-            truth.reaches['dark_frac'] <= bounds['max_dark_frac']
+            truth.reaches['dark_frac'] <= bounds['max_dark_frac'],
+            data.reaches['reach_q_b'] <= bounds['max_qual_flag']
         ])
         # add the node-level filters to the mask
         msk = np.logical_and.reduce([
@@ -505,7 +560,8 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
                 'Dark frac (%)':[bounds['max_dark_frac'] * 100,
                                  bounds['max_dark_frac'] * 100],
                 'obs frac area (%)': [bounds['min_area_obs_frac']*100, 'flip'],
-                'xtrk_ratio (%)': [bounds['min_xtrk_ratio']*100, 'flip']
+                'xtrk_ratio (%)': [bounds['min_xtrk_ratio']*100, 'flip'],
+                'qual flag': [bounds['min_qual_flag'], 'flip']
             }
             preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                    + str(bounds['max_xtrk']) + " km and width>" \
@@ -514,7 +570,8 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
                    + str(bounds['min_length']) + " m and obs frac >" \
                    + str(bounds['min_obs_frac']) + " and truth ratio > "\
                    + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
-                   + str(bounds['min_xtrk_ratio'])
+                   + str(bounds['min_xtrk_ratio']) + " and qual flag < "\
+                   + str(bounds['min_qual_flag'])
             table = {
                 'Reach ID': data.reaches['reach_id'].astype(str),
                 'Truth width (m)': truth.reaches['width'],
@@ -526,7 +583,8 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
                 'River Name': data.reaches['river_name'],
                 'sci req msk': msk,
                 'obs frac area (%)': obs_area_frac*100,
-                'xtrk_ratio (%)': xtrk_ratio*100
+                'xtrk_ratio (%)': xtrk_ratio*100,
+                'qual_flag': data.reaches['reach_q_b']
             }
 
             SWOTRiver.analysis.tabley.print_table(table, preamble=preamble,
@@ -534,10 +592,10 @@ def mask_for_sci_req(truth, data, scene, scene_nodes, print_table=False):
                                                   passfail=passfail)
 
         return msk, bounds, truth.reaches['dark_frac'],\
-               truth.reaches['p_length']
+               truth.reaches['p_length'], truth.reaches['width'],\
+               data.reaches['reach_q_b'], rch_count
     else:
-        return msk, bounds, [], []
-
+        return msk, bounds, [], [], [], [], []
 
 def get_scene_from_fnamedir(fnamedir):
     path_parts = os.path.abspath(fnamedir).split('/')
@@ -620,10 +678,10 @@ def print_errors(metrics, msk=True, fname=None, preamble=None, with_slope=True,
 
 
 def print_metrics(
-        metrics, truth, scene=None, msk=None, dark_frac=None, preamble=None,
-        with_slope=True, with_slope2=True, with_width=True,
-        with_node_avg=False, reach_len=None, with_wse_r_u=True, fname=None,
-        passfail={}):
+        metrics, truth, scene=None, msk=None,
+        dark_frac=None, preamble=None, with_slope=True, with_slope2=True,
+        with_width=True, with_node_avg=False, reach_len=None, qual_flag=None,
+        with_wse_r_u=True, fname=None, passfail={}):
     table = {}
     if msk is None:
         msk = np.ones(np.shape(metrics['wse'][:]),dtype = bool)
@@ -658,6 +716,9 @@ def print_metrics(
         table['dark_frac'] = np.array(dark_frac)[msk]
     if reach_len is not None:
         table['reach_len (km)'] = np.array(reach_len/1e3)[msk]
+    if qual_flag is not None:
+        table['qual_flag'] = np.array(qual_flag)[msk]
 
-    SWOTRiver.analysis.tabley.print_table(table, preamble=preamble, precision=5, passfail=passfail, fname=fname)
+    SWOTRiver.analysis.tabley.print_table(
+        table, preamble=preamble, precision=5, passfail=passfail, fname=fname)
     return table

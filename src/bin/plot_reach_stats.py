@@ -11,6 +11,7 @@ import argparse
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import statsmodels.api as sm
 
 import SWOTRiver.analysis.riverobs
 import SWOTRiver.analysis.tabley
@@ -319,10 +320,9 @@ def main():
 
     # get pass/fail and mask for science requirements
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, bounds, dark_frac, reach_len = \
-        SWOTRiver.analysis.riverobs.mask_for_sci_req(
-            truth, data, scene, scene_nodes
-        )
+    msk, bounds, dark_frac, reach_len, reach_width, qual_flag, \
+    rch_count = SWOTRiver.analysis.riverobs.mask_for_sci_req(
+            truth, data, scene, scene_nodes)
 
     # generate output filenames for metric tables and images
     if args.print_me:
@@ -351,6 +351,7 @@ def main():
         preamble='For All Data',
         dark_frac=dark_frac,
         reach_len=reach_len,
+        qual_flag=qual_flag,
         fname=table_fname + '_all.txt')
     print("\nFor All Data")
     SWOTRiver.analysis.riverobs.print_errors(metrics,
@@ -358,14 +359,34 @@ def main():
                                              preamble = 'For All Data',
                                              with_node_avg=True)
     # printing masked data to table
-    preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
+    preamble = "Total reach num: " + str(rch_count['rch_num_total']) \
+               + "\nnum of reaches filtered due to xtrk: " + str(
+                   rch_count['bad_xtrk']) \
+               + "\nnum of reaches filtered due to width: " + str(
+                   rch_count['bad_width']) \
+               + "\nnum of reaches filtered due to area: " + str(
+                   rch_count['bad_area']) \
+               + "\nnum of reaches filtered due to length: " + str(
+                   rch_count['bad_length']) \
+               + "\nnum of reaches filtered due to obs frac: " + str(
+                   rch_count['bad_obs_frac']) \
+               + "\nnum of reaches filtered due to dark frac: " + str(
+                   rch_count['bad_dark_frac']) \
+               + "\nnum of reaches filtered due to qual flag: " + str(
+                   rch_count['bad_qual']) \
+               + "\nnum of reaches filtered due to obs area frac: " + str(
+                   rch_count['bad_obs_area_frac']) \
+               + "\nnum of reaches filtered due to xtrk ratio: " + str(
+                   rch_count['bad_xtrk_ratio']) \
+               + "\n\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                + str(bounds['max_xtrk']) + " km and width>" \
                + str(bounds['min_width']) + " m and area>" \
                + str(bounds['min_area']) + " m^2 \n and reach len>=" \
                + str(bounds['min_length']) + " m and obs frac >=" \
                + str(bounds['min_obs_frac']) + " and truth ratio >= "\
                + str(bounds['min_truth_ratio']) + " and xtrk proportion >= "\
-               + str(bounds['min_xtrk_ratio'])
+               + str(bounds['min_xtrk_ratio']) + " and qual flag <= "\
+               + str(bounds['max_qual_flag'])
 
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
@@ -373,6 +394,7 @@ def main():
         with_node_avg=True,
         passfail=passfail,
         reach_len=reach_len,
+        qual_flag=qual_flag,
         preamble=preamble,
         fname=table_fname + '.txt')
     SWOTRiver.analysis.riverobs.print_errors(metrics, msk,
@@ -403,6 +425,7 @@ def main():
     c = reach_len[msk]/1e3
     #fig.colorbar(c, ax=ax3)
     ax3.grid()
+    plt.show()
 
     # plot slope error vs reach length
     # plt.figure()
@@ -434,6 +457,55 @@ def main():
     #plt.colorbar()
     #plt.xlabel('fit_error')
     #plt.ylabel('metrics')
+    plt.figure()
+    ecdf = sm.distributions.ECDF(reach_len/1e3)
+    x = np.linspace(min(reach_len)/1e3, max(reach_len)/1e3)
+    y = ecdf(x)
+    plt.step(x, y, label='before')
+    ecdf2 = sm.distributions.ECDF(reach_len[msk]/1e3)
+    x2 = np.linspace(min(reach_len[msk])/1e3, max(reach_len[msk])/1e3)
+    y2 = ecdf2(x2)
+    plt.step(x2, y2, label='masked')
+    plt.ylabel('cdf')
+    plt.xlabel('reach length (km)')
+    plt.title('reach length cdfs')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+    plt.figure()
+    ecdf = sm.distributions.ECDF(reach_width)
+    x = np.linspace(min(reach_width), max(reach_width))
+    y = ecdf(x)
+    plt.step(x, y, label='before')
+    ecdf2 = sm.distributions.ECDF(reach_width[msk])
+    x2 = np.linspace(min(reach_width[msk]), max(reach_width[msk]))
+    y2 = ecdf2(x2)
+    plt.step(x2, y2, label='masked')
+    plt.ylabel('cdf')
+    plt.xlabel('reach width (m)')
+    plt.title('reach width cdfs')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+    plt.figure()
+    xtrk_dist = abs(truth['reaches']['xtrk_dist']/1e3)
+    ecdf = sm.distributions.ECDF(xtrk_dist)
+    x = np.linspace(min(xtrk_dist), max(xtrk_dist))
+    y = ecdf(x)
+    plt.step(x, y, label='before')
+    ecdf2 = sm.distributions.ECDF(xtrk_dist[msk])
+    x2 = np.linspace(min(xtrk_dist[msk]), max(xtrk_dist[msk]))
+    y2 = ecdf2(x2)
+    plt.step(x2, y2, label='masked')
+    plt.ylabel('cdf')
+    plt.xlabel('xtrk dist (km)')
+    plt.title('xtrk dist cdfs')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
     SWOTRiver.analysis.riverobs.AreaPlot(
         truth.reaches, data.reaches, metrics, args.title, filenames[0], msk=msk)
     SWOTRiver.analysis.riverobs.HeightPlot(
