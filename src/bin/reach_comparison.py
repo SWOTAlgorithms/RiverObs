@@ -175,8 +175,8 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
 
     if len(metrics['area_total']) > 0:
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
-        msk, fit_error, bounds, dark_frac, reach_len = \
-            SWOTRiver.analysis.riverobs.mask_for_sci_req(
+        msk, fit_error, bounds, dark_frac, reach_len, reach_width, qual_flag, \
+        rch_count = SWOTRiver.analysis.riverobs.mask_for_sci_req(
                 metrics, truth, data, scene, scene_nodes, sig0=sig0)
         preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                    + str(bounds['max_xtrk']) + " km and width>" \
@@ -205,13 +205,13 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
 
 
 def plot_worst_reaches(metrics, first_reach_index, rivertile_files,
-                       truth_files, sort_param, proc_dir):
+                       truth_files, sort_param, proc_dir, out_dir):
     # calls plot_reach for all reaches sorted by worst error
     sorted_metrics = sort_errors(metrics, sort_param,
                                  rivertile_files, truth_files)
     # slice metrics values according to input first percentile of plotting
     sorted_metrics = sorted_metrics.iloc[first_reach_index:]
-
+    ifig = 1
     for index, reach in enumerate(sorted_metrics['reach']):
         this_reach = sorted_metrics.iloc[index]
         rivertile_file = this_reach['rivertile_file']
@@ -229,7 +229,14 @@ def plot_worst_reaches(metrics, first_reach_index, rivertile_files,
                                                  truth_pixcvec, truth_pixc,
                                                  reach, gdem_file, this_reach,
                                                  scene)
-            plt.show()
+
+            if out_dir is not None and os.path.isdir(out_dir):
+                ifig += 1
+                plt.savefig(out_dir + str(ifig) + '_' + str(scene) + '_' +
+                            str(reach))
+            else:
+                plt.show()
+
 
         except TypeError:
             print('couldn\'t make plot for', rivertile_file)
@@ -336,6 +343,8 @@ def main():
                         help='Flag that signifies we are looking for '
                              'pge-generated files. These have different names '
                              'and require a flag to correctly be found.')
+    parser.add_argument('--out_dir', help='output directory for reach plots',
+                        type=str, default=None)
 
     args = parser.parse_args()
 
@@ -367,7 +376,8 @@ def main():
                        good_rivertile_list,
                        good_truth_list,
                        args.sort_by,
-                       args.proc_rivertile)
+                       args.proc_rivertile,
+                       args.out_dir)
 
 
 if __name__ == "__main__":

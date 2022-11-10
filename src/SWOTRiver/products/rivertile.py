@@ -593,8 +593,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
     def from_shapes(cls, node_shape_path, reach_shape_path):
         """Constructs self from shapefiles"""
         klass = cls()
-        klass.nodes = RiverTileNodes.from_shapes(node_shape_path)
-        klass.reaches = RiverTileReaches.from_shapes(reach_shape_path)
+        klass.nodes = klass.nodes.from_shapes(node_shape_path)
+        klass.reaches = klass.reaches.from_shapes(reach_shape_path)
         return klass
 
     def uncorrect_tides(self):
