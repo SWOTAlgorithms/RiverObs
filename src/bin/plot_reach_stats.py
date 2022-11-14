@@ -285,7 +285,7 @@ def main():
             print('No nominal tiles found. Check input variable names.')
 
         if args.test_mode:
-            proc_rivertile_list = proc_rivertile_list[0:80]
+            proc_rivertile_list = proc_rivertile_list[0:10]
 
         for proc_rivertile, truth_rivertile in zip(proc_rivertile_list,
                                                    truth_rivertile_list):
@@ -374,8 +374,6 @@ def main():
                    rch_count['bad_dark_frac']) \
                + "\nnum of reaches filtered due to qual flag: " + str(
                    rch_count['bad_qual']) \
-               + "\nnum of reaches filtered due to obs area frac: " + str(
-                   rch_count['bad_obs_area_frac']) \
                + "\nnum of reaches filtered due to xtrk ratio: " + str(
                    rch_count['bad_xtrk_ratio']) \
                + "\n\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
@@ -520,7 +518,7 @@ def main():
     else:
         file = 'temp'
         print('showing stats...')
-
+    plt.show()
     f = open(file + '.txt', 'r')
     file_contents = f.read()
     print(file_contents)
