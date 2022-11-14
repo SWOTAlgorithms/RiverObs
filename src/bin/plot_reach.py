@@ -24,7 +24,6 @@ import statsmodels.api as sm
 
 from netCDF4 import Dataset
 
-from get_reach_metrics import *
 from reach_comparison import *
 from SWOTRiver.products.rivertile import RiverTileNodes
 
