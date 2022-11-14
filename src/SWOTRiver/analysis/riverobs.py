@@ -17,13 +17,14 @@ import SWOTRiver.analysis.tabley
 
 import matplotlib.pyplot as plt
 
-FIGSIZE = (8, 4) #(12, 8)
+FIGSIZE = (10, 8)
 DPI = 200
 CMAP = 'plasma'
 
 
 class ReachPlot():
-    def __init__(self, truth, data, metrics, title=None, filename=None, msk=True, is_lake=False):
+    def __init__(self, truth, data, metrics, title=None, filename=None,
+                 msk=True, is_lake=False):
         self.truth = truth
         self.data = data
         self.metrics = metrics
@@ -34,7 +35,8 @@ class ReachPlot():
         self.figure, self.axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
         self.plot()
 
-    def plot(self, independent, dependent, color_key, color_abs=True, outlierlim=None):
+    def plot(self, independent, dependent, color_key, color_abs=True,
+             outlierlim=None):
         if color_abs:
             col = np.abs(self.data[color_key][self.msk])
         else:
@@ -80,8 +82,8 @@ class ReachPlot():
 
 class HeightVsAreaPlot(ReachPlot):
     def plot(self):
-        super().plot(self.metrics['area_total'], self.metrics['wse'], 'xtrk_dist',
-                     outlierlim=(-50,50,-50,50))
+        super().plot(self.metrics['area_total'], self.metrics['wse'],
+                     'xtrk_dist', outlierlim=(-50,50,-50,50))
 
     def plot_requirements(self):
         self.axis.axvline(x=15, color='g')
@@ -97,7 +99,8 @@ class HeightVsAreaPlot(ReachPlot):
 class AreaPlot(ReachPlot):
     def plot(self):
         true_area = np.sqrt(self.truth.area_total)
-        super().plot(true_area, self.metrics['area_total'], 'xtrk_dist', outlierlim=(-50,50))
+        super().plot(true_area, self.metrics['area_total'], 'xtrk_dist',
+                     outlierlim=(-50,50))
 
     def plot_requirements(self):
         true_area = np.sqrt(self.truth.area_total[self.msk])
@@ -122,7 +125,8 @@ class AreaPlot(ReachPlot):
         self.axis.plot(req_x, [i*15, i*15], '--y')
         self.axis.plot(tsm_x, [i*15, i*15], '--r')
         self.axis.set_xlim((0, np.amax(true_area)+buff))
-        self.axis.legend(legnd, ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.15))
+        self.axis.legend(
+            legnd, ncol=2, loc='lower right', fontsize=8).set_draggable(True)
         i = -1
         self.axis.plot(goal_x, [i*25, i*25], '--g')
         self.axis.plot(req_x, [i*15, i*15], '--y')
@@ -140,7 +144,8 @@ class AreaPlot(ReachPlot):
 class HeightPlot(ReachPlot):
     def plot(self):
         true_area = np.sqrt(self.truth.area_total)
-        super().plot(true_area, self.metrics['wse'], 'xtrk_dist', outlierlim=(-50,50))
+        super().plot(true_area, self.metrics['wse'], 'xtrk_dist',
+                     outlierlim=(-50,50))
 
     def plot_requirements(self):
         true_area = np.sqrt(self.truth.area_total[self.msk])
@@ -156,7 +161,8 @@ class HeightPlot(ReachPlot):
         self.axis.plot(req_x, [i*10, i*10], '--y')
         self.axis.plot(tsm_x, [i*11, i*11], '--r')
         self.axis.set_xlim((0,np.amax(true_area)+buff))
-        self.axis.legend(legnd, ncol=2, loc='upper center', bbox_to_anchor=(0.5, 1.15)) # ,
+        self.axis.legend(legnd, ncol=2, loc='lower right',
+                         fontsize=8).set_draggable(True) # ,
         i = -1
         self.axis.plot(goal_x, [i*25, i*25], '--y')
         self.axis.plot(req_x, [i*10, i*10], '--y')
@@ -174,7 +180,8 @@ class HeightPlot(ReachPlot):
 class SlopePlot(ReachPlot):
     def plot(self):
         true_width = self.truth.width
-        super().plot(true_width, self.metrics['slope'], 'xtrk_dist', outlierlim=(-5,5))
+        super().plot(true_width, self.metrics['slope'], 'xtrk_dist',
+                     outlierlim=(-5,5))
 
     def plot_requirements(self):
         true_width = self.truth.width
@@ -186,7 +193,7 @@ class SlopePlot(ReachPlot):
         self.axis.legend(
             ['BSM for $A>1 km^2$', 'TSM for $A>1 km^2$',
              'data','outlier clipped'],
-             ncol=3, loc='upper center', bbox_to_anchor=(0.5, 1.1))
+             ncol=3, loc='lower right', fontsize=8).set_draggable(True)
         i = -1
         self.axis.plot([100, np.amax(true_width)+buff], [i*1.7, i*1.7], '--y')
         self.axis.plot([100, np.amax(true_width)+buff], [i*3, i*3], '--r')
@@ -446,8 +453,7 @@ def compute_reach_fit_error(truth, scene, scene_nodes):
     return np.array(fit_error)
 
 
-def reach_num_for_sci_bounds(truth_reaches, obs_reaches, bounds,
-                             obs_area_frac, xtrk_ratio):
+def reach_num_for_sci_bounds(truth_reaches, obs_reaches, bounds, xtrk_ratio):
     """
     Compute the number of reaches filtered out by each science bound
 
@@ -456,8 +462,6 @@ def reach_num_for_sci_bounds(truth_reaches, obs_reaches, bounds,
     truth_reaches: truth data of a reach collection
     obs_reaches: swot observations of a reach collection
     bounds: science bounds dictionary (defined in mask_for_sci_req)
-    obs_area_frac: the fraction of area-observed node over the total
-                   number of node in each reach
     xtrk_ratio: the fraction of nodes within cross-track bound over
                 the total number of node in each reach
 
@@ -468,29 +472,18 @@ def reach_num_for_sci_bounds(truth_reaches, obs_reaches, bounds,
     rch_num_total = np.size(truth_reaches['xtrk_dist'])
     reach_counts = {
         'rch_num_total': rch_num_total,
-        'bad_xtrk': rch_num_total - np.sum(np.logical_or(
+        'bad_xtrk': np.sum(np.logical_or(
             np.abs(truth_reaches['xtrk_dist']) < bounds['min_xtrk'],
             np.abs(truth_reaches['xtrk_dist']) > bounds['max_xtrk'])),
-        'bad_width': rch_num_total - \
-                     np.sum(truth_reaches['width'] < bounds['min_width']),
-        'bad_area': rch_num_total - \
-                    np.sum(truth_reaches['area_total'] < bounds['min_area']),
-        'bad_length': rch_num_total - \
-                      np.sum(truth_reaches['p_length'] < bounds['min_length']),
-        'bad_obs_frac': rch_num_total - \
-                        np.sum(obs_reaches['obs_frac_n'] < bounds[
-                            'min_obs_frac']),
-        'bad_dark_frac': rch_num_total - \
-                         np.sum(obs_reaches['dark_frac'] < bounds[
-                             'max_dark_frac']),
-        'bad_qual': rch_num_total - \
-                    np.sum(
-                        obs_reaches['reach_q_b'] > bounds['max_qual_flag']),
-        'bad_obs_area_frac': rch_num_total - \
-                             np.sum(
-                                 obs_area_frac < bounds['min_area_obs_frac']),
-        'bad_xtrk_ratio': rch_num_total - \
-                          np.sum(xtrk_ratio < bounds['min_xtrk_ratio'])
+        'bad_width': np.sum(truth_reaches['width'] < bounds['min_width']),
+        'bad_area': np.sum(truth_reaches['area_total'] < bounds['min_area']),
+        'bad_length': np.sum(truth_reaches['p_length'] < bounds['min_length']),
+        'bad_obs_frac': np.sum(
+            truth_reaches['obs_frac_n'] < bounds['min_obs_frac']),
+        'bad_dark_frac': np.sum(
+            obs_reaches['dark_frac'] >= bounds['max_dark_frac']),
+        'bad_qual': np.sum(obs_reaches['reach_q_b'] > bounds['max_qual_flag']),
+        'bad_xtrk_ratio': np.sum(xtrk_ratio < bounds['min_xtrk_ratio'])
     }
     return reach_counts
 
@@ -504,33 +497,28 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
         'min_length': 8000,
         'min_obs_frac': 1.0,
         'max_dark_frac': 1,
-        'min_area_obs_frac': 0.2,
         'min_truth_ratio': 0.2,
         'min_xtrk_ratio': 1.0,
-        'max_qual_flag': 8192
+        'max_qual_flag': 33554432
     }
 
     # define some extra masking criteria for each reach based on node values
-    obs_area_frac = np.empty(np.size(data.reaches['reach_id']))
     xtrk_ratio = np.empty(np.size(data.reaches['reach_id']))
     for index, reach in enumerate(data.reaches['reach_id']):
         reach_scene = scene[index]
         scene_mask = [s == reach_scene for s in scene_nodes]
         node_mask = np.logical_and(data.nodes['reach_id'] == reach,
                                    scene_mask)
-        n_good_data = np.sum(data.nodes['area_total'][node_mask] > 0)
         n_prd = len(data.nodes['node_id'][node_mask])
         n_good_xtrk = np.sum(
             np.logical_and(np.abs(data.nodes['xtrk_dist'][node_mask]) > 10000,
                            np.abs(data.nodes['xtrk_dist'][node_mask]) < 60000))
 
-        obs_area_frac[index] = n_good_data / n_prd
         xtrk_ratio[index] = n_good_xtrk / n_prd
 
     rch_count = reach_num_for_sci_bounds(truth.reaches,
                                          data.reaches,
                                          bounds,
-                                         obs_area_frac,
                                          xtrk_ratio)
 
     if truth:
@@ -547,7 +535,6 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
         # add the node-level filters to the mask
         msk = np.logical_and.reduce([
             msk,
-            obs_area_frac >= bounds['min_area_obs_frac'],
             xtrk_ratio >= bounds['min_xtrk_ratio']
         ])
         if print_table:
@@ -559,7 +546,6 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
                 'Xtrk dist (km)': [bounds['min_xtrk'], 'flip'],
                 'Dark frac (%)':[bounds['max_dark_frac'] * 100,
                                  bounds['max_dark_frac'] * 100],
-                'obs frac area (%)': [bounds['min_area_obs_frac']*100, 'flip'],
                 'xtrk_ratio (%)': [bounds['min_xtrk_ratio']*100, 'flip'],
                 'qual flag': [bounds['min_qual_flag'], 'flip']
             }
@@ -569,7 +555,6 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
                    + str(bounds['min_area']) + " m^2 \n and reach len>=" \
                    + str(bounds['min_length']) + " m and obs frac >" \
                    + str(bounds['min_obs_frac']) + " and truth ratio > "\
-                   + str(bounds['min_truth_ratio']) + " and xtrk proportion > "\
                    + str(bounds['min_xtrk_ratio']) + " and qual flag < "\
                    + str(bounds['min_qual_flag'])
             table = {
