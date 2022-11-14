@@ -63,7 +63,7 @@ def plot_cdf(data, requirement, xlabel='', bins=250):
     plt.plot()
 
 
-def plot_2d_hist(data, xdata, bins=100, xlab='',ylab=''):
+def plot_2d_hist(data, xdata, bins=100, xlab='', ylab=''):
     h, ye, xe = np.histogram2d(data, xdata, bins)
     xb = xe[0:-1] + (xe[1]-xe[0])/2
     #print(xb)
@@ -71,7 +71,7 @@ def plot_2d_hist(data, xdata, bins=100, xlab='',ylab=''):
     extent = (xe[0], xe[-1], ye[0], ye[-1])
     #print(extent)
     hp = h.copy()
-    hp[h==0]=np.nan
+    hp[h == 0] = np.nan
     plt.figure()
     plt.imshow(hp, aspect='auto', interpolation='none', origin='lower',
                extent=extent)
@@ -91,9 +91,9 @@ def plot_2d_hist(data, xdata, bins=100, xlab='',ylab=''):
         p_negsig.append(pt[0])
         med.append(pt[1])
         p_possig.append(pt[2])
-    plt.plot(xb,p_negsig, '--r')
-    plt.plot(xb,med,'r')
-    plt.plot(xb,p_possig,'--r')
+    plt.plot(xb, p_negsig, '--r')
+    plt.plot(xb, med, 'r')
+    plt.plot(xb, p_possig, '--r')
 
 
 def main():
@@ -134,9 +134,9 @@ def main():
 
     # plot 2d histograms vs river width
     plot_2d_hist(area_tot_e, width_e, [area_bins, width_bins],
-                 'river width (m)', 'area_tot error (%)')
+                 'river width error (m)', 'area_tot error (%)')
     plot_2d_hist(area_det_e, width_e, [area_bins, width_bins],
-                 'river width (m)', 'area_det error (%)')
+                 'river width error (m)', 'area_det error (%)')
     plt.show()
     """
     h_wse, b_wse = np.histogram(wse, 100)

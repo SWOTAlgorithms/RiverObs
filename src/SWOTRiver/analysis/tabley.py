@@ -183,7 +183,7 @@ class Table():
     def from_file(cls, fname):
         # create a Table object and populate the contents from the file
         # read the table
-        f = open(fname,'r')
+        f = open(fname, 'r')
         lines = f.readlines()
         f.close()
         
@@ -197,7 +197,7 @@ class Table():
         # header is the line before the dashed line
         header = lines[dash_line_num-1]
         # preamble is the line before the header
-        if dash_line_num<2:
+        if dash_line_num < 2:
             preamble = None
         else:
             preamble = lines[dash_line_num-2]
@@ -207,8 +207,8 @@ class Table():
         #print(dash_line)
         # set some defaults
         style = None
-        precision=4
-        width=0
+        precision = 4
+        width = 0
         passfail = {} # don't do pass-fail when reading, tha ANSI escape codes should already be there
         separator = None
         # handle pipe style
@@ -276,7 +276,7 @@ class Table():
                         precision = this_precision
                 parts.append(dat)
                 pass_fail_line.append(pf)
-                kp=kp+1
+                kp = kp+1
             #print("len(parts), len(headers):",len(parts), len(headers))
             #print(parts)
             for key, part in zip(headers, parts):
@@ -286,6 +286,7 @@ class Table():
         table = cls(data, headers, style, precision, width, passfail,
             fname=None, preamble=preamble)
         return table
+
 
 def main():
     log_format = '%(levelname)s:%(module)s.%(funcName)s:%(message)s'

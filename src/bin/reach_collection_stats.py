@@ -29,7 +29,7 @@ def load_data_to_df(data_files, truth_files=None, test_bool=None):
     for index, filename in enumerate(data_files):
         if test_counter < 5:
             # get the error of that scene
-            if rivertile_list[index] and truth_list[index]:
+            if data_files[index] and truth_files[index]:
                 metrics, truth, data, scene, scene_nodes, sig0, \
                 has_reach_data = load_and_accumulate(
                     filename, truth_files[index]
@@ -39,7 +39,7 @@ def load_data_to_df(data_files, truth_files=None, test_bool=None):
                         SWOTRiver.analysis.riverobs.match_nodes(truth, data)
                     scene_nodes = [
                         scene_nodes[index] for index in matched_data_mask]
-                    msk, bounds, dark_frac, p_length = \
+                    msk, bounds, dark_frac, p_length, width, qual, count = \
                         SWOTRiver.analysis.riverobs.mask_for_sci_req(
                             truth, data, scene, scene_nodes
                         )
@@ -523,8 +523,10 @@ def cdf_by_category(data_df):
     multi_chn_df = data_df[data_df.reach_id.isin(truth_classes['multi_chn'])]
     linear_df = data_df[data_df.reach_id.isin(truth_classes['linear'])]
     other = data_df[~data_df.reach_id.isin(
-        [*bad_reach, *tribs, *non_linear, *edge_node, *partial_truth,
-         *wrong_dir, *multi_chn, *linear])]
+        [*truth_classes['bad_reach'], *truth_classes['tribs'],
+         *truth_classes['non_linear'], *truth_classes['edge_node'],
+         *truth_classes['partial_truth'], *truth_classes['wrong_dir'],
+         *truth_classes['multi_chn'], *truth_classes['linear']])]
     fig, ax = plt.subplots(figsize=(8, 4))
 
     # plot the cumulative histogram
@@ -557,6 +559,7 @@ def cdf_by_category(data_df):
             label='no category')
     plt.axvline(x=10, color='red')
     ax.set_xscale('log')
+    plt.plot()
 
     # 68%ile error by category
     print('68ile% error for bad reaches: ',
@@ -587,26 +590,6 @@ def cdf_by_category(data_df):
     print('num multi-channel reaches: ', len(multi_chn_df.reach_id.unique()))
     print('num linear reaches: ', len(linear_df.reach_id.unique()))
     print('num uncategorized reaches: ', len(other.reach_id.unique()))
-
-    n_bins = 30 # to-do: make smart start/stop/bins array from data itself
-    ax.hist(np.sort(bad_reach_df['reach_wse_e']), n_bins, density=True,
-            histtype='step', cumulative=True, label='bad')
-    ax.hist(tribs_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='tribs')
-    ax.hist(non_lin_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='non-linear')
-    ax.hist(edge_node_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='edge node')
-    ax.hist(partial_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='partial_t')
-    ax.hist(wrong_dir_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='wrong dir')
-    ax.hist(multi_chn_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='multi-chn')
-    ax.hist(linear_df['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='linear')
-    ax.hist(other['reach_wse_e'], n_bins, density=True, histtype='step',
-            cumulative=True, label='no category')
 
     # tidy up the figure
     ax.grid(True)
@@ -672,7 +655,7 @@ def main():
                         help='Flag that signifies we are looking for '
                              'pge-generated files. These have different names '
                              'and require a flag to correctly be found.')
-    parser.add_argument('-o', '--outdir', type=str,
+    parser.add_argument('-o', '--outdir', type=str, default=None,
                         help='output directory for compiled dataframes. '
                              'Includes summary information for the whole input '
                              'dataset for truth, nominal, and errors.')
@@ -703,24 +686,20 @@ def main():
 
     # get distribution of each result
     make_hist(node_df, node_df_truth, reach_df, reach_df_truth,
-              reach_metrics_df, node_metrics_df, title_str, args.show_vars)
+               reach_metrics_df, node_metrics_df, title_str, args.show_vars)
 
     # # combine data and error dataframes
     river_metrics = combine_metrics(node_df, node_df_truth, reach_df,
                                     reach_df_truth, node_metrics_df,
                                     reach_metrics_df)
-    #
-    # # add the truth categories
-    # river_metrics['truth_category'] = river_metrics.apply(
-    #     lambda row: label_truth_category(row), axis=1)
-    # # count unique truth categories and print to console
-    # print('Reach count for each truth category:\n',
-    #       river_metrics.reach_id.drop_duplicates().to_frame().apply(
-    #           lambda row: label_truth_category(row), axis=1).value_counts())
-    #
+
+    if args.outdir is not None:
+        out_filename = args.outdir + '/' + title_str + '.csv'
+        river_metrics.to_csv(out_filename)
+
     # # plot correlation matrix
-    # if args.corr:
-    #     corr_matrix = plot_correlation_matrix(river_metrics)
+    if args.corr:
+         corr_matrix = plot_correlation_matrix(river_metrics)
 
     if args.plot_cdf:
         cdf_by_category(river_metrics)
