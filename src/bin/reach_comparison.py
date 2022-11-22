@@ -68,21 +68,16 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
         raise Exception('No rivertiles found, check input directory names')
     truth_rivertile_list = []
     for index, rivertile in enumerate(proc_rivertile_list):
-        if os.path.exists(rivertile):
-            truth_file = get_truth_file(
-                proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
-                truth_basedir, truth_only)
-            if os.path.exists(truth_file):
-                truth_rivertile_list.append(truth_file)
-            else:
-                warn_str = 'Truth rivertile file ' + truth_file + ' does not exist.'
-                warnings.warn(warn_str)
-                truth_rivertile_list.append(None)
-                missing_truth_count += 1
+        truth_file = get_truth_file(
+            proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
+            truth_basedir, truth_only)
+        if os.path.exists(truth_file):
+            truth_rivertile_list.append(truth_file)
         else:
-            # this should never happen
-            raise Exception('Input rivertile file', rivertile,
-                            'does not exist')
+            warn_str = 'Truth rivertile file ' + truth_file + ' does not exist.'
+            warnings.warn(warn_str)
+            truth_rivertile_list.append(None)
+            missing_truth_count += 1
     print('total missing truths = ', missing_truth_count, 'out of',
           len(proc_rivertile_list), 'files.')
     return proc_rivertile_list, truth_rivertile_list
@@ -134,8 +129,6 @@ def get_pixc_file(proc_dir, proc_rivertile):
 def get_errors(rivertile_list, truth_list, test, truth_filter):
     # Use existing analysis tools to obtain the node and reach level error
     # metrics and mask for the scientific requirement bounds.
-    scene_error_list = []
-    reach_error_list = []
     bad_scene = []
 
     metrics = None
@@ -175,9 +168,10 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
 
     if len(metrics['area_total']) > 0:
         passfail = SWOTRiver.analysis.riverobs.get_passfail()
-        msk, fit_error, bounds, dark_frac, reach_len, reach_width, qual_flag, \
+        msk, bounds, dark_frac, reach_len, reach_width, qual_flag, \
         rch_count = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-                metrics, truth, data, scene, scene_nodes, sig0=sig0)
+                truth, data, scene, scene_nodes
+        )
         preamble = "\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
                    + str(bounds['max_xtrk']) + " km and width>" \
                    + str(bounds['min_width']) + " m and area>" \
