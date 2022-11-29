@@ -126,20 +126,57 @@ def compute(reach, reach_height, reach_width, reach_slope):
         else:
             sic4dvar_q = MISSING_VALUE_FLT
 
+        # Note we have no algorithm yet for _u (unc) or _q (qual)
+        # discharge vars, they are set to missing_value.
         if key == 'constrained':
-            outputs['metro_q_c'] = metro_q
-            outputs['bam_q_c'] = bam_q
-            outputs['hivdi_q_c'] = hivdi_q
-            outputs['momma_q_c'] = momma_q
-            outputs['sads_q_c'] = sads_q
-            outputs['sic4dvar_q_c'] = sic4dvar_q
+            outputs['dschg_gm'] = metro_q
+            outputs['dschg_gm_u'] = MISSING_VALUE_FLT
+            outputs['dschg_gm_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_gb'] = bam_q
+            outputs['dschg_gb_u'] = MISSING_VALUE_FLT
+            outputs['dschg_gb_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_gh'] = hivdi_q
+            outputs['dschg_gh_u'] = MISSING_VALUE_FLT
+            outputs['dschg_gh_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_go'] = momma_q
+            outputs['dschg_go_u'] = MISSING_VALUE_FLT
+            outputs['dschg_go_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_gs'] = sads_q
+            outputs['dschg_gs_u'] = MISSING_VALUE_FLT
+            outputs['dschg_gs_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_gi'] = sic4dvar_q
+            outputs['dschg_gi_u'] = MISSING_VALUE_FLT
+            outputs['dschg_gi_q'] = MISSING_VALUE_INT4
+
         elif key == 'unconstrained':
-            outputs['metro_q_uc'] = metro_q
-            outputs['bam_q_uc'] = bam_q
-            outputs['hivdi_q_uc'] = hivdi_q
-            outputs['momma_q_uc'] = momma_q
-            outputs['sads_q_uc'] = sads_q
-            outputs['sic4dvar_q_uc'] = sic4dvar_q
+            outputs['dschg_m'] = metro_q
+            outputs['dschg_m_u'] = MISSING_VALUE_FLT
+            outputs['dschg_m_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_b'] = bam_q
+            outputs['dschg_b_u'] = MISSING_VALUE_FLT
+            outputs['dschg_b_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_h'] = hivdi_q
+            outputs['dschg_h_u'] = MISSING_VALUE_FLT
+            outputs['dschg_h_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_o'] = momma_q
+            outputs['dschg_o_u'] = MISSING_VALUE_FLT
+            outputs['dschg_o_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_s'] = sads_q
+            outputs['dschg_s_u'] = MISSING_VALUE_FLT
+            outputs['dschg_s_q'] = MISSING_VALUE_INT4
+
+            outputs['dschg_i'] = sic4dvar_q
+            outputs['dschg_i_u'] = MISSING_VALUE_FLT
+            outputs['dschg_i_q'] = MISSING_VALUE_INT4
 
     # populate the constrained height and width outputs
     if np.isnan(area_fit_outputs[1]) or np.isnan(area_fit_outputs[2]):
