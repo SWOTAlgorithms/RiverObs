@@ -1396,24 +1396,6 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     partially ice covered, and fully ice covered, respectively.
                     """)],
                 ])],
-        ['partial_f',
-         odict([['dtype', 'i2'],
-                ['long_name', 'partial node coverage flag'],
-                ['standard_name', 'status_flag'],
-                ['short_name', 'partial_coverage_flag'],
-                ['flag_meanings', textjoin("""covered not_covered""")],
-                ['flag_values', np.array([0, 1]).astype('i2')],
-                ['valid_min', 0],
-                ['valid_max', 1],
-                ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert', 'Basic'],
-                ['coordinates', 'lon lat'],
-                ['comment', textjoin("""
-                    Flag that indicates only partial node coverage.  The
-                    flag is 0 if at least 10 pixels have a valid WSE
-                    measurement; the flag is 1 otherwise and node-level
-                    quantities are not computed.""")],
-                ])],
         ['n_good_pix',
          odict([['dtype', 'i4'],
                 ['long_name', 'number of pixels that have a valid WSE'],
