@@ -15,7 +15,7 @@ import datetime
 
 import RDF
 import SWOTRiver.EstimateSWOTRiver
-from SWOTRiver.products.rivertile import L2HRRiverTile
+import SWOTRiver.products.rivertile
 from SWOTRiver.products.pixcvec import L2PIXCVector
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
@@ -369,11 +369,13 @@ class L2PixcToRiverTile(object):
         # If lake flag is set don't output width, area, or slope.
         try:
             for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
-                if self.reach_outputs['lake_flag'][ireach] != 0:
+                if self.reach_outputs['lake_flag'][ireach] == 1:
                     self.reach_outputs['slope'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['slope2'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['slope_u'][ireach] = MISSING_VALUE_FLT
-                    # TODO mask out slope2_u and slope?_r_u datasets when available
+                    self.reach_outputs['slope_r_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['slope2_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['slope2_r_u'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['width'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['width_u'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['area'][ireach] = MISSING_VALUE_FLT
@@ -381,6 +383,10 @@ class L2PixcToRiverTile(object):
                     self.reach_outputs['area_det'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['area_det_u'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['area_of_ht'][ireach] = MISSING_VALUE_FLT
+
+                    # Set QUAL_IND_LAKE_FLAGGED in reach_q_b
+                    self.reach_outputs['reach_q_b'][ireach] |= (
+                        SWOTRiver.products.rivertile.QUAL_IND_LAKE_FLAGGED)
 
                     mask = self.node_outputs['reach_indx'] == reach_id
                     self.node_outputs['w_area'][mask] = MISSING_VALUE_FLT
@@ -391,13 +397,20 @@ class L2PixcToRiverTile(object):
                     self.node_outputs['area_u'][mask] = MISSING_VALUE_FLT
                     self.node_outputs['area_det_u'][mask] = MISSING_VALUE_FLT
 
-            self.rivertile_product = L2HRRiverTile.from_riverobs(
-                self.node_outputs, self.reach_outputs, self.reach_collection,
-                self.prd_reaches)
+                    # Set QUAL_IND_LAKE_FLAGGED in node_q_b
+                    self.node_outputs['node_q_b'][mask] |= (
+                        SWOTRiver.products.rivertile.QUAL_IND_LAKE_FLAGGED)
+
+
+            self.rivertile_product = \
+                SWOTRiver.products.rivertile.L2HRRiverTile.from_riverobs(
+                    self.node_outputs, self.reach_outputs,
+                    self.reach_collection, self.prd_reaches)
 
         except TypeError:
             LOGGER.warning('Output products are empty')
-            self.rivertile_product = L2HRRiverTile()
+            self.rivertile_product = \
+                SWOTRiver.products.rivertile.L2HRRiverTile()
 
         # add in a bunch more stuff from PIXC
         if not os.path.isfile(self.index_file):
@@ -569,11 +582,13 @@ class CalValToRiverTile(L2PixcToRiverTile):
         # If lake flag is set don't output width, area, or slope.
         try:
             for ireach, reach_id in enumerate(self.reach_outputs['reach_idx']):
-                if self.reach_outputs['lake_flag'][ireach] != 0:
+                if self.reach_outputs['lake_flag'][ireach] == 1:
                     self.reach_outputs['slope'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['slope2'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['slope_u'][ireach] = MISSING_VALUE_FLT
-                    # TODO mask out slope2_u and slope?_r_u datasets when available
+                    self.reach_outputs['slope_r_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['slope2_u'][ireach] = MISSING_VALUE_FLT
+                    self.reach_outputs['slope2_r_u'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['width'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['width_u'][ireach] = MISSING_VALUE_FLT
                     self.reach_outputs['area'][ireach] = MISSING_VALUE_FLT
@@ -591,10 +606,12 @@ class CalValToRiverTile(L2PixcToRiverTile):
                     self.node_outputs['area_u'][mask] = MISSING_VALUE_FLT
                     self.node_outputs['area_det_u'][mask] = MISSING_VALUE_FLT
 
-            self.rivertile_product = L2HRRiverTile.from_riverobs(
-                self.node_outputs, self.reach_outputs, self.reach_collection,
-                self.prd_reaches)
+            self.rivertile_product = \
+                SWOTRiver.products.rivertile.L2HRRiverTile.from_riverobs(
+                    self.node_outputs, self.reach_outputs,
+                    self.reach_collection, self.prd_reaches)
 
         except TypeError:
             LOGGER.warning('Output products are empty')
-            self.rivertile_product = L2HRRiverTile()
+            self.rivertile_product = \
+                SWOTRiver.products.rivertile.L2HRRiverTile()
