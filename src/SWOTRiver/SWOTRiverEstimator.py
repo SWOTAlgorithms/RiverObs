@@ -1944,6 +1944,8 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['height_r_u'] = MISSING_VALUE_FLT
                 reach_stats['slope_u'] = SLOPE_SYS_UNCERT
                 reach_stats['height_u'] = REACH_WSE_SYS_UNCERT
+                reach_stats['slope2_u'] = MISSING_VALUE_FLT
+                reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
             elif self.slope_method in ['unweighted', 'weighted']:
                 # use weighted fit if commanded and all weights are good
@@ -1969,6 +1971,8 @@ class SWOTRiverEstimator(SWOTL2):
                     SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
                 reach_stats['height_u'] = np.sqrt(
                     REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+                reach_stats['slope2_u'] = MISSING_VALUE_FLT
+                reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
             elif self.slope_method == 'bayes':
                 # get the optimal reconstruction (Bayes estimate)
@@ -1990,6 +1994,8 @@ class SWOTRiverEstimator(SWOTL2):
                     SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
                 reach_stats['height_u'] = np.sqrt(
                     REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+                reach_stats['slope2_u'] = MISSING_VALUE_FLT
+                reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
         else:
             # insufficient node heights for fit to reach
@@ -1999,6 +2005,8 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['height'] = MISSING_VALUE_FLT
             reach_stats['height_r_u'] = MISSING_VALUE_FLT
             reach_stats['height_u'] = MISSING_VALUE_FLT
+            reach_stats['slope2_u'] = MISSING_VALUE_FLT
+            reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
         reach_stats['n_good_nod'] = mask.sum()
         reach_stats['frac_obs'] = (

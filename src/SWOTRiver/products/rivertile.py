@@ -39,6 +39,7 @@ QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
 QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
 QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
 QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_LAKE_FLAGGED = 4194304                 # bit 22
 QUAL_IND_WSE_OUTLIER = 8388608                  # bit 23
 QUAL_IND_WSE_BAD = 16777216                     # bit 24
 QUAL_IND_NO_SIG0_PIX = 33554432                 # bit 25
@@ -58,6 +59,7 @@ QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
 QUAL_IND_PARTIAL_OBS = 32768                    # bit 15
 QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
 QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_LAKE_FLAGGED = 4194304                 # bit 22
 QUAL_IND_MIN_FIT_POINTS = 33554432              # bit 25
 QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
 QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
@@ -65,11 +67,11 @@ QUAL_IND_NO_OBS = 268435456                     # bit 28
 
 # Node degraded/bad threshold values
 QUAL_IND_NODE_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
-QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_WSE_OUTLIER
+QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_LAKE_FLAGGED
 
 # Reach degraded/bad threshold values
 QUAL_IND_REACH_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
-QUAL_IND_REACH_BAD_THRESHOLD = QUAL_IND_MIN_FIT_POINTS
+QUAL_IND_REACH_BAD_THRESHOLD = QUAL_IND_LAKE_FLAGGED
 
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
@@ -583,7 +585,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                             'slope_u', 'height_u', 'height_c', 'height_c_u',
                             'geoid_slop', 'geoid_hght', 'd_x_area',
                             'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
-                            'slope2', 'layovr_val']:
+                            'slope2', 'slope2_u', 'slope2_r_u', 'layovr_val']:
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
@@ -1298,6 +1300,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     near_range_suspect
                     classification_qual_degraded
                     geolocation_qual_degraded
+                    lake_flagged
                     wse_outlier
                     wse_bad
                     no_sig0_observations
@@ -1318,6 +1321,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     QUAL_IND_NEAR_RANGE_SUSPECT,
                     QUAL_IND_CLASS_QUAL_DEGRADED,
                     QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    QUAL_IND_LAKE_FLAGGED,
                     QUAL_IND_WSE_OUTLIER,
                     QUAL_IND_WSE_BAD,
                     QUAL_IND_NO_SIG0_PIX,
@@ -1335,8 +1339,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     this word is interpreted as an unsigned integer, a value of
                     0 indicates good data, values greater than 0 but less than
                     262144 represent suspect data, values greater than or equal
-                    to 262144 but less than 8388608 represent degraded data,
-                    and values greater than or equal to 8388608 represent bad
+                    to 262144 but less than 4194304 represent degraded data,
+                    and values greater than or equal to 4194304 represent bad
                     data.""")],
                 ])],
         ['dark_frac',
@@ -3408,6 +3412,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     partially_observed
                     classification_qual_degraded
                     geolocation_qual_degraded
+                    lake_flagged
                     below_min_fit_points
                     no_area_observations
                     no_wse_observations
@@ -3424,6 +3429,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     QUAL_IND_PARTIAL_OBS,
                     QUAL_IND_CLASS_QUAL_DEGRADED,
                     QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    QUAL_IND_LAKE_FLAGGED,
                     QUAL_IND_MIN_FIT_POINTS,
                     QUAL_IND_NO_AREA_PIX,
                     QUAL_IND_NO_WSE_PIX,
@@ -3438,8 +3444,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     this word is interpreted as an unsigned integer, a value of
                     0 indicates good data, values greater than 0 but less than
                     262144 represent suspect data, values greater than or equal
-                    to 262144 but less than 8388608 represent degraded data,
-                    and values greater than or equal to 8388608 represent bad
+                    to 262144 but less than 4194304 represent degraded data,
+                    and values greater than or equal to 4194304 represent bad
                     data.""")],
                 ])],
         ['dark_frac',
@@ -4038,6 +4044,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['slope_r_u'] = reach_outputs['slope_r_u']
             klass['slope_u'] = reach_outputs['slope_u']
             klass['slope2'] = reach_outputs['slope2']
+            klass['slope2_u'] = reach_outputs['slope2_u']
+            klass['slope2_r_u'] = reach_outputs['slope2_r_u']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
             klass['width_c'] = reach_outputs['width_c']
