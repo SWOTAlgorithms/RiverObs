@@ -285,7 +285,7 @@ def main():
             print('No nominal tiles found. Check input variable names.')
 
         if args.test_mode:
-            proc_rivertile_list = proc_rivertile_list[0:80]
+            proc_rivertile_list = proc_rivertile_list[0:10]
 
         for proc_rivertile, truth_rivertile in zip(proc_rivertile_list,
                                                    truth_rivertile_list):
@@ -306,9 +306,13 @@ def main():
         proc_rivertile = args.proc_rivertile
         truth_rivertile = args.truth_rivertile
         if os.path.isdir(proc_rivertile):
-            proc_rivertile = os.path.join(proc_rivertile, 'river_data', 'rivertile.nc')
+            proc_rivertile = os.path.join(
+                proc_rivertile, 'river_data', 'rivertile.nc'
+            )
         if os.path.isdir(truth_rivertile):
-            truth_rivertile = os.path.join(truth_rivertile, 'river_data', 'rivertile.nc')
+            truth_rivertile = os.path.join(
+                truth_rivertile, 'river_data', 'rivertile.nc'
+            )
 
         metrics, truth, data, scene, \
         scene_nodes, sig0, has_reach_data = load_and_accumulate(
@@ -316,9 +320,9 @@ def main():
 
     # get pass/fail and mask for science requirements
     passfail = SWOTRiver.analysis.riverobs.get_passfail()
-    msk, fit_error, bounds, dark_frac, reach_len, reach_width, qual_flag, \
+    msk, bounds, dark_frac, reach_len, reach_width, qual_flag, \
     rch_count = SWOTRiver.analysis.riverobs.mask_for_sci_req(
-            metrics, truth, data, scene, scene_nodes, sig0=sig0)
+            truth, data, scene, scene_nodes)
 
     # generate output filenames for metric tables and images
     if args.print_me:
@@ -370,8 +374,6 @@ def main():
                    rch_count['bad_dark_frac']) \
                + "\nnum of reaches filtered due to qual flag: " + str(
                    rch_count['bad_qual']) \
-               + "\nnum of reaches filtered due to obs area frac: " + str(
-                   rch_count['bad_obs_area_frac']) \
                + "\nnum of reaches filtered due to xtrk ratio: " + str(
                    rch_count['bad_xtrk_ratio']) \
                + "\n\nFor " + str(bounds['min_xtrk']) + " km<xtrk_dist<" \
@@ -381,13 +383,12 @@ def main():
                + str(bounds['min_length']) + " m and obs frac >=" \
                + str(bounds['min_obs_frac']) + " and truth ratio >= "\
                + str(bounds['min_truth_ratio']) + " and xtrk proportion >= "\
-               + str(bounds['min_xtrk_ratio']) + " and qual flag < "\
-               + str(bounds['min_qual_flag'])
+               + str(bounds['min_xtrk_ratio']) + " and qual flag <= "\
+               + str(bounds['max_qual_flag'])
 
     print(preamble)
     SWOTRiver.analysis.riverobs.print_metrics(
-        metrics, truth, scene, msk, fit_error,
-        dark_frac,
+        metrics, truth, scene, msk, dark_frac,
         with_node_avg=True,
         passfail=passfail,
         reach_len=reach_len,
@@ -405,8 +406,6 @@ def main():
                 c=reach_len[msk]/1e3)
     ax1.set(xlabel='slope (cm/km)', ylabel='slope error (cm/km)')
     ax1.set_title('reach length (km)')
-    #ax1.colorbar()
-    #fig.colorbar(reach_len[msk]/1e3, ax=ax1)
     ax1.grid()
 
     ax2.scatter(reach_len[msk]/1e3, metrics['slope_t'][msk],
@@ -519,7 +518,7 @@ def main():
     else:
         file = 'temp'
         print('showing stats...')
-
+    plt.show()
     f = open(file + '.txt', 'r')
     file_contents = f.read()
     print(file_contents)

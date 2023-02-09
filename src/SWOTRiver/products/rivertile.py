@@ -39,6 +39,7 @@ QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
 QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
 QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
 QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_LAKE_FLAGGED = 4194304                 # bit 22
 QUAL_IND_WSE_OUTLIER = 8388608                  # bit 23
 QUAL_IND_WSE_BAD = 16777216                     # bit 24
 QUAL_IND_NO_SIG0_PIX = 33554432                 # bit 25
@@ -58,6 +59,7 @@ QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
 QUAL_IND_PARTIAL_OBS = 32768                    # bit 15
 QUAL_IND_CLASS_QUAL_DEGRADED = 262144           # bit 18
 QUAL_IND_GEOLOCATION_QUAL_DEGRADED = 524288     # bit 19
+QUAL_IND_LAKE_FLAGGED = 4194304                 # bit 22
 QUAL_IND_MIN_FIT_POINTS = 33554432              # bit 25
 QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
 QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
@@ -65,11 +67,11 @@ QUAL_IND_NO_OBS = 268435456                     # bit 28
 
 # Node degraded/bad threshold values
 QUAL_IND_NODE_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
-QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_WSE_OUTLIER
+QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_LAKE_FLAGGED
 
 # Reach degraded/bad threshold values
 QUAL_IND_REACH_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
-QUAL_IND_REACH_BAD_THRESHOLD = QUAL_IND_MIN_FIT_POINTS
+QUAL_IND_REACH_BAD_THRESHOLD = QUAL_IND_LAKE_FLAGGED
 
 ATTRS_2COPY_FROM_PIXC = [
     'cycle_number', 'pass_number', 'tile_number', 'swath_side', 'tile_name',
@@ -564,6 +566,18 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999,
                         MISSING_VALUE_FLT))
 
+                # Discharge keywords for variables computed in RiverTile
+                DSCHG_KEYS_TO_FILL = [
+                    'dschg' + a + b + c for a in ['_', '_g']
+                    for b in ['m', 'b', 'h', 'o', 's', 'i']
+                    for c in ['', '_u', '_q']]
+                for key in DSCHG_KEYS_TO_FILL:
+                    missing_value = (MISSING_VALUE_INT4 if key.endswith('_q')
+                        else MISSING_VALUE_FLT)
+                    reach_outputs[key] = np.append(
+                        reach_outputs[key], missing_value)
+
+                # Fill these other variables as well for missing reaches
                 for key in ['length', 'node_dist', 'area', 'area_u',
                             'area_det', 'area_det_u', 'area_of_ht', 'width',
                             'width_u', 'loc_offset', 'xtrk_dist', 'frac_obs',
@@ -571,16 +585,10 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                             'slope_u', 'height_u', 'height_c', 'height_c_u',
                             'geoid_slop', 'geoid_hght', 'd_x_area',
                             'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
-                            'slope2', 'metro_q_c', 'bam_q_c', 'hivdi_q_c',
-                            'momma_q_c', 'sads_q_c', 'sic4dvar_q_c',
-                            'metro_q_uc', 'bam_q_uc', 'hivdi_q_uc',
-                            'momma_q_uc', 'sads_q_uc', 'sic4dvar_q_uc',
-                            'layovr_val']:
+                            'slope2', 'slope2_u', 'slope2_r_u', 'layovr_val']:
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
-
-                # TODO: set discharge flags based on ???
 
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
@@ -1292,6 +1300,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     near_range_suspect
                     classification_qual_degraded
                     geolocation_qual_degraded
+                    lake_flagged
                     wse_outlier
                     wse_bad
                     no_sig0_observations
@@ -1312,6 +1321,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     QUAL_IND_NEAR_RANGE_SUSPECT,
                     QUAL_IND_CLASS_QUAL_DEGRADED,
                     QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    QUAL_IND_LAKE_FLAGGED,
                     QUAL_IND_WSE_OUTLIER,
                     QUAL_IND_WSE_BAD,
                     QUAL_IND_NO_SIG0_PIX,
@@ -1320,7 +1330,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     QUAL_IND_NO_PIXELS
                 ]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 529297055],
+                ['valid_max', 533491359],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -1329,8 +1339,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     this word is interpreted as an unsigned integer, a value of
                     0 indicates good data, values greater than 0 but less than
                     262144 represent suspect data, values greater than or equal
-                    to 262144 but less than 8388608 represent degraded data,
-                    and values greater than or equal to 8388608 represent bad
+                    to 262144 but less than 4194304 represent degraded data,
+                    and values greater than or equal to 4194304 represent bad
                     data.""")],
                 ])],
         ['dark_frac',
@@ -1389,24 +1399,6 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     0, 1, and 2 indicate that the node is not ice covered,
                     partially ice covered, and fully ice covered, respectively.
                     """)],
-                ])],
-        ['partial_f',
-         odict([['dtype', 'i2'],
-                ['long_name', 'partial node coverage flag'],
-                ['standard_name', 'status_flag'],
-                ['short_name', 'partial_coverage_flag'],
-                ['flag_meanings', textjoin("""covered not_covered""")],
-                ['flag_values', np.array([0, 1]).astype('i2')],
-                ['valid_min', 0],
-                ['valid_max', 1],
-                ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert', 'Basic'],
-                ['coordinates', 'lon lat'],
-                ['comment', textjoin("""
-                    Flag that indicates only partial node coverage.  The
-                    flag is 0 if at least 10 pixels have a valid WSE
-                    measurement; the flag is 1 otherwise and node-level
-                    quantities are not computed.""")],
                 ])],
         ['n_good_pix',
          odict([['dtype', 'i4'],
@@ -3420,6 +3412,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     partially_observed
                     classification_qual_degraded
                     geolocation_qual_degraded
+                    lake_flagged
                     below_min_fit_points
                     no_area_observations
                     no_wse_observations
@@ -3436,12 +3429,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     QUAL_IND_PARTIAL_OBS,
                     QUAL_IND_CLASS_QUAL_DEGRADED,
                     QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    QUAL_IND_LAKE_FLAGGED,
                     QUAL_IND_MIN_FIT_POINTS,
                     QUAL_IND_NO_AREA_PIX,
                     QUAL_IND_NO_WSE_PIX,
                     QUAL_IND_NO_OBS]).astype('i4')],
                 ['valid_min', 0],
-                ['valid_max', 504163470],
+                ['valid_max', 508357774],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
@@ -3450,8 +3444,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     this word is interpreted as an unsigned integer, a value of
                     0 indicates good data, values greater than 0 but less than
                     262144 represent suspect data, values greater than or equal
-                    to 262144 but less than 8388608 represent degraded data,
-                    and values greater than or equal to 8388608 represent bad
+                    to 262144 but less than 4194304 represent degraded data,
+                    and values greater than or equal to 4194304 represent bad
                     data.""")],
                 ])],
         ['dark_frac',
@@ -4050,6 +4044,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['slope_r_u'] = reach_outputs['slope_r_u']
             klass['slope_u'] = reach_outputs['slope_u']
             klass['slope2'] = reach_outputs['slope2']
+            klass['slope2_u'] = reach_outputs['slope2_u']
+            klass['slope2_r_u'] = reach_outputs['slope2_r_u']
             klass['width'] = reach_outputs['width']
             klass['width_u'] = reach_outputs['width_u']
             klass['width_c'] = reach_outputs['width_c']
@@ -4088,67 +4084,17 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                         'p_lat', 'p_lon']:
                 klass[key] = reach_outputs[key]
 
-
-#             klass['dschg_c'] = ...
-#             klass['dschg_c_u'] = ...
-#             klass['dschg_c_q'] = ...
-#             klass['dschg_gc'] = ...
-#             klass['dschg_gc_u'] = ...
-#             klass['dschg_gc_q'] = ...
-
-            klass['dschg_m'] = reach_outputs['metro_q_uc']
-#             klass['dschg_m_u'] = ...
-#             klass['dschg_m_q'] = ...
-            klass['dschg_msf'] = reach_outputs['dschg_msf']
-            klass['dschg_gm'] = reach_outputs['metro_q_c']
-#             klass['dschg_gm_u'] = ...
-#             klass['dschg_gm_q'] = ...
-            klass['dschg_gmsf'] = reach_outputs['dschg_gmsf']
-
-            klass['dschg_b'] = reach_outputs['bam_q_uc']
-#             klass['dschg_b_u'] = ...
-#             klass['dschg_b_q'] = ...
-            klass['dschg_bsf'] = reach_outputs['dschg_bsf']
-            klass['dschg_gb'] = reach_outputs['bam_q_c']
-#             klass['dschg_gb_u'] = ...
-#             klass['dschg_gb_q'] = ...
-            klass['dschg_gbsf'] = reach_outputs['dschg_gbsf']
-
-            klass['dschg_h'] = reach_outputs['hivdi_q_uc']
-#             klass['dschg_h_u'] = ...
-#             klass['dschg_h_q'] = ...
-            klass['dschg_hsf'] = reach_outputs['dschg_hsf']
-            klass['dschg_gh'] = reach_outputs['hivdi_q_c']
-#             klass['dschg_gh_u'] = ...
-#             klass['dschg_gh_q'] = ...
-            klass['dschg_ghsf'] = reach_outputs['dschg_ghsf']
-
-            klass['dschg_o'] = reach_outputs['momma_q_uc']
-#             klass['dschg_o_u'] = ...
-#             klass['dschg_o_q'] = ...
-            klass['dschg_osf'] = reach_outputs['dschg_osf']
-            klass['dschg_go'] = reach_outputs['momma_q_c']
-#             klass['dschg_go_u'] = ...
-#             klass['dschg_go_q'] = ...
-            klass['dschg_gosf'] = reach_outputs['dschg_gosf']
-
-            klass['dschg_s'] = reach_outputs['sads_q_uc']
-#             klass['dschg_s_u'] = ...
-#             klass['dschg_s_q'] = ...
-            klass['dschg_ssf'] = reach_outputs['dschg_ssf']
-            klass['dschg_gs'] = reach_outputs['sads_q_c']
-#             klass['dschg_gs_u'] = ...
-#             klass['dschg_gs_q'] = ...
-            klass['dschg_gssf'] = reach_outputs['dschg_gssf']
-
-            klass['dschg_i'] = reach_outputs['sic4dvar_q_uc']
-            #             klass['dschg_i_u'] = ...
-            #             klass['dschg_i_q'] = ...
-            klass['dschg_isf'] = reach_outputs['dschg_isf']
-            klass['dschg_gi'] = reach_outputs['sic4dvar_q_c']
-            #             klass['dschg_gi_u'] = ...
-            #             klass['dschg_gi_q'] = ...
-            klass['dschg_gisf'] = reach_outputs['dschg_gisf']
+            # Update with discharge values
+            for key in ['dschg_m', 'dschg_m_u', 'dschg_m_q', 'dschg_msf',
+                        'dschg_b', 'dschg_b_u', 'dschg_b_q', 'dschg_bsf',
+                        'dschg_h', 'dschg_h_u', 'dschg_h_q', 'dschg_hsf',
+                        'dschg_o', 'dschg_o_u', 'dschg_o_q', 'dschg_osf',
+                        'dschg_s', 'dschg_s_u', 'dschg_s_q', 'dschg_ssf',
+                        'dschg_i', 'dschg_i_u', 'dschg_i_q', 'dschg_isf']:
+                klass[key] = reach_outputs[key]
+                # generate key for gauge constrained quantities
+                contrained_key = key.replace('dschg_', 'dschg_g')
+                klass[contrained_key] = reach_outputs[contrained_key]
 
             cl_lon = klass['centerline_lon'][:]
             cl_lat = klass['centerline_lat'][:]

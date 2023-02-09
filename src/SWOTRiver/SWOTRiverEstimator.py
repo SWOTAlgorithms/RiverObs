@@ -4,6 +4,8 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 
 from __future__ import absolute_import, division, print_function
 import os
+import pdb
+
 import scipy.ndimage
 import numpy as np
 import netCDF4 as nc
@@ -869,18 +871,23 @@ class SWOTRiverEstimator(SWOTL2):
 
             if out_river_reach is not None:
                 if enhanced:
-                    enhanced_slope = self.compute_enhanced_slope(
+                    slp2 = self.compute_enhanced_slope(
                         river_reach_collection, river_reach, ireach,
                         max_window_size=max_window_size,
                         min_sigma=min_sigma,
                         window_size_sigma_ratio=window_size_sigma_ratio,
                         min_fit_points=min_fit_points
                     )
+                    enhanced_slope, enhanced_slope_r_u, enhanced_slope_u = slp2
                 else:
                     enhanced_slope = MISSING_VALUE_FLT
+                    enhanced_slope_r_u = MISSING_VALUE_FLT
+                    enhanced_slope_u = MISSING_VALUE_FLT
 
                 # add enhanced slope to river reach outputs
                 out_river_reach.metadata['slope2'] = enhanced_slope
+                out_river_reach.metadata['slope2_r_u'] = enhanced_slope_r_u
+                out_river_reach.metadata['slope2_u'] = enhanced_slope_u
                 out_river_reach_collection.append(out_river_reach)
 
         return out_river_reach_collection
@@ -1944,6 +1951,8 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['height_r_u'] = MISSING_VALUE_FLT
                 reach_stats['slope_u'] = SLOPE_SYS_UNCERT
                 reach_stats['height_u'] = REACH_WSE_SYS_UNCERT
+                reach_stats['slope2_u'] = MISSING_VALUE_FLT
+                reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
             elif self.slope_method in ['unweighted', 'weighted']:
                 # use weighted fit if commanded and all weights are good
@@ -1990,6 +1999,8 @@ class SWOTRiverEstimator(SWOTL2):
                     SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
                 reach_stats['height_u'] = np.sqrt(
                     REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+                reach_stats['slope2_u'] = MISSING_VALUE_FLT
+                reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
         else:
             # insufficient node heights for fit to reach
@@ -1999,6 +2010,8 @@ class SWOTRiverEstimator(SWOTL2):
             reach_stats['height'] = MISSING_VALUE_FLT
             reach_stats['height_r_u'] = MISSING_VALUE_FLT
             reach_stats['height_u'] = MISSING_VALUE_FLT
+            reach_stats['slope2_u'] = MISSING_VALUE_FLT
+            reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
         reach_stats['n_good_nod'] = mask.sum()
         reach_stats['frac_obs'] = (
@@ -2380,6 +2393,8 @@ class SWOTRiverEstimator(SWOTL2):
 
         if np.sum(river_reach.mask) < min_fit_points:
             enhanced_slope = MISSING_VALUE_FLT
+            enhanced_slope_r_u = MISSING_VALUE_FLT
+            enhanced_slope_u = MISSING_VALUE_FLT
         else:
             # handle indexing for masked reaches
             this_reach_edges = np.ma.flatnotmasked_edges(
@@ -2402,10 +2417,19 @@ class SWOTRiverEstimator(SWOTL2):
             heights_smooth = heights_smooth + slope*(ss[mask] - ss[mask][0])
             enhanced_slope = (heights_smooth[last_node_masked] -
                               heights_smooth[first_node_masked])/this_reach_len
+            sigma_h = river_reach.metadata['height_r_u']
+            l = river_reach.metadata['length']
+            w = river_reach.metadata['width']
+            enhanced_slope_r_u = (2 * np.pi) ** 2 / 12 * sigma_h ** 2 * (
+                    1 / l * w)
+            # TODO: add value or computation for enhanced_slope_u here
+            enhanced_slope_u = MISSING_VALUE_FLT
 
         if np.isnan(enhanced_slope):
             enhanced_slope = MISSING_VALUE_FLT
-        return enhanced_slope
+            enhanced_slope_r_u = MISSING_VALUE_FLT
+            enhanced_slope_u = MISSING_VALUE_FLT
+        return enhanced_slope, enhanced_slope_r_u, enhanced_slope_u
 
     @staticmethod
     def gaussian_averaging(ss, wse, window_size, sigma):
