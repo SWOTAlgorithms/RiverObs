@@ -72,7 +72,8 @@ class ProductTesterMixIn(object):
         """Calls suite of validation tests"""
         any_fail = False
         for tester in [self.test_inf_nan, self.test_in_valid_range,
-                       self.test_qual_valid_max, self.test_qual_vs_flag_masks]:
+                       self.test_qual_valid_max, self.test_qual_vs_flag_masks,
+                       self.test_group_attributes]:
             try:
                 tester(use_mask=use_mask)
             except AssertionError:
@@ -82,6 +83,57 @@ class ProductTesterMixIn(object):
         # Re-raise AssertionError if any test failed
         if any_fail:
             raise AssertionError
+
+    def test_group_attributes(self, prefix='', use_mask=False):
+        """
+        Checks that no group attributes listed have invalid/fill values.
+        This test only checks the attributes in the list. It may be
+        appropriate to add more group attributes if we are sure they should
+        never be populated with fill or NaN values.
+        """
+        any_fail = False
+        ATTRIBUTES_TO_TEST = ['geospatial_lon_min', 'geospatial_lon_max',
+                              'geospatial_lat_min', 'geospatial_lat_max']
+        for group in self.GROUPS:
+            try:
+                LOGGER.debug(
+                    'Testing group in test_group_attributes: %s'%group)
+                self[group].test_group_attributes(
+                    prefix=prefix+'/'+group+'/', use_mask=use_mask)
+            except AssertionError:
+                any_fail = True
+                continue
+
+        for attribute in self.ATTRIBUTES:
+            if attribute in ATTRIBUTES_TO_TEST:
+                value = self[attribute]
+                fill_value = self._getfill(attribute, is_attribute=True)
+                try:
+                    assert np.logical_and(value != fill_value,
+                                          ~np.isnan(value))
+                except AssertionError:
+                    any_fail = True
+                    # stdout will be printed on assertion failure
+                    # Just the first offending value is printed here
+                    if self.ATTRIBUTES[attribute]['dtype'] == 'c8':
+                        LOGGER.warning((
+                            'TEST FAILURE in test_group_attributes: '
+                            '%s failed; %f %f')%(
+                                prefix+attribute, value.real, value.imag))
+                    elif self.ATTRIBUTES[attribute]['dtype'][0] in ['i', 'u']:
+                        LOGGER.warning((
+                            'TEST FAILURE in test_group_attributes: '
+                            '%s failed; %d')%(prefix+attribute, value))
+                    else:
+                        LOGGER.warning((
+                            'TEST FAILURE in test_group_attributes: '
+                            '%s failed; %f')%(
+                                prefix+attribute, value))
+
+        # Re-raise AssertionError if any failed the test
+        if any_fail:
+            raise AssertionError
+
 
     def test_qual_vs_flag_masks(self, prefix='', use_mask=False):
         """
@@ -146,7 +198,6 @@ class ProductTesterMixIn(object):
         for var in self.VARIABLES:
             if('flag_meanings' in self.VARIABLES[var] and
                'flag_masks' in self.VARIABLES[var]):
-
                 try:
                     valid_max = self.VARIABLES[var]['valid_max']
                     flag_masks = self.VARIABLES[var]['flag_masks']
@@ -255,7 +306,6 @@ class ProductTesterMixIn(object):
                             'TEST FAILURE in test_in_valid_range: '
                             '%s failed; %f %f %f')%(
                                 prefix+var, value, valid_min, valid_max))
-
 
         # Re-raise AssertionError if any failed the test
         if any_fail:
@@ -454,7 +504,7 @@ class Product(object):
             dtype_str = np.dtype(dtype).str[1:]
             if (dtype_str[0] == 'S') or (dtype_str[0] == 'U') or (
                     dtype_str[0]=='O'):
-                # handle arbirary-size strings
+                # handle arbitrary-size strings
                 dtype_str = 'S1'
             fill = FILL_VALUES[dtype_str]
         return fill
