@@ -255,8 +255,8 @@ class L2PixcToRiverTile(object):
             self.config['reach_db_path'], day_of_year=self.day_of_year)
 
         if len(river_estimator.reaches) == 0:
-            LOGGER.error('No valid reaches in PRD for this PIXC data')
-            raise Exception(
+            LOGGER.warning('No valid reaches in PRD for this PIXC data')
+            raise RiverObsException(
                 'No reaches found in input PRD, unable to continue processing.')
         else:
             self.reach_collection = river_estimator.process_reaches(
