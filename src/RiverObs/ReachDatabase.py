@@ -456,6 +456,10 @@ class ReachDatabaseNodes(Product):
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ['river_name',
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_NODES]])],
+        ['edit_flag',
+         odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_NODES]])],
+        ['trib_flag',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_NODES]])],
         ])
 
     for var in VARIABLES:
@@ -576,6 +580,10 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_REACHES]])],
         ['max_width',
          odict([['dtype', 'f8'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['edit_flag',
+         odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['trib_flag',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
 
     for var in VARIABLES:
