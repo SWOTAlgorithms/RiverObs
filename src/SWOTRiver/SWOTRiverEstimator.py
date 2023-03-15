@@ -4,7 +4,6 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 
 from __future__ import absolute_import, division, print_function
 import os
-import pdb
 
 import scipy.ndimage
 import numpy as np
@@ -156,6 +155,9 @@ class SWOTRiverEstimator(SWOTL2):
     slope_method : str, default 'weighted'
         Algorithm for computing reach-level slope. Default is 'weighted'. May
         also compute using 'first_to_last' or 'unweighted' fit to the reach.
+    bayes_slope_use_all_nodes : bool, default True
+        If True, add unpopulated nodes to current reach for bayes
+        reconstruction.
     use_ext_dist_coef : bool, default True
         Flag for using the extreme distance coefficient to define
         search thresholds for the pixel assignment. This value is defined in
@@ -298,6 +300,7 @@ class SWOTRiverEstimator(SWOTL2):
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
                  slope_method='bayes',
+                 bayes_slope_use_all_nodes=True,
                  prior_unc_alpha=1.5,
                  char_length_tau=10000,
                  prior_wse_method= 'fit',
@@ -330,6 +333,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
         self.slope_method = slope_method
+        self.bayes_slope_use_all_nodes = bayes_slope_use_all_nodes
         self.prior_unc_alpha = prior_unc_alpha
         self.char_length_tau = char_length_tau
         self.prior_wse_method = prior_wse_method
@@ -1822,6 +1826,7 @@ class SWOTRiverEstimator(SWOTL2):
             'lat_prior': lat_prior.astype('float64'),
             'p_wse': reach.wse[self.river_obs.populated_nodes],
             'p_wse_var': reach.wse_var[self.river_obs.populated_nodes],
+            'p_wse_all': reach.wse,
             'p_width': reach.width[self.river_obs.populated_nodes],
             'p_wid_var': reach.width_var[self.river_obs.populated_nodes],
             'p_dist_out': reach.dist_out[self.river_obs.populated_nodes],
@@ -1933,7 +1938,8 @@ class SWOTRiverEstimator(SWOTL2):
         ss = all_ss[self.river_obs.populated_nodes]
 
         hh = river_reach.wse
-        ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
+        wse_r_u = river_reach.wse_r_u
+        ww = 1/(wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
         mask = river_reach.mask
 
@@ -1980,17 +1986,26 @@ class SWOTRiverEstimator(SWOTL2):
                     REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
 
             elif self.slope_method == 'bayes':
+                if self.bayes_slope_use_all_nodes:
+                    # add unpopulated nodes.
+                    hh_opt, wse_r_u_opt, mask_opt = \
+                        self.add_unpopulated_nodes(river_reach)
+                    ss_opt = all_ss
+                else:
+                    # populated nodes only
+                    hh_opt, wse_r_u_opt, mask_opt, ss_opt = \
+                        hh, wse_r_u, mask, ss
                 # get the optimal reconstruction (Bayes estimate)
                 wse_opt, height_u, slope_u = self.optimal_reconstruct(
                     river_reach_collection,
                     river_reach, reach_id,
-                    ss, hh,
-                    np.sqrt(1.0 / ww),
+                    ss_opt, hh_opt,
+                    wse_r_u_opt, mask_opt,
                     min_fit_points,
                     method='Bayes',
                 )
                 # Use reconstruction height and slope for reach outputs
-                dx = ss[0] - ss[-1]  # along-reach dist
+                dx = ss_opt[0] - ss_opt[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
                 reach_stats['slope_r_u'] = slope_u * 0.0001    # m/m
@@ -2485,6 +2500,33 @@ class SWOTRiverEstimator(SWOTL2):
             mask = np.zeros(len(hh), dtype=bool)
         return mask
 
+
+    @staticmethod
+    def add_unpopulated_nodes(river_reach):
+        """
+        Adds unpopulated nodes to current reach for Bayes height reconstruction
+
+        Parameters
+        ----------
+        river_reach : partially populated RiverReach instance with node
+            quantities already computed
+
+        Outputs
+        ----------
+        all_hh : wse with unpopulated nodes filled with NaN
+        all_wse_r_u : wse_r_u with unpopulated nodes filled with NaN
+        all_mask : mask with unpopulated nodes filled with NaN
+        """
+        all_hh = np.empty(river_reach.prior_node_ss.shape) * np.nan
+        all_wse_r_u = np.empty(river_reach.prior_node_ss.shape) * np.nan
+        all_mask = np.zeros(river_reach.prior_node_ss.shape, dtype=bool)
+
+        all_hh[river_reach.populated_nodes] = river_reach.wse
+        all_wse_r_u[river_reach.populated_nodes] = river_reach.wse_r_u
+        all_mask[river_reach.populated_nodes] = river_reach.mask
+        return all_hh, all_wse_r_u, all_mask
+
+
     def get_multi_reach_height(
             self, river_reach_collection, river_reach, ireach):
         """
@@ -2590,12 +2632,24 @@ class SWOTRiverEstimator(SWOTL2):
             wse_r_u = np.concatenate([adj_rch[1].wse_r_u, wse_r_u])
             mask = np.concatenate([adj_rch[1].mask, mask])
 
-        ss = np.concatenate([river_reach.node_ss, ss+prior_s[-1]])
-        p_wse = np.concatenate([river_reach.p_wse, p_wse])
-        wse = np.concatenate([river_reach.wse, wse])
-        wse_r_u = np.concatenate([river_reach.wse_r_u, wse_r_u])
-        mask = np.concatenate([river_reach.mask, mask])
-        this_len = len(river_reach.wse)
+        if self.bayes_slope_use_all_nodes:
+            # add unpopulated nodes for current reach
+            this_hh, this_wse_r_u, this_mask = \
+                self.add_unpopulated_nodes(river_reach)
+            this_ss, this_p_wse = \
+                river_reach.prior_node_ss, river_reach.p_wse_all
+        else:
+            # use populated nodes only
+            this_hh, this_wse_r_u, this_mask, this_ss, this_p_wse = \
+                river_reach.wse, river_reach.wse_r_u,\
+                river_reach.mask, river_reach.node_ss, river_reach.p_wse
+
+        ss = np.concatenate([this_ss, ss+prior_s[-1]])
+        p_wse = np.concatenate([this_p_wse, p_wse])
+        wse = np.concatenate([this_hh, wse])
+        wse_r_u = np.concatenate([this_wse_r_u, wse_r_u])
+        mask = np.concatenate([this_mask, mask])
+        this_len = len(this_ss)
 
         # if downstream PRD reach is usable
         if prd_is_good[-1]:
@@ -2619,6 +2673,7 @@ class SWOTRiverEstimator(SWOTL2):
             ss,
             wse,
             wse_r_u,
+            mask,
             min_fit_points=2,
             prior_cov_method='exponential',
             full_noise_cov=False,
@@ -2632,23 +2687,21 @@ class SWOTRiverEstimator(SWOTL2):
                       quantities already computed
         ireach : int
             Index in the list of reaches extracted for this scene.
+        ss         : Node-level distance from prior database
         wse        : Measured Node wse (with masked values for missing nodes)
         wse_r_u    : Node-wise random wse uncertainty
-        ss         : Node-level distance from prior database
         mask       : True if node-level height is good, False where it is bad
         Options:
-        method = Bayes
-           Bayes        : Bayes estimate of wse given prior and
-                          prior_cov method.
+        prior_cov_method : independent, exponential
+                           This option controls how spatial structure is
+                           imposed by the prior.
         full_noise_cov : True, or False
                          This option sets the noise covariance and the sampling
                          operator to assume that all nodes are observed (but
                          weighted appropriately for the unobserved nodes).
-        prior_wse : The mean wse of the prior we want to impose (defaults to
-                    the weighted linear fit to reach if there is no input)
-        prior_cov_method : independent, exponential
-                           This option controls how spatial structure is
-                           imposed by the prior.
+        method = Bayes
+           Bayes        : Bayes estimate of wse given prior and
+                          prior_cov method.
         """
 
         if self.use_multiple_reaches:
@@ -2678,7 +2731,10 @@ class SWOTRiverEstimator(SWOTL2):
                 pass
             else:
                 # get prior wse from PRD
-                prior_wse = river_reach.p_wse
+                if self.bayes_slope_use_all_nodes:
+                    prior_wse = river_reach.p_wse_all
+                else:
+                    prior_wse = river_reach.p_wse
         else:
             raise Exception('Prior wse method %s is not an implemented option '
                             'for the reconstruction' % self.prior_wse_method)

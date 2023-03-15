@@ -382,7 +382,7 @@ def main():
                + str(bounds['min_area']) + " m^2 \n and reach len>=" \
                + str(bounds['min_length']) + " m and obs frac >=" \
                + str(bounds['min_obs_frac']) + " and truth ratio >= "\
-               + str(bounds['min_truth_ratio']) + " and xtrk proportion >= "\
+               + str(bounds['min_truth_obs_frac']) + " and xtrk proportion >= "\
                + str(bounds['min_xtrk_ratio']) + " and qual flag <= "\
                + str(bounds['max_qual_flag'])
 

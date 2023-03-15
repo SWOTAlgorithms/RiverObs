@@ -479,7 +479,7 @@ def reach_num_for_sci_bounds(truth_reaches, obs_reaches, bounds, xtrk_ratio):
         'bad_area': np.sum(truth_reaches['area_total'] < bounds['min_area']),
         'bad_length': np.sum(truth_reaches['p_length'] < bounds['min_length']),
         'bad_obs_frac': np.sum(
-            truth_reaches['obs_frac_n'] < bounds['min_obs_frac']),
+            obs_reaches['obs_frac_n'] < bounds['min_obs_frac']),
         'bad_dark_frac': np.sum(
             obs_reaches['dark_frac'] >= bounds['max_dark_frac']),
         'bad_qual': np.sum(obs_reaches['reach_q_b'] > bounds['max_qual_flag']),
@@ -495,10 +495,10 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
         'min_width': 100,
         'min_area': 800000,
         'min_length': 8000,
-        'min_obs_frac': 1.0,
+        'min_obs_frac': 0.5,
         'max_dark_frac': 1,
-        'min_truth_ratio': 0.2,
-        'min_xtrk_ratio': 1.0,
+        'min_truth_obs_frac': 1.0,
+        'min_xtrk_ratio': 0.5,
         'max_qual_flag': 33554432
     }
 
@@ -528,14 +528,15 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
             truth.reaches['width'] > bounds['min_width'],
             truth.reaches['area_total'] > bounds['min_area'],
             truth.reaches['p_length'] >= bounds['min_length'],
-            truth.reaches['obs_frac_n'] >= bounds['min_obs_frac'],
+            truth.reaches['obs_frac_n'] >= bounds['min_truth_obs_frac'],
             truth.reaches['dark_frac'] <= bounds['max_dark_frac'],
             data.reaches['reach_q_b'] <= bounds['max_qual_flag']
         ])
         # add the node-level filters to the mask
         msk = np.logical_and.reduce([
             msk,
-            xtrk_ratio >= bounds['min_xtrk_ratio']
+            xtrk_ratio >= bounds['min_xtrk_ratio'],
+            data.reaches['obs_frac_n'] >= bounds['min_obs_frac']
         ])
         if print_table:
             passfail = {
@@ -554,8 +555,8 @@ def mask_for_sci_req(truth, data, scene, scene_nodes=None, print_table=False):
                    + str(bounds['min_width']) + " m and area>" \
                    + str(bounds['min_area']) + " m^2 \n and reach len>=" \
                    + str(bounds['min_length']) + " m and obs frac >" \
-                   + str(bounds['min_obs_frac']) + " and truth ratio > "\
-                   + str(bounds['min_xtrk_ratio']) + " and qual flag < "\
+                   + str(bounds['min_obs_frac']) + " and truth ratio >= "\
+                   + str(bounds['min_truth_obs_frac']) + " and qual flag < "\
                    + str(bounds['min_qual_flag'])
             table = {
                 'Reach ID': data.reaches['reach_id'].astype(str),
