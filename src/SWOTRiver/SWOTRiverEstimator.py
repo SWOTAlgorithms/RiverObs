@@ -619,7 +619,7 @@ class SWOTRiverEstimator(SWOTL2):
     def flatten_interferogram(self):
         """Flattens the pixel cloud interferogram"""
         # range index is self.img_x, azi is self.img_y
-        LOGGER.debug('flatten_interferogram')
+        LOGGER.info('flatten_interferogram')
         try:
             import cnes.modules.geoloc.lib.geoloc as geoloc
             from cnes.common.lib.my_variables import \
@@ -800,7 +800,7 @@ class SWOTRiverEstimator(SWOTL2):
         Returns a list containing a RiverReach instance for each reach in the
         bounding box.
         """
-        LOGGER.debug('process_reaches')
+        LOGGER.info('process_reaches: assigning reaches')
         # assign the reaches
         if self.use_ext_dist_coef:
             river_obs_list, reach_idx_list, ireach_list = \
@@ -810,6 +810,8 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs_list, reach_idx_list, ireach_list = \
                 self.assign_reaches(scalar_max_width, minobs, use_width_db, ds)
 
+
+        LOGGER.info('process_reaches: processing nodes')
         river_reach_collection = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
@@ -857,8 +859,8 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach.node_q[~river_reach.mask] = 3
 
             river_reach_collection.append(river_reach)
-            LOGGER.debug('reach processed')
 
+        LOGGER.info('process_reaches: processing reaches')
         out_river_reach_collection = []
         # Now iterate over reaches again and do reach average computations
         reach_zips = zip(
@@ -905,6 +907,8 @@ class SWOTRiverEstimator(SWOTL2):
         """
         Assigns pixels to nodes for every reach.
         """
+        LOGGER.info("assign_reaches: pass: {}".format(
+            {False: 1, True: 2}[second_pass]))
         # First extract the segmentation labels to keep
         all_dominant_labels = []
         all_ids = []
@@ -938,7 +942,7 @@ class SWOTRiverEstimator(SWOTL2):
         node_y_list = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
-            LOGGER.debug('Reach %d/%d Reach index: %d' %(
+            LOGGER.debug('assign_reaches: reach %d/%d reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
 
             try:
@@ -991,10 +995,13 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.reinitialize()
 
             if len(river_obs.x) == 0:
-                LOGGER.debug(
-                    'No observations mapped to nodes in this reach')
+                LOGGER.debug(('assign_reaches: no observations mapped to nodes '
+                              'in this reach'))
                 continue
 
+            LOGGER.debug(
+                'assign_reaches: {} observations mapped to nodes in this '
+                'reach'.format(len(river_obs.x)))
             river_obs_list.append(river_obs)
             reach_idx_list.append(reach_idx)
             ireach_list.append(i_reach)
@@ -1174,7 +1181,8 @@ class SWOTRiverEstimator(SWOTL2):
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes - 1 > self.river_obs.k else False
-        LOGGER.debug("numNodes: %d, k: %d" % (numNodes, self.river_obs.k))
+        LOGGER.debug(
+            "process_node for reach_id: {}; {} nodes".format(reach_idx, numNodes))
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -1305,7 +1313,6 @@ class SWOTRiverEstimator(SWOTL2):
         dsets_to_load.append('yobs')
 
         self.river_obs.load_nodes(dsets_to_load)
-        LOGGER.debug('Observations added to nodes')
 
         # Get various node statistics
         nobs = np.asarray(self.river_obs.get_node_stat('count', ''))
@@ -1894,7 +1901,8 @@ class SWOTRiverEstimator(SWOTL2):
         """
         # Check to see if there are sufficient number of points for fit
         ngood = len(river_reach.s)
-        LOGGER.debug(('number of fit points: %d' % ngood))
+        LOGGER.debug(("process_reach for reach_id: {}; number of nodes: {}"
+                      ).format(reach_idx, ngood))
 
         reach_stats = collections.OrderedDict()
         reach_stats['length'] = np.sum(river_reach.p_length)
@@ -2044,8 +2052,6 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             reach_stats['geoid_slop'] = MISSING_VALUE_FLT
             reach_stats['geoid_hght'] = MISSING_VALUE_FLT
-
-        LOGGER.debug('Reach height/slope processing finished')
 
         # trap out of range / missing data
         if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
