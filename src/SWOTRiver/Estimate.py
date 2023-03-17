@@ -263,6 +263,9 @@ class L2PixcToRiverTile(object):
             raise RiverObsException(
                 'No reaches found in input PRD, unable to continue processing.')
         else:
+            # Flatten interferogram if PRD not empty
+            river_estimator.flatten_interferogram()
+
             self.reach_collection = river_estimator.process_reaches(
                 minobs=self.config['minobs'],
                 min_fit_points=self.config['min_fit_points'],

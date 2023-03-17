@@ -613,9 +613,6 @@ class SWOTRiverEstimator(SWOTL2):
         # Initialize the list of reaches to output to product
         self.river_reach_collection = collections.OrderedDict()
 
-        self.flatten_interferogram()
-        self.nc.close()
-
     def flatten_interferogram(self):
         """Flattens the pixel cloud interferogram"""
         # range index is self.img_x, azi is self.img_y
