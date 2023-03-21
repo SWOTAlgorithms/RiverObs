@@ -801,7 +801,7 @@ class SWOTRiverEstimator(SWOTL2):
         # assign the reaches
         if self.use_ext_dist_coef:
             river_obs_list, reach_idx_list, ireach_list = \
-                self.assign_reaches_two_pass(
+                self.assign_reaches_ext_dist_coef(
                     scalar_max_width, minobs, use_width_db, ds)
         else:
             river_obs_list, reach_idx_list, ireach_list = \
@@ -900,12 +900,12 @@ class SWOTRiverEstimator(SWOTL2):
                        minobs=10,
                        use_width_db=False,
                        ds=None,
-                       second_pass=False):
+                       use_ext_dist_coef=False):
         """
         Assigns pixels to nodes for every reach.
         """
-        LOGGER.info("assign_reaches: pass: {}".format(
-            {False: 1, True: 2}[second_pass]))
+        LOGGER.info("assign_reaches: use_ext_dist_coef: {}".format(
+            use_ext_dist_coef))
         # First extract the segmentation labels to keep
         all_dominant_labels = []
         all_ids = []
@@ -918,7 +918,7 @@ class SWOTRiverEstimator(SWOTL2):
                 river_obs = IteratedRiverObs(
                     self.reaches[i_reach], self.x, self.y, ds=ds,
                     seg_label=self.seg_label, max_width=scalar_max_width,
-                    minobs=minobs, second_pass=second_pass)
+                    minobs=minobs, use_ext_dist_coef=use_ext_dist_coef)
             except CenterLineException as e:
                 print("CenterLineException: ", e)
                 continue
@@ -975,7 +975,7 @@ class SWOTRiverEstimator(SWOTL2):
                     seg_label=seg_label,
                     max_width=scalar_max_width,
                     minobs=minobs,
-                    second_pass=second_pass)
+                    use_ext_dist_coef=use_ext_dist_coef)
 
             except CenterLineException as e:
                 print("CenterLineException: ", e)
@@ -1072,55 +1072,57 @@ class SWOTRiverEstimator(SWOTL2):
 
         return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
-    def assign_reaches_two_pass(
+    def assign_reaches_ext_dist_coef(
             self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
         """
-        Does the second pass of reach assignments using the results from the
-        first pass.
+        Does the reach assignments using ext_dist_coeff and the outputs from
+        assign_reaches.
         """
-        river_obs_list1, reach_idx_list1, ireach_list1 = self.assign_reaches(
+        LOGGER.info("assign_reaches_ext_dist_coef")
+        # Note we do the ext_dist_coef processing out of assign_reaches to
+        # get the desired behavior.
+        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
             scalar_max_width, minobs, use_width_db, ds)
 
-        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
-            scalar_max_width, minobs, use_width_db, ds, second_pass=True)
-
-        # iterate over reaches in second pass, only keep pixels that were
-        # also assigned to the same reach in first pass assignments
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
+            # Only keep pixels which were assigned with the larger extreme
+            # distance, and which are also in the smaller extremem distance
+            # when scaled by ext_dist_coef. This code replicates the logic
+            # in RiverObs.flag_out_channel_and_label method.
+            max_distance = (
+                self.reaches[ireach].width * self.reaches[ireach].wth_coef)
+            extreme_dist = self.reaches[ireach].ext_dist_coef * np.array(
+                [abs(river_obs.ds), max_distance]).max(axis=0)
 
-            irch1 = np.argwhere(reach_idx_list1==reach_idx)[0][0]
-            river_obs1 = river_obs_list1[irch1]
+            ds = abs(river_obs.s - river_obs.centerline.s[river_obs.index])
+            dn = abs(river_obs.n)
 
-            if (river_obs1.in_channel != river_obs.in_channel).any():
-                # Make new in channel mask
-                new_in_channel = np.logical_and(
-                    river_obs.in_channel, river_obs1.in_channel)
+            mask_keep = np.logical_and(ds <= extreme_dist[river_obs.index],
+                                       dn <= extreme_dist[river_obs.index])
+            indx = np.argwhere(river_obs.in_channel)[:,0][mask_keep]
+            new_in_channel = np.zeros(river_obs.in_channel.shape, dtype=bool)
+            new_in_channel[indx] = True
 
-                # subset it to the previous subset of in_channel for mask
-                # of pixels to keep that were already kept.
-                mask_keep = new_in_channel[river_obs.in_channel]
+            # update river_obs in channel mask
+            river_obs.in_channel = new_in_channel
 
-                # update river_obs in channel mask
-                river_obs.in_channel = new_in_channel
+            # Recompute things set in RiverObs constructor
+            river_obs.index = river_obs.index[mask_keep]
+            river_obs.d = river_obs.d[mask_keep]
+            river_obs.x = river_obs.x[mask_keep]
+            river_obs.y = river_obs.y[mask_keep]
+            river_obs.s = river_obs.s[mask_keep]
+            river_obs.n = river_obs.n[mask_keep]
+            river_obs.nedited_data = len(river_obs.d)
+            river_obs.populated_nodes, river_obs.obs_to_node_map = \
+                river_obs.get_obs_to_node_map(river_obs.index,
+                river_obs.minobs)
 
-                # Drop pixels that were double-assigned to reaches and
-                # recompute things set in RiverObs constructor
-                river_obs.index = river_obs.index[mask_keep]
-                river_obs.d = river_obs.d[mask_keep]
-                river_obs.x = river_obs.x[mask_keep]
-                river_obs.y = river_obs.y[mask_keep]
-                river_obs.s = river_obs.s[mask_keep]
-                river_obs.n = river_obs.n[mask_keep]
-                river_obs.nedited_data = len(river_obs.d)
-                river_obs.populated_nodes, river_obs.obs_to_node_map = \
-                    river_obs.get_obs_to_node_map(river_obs.index,
-                    river_obs.minobs)
-
-                # Recompute things set in IteratedRiverObs constructor
-                river_obs.add_obs('xo', river_obs.xobs)
-                river_obs.add_obs('yo', river_obs.yobs)
-                river_obs.load_nodes(['xo', 'yo'])
+            # Recompute things set in IteratedRiverObs constructor
+            river_obs.add_obs('xo', river_obs.xobs)
+            river_obs.add_obs('yo', river_obs.yobs)
+            river_obs.load_nodes(['xo', 'yo'])
 
         return river_obs_list, reach_idx_list, ireach_list
 

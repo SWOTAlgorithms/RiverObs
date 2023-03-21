@@ -65,12 +65,12 @@ class RiverObs:
                  minobs=1,
                  node_class=RiverNode,
                  missing_value=MISSING_VALUE_FLT,
-                 second_pass=False):
+                 use_ext_dist_coef=False):
 
         self.missing_value = missing_value
 
         # for using with a 2-pass node assignment
-        self.second_pass = second_pass
+        self.use_ext_dist_coef = use_ext_dist_coef
 
         # Register the node class
         self.node_class = node_class
@@ -126,7 +126,7 @@ class RiverObs:
         if self.max_width is not None:
 
             # Use variable ext_dist_coef on second pass
-            if self.second_pass:
+            if self.use_ext_dist_coef:
                 self.in_channel = self.flag_out_channel_and_label(
                     self.max_width, seg_label, ext_dist_coef=reach.ext_dist_coef)
 
