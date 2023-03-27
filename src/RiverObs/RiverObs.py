@@ -65,12 +65,12 @@ class RiverObs:
                  minobs=1,
                  node_class=RiverNode,
                  missing_value=MISSING_VALUE_FLT,
-                 second_pass=False):
+                 use_ext_dist_coef=False):
 
         self.missing_value = missing_value
 
         # for using with a 2-pass node assignment
-        self.second_pass = second_pass
+        self.use_ext_dist_coef = use_ext_dist_coef
 
         # Register the node class
         self.node_class = node_class
@@ -95,7 +95,6 @@ class RiverObs:
                 obs=[max_width],
                 obs_names=['max_width'])
         self.max_width = self.centerline.max_width
-        LOGGER.debug('Centerline initialized')
 
         # Associate an along-track dimension to each node
         if ds is not None:  # Evenly spaced nodes
@@ -120,8 +119,6 @@ class RiverObs:
         self.s = np.squeeze(self.s)
         self.n = np.squeeze(self.n)
 
-        LOGGER.debug('Local coordiantes calculated')
-
         # Assign to each point the along-track distance, not just delta s
         self.s += self.centerline.s[self.index]
 
@@ -129,7 +126,7 @@ class RiverObs:
         if self.max_width is not None:
 
             # Use variable ext_dist_coef on second pass
-            if self.second_pass:
+            if self.use_ext_dist_coef:
                 self.in_channel = self.flag_out_channel_and_label(
                     self.max_width, seg_label, ext_dist_coef=reach.ext_dist_coef)
 
@@ -138,7 +135,6 @@ class RiverObs:
                     self.max_width, seg_label, ext_dist_coef=None)
 
         self.nedited_data = len(self.x)
-        LOGGER.debug("num nodes in reach %d" % len(np.unique(self.index)))
         # Get the mapping from observation to node position (1 -> many);
         # i.e., the inverse of index (many -> 1), which maps node position
         # to observations
@@ -193,11 +189,8 @@ class RiverObs:
                                        dst0 <= extreme_dist,
                                        abs(self.n) <= extreme_dist)))
 
-                LOGGER.debug("Dominant label in reach: %d" % dominant_label)
-
             else:
                 self.in_channel = class_mask
-                LOGGER.debug("No valid class labels in reach")
 
         self.index = self.index[self.in_channel]
         self.d = self.d[self.in_channel]

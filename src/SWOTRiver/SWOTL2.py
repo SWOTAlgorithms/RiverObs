@@ -216,8 +216,8 @@ class SWOTL2:
                 data = data[::self.subsample_factor, :]
 
             else:
-                raise RiverObsException(
-                    'Unexpected size of input data in SWOTL2::get')
+                LOGGER.error("Unexpected size of input data in SWOTL2::get")
+                raise Exception('Unexpected size of input data in SWOTL2::get')
 
         # self.index already subsampled in set_index_and_bounding_box
         if use_index:

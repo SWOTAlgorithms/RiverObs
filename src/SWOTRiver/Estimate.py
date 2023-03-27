@@ -143,6 +143,9 @@ class L2PixcToRiverTile(object):
         if 'slope_method' not in self.config:
             self.config['slope_method'] = 'bayes'
 
+        if 'bayes_slope_use_all_nodes' not in self.config:
+            self.config['bayes_slope_use_all_nodes'] = True
+
         if 'prior_unc_alpha' not in self.config:
             self.config['prior_unc_alpha'] = 1.5
 
@@ -218,6 +221,7 @@ class L2PixcToRiverTile(object):
             'area_agg_method': self.config['area_agg_method'],
             'preseg_dilation_iter': self.config['preseg_dilation_iter'],
             'slope_method': self.config['slope_method'],
+            'bayes_slope_use_all_nodes': self.config['bayes_slope_use_all_nodes'],
             'prior_unc_alpha': self.config['prior_unc_alpha'],
             'char_length_tau': self.config['char_length_tau'],
             'prior_wse_method': self.config['prior_wse_method'],
@@ -255,8 +259,13 @@ class L2PixcToRiverTile(object):
             self.config['reach_db_path'], day_of_year=self.day_of_year)
 
         if len(river_estimator.reaches) == 0:
-            LOGGER.info('No valid reaches in PRD for this PIXC data')
+            LOGGER.warning('No valid reaches in PRD for this PIXC data')
+            raise RiverObsException(
+                'No reaches found in input PRD, unable to continue processing.')
         else:
+            # Flatten interferogram if PRD not empty
+            river_estimator.flatten_interferogram()
+
             self.reach_collection = river_estimator.process_reaches(
                 minobs=self.config['minobs'],
                 min_fit_points=self.config['min_fit_points'],

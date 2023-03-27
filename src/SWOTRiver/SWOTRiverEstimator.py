@@ -4,7 +4,6 @@ Given a SWOTL2 file, fit all of the reaches observed and output results.
 
 from __future__ import absolute_import, division, print_function
 import os
-import pdb
 
 import scipy.ndimage
 import numpy as np
@@ -156,6 +155,9 @@ class SWOTRiverEstimator(SWOTL2):
     slope_method : str, default 'weighted'
         Algorithm for computing reach-level slope. Default is 'weighted'. May
         also compute using 'first_to_last' or 'unweighted' fit to the reach.
+    bayes_slope_use_all_nodes : bool, default True
+        If True, add unpopulated nodes to current reach for bayes
+        reconstruction.
     use_ext_dist_coef : bool, default True
         Flag for using the extreme distance coefficient to define
         search thresholds for the pixel assignment. This value is defined in
@@ -298,6 +300,7 @@ class SWOTRiverEstimator(SWOTL2):
                  area_agg_method='composite',
                  preseg_dilation_iter=0,
                  slope_method='bayes',
+                 bayes_slope_use_all_nodes=True,
                  prior_unc_alpha=1.5,
                  char_length_tau=10000,
                  prior_wse_method= 'fit',
@@ -330,6 +333,7 @@ class SWOTRiverEstimator(SWOTL2):
         self.output_file = output_file  # index file
         self.subsample_factor = subsample_factor
         self.slope_method = slope_method
+        self.bayes_slope_use_all_nodes = bayes_slope_use_all_nodes
         self.prior_unc_alpha = prior_unc_alpha
         self.char_length_tau = char_length_tau
         self.prior_wse_method = prior_wse_method
@@ -609,13 +613,10 @@ class SWOTRiverEstimator(SWOTL2):
         # Initialize the list of reaches to output to product
         self.river_reach_collection = collections.OrderedDict()
 
-        self.flatten_interferogram()
-        self.nc.close()
-
     def flatten_interferogram(self):
         """Flattens the pixel cloud interferogram"""
         # range index is self.img_x, azi is self.img_y
-        LOGGER.debug('flatten_interferogram')
+        LOGGER.info('flatten_interferogram')
         try:
             import cnes.modules.geoloc.lib.geoloc as geoloc
             from cnes.common.lib.my_variables import \
@@ -796,16 +797,18 @@ class SWOTRiverEstimator(SWOTL2):
         Returns a list containing a RiverReach instance for each reach in the
         bounding box.
         """
-        LOGGER.debug('process_reaches')
+        LOGGER.info('process_reaches: assigning reaches')
         # assign the reaches
         if self.use_ext_dist_coef:
             river_obs_list, reach_idx_list, ireach_list = \
-                self.assign_reaches_two_pass(
+                self.assign_reaches_ext_dist_coef(
                     scalar_max_width, minobs, use_width_db, ds)
         else:
             river_obs_list, reach_idx_list, ireach_list = \
                 self.assign_reaches(scalar_max_width, minobs, use_width_db, ds)
 
+
+        LOGGER.info('process_reaches: processing nodes')
         river_reach_collection = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
@@ -853,8 +856,8 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach.node_q[~river_reach.mask] = 3
 
             river_reach_collection.append(river_reach)
-            LOGGER.debug('reach processed')
 
+        LOGGER.info('process_reaches: processing reaches')
         out_river_reach_collection = []
         # Now iterate over reaches again and do reach average computations
         reach_zips = zip(
@@ -897,10 +900,12 @@ class SWOTRiverEstimator(SWOTL2):
                        minobs=10,
                        use_width_db=False,
                        ds=None,
-                       second_pass=False):
+                       use_ext_dist_coef=False):
         """
         Assigns pixels to nodes for every reach.
         """
+        LOGGER.info("assign_reaches: use_ext_dist_coef: {}".format(
+            use_ext_dist_coef))
         # First extract the segmentation labels to keep
         all_dominant_labels = []
         all_ids = []
@@ -913,7 +918,7 @@ class SWOTRiverEstimator(SWOTL2):
                 river_obs = IteratedRiverObs(
                     self.reaches[i_reach], self.x, self.y, ds=ds,
                     seg_label=self.seg_label, max_width=scalar_max_width,
-                    minobs=minobs, second_pass=second_pass)
+                    minobs=minobs, use_ext_dist_coef=use_ext_dist_coef)
             except CenterLineException as e:
                 print("CenterLineException: ", e)
                 continue
@@ -934,7 +939,7 @@ class SWOTRiverEstimator(SWOTL2):
         node_y_list = []
         for i_reach, reach_idx in enumerate(self.reaches.reach_idx):
 
-            LOGGER.debug('Reach %d/%d Reach index: %d' %(
+            LOGGER.debug('assign_reaches: reach %d/%d reach index: %d' %(
                 i_reach + 1, self.reaches.nreaches, reach_idx))
 
             try:
@@ -970,7 +975,7 @@ class SWOTRiverEstimator(SWOTL2):
                     seg_label=seg_label,
                     max_width=scalar_max_width,
                     minobs=minobs,
-                    second_pass=second_pass)
+                    use_ext_dist_coef=use_ext_dist_coef)
 
             except CenterLineException as e:
                 print("CenterLineException: ", e)
@@ -987,10 +992,13 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.reinitialize()
 
             if len(river_obs.x) == 0:
-                LOGGER.debug(
-                    'No observations mapped to nodes in this reach')
+                LOGGER.debug(('assign_reaches: no observations mapped to nodes '
+                              'in this reach'))
                 continue
 
+            LOGGER.debug(
+                'assign_reaches: {} observations mapped to nodes in this '
+                'reach'.format(len(river_obs.x)))
             river_obs_list.append(river_obs)
             reach_idx_list.append(reach_idx)
             ireach_list.append(i_reach)
@@ -1064,55 +1072,57 @@ class SWOTRiverEstimator(SWOTL2):
 
         return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
-    def assign_reaches_two_pass(
+    def assign_reaches_ext_dist_coef(
             self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
         """
-        Does the second pass of reach assignments using the results from the
-        first pass.
+        Does the reach assignments using ext_dist_coeff and the outputs from
+        assign_reaches.
         """
-        river_obs_list1, reach_idx_list1, ireach_list1 = self.assign_reaches(
+        LOGGER.info("assign_reaches_ext_dist_coef")
+        # Note we do the ext_dist_coef processing out of assign_reaches to
+        # get the desired behavior.
+        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
             scalar_max_width, minobs, use_width_db, ds)
 
-        river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
-            scalar_max_width, minobs, use_width_db, ds, second_pass=True)
-
-        # iterate over reaches in second pass, only keep pixels that were
-        # also assigned to the same reach in first pass assignments
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
+            # Only keep pixels which were assigned with the larger extreme
+            # distance, and which are also in the smaller extremem distance
+            # when scaled by ext_dist_coef. This code replicates the logic
+            # in RiverObs.flag_out_channel_and_label method.
+            max_distance = (
+                self.reaches[ireach].width * self.reaches[ireach].wth_coef)
+            extreme_dist = self.reaches[ireach].ext_dist_coef * np.array(
+                [abs(river_obs.ds), max_distance]).max(axis=0)
 
-            irch1 = np.argwhere(reach_idx_list1==reach_idx)[0][0]
-            river_obs1 = river_obs_list1[irch1]
+            ds = abs(river_obs.s - river_obs.centerline.s[river_obs.index])
+            dn = abs(river_obs.n)
 
-            if (river_obs1.in_channel != river_obs.in_channel).any():
-                # Make new in channel mask
-                new_in_channel = np.logical_and(
-                    river_obs.in_channel, river_obs1.in_channel)
+            mask_keep = np.logical_and(ds <= extreme_dist[river_obs.index],
+                                       dn <= extreme_dist[river_obs.index])
+            indx = np.argwhere(river_obs.in_channel)[:,0][mask_keep]
+            new_in_channel = np.zeros(river_obs.in_channel.shape, dtype=bool)
+            new_in_channel[indx] = True
 
-                # subset it to the previous subset of in_channel for mask
-                # of pixels to keep that were already kept.
-                mask_keep = new_in_channel[river_obs.in_channel]
+            # update river_obs in channel mask
+            river_obs.in_channel = new_in_channel
 
-                # update river_obs in channel mask
-                river_obs.in_channel = new_in_channel
+            # Recompute things set in RiverObs constructor
+            river_obs.index = river_obs.index[mask_keep]
+            river_obs.d = river_obs.d[mask_keep]
+            river_obs.x = river_obs.x[mask_keep]
+            river_obs.y = river_obs.y[mask_keep]
+            river_obs.s = river_obs.s[mask_keep]
+            river_obs.n = river_obs.n[mask_keep]
+            river_obs.nedited_data = len(river_obs.d)
+            river_obs.populated_nodes, river_obs.obs_to_node_map = \
+                river_obs.get_obs_to_node_map(river_obs.index,
+                river_obs.minobs)
 
-                # Drop pixels that were double-assigned to reaches and
-                # recompute things set in RiverObs constructor
-                river_obs.index = river_obs.index[mask_keep]
-                river_obs.d = river_obs.d[mask_keep]
-                river_obs.x = river_obs.x[mask_keep]
-                river_obs.y = river_obs.y[mask_keep]
-                river_obs.s = river_obs.s[mask_keep]
-                river_obs.n = river_obs.n[mask_keep]
-                river_obs.nedited_data = len(river_obs.d)
-                river_obs.populated_nodes, river_obs.obs_to_node_map = \
-                    river_obs.get_obs_to_node_map(river_obs.index,
-                    river_obs.minobs)
-
-                # Recompute things set in IteratedRiverObs constructor
-                river_obs.add_obs('xo', river_obs.xobs)
-                river_obs.add_obs('yo', river_obs.yobs)
-                river_obs.load_nodes(['xo', 'yo'])
+            # Recompute things set in IteratedRiverObs constructor
+            river_obs.add_obs('xo', river_obs.xobs)
+            river_obs.add_obs('yo', river_obs.yobs)
+            river_obs.load_nodes(['xo', 'yo'])
 
         return river_obs_list, reach_idx_list, ireach_list
 
@@ -1170,7 +1180,8 @@ class SWOTRiverEstimator(SWOTL2):
         # enough to do spline
         numNodes = len(np.unique(self.river_obs.index))
         enough_nodes = True if numNodes - 1 > self.river_obs.k else False
-        LOGGER.debug("numNodes: %d, k: %d" % (numNodes, self.river_obs.k))
+        LOGGER.debug(
+            "process_node for reach_id: {}; {} nodes".format(reach_idx, numNodes))
 
         if refine_centerline and enough_nodes:
             self.river_obs.iterate(
@@ -1301,7 +1312,6 @@ class SWOTRiverEstimator(SWOTL2):
         dsets_to_load.append('yobs')
 
         self.river_obs.load_nodes(dsets_to_load)
-        LOGGER.debug('Observations added to nodes')
 
         # Get various node statistics
         nobs = np.asarray(self.river_obs.get_node_stat('count', ''))
@@ -1822,6 +1832,7 @@ class SWOTRiverEstimator(SWOTL2):
             'lat_prior': lat_prior.astype('float64'),
             'p_wse': reach.wse[self.river_obs.populated_nodes],
             'p_wse_var': reach.wse_var[self.river_obs.populated_nodes],
+            'p_wse_all': reach.wse,
             'p_width': reach.width[self.river_obs.populated_nodes],
             'p_wid_var': reach.width_var[self.river_obs.populated_nodes],
             'p_dist_out': reach.dist_out[self.river_obs.populated_nodes],
@@ -1889,7 +1900,8 @@ class SWOTRiverEstimator(SWOTL2):
         """
         # Check to see if there are sufficient number of points for fit
         ngood = len(river_reach.s)
-        LOGGER.debug(('number of fit points: %d' % ngood))
+        LOGGER.debug(("process_reach for reach_id: {}; number of nodes: {}"
+                      ).format(reach_idx, ngood))
 
         reach_stats = collections.OrderedDict()
         reach_stats['length'] = np.sum(river_reach.p_length)
@@ -1933,7 +1945,8 @@ class SWOTRiverEstimator(SWOTL2):
         ss = all_ss[self.river_obs.populated_nodes]
 
         hh = river_reach.wse
-        ww = 1/(river_reach.wse_r_u**2)  # TO DO: validate wse_r_u here
+        wse_r_u = river_reach.wse_r_u
+        ww = 1/(wse_r_u**2)  # TO DO: validate wse_r_u here
         SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
         mask = river_reach.mask
 
@@ -1980,17 +1993,26 @@ class SWOTRiverEstimator(SWOTL2):
                     REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
 
             elif self.slope_method == 'bayes':
+                if self.bayes_slope_use_all_nodes:
+                    # add unpopulated nodes.
+                    hh_opt, wse_r_u_opt, mask_opt = \
+                        self.add_unpopulated_nodes(river_reach)
+                    ss_opt = all_ss
+                else:
+                    # populated nodes only
+                    hh_opt, wse_r_u_opt, mask_opt, ss_opt = \
+                        hh, wse_r_u, mask, ss
                 # get the optimal reconstruction (Bayes estimate)
                 wse_opt, height_u, slope_u = self.optimal_reconstruct(
                     river_reach_collection,
                     river_reach, reach_id,
-                    ss, hh,
-                    np.sqrt(1.0 / ww),
+                    ss_opt, hh_opt,
+                    wse_r_u_opt, mask_opt,
                     min_fit_points,
                     method='Bayes',
                 )
                 # Use reconstruction height and slope for reach outputs
-                dx = ss[0] - ss[-1]  # along-reach dist
+                dx = ss_opt[0] - ss_opt[-1]  # along-reach dist
                 reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
                 reach_stats['height'] = np.mean(wse_opt)
                 reach_stats['slope_r_u'] = slope_u * 0.0001    # m/m
@@ -2029,8 +2051,6 @@ class SWOTRiverEstimator(SWOTL2):
         else:
             reach_stats['geoid_slop'] = MISSING_VALUE_FLT
             reach_stats['geoid_hght'] = MISSING_VALUE_FLT
-
-        LOGGER.debug('Reach height/slope processing finished')
 
         # trap out of range / missing data
         if reach.metadata['lakeFlag'] < 0 or reach.metadata['lakeFlag'] > 255:
@@ -2485,6 +2505,33 @@ class SWOTRiverEstimator(SWOTL2):
             mask = np.zeros(len(hh), dtype=bool)
         return mask
 
+
+    @staticmethod
+    def add_unpopulated_nodes(river_reach):
+        """
+        Adds unpopulated nodes to current reach for Bayes height reconstruction
+
+        Parameters
+        ----------
+        river_reach : partially populated RiverReach instance with node
+            quantities already computed
+
+        Outputs
+        ----------
+        all_hh : wse with unpopulated nodes filled with NaN
+        all_wse_r_u : wse_r_u with unpopulated nodes filled with NaN
+        all_mask : mask with unpopulated nodes filled with NaN
+        """
+        all_hh = np.empty(river_reach.prior_node_ss.shape) * np.nan
+        all_wse_r_u = np.empty(river_reach.prior_node_ss.shape) * np.nan
+        all_mask = np.zeros(river_reach.prior_node_ss.shape, dtype=bool)
+
+        all_hh[river_reach.populated_nodes] = river_reach.wse
+        all_wse_r_u[river_reach.populated_nodes] = river_reach.wse_r_u
+        all_mask[river_reach.populated_nodes] = river_reach.mask
+        return all_hh, all_wse_r_u, all_mask
+
+
     def get_multi_reach_height(
             self, river_reach_collection, river_reach, ireach):
         """
@@ -2590,12 +2637,24 @@ class SWOTRiverEstimator(SWOTL2):
             wse_r_u = np.concatenate([adj_rch[1].wse_r_u, wse_r_u])
             mask = np.concatenate([adj_rch[1].mask, mask])
 
-        ss = np.concatenate([river_reach.node_ss, ss+prior_s[-1]])
-        p_wse = np.concatenate([river_reach.p_wse, p_wse])
-        wse = np.concatenate([river_reach.wse, wse])
-        wse_r_u = np.concatenate([river_reach.wse_r_u, wse_r_u])
-        mask = np.concatenate([river_reach.mask, mask])
-        this_len = len(river_reach.wse)
+        if self.bayes_slope_use_all_nodes:
+            # add unpopulated nodes for current reach
+            this_hh, this_wse_r_u, this_mask = \
+                self.add_unpopulated_nodes(river_reach)
+            this_ss, this_p_wse = \
+                river_reach.prior_node_ss, river_reach.p_wse_all
+        else:
+            # use populated nodes only
+            this_hh, this_wse_r_u, this_mask, this_ss, this_p_wse = \
+                river_reach.wse, river_reach.wse_r_u,\
+                river_reach.mask, river_reach.node_ss, river_reach.p_wse
+
+        ss = np.concatenate([this_ss, ss+prior_s[-1]])
+        p_wse = np.concatenate([this_p_wse, p_wse])
+        wse = np.concatenate([this_hh, wse])
+        wse_r_u = np.concatenate([this_wse_r_u, wse_r_u])
+        mask = np.concatenate([this_mask, mask])
+        this_len = len(this_ss)
 
         # if downstream PRD reach is usable
         if prd_is_good[-1]:
@@ -2619,6 +2678,7 @@ class SWOTRiverEstimator(SWOTL2):
             ss,
             wse,
             wse_r_u,
+            mask,
             min_fit_points=2,
             prior_cov_method='exponential',
             full_noise_cov=False,
@@ -2632,23 +2692,21 @@ class SWOTRiverEstimator(SWOTL2):
                       quantities already computed
         ireach : int
             Index in the list of reaches extracted for this scene.
+        ss         : Node-level distance from prior database
         wse        : Measured Node wse (with masked values for missing nodes)
         wse_r_u    : Node-wise random wse uncertainty
-        ss         : Node-level distance from prior database
         mask       : True if node-level height is good, False where it is bad
         Options:
-        method = Bayes
-           Bayes        : Bayes estimate of wse given prior and
-                          prior_cov method.
+        prior_cov_method : independent, exponential
+                           This option controls how spatial structure is
+                           imposed by the prior.
         full_noise_cov : True, or False
                          This option sets the noise covariance and the sampling
                          operator to assume that all nodes are observed (but
                          weighted appropriately for the unobserved nodes).
-        prior_wse : The mean wse of the prior we want to impose (defaults to
-                    the weighted linear fit to reach if there is no input)
-        prior_cov_method : independent, exponential
-                           This option controls how spatial structure is
-                           imposed by the prior.
+        method = Bayes
+           Bayes        : Bayes estimate of wse given prior and
+                          prior_cov method.
         """
 
         if self.use_multiple_reaches:
@@ -2678,7 +2736,10 @@ class SWOTRiverEstimator(SWOTL2):
                 pass
             else:
                 # get prior wse from PRD
-                prior_wse = river_reach.p_wse
+                if self.bayes_slope_use_all_nodes:
+                    prior_wse = river_reach.p_wse_all
+                else:
+                    prior_wse = river_reach.p_wse
         else:
             raise Exception('Prior wse method %s is not an implemented option '
                             'for the reconstruction' % self.prior_wse_method)
