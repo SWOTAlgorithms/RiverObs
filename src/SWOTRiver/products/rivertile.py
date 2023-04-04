@@ -338,8 +338,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
         # add missing reaches and nodes
         for reach, reach_id in zip(prd_reaches, prd_reaches.reach_idx):
 
-            # skip ghost reaches
-            if reach_id % 10 == 6:
+            # skip ghost reaches and reaches with only one node
+            if reach_id % 10 == 6 or len(reach.x) == 1:
                 continue
 
             # check for missing nodes

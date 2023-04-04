@@ -1061,8 +1061,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
 
-            # Filter out ghost reaches
-            if reach_idx % 10 == 6:
+            # Filter out ghost reaches and reaches with only one node
+            if reach_idx % 10 == 6 or len(self.reaches[ireach].x) == 1:
                 continue
 
             if len(river_obs.populated_nodes) > 0:
