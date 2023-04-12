@@ -512,65 +512,11 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         reach.metadata['p_low_slp'], -9999,
                         MISSING_VALUE_INT4))
 
-                reach_outputs['dschg_msf'] = np.append(
-                    reach_outputs['dschg_msf'], fill_if_was_fill(
-                        dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gmsf'] = np.append(
-                    reach_outputs['dschg_gmsf'], fill_if_was_fill(
-                        dsch_m_c['MetroMan']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_bsf'] = np.append(
-                    reach_outputs['dschg_bsf'], fill_if_was_fill(
-                        dsch_m_uc['BAM']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gbsf'] = np.append(
-                    reach_outputs['dschg_gbsf'], fill_if_was_fill(
-                        dsch_m_c['BAM']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_hsf'] = np.append(
-                    reach_outputs['dschg_hsf'], fill_if_was_fill(
-                        dsch_m_uc['HiVDI']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_ghsf'] = np.append(
-                    reach_outputs['dschg_ghsf'], fill_if_was_fill(
-                        dsch_m_c['HiVDI']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_osf'] = np.append(
-                    reach_outputs['dschg_osf'], fill_if_was_fill(
-                        dsch_m_uc['MOMMA']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gosf'] = np.append(
-                    reach_outputs['dschg_gosf'], fill_if_was_fill(
-                        dsch_m_c['MOMMA']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_ssf'] = np.append(
-                    reach_outputs['dschg_ssf'], fill_if_was_fill(
-                        dsch_m_uc['SADS']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gssf'] = np.append(
-                    reach_outputs['dschg_gssf'], fill_if_was_fill(
-                        dsch_m_c['SADS']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_isf'] = np.append(
-                    reach_outputs['dschg_isf'], fill_if_was_fill(
-                        dsch_m_uc['SIC4DVar']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gisf'] = np.append(
-                    reach_outputs['dschg_gisf'], fill_if_was_fill(
-                        dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
                 # Discharge keywords for variables computed in RiverTile
                 DSCHG_KEYS_TO_FILL = [
                     'dschg' + a + b + c for a in ['_', '_g']
-                    for b in ['m', 'b', 'h', 'o', 's', 'i']
-                    for c in ['', '_u', '_q']]
+                    for b in ['m', 'b', 'h', 'o', 's', 'i', 'c']
+                    for c in ['', '_u', '_q', 'sf']]
                 for key in DSCHG_KEYS_TO_FILL:
                     missing_value = (MISSING_VALUE_INT4 if key.endswith('_q')
                         else MISSING_VALUE_FLT)
@@ -4090,7 +4036,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                         'dschg_h', 'dschg_h_u', 'dschg_h_q', 'dschg_hsf',
                         'dschg_o', 'dschg_o_u', 'dschg_o_q', 'dschg_osf',
                         'dschg_s', 'dschg_s_u', 'dschg_s_q', 'dschg_ssf',
-                        'dschg_i', 'dschg_i_u', 'dschg_i_q', 'dschg_isf']:
+                        'dschg_i', 'dschg_i_u', 'dschg_i_q', 'dschg_isf',
+                        'dschg_c', 'dschg_c_u', 'dschg_csf', 'dschg_c_q']:
                 klass[key] = reach_outputs[key]
                 # generate key for gauge constrained quantities
                 contrained_key = key.replace('dschg_', 'dschg_g')

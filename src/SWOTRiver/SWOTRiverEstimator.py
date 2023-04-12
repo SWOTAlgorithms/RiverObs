@@ -2062,9 +2062,11 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['centerline_lat'] = reach.metadata['centerline_lat']
 
         # Compute discharge
+        # to-do: slope2 or slope
         discharge_model_values = SWOTRiver.discharge.compute(
-            reach, reach_stats['height'], reach_stats['width'],
-            reach_stats['slope'])
+            reach, reach_stats['height'], reach_stats['height_u'],
+            reach_stats['width'], reach_stats['width_u'],
+            reach_stats['slope'], reach_stats['slope_u'])
 
         # add fit_height for improved geolocation
         if reach_stats['slope'] != MISSING_VALUE_FLT:
@@ -2118,32 +2120,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
-
-        reach_stats['dschg_msf'] = fill_if_was_fill(
-            dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_bsf'] = fill_if_was_fill(
-            dsch_m_uc['BAM']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_hsf'] = fill_if_was_fill(
-            dsch_m_uc['HiVDI']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_osf'] = fill_if_was_fill(
-            dsch_m_uc['MOMMA']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_ssf'] = fill_if_was_fill(
-            dsch_m_uc['SADS']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_isf'] = fill_if_was_fill(
-            dsch_m_uc['SIC4DVar']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-
-        reach_stats['dschg_gmsf'] = fill_if_was_fill(
-            dsch_m_c['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gbsf'] = fill_if_was_fill(
-            dsch_m_c['BAM']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_ghsf'] = fill_if_was_fill(
-            dsch_m_c['HiVDI']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gosf'] = fill_if_was_fill(
-            dsch_m_c['MOMMA']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gssf'] = fill_if_was_fill(
-            dsch_m_c['SADS']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gisf'] = fill_if_was_fill(
-            dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
 
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)
