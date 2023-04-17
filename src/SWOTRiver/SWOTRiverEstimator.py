@@ -1053,7 +1053,7 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.add_obs('yo', river_obs.yobs)
             river_obs.load_nodes(['xo', 'yo'])
 
-        # Iterate through and only return reaches with no pixels in them.
+        # Iterate through and only return reaches with pixels in them.
         # (don't iterate and modify!)
         river_obs_list_out = []
         reach_idx_list_out = []
@@ -1084,10 +1084,14 @@ class SWOTRiverEstimator(SWOTL2):
         river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
             scalar_max_width, minobs, use_width_db, ds)
 
+        # Iterate through and only return reaches with pixels in them.
+        river_obs_list_out = []
+        reach_idx_list_out = []
+        ireach_list_out = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
             # Only keep pixels which were assigned with the larger extreme
-            # distance, and which are also in the smaller extremem distance
+            # distance, and which are also in the smaller extreme distance
             # when scaled by ext_dist_coef. This code replicates the logic
             # in RiverObs.flag_out_channel_and_label method.
             max_distance = (
@@ -1124,7 +1128,12 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.add_obs('yo', river_obs.yobs)
             river_obs.load_nodes(['xo', 'yo'])
 
-        return river_obs_list, reach_idx_list, ireach_list
+            if len(river_obs.populated_nodes) > 0:
+                river_obs_list_out.append(river_obs)
+                reach_idx_list_out.append(reach_idx)
+                ireach_list_out.append(ireach)
+
+        return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
     def process_node(self,
                      reach,
