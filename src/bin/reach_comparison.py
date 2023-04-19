@@ -38,7 +38,7 @@ from collections import namedtuple
 
 def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
                     truth_rivertile, pge, truth_basedir=None, truth_only=False,
-                    scene_filter=None):
+                    scene_filter=None, pixc_systematic_errors_basename=None):
     # get all pixc files 'rivertile.nc' and find associated truth file
     missing_truth_count = 0
     if truth_only:
@@ -51,9 +51,17 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
     else:
         if pge:
             # Filenames have different format due to using PGE stand in
-            proc_rivertile_list = glob.glob(
-                os.path.join(basedir, '*', '*', slc_dir, pixc_dir,
-                             proc_rivertile, 'river_data', '*RiverTile*.nc'))
+            if pixc_systematic_errors_basename is not None:
+                proc_rivertile_list = glob.glob(
+                    os.path.join(basedir, '*', '*', slc_dir, pixc_dir,
+                                 pixc_systematic_errors_basename,
+                                 proc_rivertile, 'river_data',
+                                 '*RiverTile*.nc'))
+            else:
+                proc_rivertile_list = glob.glob(
+                    os.path.join(basedir, '*', '*', slc_dir, pixc_dir,
+                                 proc_rivertile, 'river_data',
+                                 '*RiverTile*.nc'))
         else:
             proc_rivertile_list = glob.glob(os.path.join(basedir, '*', '*',
                                                          slc_dir,
@@ -70,7 +78,7 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
     for index, rivertile in enumerate(proc_rivertile_list):
         truth_file = get_truth_file(
             proc_rivertile, pixc_dir, rivertile, truth_rivertile, basedir,
-            truth_basedir, truth_only)
+            truth_basedir, truth_only, pixc_systematic_errors_basename)
         if os.path.exists(truth_file):
             truth_rivertile_list.append(truth_file)
         else:
@@ -84,14 +92,20 @@ def get_input_files(basedir, slc_dir, pixc_dir, proc_rivertile,
 
 
 def get_truth_file(proc_dir, pixc_dir, proc_rivertile, truth_rivertile,
-                   basedir, truth_basedir=None, truth_only=False):
+                   basedir, truth_basedir=None, truth_only=False,
+                   pixc_systematic_errors_basename=None):
     proc_file_parts = proc_rivertile.split('/')
     if truth_only:
         n_char = len(proc_dir) + 1 + len(proc_file_parts[-1] + '/'
                                          + proc_file_parts[-2])
     else:
-        n_char = len(proc_dir) + len(pixc_dir) + 1 \
-                 + len(proc_file_parts[-1] + '/' + proc_file_parts[-2]) + 1
+        if pixc_systematic_errors_basename is not None:
+            n_char = len(proc_dir) + len(pixc_dir) + 1 \
+                     + len(proc_file_parts[-1] + '/' + proc_file_parts[-2]
+                           + '/' + proc_file_parts[-4]) + 1
+        else:
+            n_char = len(proc_dir) + len(pixc_dir) + 1 \
+                     + len(proc_file_parts[-1] + '/' + proc_file_parts[-2]) + 1
     path = proc_rivertile[0:-n_char]
     if truth_basedir:
         truth_path = proc_rivertile.replace(basedir, truth_basedir)[0:-n_char]
@@ -130,7 +144,9 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
     # Use existing analysis tools to obtain the node and reach level error
     # metrics and mask for the scientific requirement bounds.
     bad_scene = []
-
+    yukon_good_tiles = ['yukonflats_0358_035R',
+                        'yukonflats_0358_035L',
+                        'yukonflats_0515_274R']
     metrics = None
     truth = None
     data = None
@@ -159,6 +175,7 @@ def get_errors(rivertile_list, truth_list, test, truth_filter):
                                                            scene_nodes,
                                                            sig0,
                                                            bad_scene,
+                                                           yukon_good_tiles,
                                                            truth_filter)
                 if has_reach_data:
                     good_rivertile_list.append(rivertile_list[index])
@@ -224,13 +241,16 @@ def plot_worst_reaches(metrics, first_reach_index, rivertile_files,
                                                  reach, gdem_file, this_reach,
                                                  scene)
 
-            if out_dir is not None and os.path.isdir(out_dir):
+            if out_dir is not None:
+                # create the output directory folder if it does not already exist
+                if not os.path.isdir(out_dir):
+                    os.umask(0)
+                    os.makedirs(out_dir, 0o777)
                 ifig += 1
                 plt.savefig(out_dir + str(ifig) + '_' + str(scene) + '_' +
                             str(reach))
             else:
                 plt.show()
-
 
         except TypeError:
             print('couldn\'t make plot for', rivertile_file)
@@ -253,7 +273,8 @@ def sort_errors(metrics, sort_param, rivertile_files, truth_files):
     matched_truths = []
     for tile_index, tile_id in enumerate(metrics['scene_pass_tile']):
         for file_index, filename in enumerate(rivertile_files):
-            if tile_id[-8:] in filename:
+            scene_id = '/' + tile_id.split('_')[0]
+            if tile_id[-8:] in filename and scene_id in filename:
                 matched_rivertiles.append(filename)
                 matched_truths.append(truth_files[file_index])
                 break
@@ -337,6 +358,9 @@ def main():
                         help='Flag that signifies we are looking for '
                              'pge-generated files. These have different names '
                              'and require a flag to correctly be found.')
+    parser.add_argument('-se', '--pixc_systematic_errors_basename',
+                        help="pixc systematic errors basename", type=str,
+                        default=None)
     parser.add_argument('--out_dir', help='output directory for reach plots',
                         type=str, default=None)
 
@@ -357,7 +381,8 @@ def main():
                                             args.pge,
                                             args.truth_basedir,
                                             args.truth_only,
-                                            args.scene_filter)
+                                            args.scene_filter,
+                                            args.pixc_systematic_errors_basename)
 
     metrics, good_rivertile_list, good_truth_list = get_errors(
         proc_list, truth_list, args.test_boolean, args.truth_filter)
