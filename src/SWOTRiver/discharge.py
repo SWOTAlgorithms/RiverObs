@@ -338,6 +338,10 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
             outputs['dschg_csf'] = consensus_s_rel_u
             outputs['dschg_c_q'] = MISSING_VALUE_INT4
 
+    # Set dschg_q_b and dschg_gq_b (no algorithm implemented yet)
+    outputs['dschg_q_b'] = MISSING_VALUE_INT9
+    outputs['dschg_gq_b'] = MISSING_VALUE_INT9
+
     # populate the constrained height and width outputs
     if np.isnan(width_c) or np.isnan(height_c):
         outputs['width_c'] = MISSING_VALUE_FLT
