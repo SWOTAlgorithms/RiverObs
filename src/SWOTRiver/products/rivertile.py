@@ -3381,15 +3381,15 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 29624827],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'lon lat'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the discharge measurements.
-                    If this word is interpreted as an unsigned integer, a
-                    value of 0 indicates good data, values greater than 0 but
-                    less than 262144 represent suspect data, values greater
-                    than or equal to 262144 but less than 4194304 represent
-                    degraded data, and values greater than or equal to 4194304
-                    represent bad data.""")],
+                    Bitwise quality indicator for the consensus discharge 
+                    measurement. If this word is interpreted as an unsigned 
+                    integer, a value of 0 indicates good data, values greater 
+                    than 0 but less than 262144 represent suspect data, values 
+                    greater than or equal to 262144 but less than 4194304 
+                    represent degraded data, and values greater than or equal 
+                    to 4194304 represent bad data.""")],
                 ])],
         ['dschg_gq_b',
          odict([['dtype', 'i4'],
@@ -3430,15 +3430,16 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 29624827],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'lon lat'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the gauge constrained
-                    discharge measurements. If this word is interpreted as an
-                    unsigned integer, a value of 0 indicates good data, values
-                    greater than 0 but less than 262144 represent suspect data,
-                    values greater than or equal to 262144 but less than
-                    4194304 represent degraded data, and values greater than
-                    or equal to 4194304 represent bad data.""")],
+                    Bitwise quality indicator for the gauge-constrained 
+                    consensus discharge measurement. If this word is 
+                    interpreted as an unsigned integer, a value of 0 indicates 
+                    good data, values greater than 0 but less than 262144 
+                    represent suspect data, values greater than or equal to 
+                    262144 but less than 4194304 represent degraded data, and 
+                    values greater than or equal to 4194304 represent bad 
+                    data.""")],
                 ])],
 
         ['reach_q',
@@ -3502,7 +3503,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 508357774],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'lon lat'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Bitwise quality indicator for the reach measurements. If
                     this word is interpreted as an unsigned integer, a value of
@@ -3628,7 +3629,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
-                ['coordinates', 'lon lat'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Quality of the cross-over calibration. A value of 0
                     indicates a nominal measurement, 1 indicates a suspect
