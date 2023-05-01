@@ -239,6 +239,13 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
                             np.logical_not(data.nodes['area_total'].mask))
     node_id = data.nodes['node_id'][node_i]
     node_id = get_simple_node_id(node_id, reach_id)
+
+    area_detct = data.nodes['area_detct'][node_i]
+    area_total = data.nodes['area_total'][node_i]  # includes dark water pixels
+
+    axis.plot(node_id, area_detct, style, markersize=4, alpha=.5)
+    axis.plot(node_id, area_total, style, markersize=4, alpha=.5)
+
     if truth is not None:
         node_i_truth = np.logical_and(truth.nodes['reach_id'] == reach_id,
                                       np.logical_not(truth.nodes['wse'].mask))
@@ -246,12 +253,6 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.'):
         node_id_truth = get_simple_node_id(node_id_truth, reach_id)
         area_truth = truth.nodes['area_total'][node_i_truth]
         axis.plot(node_id_truth, area_truth, 'kx', markersize=2)
-
-    area_detct = data.nodes['area_detct'][node_i]
-    area_total = data.nodes['area_total'][node_i]  # includes dark water pixels
-
-    axis.plot(node_id, area_detct, style, markersize=4, alpha=.5)
-    axis.plot(node_id, area_total, style, markersize=4, alpha=.5)
 
     # add text with error summary
     left, width = .05, .5

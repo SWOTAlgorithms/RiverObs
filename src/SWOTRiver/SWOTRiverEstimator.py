@@ -1053,7 +1053,7 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.add_obs('yo', river_obs.yobs)
             river_obs.load_nodes(['xo', 'yo'])
 
-        # Iterate through and only return reaches with no pixels in them.
+        # Iterate through and only return reaches with pixels in them.
         # (don't iterate and modify!)
         river_obs_list_out = []
         reach_idx_list_out = []
@@ -1061,8 +1061,8 @@ class SWOTRiverEstimator(SWOTL2):
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
 
-            # Filter out ghost reaches
-            if reach_idx % 10 == 6:
+            # Filter out ghost reaches and reaches with only one node
+            if reach_idx % 10 == 6 or len(self.reaches[ireach].x) == 1:
                 continue
 
             if len(river_obs.populated_nodes) > 0:
@@ -1084,10 +1084,14 @@ class SWOTRiverEstimator(SWOTL2):
         river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
             scalar_max_width, minobs, use_width_db, ds)
 
+        # Iterate through and only return reaches with pixels in them.
+        river_obs_list_out = []
+        reach_idx_list_out = []
+        ireach_list_out = []
         reach_zips = zip(river_obs_list, reach_idx_list, ireach_list)
         for river_obs, reach_idx, ireach in reach_zips:
             # Only keep pixels which were assigned with the larger extreme
-            # distance, and which are also in the smaller extremem distance
+            # distance, and which are also in the smaller extreme distance
             # when scaled by ext_dist_coef. This code replicates the logic
             # in RiverObs.flag_out_channel_and_label method.
             max_distance = (
@@ -1124,7 +1128,12 @@ class SWOTRiverEstimator(SWOTL2):
             river_obs.add_obs('yo', river_obs.yobs)
             river_obs.load_nodes(['xo', 'yo'])
 
-        return river_obs_list, reach_idx_list, ireach_list
+            if len(river_obs.populated_nodes) > 0:
+                river_obs_list_out.append(river_obs)
+                reach_idx_list_out.append(reach_idx)
+                ireach_list_out.append(ireach)
+
+        return river_obs_list_out, reach_idx_list_out, ireach_list_out
 
     def process_node(self,
                      reach,
@@ -2062,9 +2071,11 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['centerline_lat'] = reach.metadata['centerline_lat']
 
         # Compute discharge
+        # to-do: slope2 or slope
         discharge_model_values = SWOTRiver.discharge.compute(
-            reach, reach_stats['height'], reach_stats['width'],
-            reach_stats['slope'])
+            reach, reach_stats['height'], reach_stats['height_u'],
+            reach_stats['width'], reach_stats['width_u'],
+            reach_stats['slope'], reach_stats['slope_u'])
 
         # add fit_height for improved geolocation
         if reach_stats['slope'] != MISSING_VALUE_FLT:
@@ -2118,32 +2129,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
-
-        reach_stats['dschg_msf'] = fill_if_was_fill(
-            dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_bsf'] = fill_if_was_fill(
-            dsch_m_uc['BAM']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_hsf'] = fill_if_was_fill(
-            dsch_m_uc['HiVDI']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_osf'] = fill_if_was_fill(
-            dsch_m_uc['MOMMA']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_ssf'] = fill_if_was_fill(
-            dsch_m_uc['SADS']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_isf'] = fill_if_was_fill(
-            dsch_m_uc['SIC4DVar']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-
-        reach_stats['dschg_gmsf'] = fill_if_was_fill(
-            dsch_m_c['MetroMan']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gbsf'] = fill_if_was_fill(
-            dsch_m_c['BAM']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_ghsf'] = fill_if_was_fill(
-            dsch_m_c['HiVDI']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gosf'] = fill_if_was_fill(
-            dsch_m_c['MOMMA']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gssf'] = fill_if_was_fill(
-            dsch_m_c['SADS']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
-        reach_stats['dschg_gisf'] = fill_if_was_fill(
-            dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999, MISSING_VALUE_FLT)
 
         # Put in discharge_model_values into reach_stats for output
         reach_stats.update(discharge_model_values)

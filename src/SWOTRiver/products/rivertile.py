@@ -65,6 +65,21 @@ QUAL_IND_NO_AREA_PIX = 67108864                 # bit 26
 QUAL_IND_NO_WSE_PIX = 134217728                 # bit 27
 QUAL_IND_NO_OBS = 268435456                     # bit 28
 
+# Define constants for discharge quality bits
+DSCHG_REACH_QUAL_SUSPECT = 1                    # bit 0
+DSCHG_BIG_SLOPE_UNC = 2                         # bit 1
+DSCHG_METRO_DXA_BAD = 8                         # bit 3
+DSCHG_BAM_DXA_BAD = 16                          # bit 4
+DSCHG_HIVDI_DXA_BAD = 32                        # bit 5
+DSCHG_MOMMA_B_GT_MOMMA_H = 64                   # bit 6
+DSCHG_SADS_DXA_BAD = 128                        # bit 7
+DSCHG_SIC4DVAR_DXA_BAD = 256                    # bit 8
+DSCHG_INCOMPLETE_CONSENSUS = 2048               # bit 11
+DSCHG_REACH_QUAL_DEGRADED = 262144              # bit 18
+DSCHG_REACH_QUAL_BAD = 4194304                  # bit 22
+DSCHG_NO_DISCHARGE_OUTPUTS = 8388608            # bit 23
+DSCHG_NEGATIVE_SLOPE = 16777216                 # bit 24
+
 # Node degraded/bad threshold values
 QUAL_IND_NODE_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
 QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_LAKE_FLAGGED
@@ -338,8 +353,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
         # add missing reaches and nodes
         for reach, reach_id in zip(prd_reaches, prd_reaches.reach_idx):
 
-            # skip ghost reaches
-            if reach_id % 10 == 6:
+            # skip ghost reaches and reaches with only one node
+            if reach_id % 10 == 6 or len(reach.x) == 1:
                 continue
 
             # check for missing nodes
@@ -512,68 +527,19 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         reach.metadata['p_low_slp'], -9999,
                         MISSING_VALUE_INT4))
 
-                reach_outputs['dschg_msf'] = np.append(
-                    reach_outputs['dschg_msf'], fill_if_was_fill(
-                        dsch_m_uc['MetroMan']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gmsf'] = np.append(
-                    reach_outputs['dschg_gmsf'], fill_if_was_fill(
-                        dsch_m_c['MetroMan']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_bsf'] = np.append(
-                    reach_outputs['dschg_bsf'], fill_if_was_fill(
-                        dsch_m_uc['BAM']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gbsf'] = np.append(
-                    reach_outputs['dschg_gbsf'], fill_if_was_fill(
-                        dsch_m_c['BAM']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_hsf'] = np.append(
-                    reach_outputs['dschg_hsf'], fill_if_was_fill(
-                        dsch_m_uc['HiVDI']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_ghsf'] = np.append(
-                    reach_outputs['dschg_ghsf'], fill_if_was_fill(
-                        dsch_m_c['HiVDI']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_osf'] = np.append(
-                    reach_outputs['dschg_osf'], fill_if_was_fill(
-                        dsch_m_uc['MOMMA']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gosf'] = np.append(
-                    reach_outputs['dschg_gosf'], fill_if_was_fill(
-                        dsch_m_c['MOMMA']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_ssf'] = np.append(
-                    reach_outputs['dschg_ssf'], fill_if_was_fill(
-                        dsch_m_uc['SADS']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gssf'] = np.append(
-                    reach_outputs['dschg_gssf'], fill_if_was_fill(
-                        dsch_m_c['SADS']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
-                reach_outputs['dschg_isf'] = np.append(
-                    reach_outputs['dschg_isf'], fill_if_was_fill(
-                        dsch_m_uc['SIC4DVar']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-                reach_outputs['dschg_gisf'] = np.append(
-                    reach_outputs['dschg_gisf'], fill_if_was_fill(
-                        dsch_m_c['SIC4DVar']['sbQ_rel'].item(), -9999,
-                        MISSING_VALUE_FLT))
-
                 # Discharge keywords for variables computed in RiverTile
                 DSCHG_KEYS_TO_FILL = [
                     'dschg' + a + b + c for a in ['_', '_g']
-                    for b in ['m', 'b', 'h', 'o', 's', 'i']
-                    for c in ['', '_u', '_q']]
+                    for b in ['m', 'b', 'h', 'o', 's', 'i', 'c']
+                    for c in ['', '_u', '_q', 'sf']]
+                DSCHG_KEYS_TO_FILL += ['dschg_q_b', 'dschg_gq_b']
                 for key in DSCHG_KEYS_TO_FILL:
-                    missing_value = (MISSING_VALUE_INT4 if key.endswith('_q')
-                        else MISSING_VALUE_FLT)
+                    if key.endswith('_q'):
+                        missing_value = MISSING_VALUE_INT4
+                    elif key.endswith('q_b'):
+                        missing_value = MISSING_VALUE_INT9
+                    else:
+                        missing_value = MISSING_VALUE_FLT
                     reach_outputs[key] = np.append(
                         reach_outputs[key], missing_value)
 
@@ -3377,6 +3343,105 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     the gauge-constrained SIC4DVar discharge is valid,
                     questionable, and invalid, respectively.""")],
                 ])],
+        ['dschg_q_b',
+         odict([['dtype', 'i4'],
+                ['long_name', textjoin("""
+                    bitwise quality indicator for discharge""")],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_qual_bitwise'],
+                ['flag_meanings', textjoin("""
+                    reach_qual_suspect
+                    big_slope_unc
+                    metro_dxa_bad
+                    bam_dxa_bad
+                    hivdi_dxa_bad
+                    momma_b_gt_momma_h
+                    sads_dxa_bad
+                    sic4dvar_dxa_bad
+                    incomplete_consensus
+                    reach_qual_degraded
+                    reach_qual_bad
+                    no_discharge_outputs
+                    negative_slope""")],
+                ['flag_masks', np.array([
+                    DSCHG_REACH_QUAL_SUSPECT,
+                    DSCHG_BIG_SLOPE_UNC,
+                    DSCHG_METRO_DXA_BAD,
+                    DSCHG_BAM_DXA_BAD,
+                    DSCHG_HIVDI_DXA_BAD,
+                    DSCHG_MOMMA_B_GT_MOMMA_H,
+                    DSCHG_SADS_DXA_BAD,
+                    DSCHG_SIC4DVAR_DXA_BAD,
+                    DSCHG_INCOMPLETE_CONSENSUS,
+                    DSCHG_REACH_QUAL_DEGRADED,
+                    DSCHG_REACH_QUAL_BAD,
+                    DSCHG_NO_DISCHARGE_OUTPUTS,
+                    DSCHG_NEGATIVE_SLOPE]).astype('i4')],
+                ['valid_min', 0],
+                ['valid_max', 29624827],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the consensus discharge 
+                    measurement. If this word is interpreted as an unsigned 
+                    integer, a value of 0 indicates good data, values greater 
+                    than 0 but less than 262144 represent suspect data, values 
+                    greater than or equal to 262144 but less than 4194304 
+                    represent degraded data, and values greater than or equal 
+                    to 4194304 represent bad data.""")],
+                ])],
+        ['dschg_gq_b',
+         odict([['dtype', 'i4'],
+                ['long_name', textjoin("""
+                    bitwise quality indicator for gauge-constrained
+                    discharge""")],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'discharge_gauge_constr_qual_bitwise'],
+                ['flag_meanings', textjoin("""
+                    reach_qual_suspect
+                    big_slope_unc
+                    metro_dxa_bad
+                    bam_dxa_bad
+                    hivdi_dxa_bad
+                    momma_b_gt_momma_h
+                    sads_dxa_bad
+                    sic4dvar_dxa_bad
+                    incomplete_consensus
+                    reach_qual_degraded
+                    reach_qual_bad
+                    no_discharge_outputs
+                    negative_slope""")],
+                ['flag_masks', np.array([
+                    DSCHG_REACH_QUAL_SUSPECT,
+                    DSCHG_BIG_SLOPE_UNC,
+                    DSCHG_METRO_DXA_BAD,
+                    DSCHG_BAM_DXA_BAD,
+                    DSCHG_HIVDI_DXA_BAD,
+                    DSCHG_MOMMA_B_GT_MOMMA_H,
+                    DSCHG_SADS_DXA_BAD,
+                    DSCHG_SIC4DVAR_DXA_BAD,
+                    DSCHG_INCOMPLETE_CONSENSUS,
+                    DSCHG_REACH_QUAL_DEGRADED,
+                    DSCHG_REACH_QUAL_BAD,
+                    DSCHG_NO_DISCHARGE_OUTPUTS,
+                    DSCHG_NEGATIVE_SLOPE]).astype('i4')],
+                ['valid_min', 0],
+                ['valid_max', 29624827],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the gauge-constrained 
+                    consensus discharge measurement. If this word is 
+                    interpreted as an unsigned integer, a value of 0 indicates 
+                    good data, values greater than 0 but less than 262144 
+                    represent suspect data, values greater than or equal to 
+                    262144 but less than 4194304 represent degraded data, and 
+                    values greater than or equal to 4194304 represent bad 
+                    data.""")],
+                ])],
+
         ['reach_q',
          odict([['dtype', 'i2'],
                 ['long_name', 'summary quality indicator for the reach'],
@@ -3438,7 +3503,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 508357774],
                 ['_FillValue', MISSING_VALUE_INT9],
                 ['tag_basic_expert', 'Expert'],
-                ['coordinates', 'lon lat'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Bitwise quality indicator for the reach measurements. If
                     this word is interpreted as an unsigned integer, a value of
@@ -3564,7 +3629,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
                 ['tag_basic_expert', 'Basic'],
-                ['coordinates', 'lon lat'],
+                ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Quality of the cross-over calibration. A value of 0
                     indicates a nominal measurement, 1 indicates a suspect
@@ -4090,7 +4155,9 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                         'dschg_h', 'dschg_h_u', 'dschg_h_q', 'dschg_hsf',
                         'dschg_o', 'dschg_o_u', 'dschg_o_q', 'dschg_osf',
                         'dschg_s', 'dschg_s_u', 'dschg_s_q', 'dschg_ssf',
-                        'dschg_i', 'dschg_i_u', 'dschg_i_q', 'dschg_isf']:
+                        'dschg_i', 'dschg_i_u', 'dschg_i_q', 'dschg_isf',
+                        'dschg_c', 'dschg_c_u', 'dschg_csf', 'dschg_c_q',
+                        'dschg_q_b']:
                 klass[key] = reach_outputs[key]
                 # generate key for gauge constrained quantities
                 contrained_key = key.replace('dschg_', 'dschg_g')
@@ -4157,8 +4224,11 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                         int(float(item)) for item in tmp.split(', ')])
 
             else:
-                data[key] = np.array([
-                    record['properties'][key] for record in records])
+                try:
+                    data[key] = np.array([
+                        record['properties'][key] for record in records])
+                except KeyError:
+                    LOGGER.warning('shapefile does not contain {}'.format(key))
 
         for key, value in data.items():
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
