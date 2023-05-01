@@ -398,8 +398,7 @@ class L2PixcToRiverTile(object):
                         SWOTRiver.products.rivertile.QUAL_IND_LAKE_FLAGGED)
 
                     # Ensure reach_q equals 3
-                    if self.reach_outputs['reach_q'][ireach] < 1:
-                        self.reach_outputs['reach_q'][ireach] == 3
+                    self.reach_outputs['reach_q'][ireach] = 3
 
                     mask = self.node_outputs['reach_indx'] == reach_id
                     self.node_outputs['w_area'][mask] = MISSING_VALUE_FLT
