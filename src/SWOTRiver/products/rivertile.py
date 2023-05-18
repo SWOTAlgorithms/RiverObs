@@ -505,6 +505,12 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                 reach_outputs['reach_q_b'] = np.append(
                     reach_outputs['reach_q_b'],
                     QUAL_IND_NO_AREA_PIX+QUAL_IND_NO_WSE_PIX+QUAL_IND_NO_OBS)
+                reach_outputs['dschg_q_b'] = np.append(
+                    reach_outputs['dschg_q_b'],
+                    DSCHG_REACH_QUAL_BAD+DSCHG_NO_DISCHARGE_OUTPUTS)
+                reach_outputs['dschg_gq_b'] = np.append(
+                    reach_outputs['dschg_gq_b'],
+                    DSCHG_REACH_QUAL_BAD+DSCHG_NO_DISCHARGE_OUTPUTS)
                 reach_outputs['xovr_cal_q'] = np.append(
                     reach_outputs['xovr_cal_q'], 2)
 
@@ -532,12 +538,9 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     'dschg' + a + b + c for a in ['_', '_g']
                     for b in ['m', 'b', 'h', 'o', 's', 'i', 'c']
                     for c in ['', '_u', '_q', 'sf']]
-                DSCHG_KEYS_TO_FILL += ['dschg_q_b', 'dschg_gq_b']
                 for key in DSCHG_KEYS_TO_FILL:
                     if key.endswith('_q'):
                         missing_value = MISSING_VALUE_INT4
-                    elif key.endswith('q_b'):
-                        missing_value = MISSING_VALUE_INT9
                     else:
                         missing_value = MISSING_VALUE_FLT
                     reach_outputs[key] = np.append(
@@ -4142,6 +4145,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['river_name'] = reach_outputs['river_name']
             klass['reach_q'] = reach_outputs['reach_q']
             klass['reach_q_b'] = reach_outputs['reach_q_b']
+            klass['dschg_q_b'] = reach_outputs['dschg_q_b']
+            klass['dschg_gq_b'] = reach_outputs['dschg_gq_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',

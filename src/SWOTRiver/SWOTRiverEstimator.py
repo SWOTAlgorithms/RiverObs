@@ -2070,13 +2070,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['centerline_lon'] = reach.metadata['centerline_lon']
         reach_stats['centerline_lat'] = reach.metadata['centerline_lat']
 
-        # Compute discharge
-        # to-do: slope2 or slope
-        discharge_model_values = SWOTRiver.discharge.compute(
-            reach, reach_stats['height'], reach_stats['height_u'],
-            reach_stats['width'], reach_stats['width_u'],
-            reach_stats['slope'], reach_stats['slope_u'])
-
         # add fit_height for improved geolocation
         if reach_stats['slope'] != MISSING_VALUE_FLT:
             river_reach.fit_height = (
@@ -2129,9 +2122,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
-
-        # Put in discharge_model_values into reach_stats for output
-        reach_stats.update(discharge_model_values)
 
         # Set reach_q_b
         # Start by bitwise OR-ing all the node_q_b of the good (non-outlier)
@@ -2199,6 +2189,16 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['reach_q'] = reach_q
         reach_stats['xovr_cal_q'] = max(
             river_reach.xovr_cal_q[mask], default=2)
+
+        # Compute discharge
+        # TODO: slope2 or slope
+        discharge_model_values = SWOTRiver.discharge.compute(
+            reach, reach_stats['height'], reach_stats['height_u'],
+            reach_stats['width'], reach_stats['width_u'],
+            reach_stats['slope'], reach_stats['slope_u'], reach_q)
+
+        # Put in discharge_model_values into reach_stats for output
+        reach_stats.update(discharge_model_values)
 
         river_reach.metadata = reach_stats
         return river_reach

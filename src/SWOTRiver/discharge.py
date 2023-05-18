@@ -4,12 +4,13 @@ Module for computing discharge for river reaches
 import numpy as np
 import warnings
 
+import SWOTRiver.products.rivertile
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 
 def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
-            reach_slope, reach_slope_u):
+            reach_slope, reach_slope_u, reach_q):
     """Computes the discharge models"""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -264,6 +265,68 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
             consensus_s_rel_u = MISSING_VALUE_FLT
             consensus_u = MISSING_VALUE_FLT
 
+        # Compute discharge bitwise quality flag
+        dschg_q_b = 0
+
+        # Bit 0 set if reach_q is suspect
+        if reach_q == 1:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_REACH_QUAL_SUSPECT
+
+        # Bit 1 set if relative slope unc > 0.4
+        if reach_slope_u/reach_slope > 0.4:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_BIG_SLOPE_UNC
+
+        # Bit 3 set if metro Abar plus the change in cross-sectional area is
+        # below zero.
+        if d_x_area+metro_Abar < 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_METRO_DXA_BAD
+
+        # Bit 4 set if bam Abar plus the change in cross-sectional area is
+        # below zero
+        if d_x_area+bam_Abar < 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_BAM_DXA_BAD
+
+        # Bit 5 set if hivdi Abar plus the change in cross-sectional area is
+        # below zero
+        if d_x_area+hivdi_Abar < 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_HIVDI_DXA_BAD
+
+        # Bit 6 set if momma parameter B is greater than momma parameter H
+        if momma_B > momma_H:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_MOMMA_B_GT_MOMMA_H
+
+        # Bit 7 set if sads Abar plus the change in cross-sectional area is
+        # below zero
+        if d_x_area+sads_Abar < 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_SADS_DXA_BAD
+
+        # Bit 8 set if sic4dvar Abar plus the change in cross-sectional area
+        # is below zero
+        if d_x_area+sic4dvar_Abar < 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_SIC4DVAR_DXA_BAD
+
+        # Bit 11 set if one or more of the discharge algorithm outputs is missing
+        if nalgo > 0 and nalgo != 6:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_INCOMPLETE_CONSENSUS
+
+        # Bit 18 set if reach_q is degraded
+        if reach_q == 2:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_REACH_QUAL_DEGRADED
+
+        # Bit 22 set if reach_q is bad
+        if reach_q == 3:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_REACH_QUAL_BAD
+
+        # Bit 23 set if no good discharge outputs for consensus discharge
+        # calculation
+        if nalgo == 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_NO_DISCHARGE_OUTPUTS
+
+        # Bit 24 set if reach has negative slope; discharge cannot be computed
+        # for any algorithm
+        if reach_slope < 0:
+            dschg_q_b |= SWOTRiver.products.rivertile.DSCHG_NEGATIVE_SLOPE
+
         # Note we have no algorithm yet for _q (qual)
         # discharge vars, they are set to missing_value.
         if key == 'constrained':
@@ -302,6 +365,8 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
             outputs['dschg_gcsf'] = consensus_s_rel_u
             outputs['dschg_gc_q'] = MISSING_VALUE_INT4
 
+            outputs['dschg_gq_b'] = dschg_q_b
+
         elif key == 'unconstrained':
             outputs['dschg_m'] = metro_q
             outputs['dschg_m_u'] = metro_u
@@ -338,9 +403,8 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
             outputs['dschg_csf'] = consensus_s_rel_u
             outputs['dschg_c_q'] = MISSING_VALUE_INT4
 
-    # Set dschg_q_b and dschg_gq_b (no algorithm implemented yet)
-    outputs['dschg_q_b'] = MISSING_VALUE_INT9
-    outputs['dschg_gq_b'] = MISSING_VALUE_INT9
+            outputs['dschg_q_b'] = dschg_q_b
+
 
     # populate the constrained height and width outputs
     if np.isnan(width_c) or np.isnan(height_c):
