@@ -27,7 +27,7 @@ from netCDF4 import Dataset
 from reach_comparison import *
 from SWOTRiver.products.rivertile import RiverTileNodes
 
-FIGSIZE = (6, 3)
+FIGSIZE = (8, 4)
 DPI = 200
 
 matplotlib.rcParams.update({'font.size': 6})
@@ -146,7 +146,7 @@ def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
     outlier_qual_mask = (node_q_b & wse_outlier_q_b) == wse_outlier_q_b
     axis.plot(node_p_dist[outlier_qual_mask],
               wse[outlier_qual_mask], 'mo',
-              markersize=3, label='outlier', zorder=11)
+              markersize=3, label='outlier')
 
     axis2 = axis.twiny()
     node_id = node_id - node_id[0] + 11  # no reach in node_id, for readability
@@ -154,6 +154,11 @@ def plot_wse(data, truth, errors, reach_id, axis, plot_slope2=True,
     axis2.cla()
     axis2.xaxis.get_offset_text().set_visible(False)
     axis2.set_xlabel('node id')
+
+    # plot the bitwise quality labels
+    for x, y, z in zip(node_p_dist, wse, node_q_b):
+        label = z
+        axis.text(x, y, label, fontsize=3)
 
     # plot the reach slope
     # reset around PRD center
