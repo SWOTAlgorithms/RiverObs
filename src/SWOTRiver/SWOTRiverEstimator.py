@@ -846,7 +846,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             # compute node mask to be used for reach aggregation
             ww = 1 / (river_reach.wse_r_u ** 2)
-            river_reach.mask = self.get_reach_mask(
+            river_reach.mask, river_reach.valid_wse_mask = self.get_reach_mask(
                 river_reach.node_ss, river_reach.wse, ww, min_fit_points)
 
             # Use node mask to set wse_outlier bit in node_q_b
@@ -2143,6 +2143,31 @@ class SWOTRiverEstimator(SWOTL2):
         # unset bit 9
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_SIG0_PIX
 
+        # overwrite bits 10 / 11, and set if more than half of observed nodes
+        # have QUAL_IND_FEW_AREA_PIX / QUAL_IND_FEW_WSE_PIX set
+        nodes_have_few_area_pix = (
+            river_reach.node_q_b[river_reach.valid_wse_mask] &
+            SWOTRiver.products.rivertile.QUAL_IND_FEW_AREA_PIX > 0)
+        nodes_have_few_wse_pix = (
+            river_reach.node_q_b[river_reach.valid_wse_mask] &
+            SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX > 0)
+
+        num_valid_wse_nodes = river_reach.valid_wse_mask.sum()
+        if num_valid_wse_nodes > 0:
+            frac_few_area_pix = sum(nodes_have_few_area_pix)/num_valid_wse_nodes
+            frac_few_wse_pix = sum(nodes_have_few_wse_pix)/num_valid_wse_nodes
+        else:
+            frac_few_area_pix = 0
+            frac_few_wse_pix = 0
+
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_AREA_PIX
+        if frac_few_area_pix >= 0.5:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_FEW_AREA_PIX
+
+        reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX
+        if frac_few_wse_pix >= 0.5:
+            reach_q_b |= SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX
+
         # unset bit 15 / re-set it with partially_observed
         reach_q_b &= ~SWOTRiver.products.rivertile.QUAL_IND_PARTIAL_OBS
         if reach_stats['frac_obs'] < 0.5:
@@ -2202,117 +2227,6 @@ class SWOTRiverEstimator(SWOTL2):
 
         river_reach.metadata = reach_stats
         return river_reach
-
-    def flag_outliers(self, wse, flow_dist, weights, mask):
-        """
-        Flag wse outliers within a reach using iterative WLS slope algorithm
-        wse: node wse
-        flow_dist: node flow distance
-        mask: overall mask that wse and flow_dist are subset using
-
-        valid methods: ['iterative_linear', 'piecewise_linear']
-
-        iterative_linear outlier flagging method uses these class attributes:
-        - self.outlier_abs_thresh: absolute threshold, default 2[m]
-        - self.outlier_rel_thresh: relative threshold, default 68% percentile
-        - self.outlier_upr_thresh: upper limit, i.e. what percent of nodes are
-                                   kept at the last iteration, default 80%
-        - self.outlier_iter_num:   number of iterations
-
-        piecewise_linear outlier flagging method uses these class attributes:
-        - self.outlier_abs_thresh:       absolute threshold, default 1.5[m]
-        - self.outlier_upr_thresh:       upper limit, i.e. what percent of
-                                         nodes are kept at the last iteration,
-                                         default 80%
-        - self.outlier_breakpoint_min_dist: Minimum distance between
-                                            breakpoints, as a proportion of the
-                                            input data range, default 0.1
-        - self.outlier_edge_min_dist:    Minimum distance from edge to a
-                                         breakpoint, as a proportion of the
-                                         input data range, default 0.1
-        - self.outlier_n_boot:           The number of times to run the
-                                         bootstrap restarting, positive int,
-                                         default 10
-        - self.outlier_iter_num:         Maximum iterations of Muggeo
-                                         algorithms if not converged,
-                                         positive int, default 30
-        For more information of the piecewise linear fit:
-        https://github.com/chasmani/piecewise-regression
-
-        Three of the parameters below are used in both of the outlier flagging
-        algorithms:
-        - outlier_abs_thresh
-        - outlier_upr_thresh
-        - outlier_iter_num
-
-        outputs: returns the input mask array, further subset using the
-                 outlier flagging method.
-        """
-        if self.outlier_method == 'iterative_linear':
-            # initial fit OLS
-            fit = statsmodels.api.OLS(wse, flow_dist).fit()
-            r_slp = fit.params[0]
-            r_wse = fit.params[1]
-            wse_fit = r_wse + r_slp * flow_dist[:, 0]
-
-            for i in range(self.outlier_iter_num):
-                metric = abs(wse_fit - wse)
-                metric_one_sigma = np.percentile(
-                    metric, self.outlier_rel_thresh)
-                upr_threshs = np.zeros(self.outlier_iter_num)
-                upr_threshs[-1] = self.outlier_upr_thresh
-                frac_keep = np.percentile(metric, upr_threshs[i])
-                icond = np.logical_or(metric < self.outlier_abs_thresh,
-                                      metric < metric_one_sigma)
-
-                if sum(icond) / len(metric) * 100 <= upr_threshs[i]:
-                    current_ind = metric < frac_keep
-                else:
-                    current_ind = icond
-                if i == self.outlier_iter_num - 1 and all(np.isfinite(weights)):
-                    # last iteration use WLS
-                    fit = statsmodels.api.WLS(wse[current_ind],
-                                              flow_dist[current_ind],
-                                              weights=weights[current_ind]).fit()
-                    r_slp = fit.params[0]
-                    r_wse = fit.params[1]
-                else:
-                    fit = statsmodels.api.OLS(wse[current_ind],
-                                              flow_dist[current_ind]).fit()
-                    r_slp = fit.params[0]
-                    r_wse = fit.params[1]
-
-                wse_fit = r_wse + r_slp * flow_dist[:, 0]
-            mask[mask] = current_ind
-            
-        elif self.outlier_method == 'piecewise_linear':
-            current_ind = None
-            # at least to have 10 node (2km) to run piecewise linear
-            if len(wse) > 10:
-                break_num = int(np.floor(len(wse)/10)-1)
-                while current_ind is None and break_num >=1:
-                    current_ind = self.piecewise_linear(flow_dist[:, 0],
-                                                        wse,
-                                                        break_num)
-                    break_num -= 1
-
-            if current_ind is None:
-                fit = statsmodels.api.OLS(wse, flow_dist).fit()
-                wse_fit = fit.params[1] + fit.params[0] * flow_dist[:, 0]
-                metric = abs(wse_fit - wse)
-                metric_upr_thresh = np.percentile(
-                    metric, self.outlier_upr_thresh)
-                if self.outlier_abs_thresh < metric_upr_thresh:
-                    current_ind = metric < metric_upr_thresh
-                else: current_ind = metric < self.outlier_abs_thresh
-            mask[mask] = current_ind
-
-        else:
-            raise NotImplementedError(
-                'Outlier flagging method %s is not supported!'%
-                self.outlier_method)
-
-        return mask
 
     def create_index_file(self):
         """Initializes the pixel cloud vector file"""
@@ -2470,11 +2384,18 @@ class SWOTRiverEstimator(SWOTL2):
         Mask each node in an input reach based on whether or not it has a valid
         wse. Then mask for node-level wse outliers, if self.outlier_method is
         set. Returns a numpy array where good nodes are 1 and bad nodes are 0.
-        :param ss: along-reach distance for each node
-        :param hh: height of each node
-        :param ww: weights for each node height, to use in outlier flagging
-        :param min_fit_points: minimum number of points needed to flag outliers
-        :return: reach mask where good nodes are 1 and bad nodes are 0
+
+        Inputs:
+            :param ss: along-reach distance for each node
+            :param hh: height of each node
+            :param ww: weights for each node height, to use in outlier
+                flagging
+            :param min_fit_points: minimum number of points needed to flag
+                outliers
+        Outputs:
+            :mask: reach mask where good nodes are 1 and bad nodes are 0
+            :valid_wse_mask: reach mask where nodes with valid wse are 1,
+                is the same as mask if outlier_method is None
         """
         mask = np.logical_and(hh > MIN_VALID_WSE, hh < MAX_VALID_WSE)
         if (ww[mask] == 0).any():
@@ -2482,14 +2403,130 @@ class SWOTRiverEstimator(SWOTL2):
                 "get_reach_mask: Removing invalid wse_r_u (Inf) values!")
             mask = np.logical_and(mask, ww > 0)
 
+        # Keep a copy of the valid WSE mask before outlier removal
+        valid_wse_mask = mask.copy()
+
         if self.outlier_method is not None and mask.sum() > min_fit_points:
             SS = np.c_[ss, np.ones(len(ss), dtype=ss.dtype)]
             mask = self.flag_outliers(hh[mask], SS[mask], ww[mask], mask)
 
         elif self.outlier_method is not None and mask.sum() <= min_fit_points:
             mask = np.zeros(len(hh), dtype=bool)
-        return mask
+        return mask, valid_wse_mask
 
+    def flag_outliers(self, wse, flow_dist, weights, input_mask):
+        """
+        Flag wse outliers within a reach using iterative WLS slope algorithm
+        wse: node wse
+        flow_dist: node flow distance
+        mask: overall mask that wse and flow_dist are subset using
+
+        valid methods: ['iterative_linear', 'piecewise_linear']
+
+        iterative_linear outlier flagging method uses these class attributes:
+        - self.outlier_abs_thresh: absolute threshold, default 2[m]
+        - self.outlier_rel_thresh: relative threshold, default 68% percentile
+        - self.outlier_upr_thresh: upper limit, i.e. what percent of nodes are
+                                   kept at the last iteration, default 80%
+        - self.outlier_iter_num:   number of iterations
+
+        piecewise_linear outlier flagging method uses these class attributes:
+        - self.outlier_abs_thresh:       absolute threshold, default 1.5[m]
+        - self.outlier_upr_thresh:       upper limit, i.e. what percent of
+                                         nodes are kept at the last iteration,
+                                         default 80%
+        - self.outlier_breakpoint_min_dist: Minimum distance between
+                                            breakpoints, as a proportion of the
+                                            input data range, default 0.1
+        - self.outlier_edge_min_dist:    Minimum distance from edge to a
+                                         breakpoint, as a proportion of the
+                                         input data range, default 0.1
+        - self.outlier_n_boot:           The number of times to run the
+                                         bootstrap restarting, positive int,
+                                         default 10
+        - self.outlier_iter_num:         Maximum iterations of Muggeo
+                                         algorithms if not converged,
+                                         positive int, default 30
+        For more information of the piecewise linear fit:
+        https://github.com/chasmani/piecewise-regression
+
+        Three of the parameters below are used in both of the outlier flagging
+        algorithms:
+        - outlier_abs_thresh
+        - outlier_upr_thresh
+        - outlier_iter_num
+
+        outputs: returns a copy of the input mask array, further subset using
+                 the outlier flagging method.
+        """
+        # Copy input_mask to mask (will be returned as output)
+        mask = input_mask.copy()
+
+        if self.outlier_method == 'iterative_linear':
+            # initial fit OLS
+            fit = statsmodels.api.OLS(wse, flow_dist).fit()
+            r_slp = fit.params[0]
+            r_wse = fit.params[1]
+            wse_fit = r_wse + r_slp * flow_dist[:, 0]
+
+            for i in range(self.outlier_iter_num):
+                metric = abs(wse_fit - wse)
+                metric_one_sigma = np.percentile(
+                    metric, self.outlier_rel_thresh)
+                upr_threshs = np.zeros(self.outlier_iter_num)
+                upr_threshs[-1] = self.outlier_upr_thresh
+                frac_keep = np.percentile(metric, upr_threshs[i])
+                icond = np.logical_or(metric < self.outlier_abs_thresh,
+                                      metric < metric_one_sigma)
+
+                if sum(icond) / len(metric) * 100 <= upr_threshs[i]:
+                    current_ind = metric < frac_keep
+                else:
+                    current_ind = icond
+                if i == self.outlier_iter_num - 1 and all(np.isfinite(weights)):
+                    # last iteration use WLS
+                    fit = statsmodels.api.WLS(wse[current_ind],
+                                              flow_dist[current_ind],
+                                              weights=weights[current_ind]).fit()
+                    r_slp = fit.params[0]
+                    r_wse = fit.params[1]
+                else:
+                    fit = statsmodels.api.OLS(wse[current_ind],
+                                              flow_dist[current_ind]).fit()
+                    r_slp = fit.params[0]
+                    r_wse = fit.params[1]
+
+                wse_fit = r_wse + r_slp * flow_dist[:, 0]
+            mask[mask] = current_ind
+            
+        elif self.outlier_method == 'piecewise_linear':
+            current_ind = None
+            # at least to have 10 node (2km) to run piecewise linear
+            if len(wse) > 10:
+                break_num = int(np.floor(len(wse)/10)-1)
+                while current_ind is None and break_num >=1:
+                    current_ind = self.piecewise_linear(flow_dist[:, 0],
+                                                        wse,
+                                                        break_num)
+                    break_num -= 1
+
+            if current_ind is None:
+                fit = statsmodels.api.OLS(wse, flow_dist).fit()
+                wse_fit = fit.params[1] + fit.params[0] * flow_dist[:, 0]
+                metric = abs(wse_fit - wse)
+                metric_upr_thresh = np.percentile(
+                    metric, self.outlier_upr_thresh)
+                if self.outlier_abs_thresh < metric_upr_thresh:
+                    current_ind = metric < metric_upr_thresh
+                else: current_ind = metric < self.outlier_abs_thresh
+            mask[mask] = current_ind
+
+        else:
+            raise NotImplementedError(
+                'Outlier flagging method %s is not supported!'%
+                self.outlier_method)
+
+        return mask
 
     @staticmethod
     def add_unpopulated_nodes(river_reach):
