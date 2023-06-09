@@ -1947,9 +1947,9 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}
 
     DIMENSIONS = odict([
-        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
+        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
-    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 1000]])
+    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 0]])
     DIMENSIONS_REACH_NEIGHBORS = odict([['reaches', 0], ['reach_neighbors', 4]])
     VARIABLES = odict([
         ['reach_id',
@@ -4168,8 +4168,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 contrained_key = key.replace('dschg_', 'dschg_g')
                 klass[contrained_key] = reach_outputs[contrained_key]
 
-            cl_lon = klass['centerline_lon'][:]
-            cl_lat = klass['centerline_lat'][:]
+            max_centerline_length = max(
+                [len(item) for item in reach_outputs['centerline_lon']])
+
+            cl_lon = MISSING_VALUE_FLT * np.ones(
+                [klass.dimensions['reaches'], max_centerline_length])
+            cl_lat = MISSING_VALUE_FLT * np.ones(
+                [klass.dimensions['reaches'], max_centerline_length])
             for ii in range(klass.dimensions['reaches']):
                 this_len = len(reach_outputs['centerline_lon'][ii])
                 cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
@@ -4203,7 +4208,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             records = list(ifp)
 
         cl_fill = klass.VARIABLES['centerline_lon']['_FillValue']
-        cl_len = klass.DIMENSIONS['centerlines']
+
+        try:
+            cl_len = max(
+                [len(record['geometry']['coordinates']) for record in records])
+        except ValueError:
+            # raised if empty list
+            cl_len = 0
 
         data = {}
         data['centerline_lon'] = np.ones([len(records), cl_len]) * cl_fill

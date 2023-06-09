@@ -12,6 +12,8 @@ from collections import OrderedDict as odict
 from SWOTWater.products.product import Product, FILL_VALUES, textjoin
 from SWOTRiver.products.rivertile import \
     L2HRRiverTile, RiverTileNodes, RiverTileReaches, RIVER_PRODUCT_ATTRIBUTES
+from RiverObs.RiverObs import \
+    MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 
 RIVERSP_ATTRIBUTES = copy.deepcopy(RIVER_PRODUCT_ATTRIBUTES)
 RIVERSP_ATTRIBUTES['short_name'] = {
@@ -96,10 +98,29 @@ class RiverSPReaches(RiverTileReaches):
         'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}
     def __add__(self, other):
         """Adds other to self"""
+        self_n_reaches, self_n_centerlines = self.centerline_lon.shape
+        other_n_reaches, other_n_centerlines = other.centerline_lon.shape
+        cl_len = max([self_n_centerlines, other_n_centerlines])
+
+        cl_lon = MISSING_VALUE_FLT * np.ones(
+            [self_n_reaches+other_n_reaches, cl_len])
+        cl_lat = MISSING_VALUE_FLT * np.ones(
+            [self_n_reaches+other_n_reaches, cl_len])
+
+        cl_lon[0:self_n_reaches, 0:self_n_centerlines] = self.centerline_lon
+        cl_lat[0:self_n_reaches, 0:self_n_centerlines] = self.centerline_lat
+        cl_lon[self_n_reaches:, 0:other_n_centerlines] = other.centerline_lon
+        cl_lat[self_n_reaches:, 0:other_n_centerlines] = other.centerline_lat
+
         klass = RiverSPReaches()
         for key in klass.VARIABLES:
-            setattr(klass, key, np.concatenate((
-                getattr(self, key), getattr(other, key))))
+            if key in ['centerline_lon', 'centerline_lat']:
+                value = {
+                    'centerline_lon': cl_lon, 'centerline_lat': cl_lat}[key]
+                setattr(klass, key, value)
+            else:
+                setattr(klass, key, np.concatenate((
+                    getattr(self, key), getattr(other, key))))
         return klass
 
 
