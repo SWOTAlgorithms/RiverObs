@@ -310,6 +310,21 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     L2_HR_PIXC file that is associated with the pixel. This
                     index starts counting from zero.""")],
                 ])],
+        ['lake_flag',
+         odict([['dtype', 'u1'],
+                ['long_name', 'lake flag'],
+                ['flag_meanings', textjoin("""
+                    river lake_or_reservoir canal river_under_tide""")],
+                ['flag_values', np.array([0, 1, 2, 3]).astype('u1')],
+                ['valid_min', 0],
+                ['valid_max', 3],
+                ['comment', textjoin("""
+                    Flag indicating the reach from the PRD.  0= Reach was
+                    flagged as belonging to a river. 1= Reach was flagged as
+                    belonging to a lake or reservoir. 2= Reach was flagged as
+                    being under the influence of a canal. 3= Reach was flagged
+                    as a river under the influence of tides.""")],
+                ])],
         ['segmentation_label',
          odict([['dtype', 'i4'],
                 ['long_name', 'segmentation label'],
