@@ -7,7 +7,7 @@ matplotlib==2.1.2
 Fiona==1.7.11
 pyproj==1.9.5.1
 GDAL==2.2.4
-scipy==1.0.0
+scipy==1.10.0
 PySAL==1.14.3
 Shapely==1.6.3
 statsmodels==0.8.0
