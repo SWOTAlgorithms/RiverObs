@@ -422,7 +422,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
 
-                    for key in ['nobs', 'nobs_h', 'node_blocked', 'n_good_pix']:
+                    for key in ['nobs', 'nobs_h', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
@@ -668,7 +668,7 @@ class ShapeWriterMixIn(object):
             ofp.write('  <global_attributes>\n')
             for key in self.ATTRIBUTES:
                 value = self[key]
-                if value is None or value is 'None':
+                if value is None or value == 'None':
                     value = ''
                 ofp.write('    <{}>{}</{}>\n'.format(key, value, key))
             ofp.write('  </global_attributes>\n')
@@ -784,7 +784,10 @@ class ShapeWriterMixIn(object):
                             this_property[key] = this_value
 
                     else:
-                        this_property[key] = this_item[ii].item()
+                        if isinstance(this_item[ii], np.integer):
+                            this_property[key] = int(this_item[ii])
+                        else:
+                            this_property[key] = this_item[ii]
 
                 if is_reach:
                     lons = self.centerline_lon[ii]

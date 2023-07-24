@@ -390,7 +390,7 @@ class SWOTRiverEstimator(SWOTL2):
         if np.ma.is_masked(self.lat):
             mask = self.lat.mask
         else:
-            mask = np.zeros(len(self.lat), dtype=np.bool)
+            mask = np.zeros(len(self.lat), dtype=bool)
         self.h_noise = self.get(height_kwd)
         if np.ma.is_masked(self.h_noise):
             mask = mask | self.h_noise.mask
@@ -473,7 +473,7 @@ class SWOTRiverEstimator(SWOTL2):
             try:
                 value = self.get(keyword)
                 # hack ifgram re/im parts into complex dtype
-                if dset_name is 'ifgram':
+                if dset_name == 'ifgram':
                     value = value[:,0] + 1j* value[:,1]
             except KeyError:
                 value = None
@@ -1283,7 +1283,7 @@ class SWOTRiverEstimator(SWOTL2):
             value = getattr(self, name)
             if value is not None:
                 dsets_to_load.append(name)
-                if name is 'looks_to_efflooks':
+                if name == 'looks_to_efflooks':
                     value = value + np.zeros(np.shape(self.lat))
                 self.river_obs.add_obs(name, value)
 
@@ -1450,7 +1450,7 @@ class SWOTRiverEstimator(SWOTL2):
             rdr_sig0 = node_aggs['sig0']
             rdr_sig0_u = node_aggs['sig0_u']
 
-            if self.area_agg_method is not 'orig':
+            if self.area_agg_method != 'orig':
 
                 width_area = node_aggs['width_area']
                 width_u = node_aggs['width_area_u']
@@ -1476,7 +1476,7 @@ class SWOTRiverEstimator(SWOTL2):
                 area_of_ht[~mask_good_sus_area] = node_aggs_w_degraded[
                     'area'][~mask_good_sus_area]
 
-            if self.height_agg_method is not 'orig':
+            if self.height_agg_method != 'orig':
                 wse = node_aggs['h']
                 wse[~mask_good_sus_wse] = node_aggs_w_degraded[
                     'h'][~mask_good_sus_wse]
@@ -2470,7 +2470,11 @@ class SWOTRiverEstimator(SWOTL2):
             wse_fit = r_wse + r_slp * flow_dist[:, 0]
 
             for i in range(self.outlier_iter_num):
+
                 metric = abs(wse_fit - wse)
+                if np.ma.isMaskedArray(metric):
+                    metric = metric.data
+
                 metric_one_sigma = np.percentile(
                     metric, self.outlier_rel_thresh)
                 upr_threshs = np.zeros(self.outlier_iter_num)
@@ -2513,7 +2517,11 @@ class SWOTRiverEstimator(SWOTL2):
             if current_ind is None:
                 fit = statsmodels.api.OLS(wse, flow_dist).fit()
                 wse_fit = fit.params[1] + fit.params[0] * flow_dist[:, 0]
+
                 metric = abs(wse_fit - wse)
+                if np.ma.isMaskedArray(metric):
+                    metric = metric.data
+
                 metric_upr_thresh = np.percentile(
                     metric, self.outlier_upr_thresh)
                 if self.outlier_abs_thresh < metric_upr_thresh:
@@ -2885,6 +2893,13 @@ class SWOTRiverEstimator(SWOTL2):
         ----------
         returns the input mask array
         """
+        # Remove masks from arrays if present before using quantile,
+        # percentile, ...etc
+        if np.ma.isMaskedArray(x):
+            x = x.data
+        if np.ma.isMaskedArray(y):
+            y = y.data
+
         # generate pseudo-random seeds for initial breakpoint start values
         seed = int((np.nanmean(y) - MIN_VALID_WSE)*1e6) % 2**32
         np.random.seed(seed)

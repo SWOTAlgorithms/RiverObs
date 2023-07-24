@@ -71,7 +71,7 @@ class RiverNode:
             setattr(self, key, value)
 
         self.ndata = len(self.x)
-        self.good = np.ones(self.ndata, dtype=np.bool)
+        self.good = np.ones(self.ndata, dtype=bool)
         self.sorted = False
         self.height_std_pix = None
 
@@ -263,7 +263,7 @@ class RiverNode:
 
         ntrim = int(self.ndata * fraction + 0.5)
 
-        self.trim_index = np.ones(self.ndata, dtype=np.bool)
+        self.trim_index = np.ones(self.ndata, dtype=bool)
 
         if mode == 'both':
             self.trim_index[:ntrim] = False

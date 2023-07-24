@@ -176,7 +176,13 @@ class RiverObs:
         if seg_label is not None and self.in_channel.any():
             class_mask = np.logical_and(self.in_channel, seg_label > 0)
             if class_mask.any():
-                dominant_label = scipy.stats.mode(seg_label[class_mask])[0][0]
+                try:
+                    dominant_label = scipy.stats.mode(
+                        seg_label[class_mask], keepdims=False)[0]
+                except TypeError:
+                    # Try previous syntax if TypeError raised (older scipy)
+                    dominant_label = scipy.stats.mode(
+                        seg_label[class_mask])[0][0]
                 self.dominant_label = dominant_label
 
                 # keep things already in channel as well as things in dominant

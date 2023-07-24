@@ -291,7 +291,7 @@ class L2PixcToRiverTile(object):
                 for reach_variable in reach_variables:
                     self.reach_outputs[reach_variable] = np.squeeze(np.array(
                         [reach.metadata[reach_variable] for reach in
-                         self.reach_collection]))
+                         self.reach_collection], dtype=object))
 
                 self.node_outputs['reach_idx'] = np.zeros(
                     self.node_outputs['lat'].shape).astype('int32')
