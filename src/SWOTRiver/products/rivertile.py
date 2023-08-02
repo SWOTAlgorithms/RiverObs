@@ -422,7 +422,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
 
-                    for key in ['nobs', 'nobs_h', 'node_blocked', 'n_good_pix']:
+                    for key in ['nobs', 'nobs_h', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
@@ -505,6 +505,12 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                 reach_outputs['reach_q_b'] = np.append(
                     reach_outputs['reach_q_b'],
                     QUAL_IND_NO_AREA_PIX+QUAL_IND_NO_WSE_PIX+QUAL_IND_NO_OBS)
+                reach_outputs['dschg_q_b'] = np.append(
+                    reach_outputs['dschg_q_b'],
+                    DSCHG_REACH_QUAL_BAD+DSCHG_NO_DISCHARGE_OUTPUTS)
+                reach_outputs['dschg_gq_b'] = np.append(
+                    reach_outputs['dschg_gq_b'],
+                    DSCHG_REACH_QUAL_BAD+DSCHG_NO_DISCHARGE_OUTPUTS)
                 reach_outputs['xovr_cal_q'] = np.append(
                     reach_outputs['xovr_cal_q'], 2)
 
@@ -532,12 +538,9 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     'dschg' + a + b + c for a in ['_', '_g']
                     for b in ['m', 'b', 'h', 'o', 's', 'i', 'c']
                     for c in ['', '_u', '_q', 'sf']]
-                DSCHG_KEYS_TO_FILL += ['dschg_q_b', 'dschg_gq_b']
                 for key in DSCHG_KEYS_TO_FILL:
                     if key.endswith('_q'):
                         missing_value = MISSING_VALUE_INT4
-                    elif key.endswith('q_b'):
-                        missing_value = MISSING_VALUE_INT9
                     else:
                         missing_value = MISSING_VALUE_FLT
                     reach_outputs[key] = np.append(
@@ -665,7 +668,7 @@ class ShapeWriterMixIn(object):
             ofp.write('  <global_attributes>\n')
             for key in self.ATTRIBUTES:
                 value = self[key]
-                if value is None or value is 'None':
+                if value is None or value == 'None':
                     value = ''
                 ofp.write('    <{}>{}</{}>\n'.format(key, value, key))
             ofp.write('  </global_attributes>\n')
@@ -781,7 +784,10 @@ class ShapeWriterMixIn(object):
                             this_property[key] = this_value
 
                     else:
-                        this_property[key] = this_item[ii].item()
+                        if isinstance(this_item[ii], np.integer):
+                            this_property[key] = int(this_item[ii])
+                        else:
+                            this_property[key] = this_item[ii]
 
                 if is_reach:
                     lons = self.centerline_lon[ii]
@@ -1944,9 +1950,9 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         'dtype': 'str', 'value': 'Reach', 'docstr': 'Reach'}
 
     DIMENSIONS = odict([
-        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 1000]])
+        ['reaches', 0], ['reach_neighbors', 4], ['centerlines', 0]])
     DIMENSIONS_REACHES = odict([['reaches', 0]])
-    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 1000]])
+    DIMENSIONS_CENTERLINES = odict([['reaches', 0], ['centerlines', 0]])
     DIMENSIONS_REACH_NEIGHBORS = odict([['reaches', 0], ['reach_neighbors', 4]])
     VARIABLES = odict([
         ['reach_id',
@@ -4142,6 +4148,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['river_name'] = reach_outputs['river_name']
             klass['reach_q'] = reach_outputs['reach_q']
             klass['reach_q_b'] = reach_outputs['reach_q_b']
+            klass['dschg_q_b'] = reach_outputs['dschg_q_b']
+            klass['dschg_gq_b'] = reach_outputs['dschg_gq_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
@@ -4163,8 +4171,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 contrained_key = key.replace('dschg_', 'dschg_g')
                 klass[contrained_key] = reach_outputs[contrained_key]
 
-            cl_lon = klass['centerline_lon'][:]
-            cl_lat = klass['centerline_lat'][:]
+            max_centerline_length = max(
+                [len(item) for item in reach_outputs['centerline_lon']])
+
+            cl_lon = MISSING_VALUE_FLT * np.ones(
+                [klass.dimensions['reaches'], max_centerline_length])
+            cl_lat = MISSING_VALUE_FLT * np.ones(
+                [klass.dimensions['reaches'], max_centerline_length])
             for ii in range(klass.dimensions['reaches']):
                 this_len = len(reach_outputs['centerline_lon'][ii])
                 cl_lon[ii, 0:this_len] = reach_outputs['centerline_lon'][ii]
@@ -4198,7 +4211,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             records = list(ifp)
 
         cl_fill = klass.VARIABLES['centerline_lon']['_FillValue']
-        cl_len = klass.DIMENSIONS['centerlines']
+
+        try:
+            cl_len = max(
+                [len(record['geometry']['coordinates']) for record in records])
+        except ValueError:
+            # raised if empty list
+            cl_len = 0
 
         data = {}
         data['centerline_lon'] = np.ones([len(records), cl_len]) * cl_fill

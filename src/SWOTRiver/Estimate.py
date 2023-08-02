@@ -291,7 +291,7 @@ class L2PixcToRiverTile(object):
                 for reach_variable in reach_variables:
                     self.reach_outputs[reach_variable] = np.squeeze(np.array(
                         [reach.metadata[reach_variable] for reach in
-                         self.reach_collection]))
+                         self.reach_collection], dtype=object))
 
                 self.node_outputs['reach_idx'] = np.zeros(
                     self.node_outputs['lat'].shape).astype('int32')
@@ -460,6 +460,16 @@ class L2PixcToRiverTile(object):
             np.ones(self.rivertile_product.nodes.rdr_pol.shape, dtype='S1')
         self.rivertile_product.nodes.rdr_pol[:] = pol[0]
 
+        # Add lake_flag from PRD to PIXCVecRiver product
+        with netCDF4.Dataset(self.index_file, 'a') as ofp:
+            pixc_reach = ofp.variables['reach_id'][:]
+
+            # make lake_flag dataset and fill with 255
+            ofp.variables['lake_flag'][:] = 255*np.ones(pixc_reach.shape)
+            if self.reach_outputs is not None:
+                for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
+                                            self.reach_outputs['lake_flag']):
+                    ofp.variables['lake_flag'][pixc_reach == reach] = lake_flag
 
 class CalValToRiverTile(L2PixcToRiverTile):
     """

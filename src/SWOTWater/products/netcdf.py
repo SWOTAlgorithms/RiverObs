@@ -52,7 +52,7 @@ def set_variable(
         if dtype == object:
             # assume that objects are strings
             dtype = str
-        if complevel is not None:
+        if complevel is not None and dtype.str[1] != 'U':
             if complevel not in range(1, 10):
                 raise Exception(
                     'Invalid complevel {} specified in _make_variable'.format(
