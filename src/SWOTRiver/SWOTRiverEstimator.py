@@ -2507,7 +2507,7 @@ class SWOTRiverEstimator(SWOTL2):
             current_ind = None
             # at least to have 10 node (2km) to run piecewise linear
             if len(wse) > 10:
-                break_num = int(np.floor(len(wse)/10)-1)
+                break_num = int(np.floor(len(wse)/10) - 1)
                 while current_ind is None and break_num >=1:
                     current_ind = self.piecewise_linear(flow_dist[:, 0],
                                                         wse,
@@ -2515,7 +2515,11 @@ class SWOTRiverEstimator(SWOTL2):
                     break_num -= 1
 
             if current_ind is None:
-                fit = statsmodels.api.OLS(wse, flow_dist).fit()
+                if all(np.isfinite(weights)):
+                    fit = statsmodels.api.WLS(wse, flow_dist,
+                                              weights=weights).fit()
+                else:
+                    fit = statsmodels.api.OLS(wse, flow_dist).fit()
                 wse_fit = fit.params[1] + fit.params[0] * flow_dist[:, 0]
 
                 metric = abs(wse_fit - wse)
@@ -2899,14 +2903,11 @@ class SWOTRiverEstimator(SWOTL2):
             x = x.data
         if np.ma.isMaskedArray(y):
             y = y.data
-
-        # generate pseudo-random seeds for initial breakpoint start values
-        seed = int((np.nanmean(y) - MIN_VALID_WSE)*1e6) % 2**32
-        np.random.seed(seed)
+            
         min_allowed_bp = np.quantile(x, self.outlier_edge_min_dist)
         max_allowed_bp = np.quantile(x, 1 - self.outlier_edge_min_dist)
-        start_values = np.random.uniform(
-            low=min_allowed_bp, high=max_allowed_bp, size=n_breakpoints)
+        start_values = np.linspace(
+            min_allowed_bp, max_allowed_bp, num=n_breakpoints)
         pw_fit = piecewise_regression.Fit(
             x, y, start_values=start_values,
             n_breakpoints=n_breakpoints,

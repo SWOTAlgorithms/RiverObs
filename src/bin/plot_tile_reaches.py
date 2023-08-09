@@ -21,20 +21,36 @@ import plot_reach
 
 def get_input_files(basedir, pixc_run_id, river_run_id,
                     cycles=None, passes=None, tiles=None):
-    rivertiles = glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
-                                     'SWOT_L2_HR_PIXC*/' +
-                                      pixc_run_id +
-                                     '/SWOT_L2_HR_RiverTile*/'
-                                     'SWOT_L2_HR_RiverTile*' + river_run_id +
-                                     '/SWOT_L2_HR_RiverTile*.nc',
-                           recursive=True)
-    pixcvecs = glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
-                                   'SWOT_L2_HR_PIXC*/' +
-                                   pixc_run_id +
-                                   '/SWOT_L2_HR_RiverTile*/'
-                                   'SWOT_L2_HR_RiverTile*' + river_run_id +
-                                   '/SWOT_L2_HR_PIXCVecRiver*.nc',
-                         recursive=True)
+    if 'fwd' in pixc_run_id:
+        rivertiles = glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
+                                         'SWOT_L2_HR_PIXC_*/'
+                                         '/SWOT_L2_HR_RiverTile*/'
+                                         'SWOT_L2_HR_RiverTile*' +
+                                         river_run_id +
+                                         '/SWOT_L2_HR_RiverTile*.nc',
+                               recursive=True)
+        pixcvecs = glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
+                                       'SWOT_L2_HR_PIXC*/' 
+                                       '/SWOT_L2_HR_RiverTile*/'
+                                       'SWOT_L2_HR_RiverTile*' + river_run_id +
+                                       '/SWOT_L2_HR_PIXCVecRiver_*.nc',
+                             recursive=True)
+    else:
+        rivertiles = glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
+                                         'SWOT_L2_HR_PIXC_*/' +
+                                          pixc_run_id +
+                                         '/SWOT_L2_HR_RiverTile*/'
+                                         'SWOT_L2_HR_RiverTile*' +
+                                         river_run_id +
+                                         '/SWOT_L2_HR_RiverTile*.nc',
+                               recursive=True)
+        pixcvecs = glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
+                                       'SWOT_L2_HR_PIXC*/' +
+                                       pixc_run_id +
+                                       '/SWOT_L2_HR_RiverTile*/'
+                                       'SWOT_L2_HR_RiverTile*' + river_run_id +
+                                       '/SWOT_L2_HR_PIXCVecRiver_*.nc',
+                             recursive=True)
 
     if len(rivertiles) == 0:
         raise Exception('No rivertile found, check input directory names')
@@ -47,17 +63,14 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
     for pixcvec, rivertile in zip(pixcvecs, rivertiles):
         file_parts = pixcvec.split('/')[-1].split('_')
         cycle, pass_id, tile = file_parts[4], file_parts[5], file_parts[6]
-        if cycles is None or cycle in cycles:
-            if passes is None or pass_id in passes:
-                if tiles is None or tile in tiles:
-                    pixcvecs_final.append(pixcvec)
-                    rivertiles_final.append(rivertile)
-                else:
-                    pass
-            else:
-                pass
-        else:
-            pass
+        if cycles is not None and cycle not in cycles:
+            continue
+        if passes is not None and pass_id not in passes:
+            continue
+        if tiles is not None and tile not in tiles:
+            continue
+        rivertiles_final.append(rivertile)
+        pixcvecs_final.append(pixcvec)
     if len(pixcvecs_final) == 0:
         raise Exception('No match files found')
     return rivertiles_final, pixcvecs_final
@@ -115,11 +128,13 @@ def main():
                                       truth_pixcvec, truth_pixc, reach_id,
                                       gdem_dem, reach_error, nodes, pixc_truth)
                 if out_dir is not None:
-                    if not os.path.isdir(out_dir):
+                    this_out_dir = f'{out_dir}/{args.pixc_run_id}/' \
+                                   f'{args.river_run_id}'
+                    if not os.path.isdir(this_out_dir):
                         os.umask(0)
-                        os.makedirs(out_dir, 0o777)
+                        os.makedirs(this_out_dir, 0o777)
                     plt.title(title, backgroundcolor='white')
-                    plt.savefig(out_dir + '/' + title)
+                    plt.savefig(this_out_dir + '/' + title)
                     plt.close()
                 else:
                     plt.title(title, backgroundcolor='white')
