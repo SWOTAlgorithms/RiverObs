@@ -5,6 +5,7 @@ import collections
 import scipy.stats
 import numpy as np
 import logging
+import warnings
 
 from Centerline import Centerline
 from RiverObs import RiverNode
@@ -277,8 +278,7 @@ class RiverObs:
                 'Observation size incompatible with initial observations')
 
         if self.max_width is not None and len(obs) == self.ndata:
-            #obs = obs[self.in_channel]
-            obs = np.asarray(obs)[self.in_channel]
+            obs = obs[self.in_channel]
         setattr(self, obs_name, obs)
 
     def obs_to_node(self, obs, node):
@@ -310,7 +310,7 @@ class RiverObs:
         if self.max_width is not None and len(obs) == self.ndata:
             obs = obs[self.in_channel]
 
-        return np.asarray(obs)[self.obs_to_node_map[node]]
+        return obs[self.obs_to_node_map[node]]
 
     def load_nodes(self, vars=[]):
         """Load the desired variables into each of the populated nodes.
@@ -418,7 +418,9 @@ class RiverObs:
 
         # Cast to arrays with fill values instead of NaNs
         for key in outputs:
-            outputs[key] = np.asarray(outputs[key])
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                outputs[key] = np.asarray(outputs[key])
             outputs[key][np.isnan(outputs[key])] = MISSING_VALUE_FLT
         return outputs
 

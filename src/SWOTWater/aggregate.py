@@ -34,7 +34,7 @@ def simple(in_var, metric='mean', pcnt=68):
         if metric == 'mean':
             out_var = np.mean(in_var)
         elif metric == 'median':
-            out_var = np.median(in_var)
+            out_var = np.ma.median(in_var)
         elif metric == 'sum':
             out_var = np.sum(in_var)
         elif metric == 'std':
@@ -246,14 +246,17 @@ def height_uncert_multilook(
     agg_dlon_dphi = simple(dlon_dphi[good]*weight_norm[good])
     agg_dlon_dphi2 = simple(dlon_dphi[good]**2*weight_norm[good])
 
-    height_uncert_out = np.sqrt(
-        phase_var) * np.abs(np.array(agg_dh_dphi2)/np.array(agg_dh_dphi))
-
-    lat_uncert_out = np.sqrt(
-        phase_var) * np.abs(np.array(agg_dlat_dphi2)/np.array(agg_dlat_dphi))
-
-    lon_uncert_out = np.sqrt(
-        phase_var) * np.abs(np.array(agg_dlon_dphi2)/np.array(agg_dlon_dphi))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        height_uncert_out = (
+            np.sqrt(phase_var) *
+            np.abs(np.array(agg_dh_dphi2)/np.array(agg_dh_dphi)))
+        lat_uncert_out = (
+            np.sqrt(phase_var) *
+            np.abs(np.array(agg_dlat_dphi2)/np.array(agg_dlat_dphi)))
+        lon_uncert_out = (
+            np.sqrt(phase_var) *
+            np.abs(np.array(agg_dlon_dphi2)/np.array(agg_dlon_dphi)))
 
     return height_uncert_out, lat_uncert_out, lon_uncert_out
 

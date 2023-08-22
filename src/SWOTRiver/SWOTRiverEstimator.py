@@ -417,6 +417,10 @@ class SWOTRiverEstimator(SWOTL2):
             mask, class_qual_area_bad & classification_qual > 0,
             geo_qual_wse_bad & geolocation_qual > 0])
 
+        # HACK in avoidance of bad water_frac values
+        water_frac = self.get(fractional_inundation_kwd)
+        mask = np.logical_and(mask, ~water_frac.mask)
+
         # Exclude bright land as well if self.use_bright_land is False
         if not self.use_bright_land:
             mask = np.logical_or(mask, bright_land_flag > 0)
@@ -1392,19 +1396,24 @@ class SWOTRiverEstimator(SWOTL2):
         wse_std = wse_r_u
 
         # These are area based estimates, the nominal SWOT approach
-        area = np.asarray(
-            self.river_obs.get_node_stat('sum', 'inundated_area'))
-        area[~mask_good_sus_area] = np.asarray(
-            self.river_obs.get_node_stat(
-                'sum', 'inundated_area', goodvar='good'))[~mask_good_sus_area]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            area = np.asarray(
+                self.river_obs.get_node_stat('sum', 'inundated_area'))
+            area[~mask_good_sus_area] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'sum', 'inundated_area', goodvar='good')
+                )[~mask_good_sus_area]
 
         # area of pixels used to compute heights
-        area_of_ht = np.asarray(self.river_obs.get_node_stat(
-            'sum', 'inundated_area', goodvar='h_flg'))
-        area_of_ht[~mask_good_sus_wse] = np.asarray(
-            self.river_obs.get_node_stat(
-                'sum', 'inundated_area', goodvar='wse_class_flg')
-            )[~mask_good_sus_wse]
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            area_of_ht = np.asarray(self.river_obs.get_node_stat(
+                'sum', 'inundated_area', goodvar='h_flg'))
+            area_of_ht[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                    'sum', 'inundated_area', goodvar='wse_class_flg')
+                )[~mask_good_sus_wse]
 
         width_area = np.asarray(self.river_obs.get_node_stat(
             'width_area', 'inundated_area'))
@@ -1941,7 +1950,7 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
 
         if river_reach.xtrack is not None:
-            reach_stats['xtrk_dist'] = np.median(river_reach.xtrack)
+            reach_stats['xtrk_dist'] = np.ma.median(river_reach.xtrack)
 
         # Along-flow distance for all PRD nodes.
         all_ss = np.cumsum(reach.node_length)
@@ -2507,7 +2516,7 @@ class SWOTRiverEstimator(SWOTL2):
             current_ind = None
             # at least to have 10 node (2km) to run piecewise linear
             if len(wse) > 10:
-                break_num = int(np.floor(len(wse)/10)-1)
+                break_num = int(np.floor(len(wse)/10) - 1)
                 while current_ind is None and break_num >=1:
                     current_ind = self.piecewise_linear(flow_dist[:, 0],
                                                         wse,
@@ -2515,7 +2524,11 @@ class SWOTRiverEstimator(SWOTL2):
                     break_num -= 1
 
             if current_ind is None:
-                fit = statsmodels.api.OLS(wse, flow_dist).fit()
+                if all(np.isfinite(weights)):
+                    fit = statsmodels.api.WLS(wse, flow_dist,
+                                              weights=weights).fit()
+                else:
+                    fit = statsmodels.api.OLS(wse, flow_dist).fit()
                 wse_fit = fit.params[1] + fit.params[0] * flow_dist[:, 0]
 
                 metric = abs(wse_fit - wse)
@@ -2899,14 +2912,11 @@ class SWOTRiverEstimator(SWOTL2):
             x = x.data
         if np.ma.isMaskedArray(y):
             y = y.data
-
-        # generate pseudo-random seeds for initial breakpoint start values
-        seed = int((np.nanmean(y) - MIN_VALID_WSE)*1e6) % 2**32
-        np.random.seed(seed)
+            
         min_allowed_bp = np.quantile(x, self.outlier_edge_min_dist)
         max_allowed_bp = np.quantile(x, 1 - self.outlier_edge_min_dist)
-        start_values = np.random.uniform(
-            low=min_allowed_bp, high=max_allowed_bp, size=n_breakpoints)
+        start_values = np.linspace(
+            min_allowed_bp, max_allowed_bp, num=n_breakpoints)
         pw_fit = piecewise_regression.Fit(
             x, y, start_values=start_values,
             n_breakpoints=n_breakpoints,

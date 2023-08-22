@@ -92,10 +92,9 @@ class RiverNode:
         self.sort_vars.append(obs_name)
 
         if sort and self.sorted:
-            setattr(self, obs_name, np.asarray(obs[self.sort_index]))
-
+            setattr(self, obs_name, obs[self.sort_index])
         else:
-            setattr(self, obs_name, np.asarray(obs))
+            setattr(self, obs_name, obs)
 
     def count(self, *pars, **kwds):
         """Return the number of points in the node."""
@@ -139,14 +138,23 @@ class RiverNode:
 
     def median(self, var, goodvar='good'):
         """Return median of a variable"""
-        return np.median(getattr(self, var)[getattr(self, goodvar)])
+        var = getattr(self, var)[getattr(self, goodvar)]
+        if len(var) > 0:
+            var_med = np.ma.median(var)
+        else:
+            var_med = np.nan
+        return var_med
 
     def sincos_median(self, var, goodvar='good'):
         """Return atan2(median(sin(variable)), median(cos(variable)))*180/pi"""
         var = getattr(self, var)[getattr(self, goodvar)]
-        return np.rad2deg(np.arctan2(
-            np.median(np.sin(np.deg2rad(var))),
-            np.median(np.cos(np.deg2rad(var)))))
+        if len(var) > 0:
+            sincos_med = np.rad2deg(np.ma.arctan2(
+                np.ma.median(np.ma.sin(np.deg2rad(var))),
+                np.ma.median(np.ma.cos(np.deg2rad(var)))))
+        else:
+            sincos_med = np.nan
+        return sincos_med
 
     def std(self, var, goodvar='good'):
         """Return std of a variable"""
