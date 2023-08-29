@@ -3389,12 +3389,12 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the consensus discharge 
-                    measurement. If this word is interpreted as an unsigned 
-                    integer, a value of 0 indicates good data, values greater 
-                    than 0 but less than 262144 represent suspect data, values 
-                    greater than or equal to 262144 but less than 4194304 
-                    represent degraded data, and values greater than or equal 
+                    Bitwise quality indicator for the consensus discharge
+                    measurement. If this word is interpreted as an unsigned
+                    integer, a value of 0 indicates good data, values greater
+                    than 0 but less than 262144 represent suspect data, values
+                    greater than or equal to 262144 but less than 4194304
+                    represent degraded data, and values greater than or equal
                     to 4194304 represent bad data.""")],
                 ])],
         ['dschg_gq_b',
@@ -3438,13 +3438,13 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Bitwise quality indicator for the gauge-constrained 
-                    consensus discharge measurement. If this word is 
-                    interpreted as an unsigned integer, a value of 0 indicates 
-                    good data, values greater than 0 but less than 262144 
-                    represent suspect data, values greater than or equal to 
-                    262144 but less than 4194304 represent degraded data, and 
-                    values greater than or equal to 4194304 represent bad 
+                    Bitwise quality indicator for the gauge-constrained
+                    consensus discharge measurement. If this word is
+                    interpreted as an unsigned integer, a value of 0 indicates
+                    good data, values greater than 0 but less than 262144
+                    represent suspect data, values greater than or equal to
+                    262144 but less than 4194304 represent degraded data, and
+                    values greater than or equal to 4194304 represent bad
                     data.""")],
                 ])],
 
