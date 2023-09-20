@@ -147,36 +147,61 @@ class RiverObs:
     def flag_out_channel_and_label(
         self, max_width, seg_label, ext_dist_coef=None):
         """
-        Gets the indexes of all of the points inside a channel of
-        max_width, a segmentation label
-        and remove the points from the list of observations.
+        Gets the indices of all pixels that may be inside a channel given a
+        prior max_width, the node-to-node distances, an extreme distance
+        threshold, and the pixel segmentation labels. It first uses the
+        maximum distance threshold and node spacing to identify all pixels that
+        may belong to the reach centerline. It then uses the segmentation
+        labels to identify which segment is largest and calls this the
+        "dominant label". This is treated as the river channel segment
+        hereafter. Finally, it will "pull in" any pixels connected to the
+        dominant label up to the extreme distance. It does not prune any pixels
+        that are unconnected to the dominant label but within the original
+        max_dist threshold.
+
+        If no extreme distance value is given it will use a very wide threshold
+        of 20x the input max_width for all nodes.
+
+        Parameters
+        ----------
+        max_width : The expected maximum width of the channel. May be provided
+        as an array with a width value for each node OR as one value for the
+        entire reach.
+        seg_label : An array of length [num_water_pixels_in_tile] where each
+        value corresponds to a given pixel's segmentation label. These are used
+        to determine which segment corresponds to the river channel.
+        ext_dist_coef : Scales the maximum distance threshold based on
+        proximity of the river channel to known PLD lakes. Int, typically 1-5
+
+        Outputs
+        ----------
+        self.in_channel : A mask of all pixels in the tile that may belong to
+        the input reach.
+
         """
         # Brent Williams, May 2017: added this function to handle
         # segmentation/exclude unconnected-to-river pixels.
         # get dominant label & map centerline observable to measurements
-        self.dominant_label = None
-        if np.iterable(max_width):
-            max_distance = max_width[self.index] / 2.
-        else:
-            max_distance = max_width / 2.
 
+        # get the cross-reach distance thresholds
+        max_distance, extreme_dist = self.get_ext_dist_threshold(
+            max_width, ext_dist_coef)
+        # determine the along-reach distances for each pixel
         dst0 = abs(self.s - self.centerline.s[self.index])
 
-        if ext_dist_coef is None:
-            extreme_dist = 20.0 * np.maximum(
-                abs(self.ds[self.index]), max_distance)
-        else:
-            extreme_dist = ext_dist_coef[self.index] * np.maximum(
-                abs(self.ds[self.index]), max_distance)
-
+        # mask pixels outside of along/cross-reach distance bounds
+        node_spacing = abs(self.ds[self.index])
         self.in_channel = np.logical_and(
             abs(self.n) <= max_distance,
-            dst0 <= 3.0 * abs(self.ds[self.index]))
+            dst0 <= 3.0 * node_spacing)
 
-        # apply seg labels
+        # Find the dominant label and include pixels up to the extreme dist
+        self.dominant_label = None
         if seg_label is not None and self.in_channel.any():
             class_mask = np.logical_and(self.in_channel, seg_label > 0)
             if class_mask.any():
+                # find the largest (i.e. dominant) label within the
+                # max_distance bounds
                 try:
                     dominant_label = scipy.stats.mode(
                         seg_label[class_mask], keepdims=False)[0]
@@ -206,6 +231,40 @@ class RiverObs:
         self.s = self.s[self.in_channel]
         self.n = self.n[self.in_channel]
         return self.in_channel
+
+    def get_ext_dist_threshold(self, max_width, ext_dist_coef):
+        """
+        Converts a maximum channel width and extreme distance coefficient into
+        cross-channel distance thresholds max_distance and extreme_dist.
+
+        Parameters
+        ----------
+        max_width: The expected maximum width of the channel.
+        ext_dist_coef : Scalar factor for the maximum distance threshold based
+        on proximity of the river channel to known PLD lakes. Int, typically 1-5
+
+        Outputs
+        ----------
+        max_distance : The maximum cross-reach distance from the centerline
+        that river pixels are expected to have based on prior river width
+        knowledge. Assumes centerline transects the middle of the river
+        channel.
+        extreme_dist : The maximum cross-reach distance that connected water
+        pixels are allowed to have based on known nearby waterbodies e.g. PLD
+        lakes
+        """
+        if np.iterable(max_width):
+            max_distance = max_width[self.index] / 2.
+        else:
+            max_distance = max_width / 2.
+
+        node_spacing = abs(self.ds[self.index])
+        if ext_dist_coef is None:
+            scale_factor = 20.0
+        else:
+            scale_factor = ext_dist_coef[self.index]
+        extreme_dist = scale_factor * np.maximum(node_spacing, max_distance)
+        return max_distance, extreme_dist
 
     def flag_out_channel(self, max_width):
         """
