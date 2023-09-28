@@ -242,10 +242,10 @@ class ReachExtractor(object):
 
             reach_metadata_keys = [
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
-                'wse', 'wse_var', 'width', 'width_var', 'n_chan_max',
-                'n_chan_mod', 'grod_id', 'slope', 'dist_out', 'n_rch_up',
-                'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag', 'iceflag',
-                'river_name'
+                'wse', 'wse_var', 'width', 'width_var', 'max_width',
+                'n_chan_max', 'n_chan_mod', 'grod_id', 'slope', 'dist_out',
+                'n_rch_up', 'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag',
+                'iceflag', 'river_name'
             ]
 
             for key in reach_metadata_keys:
@@ -263,8 +263,8 @@ class ReachExtractor(object):
 
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
-                'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out', 'wth_coef',
-                'ext_dist_coef', 'river_name']
+                'max_width', 'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out',
+                'wth_coef', 'ext_dist_coef', 'river_name']
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}

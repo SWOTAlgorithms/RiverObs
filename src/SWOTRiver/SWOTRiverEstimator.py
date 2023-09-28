@@ -429,9 +429,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         good = ~mask
         if good.sum() == 0:
-            LOGGER.warning("No useable pixels found in input PIXC file")
+            LOGGER.warning("No usable pixels found in input PIXC file")
             raise RiverObsException(
-                "No useable pixels found in input PIXC file")
+                "No usable pixels found in input PIXC file")
         for key in ['lat', 'lon', 'x', 'y', 'klass', 'h_noise',
                     'img_x', 'img_y']:
             try:
@@ -1079,12 +1079,12 @@ class SWOTRiverEstimator(SWOTL2):
     def assign_reaches_ext_dist_coef(
             self, scalar_max_width, minobs=10, use_width_db=False, ds=None):
         """
-        Does the reach assignments using ext_dist_coeff and the outputs from
+        Does the reach assignments using ext_dist_coef and the outputs from
         assign_reaches.
         """
         LOGGER.info("assign_reaches_ext_dist_coef")
         # Note we do the ext_dist_coef processing out of assign_reaches to
-        # get the desired behavior.
+        # get the desired behavior
         river_obs_list, reach_idx_list, ireach_list = self.assign_reaches(
             scalar_max_width, minobs, use_width_db, ds)
 
@@ -1099,7 +1099,7 @@ class SWOTRiverEstimator(SWOTL2):
             # when scaled by ext_dist_coef. This code replicates the logic
             # in RiverObs.flag_out_channel_and_label method.
             max_distance = (
-                self.reaches[ireach].width * self.reaches[ireach].wth_coef)
+                self.reaches[ireach].max_width * self.reaches[ireach].wth_coef)
             extreme_dist = self.reaches[ireach].ext_dist_coef * np.array(
                 [abs(river_obs.ds), max_distance]).max(axis=0)
 

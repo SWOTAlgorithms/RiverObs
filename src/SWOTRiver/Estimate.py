@@ -279,7 +279,6 @@ class L2PixcToRiverTile(object):
 
                 num_nodes_per_reach = [
                     len(item.lat) for item in self.reach_collection]
-                num_nodes = sum(num_nodes_per_reach)
 
                 self.node_outputs = {}
                 self.reach_outputs = {}
