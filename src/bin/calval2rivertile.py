@@ -21,7 +21,7 @@ from SWOTRiver.errors import RiverObsException
 
 LOGGER = logging.getLogger('calval2rivertile')
 
-FORMATS = ['simple_pixc', 'drifter', 'geotiff', 'pt']
+FORMATS = ['simple_pixc', 'drifter', 'geotiff', 'pt', 'water_mask']
 
 def main():
     """Sample script for running calval data through RiverObs"""
@@ -75,6 +75,9 @@ def main():
         pixc_simple = SimplePixelCloud.from_pressure_transducer(
             PressureTransducers.from_native(args.input_file))
 
+    elif args.format == 'water_mask':
+        pixc_simple = SimplePixelCloud.from_cnes_watermask(args.input_file)
+
     elif args.format == 'simple_pixc':
         pixc_simple = SimplePixelCloud.from_ncfile(args.input_file)
 
@@ -90,7 +93,7 @@ def main():
     for key in config.keys():
         if key in ['geolocation_method', 'reach_db_path', 'height_agg_method',
                    'area_agg_method', 'slope_method', 'outlier_method',
-                   'pixc_quality_handling']:
+                   'pixc_quality_handling', 'fractional_inundation_kwd']:
             if config[key].lower() != 'none':
                 continue
         config[key] = ast.literal_eval(config[key])
