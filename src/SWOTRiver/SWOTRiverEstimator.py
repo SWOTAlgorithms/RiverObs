@@ -2912,7 +2912,10 @@ class SWOTRiverEstimator(SWOTL2):
             x = x.data
         if np.ma.isMaskedArray(y):
             y = y.data
-            
+
+        # generate pseudo-random seeds for piecewise_regression package
+        seed = int((np.nanmean(y) - MIN_VALID_WSE)*1e6) % 2**32
+        np.random.seed(seed)
         min_allowed_bp = np.quantile(x, self.outlier_edge_min_dist)
         max_allowed_bp = np.quantile(x, 1 - self.outlier_edge_min_dist)
         start_values = np.linspace(

@@ -502,7 +502,7 @@ class CalValToRiverTile(L2PixcToRiverTile):
             'rngidx_kwd': 'range_index', 'aziidx_kwd': 'azimuth_index',
             'class_list': [self.config['class_list']],
             'xtrack_kwd': 'cross_track',
-            'fractional_inundation_kwd': None,
+            'fractional_inundation_kwd': 'water_frac',
             'use_fractional_inundation': [None,],
             'use_segmentation': self.config['use_segmentation'],
             'use_heights': self.config['use_heights'],

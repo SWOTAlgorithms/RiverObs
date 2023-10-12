@@ -284,6 +284,8 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         ['ellipsoid_semi_major_axis',{}],
         ['ellipsoid_flattening',{}],
         ['xref_input_files',{}],
+        ['interferogram_size_azimuth',{}],
+        ['interferogram_size_range',{}],
         ])
     GROUPS = odict()
     DIMENSIONS = odict([['record', 0]])
@@ -304,6 +306,9 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         ['azimuth_index', {'dtype': 'i4'}],
         ['range_index', {'dtype': 'i4'}],
         ['pixel_area', {'dtype': 'f8'}],
+        #['geolocation_qual', {'dtype': 'u4'}],
+        #['classificaiton_qual', {'dtype': 'u4'}],
+        ['water_frac', {'dtype': 'f8'}],
         ])
     for name, reference in VARIABLES.items():
         reference['dimensions'] = DIMENSIONS
@@ -435,6 +440,46 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         """TODO: implement converter"""
         raise NotImplementedError(
             "SimplePixelCloud.from_lidar not implemented!")
+
+    @classmethod
+    def from_cnes_watermask(cls, water_mask_file):
+        """watermask from CNES in geotif format"""
+        import rasterio
+        from pyproj import Transformer
+        # this next one is fragile...should probably get CRS from file itself
+        transformer = Transformer.from_crs("EPSG:32610", "EPSG:4326")
+        with rasterio.open(water_mask_file) as src:
+            arr = src.read(1)
+            height = arr.shape[0]
+            width = arr.shape[1]
+            cols, rows = np.meshgrid(np.arange(width), np.arange(height))
+            xs, ys = rasterio.transform.xy(src.transform, rows, cols)
+            print("computing lat/lon coordinates from intrinsic crs")
+            lats, lons = transformer.transform(np.array(xs), np.array(ys))
+            tx = src.transform
+            pixel_area = np.abs(tx[0]) * np.abs(tx[4])
+        #
+        klass = cls()
+        # only use good water pixels
+        mask = np.where(arr==1)
+        klass.classification = arr[mask]
+        klass.water_frac = arr[mask]
+        klass.latitude = lats[mask]
+        klass.longitude = lons[mask]
+        klass.height = np.zeros_like(klass.latitude)
+        M,N = np.shape(arr)
+        ri = np.arange(N, dtype=int)
+        ai = np.arange(M, dtype=int)
+        range_index, azimuth_index = np.meshgrid(ri, ai)
+        klass.range_index = range_index[mask]
+        klass.azimuth_index = azimuth_index[mask]
+        klass.pixel_area = np.ones_like(klass.latitude) * pixel_area
+        klass.interferogram_size_azimuth = M
+        klass.interferogram_size_range = N
+        #klass.classification_qual = np.zeros_like(klass.latitude)
+        #klass.geolocation_qual = np.zeros_like(klass.latitude)
+
+        return klass
 
     @classmethod
     def from_airborne_imagery(cls, water_mask_file):
