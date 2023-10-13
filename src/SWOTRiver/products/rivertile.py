@@ -453,7 +453,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
             if reach_id not in reach_outputs['reach_idx']:
                 for key in ['centerline_lon', 'centerline_lat']:
                     reach_outputs[key] = np.array(list(
-                        reach_outputs[key])+[reach.metadata[key],])
+                        reach_outputs[key])+[reach.metadata[key],],
+                        dtype=object)
 
                 this_rch_id_up = reach.metadata['rch_id_up'].T
                 this_rch_id_up[this_rch_id_up == 0] = MISSING_VALUE_INT9
