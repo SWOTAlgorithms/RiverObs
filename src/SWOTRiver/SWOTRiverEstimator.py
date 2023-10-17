@@ -988,8 +988,15 @@ class SWOTRiverEstimator(SWOTL2):
             # Add width per node to centerline and re-init IteratedRiverObs.
             # Search width is the width it uses to always include (1/2 on
             # each side of centerline).
+            
+            # set the best initial search width for each node/reach
+            primary_width = np.maximum(self.reaches[ireach].max_width,
+                                       self.reaches[ireach].width)
+            # fix any potential NaN or zero values from PRD
+            primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
+            primary_width[primary_width <= 0] = np.nanmedian(primary_width)
             search_width = 2 * (
-                self.reaches[i_reach].width * self.reaches[i_reach].wth_coef)
+                primary_width * self.reaches[i_reach].wth_coef)
             river_obs.add_centerline_obs(
                 self.reaches[i_reach].x, self.reaches[i_reach].y,
                 search_width, 'max_width')
@@ -1036,7 +1043,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             mask_keep = reach_ind[river_obs.in_channel] == ii
 
-            # set in_channel mask to exlude the nodes to drop
+            # set in_channel mask to exclude the nodes to drop
             river_obs.in_channel[reach_ind != ii] = False
 
             # Drop pixels that were double-assigned to reaches and
@@ -1098,8 +1105,16 @@ class SWOTRiverEstimator(SWOTL2):
             # distance, and which are also in the smaller extreme distance
             # when scaled by ext_dist_coef. This code replicates the logic
             # in RiverObs.flag_out_channel_and_label method.
+
+            # set the best initial search width for each node/reach
+            primary_width = np.maximum(self.reaches[ireach].max_width,
+                                       self.reaches[ireach].width)
+            # fix any potential NaN or zero values from PRD
+            primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
+            primary_width[primary_width <= 0] = np.nanmedian(primary_width)
+            # compute extreme distance threshold
             max_distance = (
-                self.reaches[ireach].max_width * self.reaches[ireach].wth_coef)
+                primary_width * self.reaches[ireach].wth_coef)
             extreme_dist = self.reaches[ireach].ext_dist_coef * np.array(
                 [abs(river_obs.ds), max_distance]).max(axis=0)
 
