@@ -908,8 +908,7 @@ class SWOTRiverEstimator(SWOTL2):
         """
         Assigns pixels to nodes for every reach.
         """
-        LOGGER.info("assign_reaches: use_ext_dist_coef: {}".format(
-            use_ext_dist_coef))
+        LOGGER.info("assign_reaches")
         # First extract the segmentation labels to keep
         all_dominant_labels = []
         all_ids = []
