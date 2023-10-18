@@ -419,7 +419,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # HACK in avoidance of bad water_frac values
         water_frac = self.get(fractional_inundation_kwd)
-        mask = np.logical_and(mask, ~water_frac.mask)
+        mask = np.logical_or(mask, water_frac.mask)
 
         # Exclude bright land as well if self.use_bright_land is False
         if not self.use_bright_land:
