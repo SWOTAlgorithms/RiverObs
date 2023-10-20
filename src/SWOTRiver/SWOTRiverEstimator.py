@@ -419,7 +419,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # HACK in avoidance of bad water_frac values
         water_frac = self.get(fractional_inundation_kwd)
-        mask = np.logical_and(mask, ~water_frac.mask)
+        mask = np.logical_or(mask, water_frac.mask)
 
         # Exclude bright land as well if self.use_bright_land is False
         if not self.use_bright_land:
@@ -908,8 +908,7 @@ class SWOTRiverEstimator(SWOTL2):
         """
         Assigns pixels to nodes for every reach.
         """
-        LOGGER.info("assign_reaches: use_ext_dist_coef: {}".format(
-            use_ext_dist_coef))
+        LOGGER.info("assign_reaches")
         # First extract the segmentation labels to keep
         all_dominant_labels = []
         all_ids = []
@@ -988,8 +987,15 @@ class SWOTRiverEstimator(SWOTL2):
             # Add width per node to centerline and re-init IteratedRiverObs.
             # Search width is the width it uses to always include (1/2 on
             # each side of centerline).
+            
+            # set the best initial search width for each node/reach
+            primary_width = np.maximum(self.reaches[i_reach].max_width,
+                                       self.reaches[i_reach].width)
+            # fix any potential NaN or zero values from PRD
+            primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
+            primary_width[primary_width <= 0] = np.nanmedian(primary_width)
             search_width = 2 * (
-                self.reaches[i_reach].width * self.reaches[i_reach].wth_coef)
+                primary_width * self.reaches[i_reach].wth_coef)
             river_obs.add_centerline_obs(
                 self.reaches[i_reach].x, self.reaches[i_reach].y,
                 search_width, 'max_width')
@@ -1036,7 +1042,7 @@ class SWOTRiverEstimator(SWOTL2):
 
             mask_keep = reach_ind[river_obs.in_channel] == ii
 
-            # set in_channel mask to exlude the nodes to drop
+            # set in_channel mask to exclude the nodes to drop
             river_obs.in_channel[reach_ind != ii] = False
 
             # Drop pixels that were double-assigned to reaches and
@@ -1098,8 +1104,16 @@ class SWOTRiverEstimator(SWOTL2):
             # distance, and which are also in the smaller extreme distance
             # when scaled by ext_dist_coef. This code replicates the logic
             # in RiverObs.flag_out_channel_and_label method.
+
+            # set the best initial search width for each node/reach
+            primary_width = np.maximum(self.reaches[ireach].max_width,
+                                       self.reaches[ireach].width)
+            # fix any potential NaN or zero values from PRD
+            primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
+            primary_width[primary_width <= 0] = np.nanmedian(primary_width)
+            # compute extreme distance threshold
             max_distance = (
-                self.reaches[ireach].max_width * self.reaches[ireach].wth_coef)
+                primary_width * self.reaches[ireach].wth_coef)
             extreme_dist = self.reaches[ireach].ext_dist_coef * np.array(
                 [abs(river_obs.ds), max_distance]).max(axis=0)
 
