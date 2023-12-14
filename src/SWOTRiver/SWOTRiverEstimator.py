@@ -1279,7 +1279,9 @@ class SWOTRiverEstimator(SWOTL2):
                                   self.river_obs.n, reach_idx,
                                   segOut, self.lat[self.river_obs.in_channel],
                                   self.lon[self.river_obs.in_channel],
-                                  self.h_noise[self.river_obs.in_channel])
+                                  self.h_noise[self.river_obs.in_channel],
+                                  self.h_flg[self.river_obs.in_channel],
+                                  self.area_flg[self.river_obs.in_channel])
 
         # Load these datasets from input file and add obsevations to
         # self.river_obs.
@@ -2282,10 +2284,14 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.createVariable(
                 'height_vectorproc', 'f8', 'points',
                 fill_value=FILL_VALUES['f8'])
+            ofp.createVariable(
+                'h_flg', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+            ofp.createVariable(
+                'area_flg', 'i4', 'points', fill_value=FILL_VALUES['i4'])
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
                          cross_reach, reach_index, seg_lbl, lat, lon,
-                         height):
+                         height, h_flg, area_flg):
         """
         Write out the river obs indices for each pixel that get mapped to a
         node as well as the pixel cloud coordinates (range and azimuth, or
@@ -2307,6 +2313,8 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['latitude_vectorproc'][curr_len:new_len] = lat
             ofp.variables['longitude_vectorproc'][curr_len:new_len] = lon
             ofp.variables['height_vectorproc'][curr_len:new_len] = height
+            ofp.variables['h_flg'][curr_len:new_len] = h_flg.astype('i')
+            ofp.variables['area_flg'][curr_len:new_len] = area_flg.astype('i')
         return
 
     def compute_enhanced_slope(

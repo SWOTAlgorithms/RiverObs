@@ -413,3 +413,26 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                 except AttributeError:
                     value = getattr(ifp.groups['pixel_cloud'], attr, 'None')
                 self[attr] = value
+
+class L2PIXCVectorPlus(L2PIXCVector):
+    """L2PIXCVectorPlus is L2PIXCVector with some additional debug outputs"""
+    VARIABLES = L2PIXCVector.VARIABLES.copy()
+    DIMENSIONS = L2PIXCVector.DIMENSIONS
+    VARIABLES['h_flg'] = odict([
+        ['dtype', 'i4'],
+        ['long_name', 'height flag'],
+        ['units', '1'],
+        ['valid_min', 0],
+        ['valid_max', 1],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'Height flag from RiverObs.'],
+        ['dimensions', DIMENSIONS]])
+    VARIABLES['area_flg'] = odict([
+        ['dtype', 'i4'],
+        ['long_name', 'area flag'],
+        ['units', '1'],
+        ['valid_min', 0],
+        ['valid_max', 1],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'Area flag from RiverObs.'],
+        ['dimensions', DIMENSIONS]])

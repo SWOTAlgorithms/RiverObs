@@ -1878,8 +1878,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
-        from SWOTRiver.products.pixcvec import L2PIXCVector
-        pixc_vec = L2PIXCVector.from_ncfile(index_file)
+        from SWOTRiver.products.pixcvec import L2PIXCVectorPlus
+        pixc_vec = L2PIXCVectorPlus.from_ncfile(index_file)
 
         pixc2rivertile_map = {
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',

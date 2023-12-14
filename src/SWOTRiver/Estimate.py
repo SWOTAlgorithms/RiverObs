@@ -16,7 +16,7 @@ import datetime
 import RDF
 import SWOTRiver.EstimateSWOTRiver
 import SWOTRiver.products.rivertile
-from SWOTRiver.products.pixcvec import L2PIXCVector
+from SWOTRiver.products.pixcvec import L2PIXCVectorPlus
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 from SWOTRiver.errors import RiverObsException
@@ -306,8 +306,8 @@ class L2PixcToRiverTile(object):
         # save for use later to fill in missing nodes/reaches
         self.prd_reaches = river_estimator.reaches
 
-        # reformat index file to L2PIXCVector format
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        # reformat index file to L2PIXCVectorPlus format
+        pixcvec = L2PIXCVectorPlus.from_ncfile(self.index_file)
         pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.to_ncfile(self.index_file)
 
@@ -428,14 +428,14 @@ class L2PixcToRiverTile(object):
 
         # add in a bunch more stuff from PIXC
         if not os.path.isfile(self.index_file):
-            L2PIXCVector().to_ncfile(self.index_file)
+            L2PIXCVectorPlus().to_ncfile(self.index_file)
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
         history_string = "Created {}".format(
             datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
 
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec = L2PIXCVectorPlus.from_ncfile(self.index_file)
         pixcvec.update_from_rivertile(self.rivertile_product)
         pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.history = history_string
