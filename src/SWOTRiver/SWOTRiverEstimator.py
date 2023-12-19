@@ -570,7 +570,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         else:
             self.fractional_inundation = self.get(fractional_inundation_kwd)
-            self.inundated_area = self.pixel_area
+            self.inundated_area = self.pixel_area.copy()
             for i, k in enumerate(class_list):
                 if use_fractional_inundation[i]:
                     # TO-DO: validate fractional inundation result here
