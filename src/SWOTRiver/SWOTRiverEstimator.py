@@ -15,6 +15,7 @@ import statsmodels.api
 import logging
 import contextlib
 import warnings
+import bottleneck
 import piecewise_regression
 from scipy.ndimage.morphology import binary_dilation
 
@@ -656,7 +657,7 @@ class SWOTRiverEstimator(SWOTL2):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             hgt_filt = scipy.ndimage.generic_filter(
-                hgt_2d, np.nanmedian, size=11)
+                hgt_2d, bottleneck.nanmedian, size=11)
 
         target_xyz = geoloc.convert_llh2ecef(
             self.lat, self.lon, hgt_filt[self.img_y, self.img_x],
