@@ -521,10 +521,6 @@ class CalValToRiverTile(L2PixcToRiverTile):
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],
             'outlier_iter_num': self.config['outlier_iter_num'],
-            'outlier_abs_thresh': self.config['outlier_abs_thresh'],
-            'outlier_rel_thresh': self.config['outlier_rel_thresh'],
-            'outlier_upr_thresh': self.config['outlier_upr_thresh'],
-            'outlier_iter_num': self.config['outlier_iter_num'],
             'outlier_breakpoint_min_dist': (
                 self.config['outlier_breakpoint_min_dist']),
             'outlier_edge_min_dist': self.config['outlier_edge_min_dist'],
