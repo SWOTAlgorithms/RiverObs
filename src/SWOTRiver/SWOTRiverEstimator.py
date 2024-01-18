@@ -1669,6 +1669,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         dark_frac = MISSING_VALUE_FLT * np.ones(area.shape)
         dark_frac[area > 0] = 1 - area_det[area > 0] / area[area > 0]
+        dark_frac[np.logical_and(dark_frac > 1, area > 0)] = 1  # clip to <= 1
 
         # Compute flow direction relative to along-track
         tangent = self.river_obs.centerline.tangent[
@@ -2143,8 +2144,9 @@ class SWOTRiverEstimator(SWOTL2):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            reach_stats['dark_frac'] = (
+            dark_frac = (
                 1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
+            reach_stats['dark_frac'] = min(dark_frac, 1)  # clip to <= 1
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up'] > 0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn'] > 0).sum()
