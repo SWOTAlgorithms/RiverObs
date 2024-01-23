@@ -2392,18 +2392,29 @@ class SWOTRiverEstimator(SWOTL2):
             # smooth h_n_ave, and get slope
             slope = np.polyfit(ss[mask], wse[mask], 1)[0]
             heights_detrend = wse[mask] - slope * ss[mask]
-            heights_smooth = self.gaussian_averaging(
-                ss[mask], heights_detrend, window_size, sigma)
+            heights_smooth, wse_smooth_r_u, weight_matrix = \
+                self.gaussian_averaging(
+                    ss[mask], heights_detrend, wse_r_u[mask], window_size,
+                    sigma)
+
             heights_smooth = heights_smooth + slope * ss[mask]
             enhanced_slope = (heights_smooth[last_node_masked] -
                               heights_smooth[first_node_masked])/this_reach_len
-            sigma_h = river_reach.metadata['height_r_u']
-            l = river_reach.metadata['length']
-            w = river_reach.metadata['width']
-            enhanced_slope_r_u = (2 * np.pi) ** 2 / 12 * sigma_h ** 2 * (
-                    1 / l * w)
-            # TODO: add value or computation for enhanced_slope_u here
-            enhanced_slope_u = MISSING_VALUE_FLT
+
+            # Compute covariance of first and last node smoothed heights
+            cov_first_last = (
+                weight_matrix[first_node_masked] * wse_r_u[mask] *
+                weight_matrix[last_node_masked] * wse_r_u[mask]).sum() / (
+                weight_matrix[first_node_masked].sum() *
+                weight_matrix[last_node_masked].sum())
+
+            enhanced_slope_r_u = (1/this_reach_len) * np.sqrt(
+                    wse_smooth_r_u[first_node_masked]**2 +
+                    wse_smooth_r_u[last_node_masked]**2 -
+                    2 * cov_first_last)
+
+            enhanced_slope_u = np.sqrt(
+                SLOPE_SYS_UNCERT**2 + enhanced_slope_r_u**2)
 
         if np.isnan(enhanced_slope):
             enhanced_slope = MISSING_VALUE_FLT
@@ -2412,18 +2423,24 @@ class SWOTRiverEstimator(SWOTL2):
         return enhanced_slope, enhanced_slope_r_u, enhanced_slope_u
 
     @staticmethod
-    def gaussian_averaging(ss, wse, window_size, sigma):
+    def gaussian_averaging(ss, wse, wse_r_u, window_size, sigma):
         """
         Gaussian smoothing of heights using distances
-        ss:   along-flow distance
-        wse:     water heights
-        window_size: size of data window to use for averaging
-        sigma:       STD of Gaussian used for averaging
+        ss:             along-flow distance
+        wse:            water heights
+        wse_r_u:        random component of uncertinity of water heights
+        window_size:    size of data window to use for averaging
+        sigma:          STD of Gaussian used for averaging
 
         outputs:
-        smooth_heights : smoothed elevations
+        wse_smooth:     smoothed water heights
+        wse_smooth_r_u: random component of uncertinity of smoothed water
+                        heights
+        weight_matrix:  the full matrix of gaussian weights used
         """
-        smooth_heights = np.zeros(wse.shape)
+        wse_smooth = np.zeros(wse.shape)
+        wse_smooth_r_u = np.zeros(wse.shape)
+        weight_matrix = np.zeros((wse.shape[0], wse.shape[0]))
         for ii, this_distance in enumerate(ss):
 
             # get data window
@@ -2434,11 +2451,17 @@ class SWOTRiverEstimator(SWOTL2):
             weights = scipy.stats.norm.pdf(
                 this_distance, ss[mask], sigma)
 
-            smooth_heights[ii] = (
+            wse_smooth[ii] = (
                 np.multiply(weights, wse[mask]).sum() /
                 weights.sum())
 
-        return smooth_heights
+            wse_smooth_r_u[ii] = np.sqrt(
+                (np.multiply(weights, wse_r_u[mask])**2).sum() /
+                (weights.sum())**2)
+
+            weight_matrix[ii][mask] = weights
+
+        return wse_smooth, wse_smooth_r_u, weight_matrix
 
     def get_reach_mask(self, ss, hh, ww, node_q, min_fit_points,
                        first_node=None, this_len=None):
