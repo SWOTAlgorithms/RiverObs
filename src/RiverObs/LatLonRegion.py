@@ -5,6 +5,8 @@ A base class implemention the LatLonRegion protocol.
 from __future__ import absolute_import, division, print_function
 import pyproj
 
+import SWOTRiver.SWOTL2
+
 class LatLonRegion:
     """Access SWOT L2 data conveniently. SWOTL2 implements the LatLonRegion object
     interfaces in that it provides the following members:
@@ -65,7 +67,8 @@ class LatLonRegion:
             lat_0 = (latmax + latmin) / 2.
 
         if lon_0 == None:
-            lon_0 = (lonmax + lonmin) / 2.
+            lon_0 = SWOTRiver.SWOTL2.wrap(
+                SWOTRiver.SWOTL2.wrap(lonmax - lonmin)/2 + lonmin)
 
         self.proj = pyproj.Proj(
             proj=proj,

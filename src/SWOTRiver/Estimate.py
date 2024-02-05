@@ -14,7 +14,7 @@ import logging
 import datetime
 
 import RDF
-import SWOTRiver.EstimateSWOTRiver
+import SWOTRiver.SWOTRiverEstimator
 import SWOTRiver.products.rivertile
 from SWOTRiver.products.pixcvec import L2PIXCVectorPlus
 from RiverObs.RiverObs import \
@@ -93,8 +93,12 @@ class L2PixcToRiverTile(object):
         lon[lon >= 180] -= 360
 
         mask = ~np.isnan(lat)
-        return (lon[mask].min(), lat[mask].min(), lon[mask].max(),
-                lat[mask].max())
+        reflon = lon[mask][0]
+        lonmin = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(lon[mask] - reflon).min() + reflon)
+        lonmax = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(lon[mask] - reflon).max() + reflon)
+        return (lonmin, lat[mask].min(), lonmax, lat[mask].max())
 
     def validate_inputs(self):
         """Validates that the input products meet requirements"""

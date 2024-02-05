@@ -720,16 +720,11 @@ class SWOTRiverEstimator(SWOTL2):
         # create the segmentation label variable
         self.seg_label = lbl_out[self.img_y, self.img_x]
 
-    def get_reaches(self, reach_db_path, clip=False, clip_buffer=0.1,
-                    day_of_year=None):
+    def get_reaches(self, reach_db_path, day_of_year=None):
         """Get all of the reaches using a ReachExtractor."""
         LOGGER.debug('get_reaches')
-        self.clip = clip
-        self.clip_buffer = clip_buffer
-
         self.reaches = RiverObs.ReachDatabase.ReachExtractor(
-            reach_db_path, self, clip=clip, clip_buffer=clip_buffer,
-            day_of_year=day_of_year)
+            reach_db_path, self, day_of_year=day_of_year)
 
         return self.reaches
 
