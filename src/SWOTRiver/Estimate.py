@@ -14,9 +14,9 @@ import logging
 import datetime
 
 import RDF
-import SWOTRiver.EstimateSWOTRiver
+import SWOTRiver.SWOTRiverEstimator
 import SWOTRiver.products.rivertile
-from SWOTRiver.products.pixcvec import L2PIXCVector
+from SWOTRiver.products.pixcvec import L2PIXCVectorPlus
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 from SWOTRiver.errors import RiverObsException
@@ -93,8 +93,12 @@ class L2PixcToRiverTile(object):
         lon[lon >= 180] -= 360
 
         mask = ~np.isnan(lat)
-        return (lon[mask].min(), lat[mask].min(), lon[mask].max(),
-                lat[mask].max())
+        reflon = lon[mask][0]
+        lonmin = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(lon[mask] - reflon).min() + reflon)
+        lonmax = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(lon[mask] - reflon).max() + reflon)
+        return (lonmin, lat[mask].min(), lonmax, lat[mask].max())
 
     def validate_inputs(self):
         """Validates that the input products meet requirements"""
@@ -306,8 +310,8 @@ class L2PixcToRiverTile(object):
         # save for use later to fill in missing nodes/reaches
         self.prd_reaches = river_estimator.reaches
 
-        # reformat index file to L2PIXCVector format
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        # reformat index file to L2PIXCVectorPlus format
+        pixcvec = L2PIXCVectorPlus.from_ncfile(self.index_file)
         pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.to_ncfile(self.index_file)
 
@@ -324,7 +328,7 @@ class L2PixcToRiverTile(object):
         try:
             import cnes.modules.geoloc.scripts.geoloc_river as geoloc_river
         except ModuleNotFoundError:
-            LOGGER.warning("Cant load CNES improved geolocation, skipping!")
+            LOGGER.warning("Can't load CNES improved geolocation, skipping!")
             return
 
         cnes_sensor = geoloc_river.Sensor.from_pixc(self.pixc_file)
@@ -348,27 +352,27 @@ class L2PixcToRiverTile(object):
     def match_pixc_idx(self):
         """Matches the pixels from pixcvector to input pixc"""
         LOGGER.info('match_pixc_idx')
-        with netCDF4.Dataset(self.pixc_file, 'r') as ifp:
-            nr_pixels = ifp.groups['pixel_cloud'].interferogram_size_range
-            azi_index = ifp.groups['pixel_cloud']['azimuth_index'][:]
-            rng_index = ifp.groups['pixel_cloud']['range_index'][:]
+        with netCDF4.Dataset(self.pixc_file, 'r') as pixc_in:
+            nr_pixels = pixc_in.groups['pixel_cloud'].interferogram_size_range
+            azi_index = pixc_in.groups['pixel_cloud']['azimuth_index'][:]
+            rng_index = pixc_in.groups['pixel_cloud']['range_index'][:]
 
             pixc_idx = np.array(azi_index * int(nr_pixels) + rng_index)
 
-        with netCDF4.Dataset(self.index_file, 'a') as ofp:
+        with netCDF4.Dataset(self.index_file, 'a') as pixcvec_out:
             pixcvec_idx = np.array(
-                ofp.variables['azimuth_index'][:] * int(nr_pixels) +
-                ofp.variables['range_index'][:])
+                pixcvec_out.variables['azimuth_index'][:] * int(nr_pixels) +
+                pixcvec_out.variables['range_index'][:])
 
             indx, indx_pv, indx_pixc = np.intersect1d(
                 pixcvec_idx, pixc_idx, return_indices=True)
 
             # re-order PIXCVecRiver datasets to ordering of pixc_index.
-            for dset in ofp.variables.keys():
-                data = ofp.variables[dset][:]
-                ofp.variables[dset][:] = data[indx_pv]
+            for dset in pixcvec_out.variables.keys():
+                data = pixcvec_out.variables[dset][:]
+                pixcvec_out.variables[dset][:] = data[indx_pv]
 
-            ofp.variables['pixc_index'][:] = indx_pixc.astype('int32')
+            pixcvec_out.variables['pixc_index'][:] = indx_pixc.astype('int32')
 
     def build_products(self):
         """Constructs the L2HRRiverTile data product / updates the index file"""
@@ -428,14 +432,14 @@ class L2PixcToRiverTile(object):
 
         # add in a bunch more stuff from PIXC
         if not os.path.isfile(self.index_file):
-            L2PIXCVector().to_ncfile(self.index_file)
+            L2PIXCVectorPlus().to_ncfile(self.index_file)
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
         history_string = "Created {}".format(
             datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
 
-        pixcvec = L2PIXCVector.from_ncfile(self.index_file)
+        pixcvec = L2PIXCVectorPlus.from_ncfile(self.index_file)
         pixcvec.update_from_rivertile(self.rivertile_product)
         pixcvec.update_from_pixc(self.pixc_file)
         pixcvec.history = history_string
@@ -517,10 +521,6 @@ class CalValToRiverTile(L2PixcToRiverTile):
             'slope_method': self.config['slope_method'],
             'use_ext_dist_coef': self.config['use_ext_dist_coef'],
             'outlier_method': self.config['outlier_method'],
-            'outlier_abs_thresh': self.config['outlier_abs_thresh'],
-            'outlier_rel_thresh': self.config['outlier_rel_thresh'],
-            'outlier_upr_thresh': self.config['outlier_upr_thresh'],
-            'outlier_iter_num': self.config['outlier_iter_num'],
             'outlier_abs_thresh': self.config['outlier_abs_thresh'],
             'outlier_rel_thresh': self.config['outlier_rel_thresh'],
             'outlier_upr_thresh': self.config['outlier_upr_thresh'],

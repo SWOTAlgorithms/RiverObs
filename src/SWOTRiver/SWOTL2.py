@@ -167,13 +167,15 @@ class SWOTL2:
             self.lonmin, self.latmin, self.lonmax, self.latmax = bounding_box
 
         else:
-            self.lonmin = lon.min()
+            self.lonmin = self.wrap(self.wrap(lon-lon[0]).min() + lon[0])
             self.latmin = lat.min()
-            self.lonmax = lon.max()
+            self.lonmax = self.wrap(self.wrap(lon-lon[0]).max() + lon[0])
             self.latmax = lat.max()
 
-        self.index = ((lat >= self.latmin) & (lon >= self.lonmin) &
-                      (lat <= self.latmax) & (lon <= self.lonmax))
+        self.index = np.logical_and.reduce([
+            lat >= self.latmin, lat <= self.latmax,
+            self.wrap(lon - lon[0]) >= self.wrap(self.lonmin - lon[0]),
+            self.wrap(lon - lon[0]) <= self.wrap(self.lonmax - lon[0])])
 
         LOGGER.debug('Number of points in bounding box: %d' %
                          (np.sum(self.index)))
@@ -268,7 +270,9 @@ class SWOTL2:
             lat_0 = (self.bounding_box[3] + self.bounding_box[1]) / 2.0
 
         if lon_0 == None:
-            lon_0 = (self.bounding_box[2] + self.bounding_box[0]) / 2.0
+            lon_0 = self.wrap(
+                self.wrap(self.bounding_box[2]-self.bounding_box[0])/2 +
+                self.bounding_box[0])
 
         self.proj = pyproj.Proj(
             proj=proj,
@@ -281,3 +285,12 @@ class SWOTL2:
 
         self.x, self.y = self.proj(self.lon, self.lat)
         return self.x, self.y
+
+    @staticmethod
+    def wrap(angles):
+        """
+        Wraps scalar angle or iterable container of angles to [-180,180]
+        interval.
+        """
+        return angles - 360 * np.floor((angles + 180) / 360)
+

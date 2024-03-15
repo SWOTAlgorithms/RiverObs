@@ -6,6 +6,7 @@ import scipy.stats
 import numpy as np
 import logging
 import warnings
+import contextlib
 
 from Centerline import Centerline
 from RiverObs import RiverNode
@@ -145,7 +146,7 @@ class RiverObs:
             self.index, self.minobs)
 
     def flag_out_channel_and_label(
-        self, max_width, seg_label, ext_dist_coef=None):
+        self, max_width, seg_label_in, ext_dist_coef=None):
         """
         Gets the indices of all pixels that may be inside a channel given a
         prior max_width, the node-to-node distances, an extreme distance
@@ -167,7 +168,7 @@ class RiverObs:
         max_width : The expected maximum width of the channel. May be provided
         as an array with a width value for each node OR as one value for the
         entire reach.
-        seg_label : An array of length [num_water_pixels_in_tile] where each
+        seg_label_in : An array of length [num_water_pixels_in_tile] where each
         value corresponds to a given pixel's segmentation label. These are used
         to determine which segment corresponds to the river channel.
         ext_dist_coef : Scales the maximum distance threshold based on
@@ -179,6 +180,8 @@ class RiverObs:
         the input reach.
 
         """
+        seg_label = seg_label_in.copy()
+
         # Brent Williams, May 2017: added this function to handle
         # segmentation/exclude unconnected-to-river pixels.
         # get dominant label & map centerline observable to measurements
@@ -209,7 +212,41 @@ class RiverObs:
                     # Try previous syntax if TypeError raised (older scipy)
                     dominant_label = scipy.stats.mode(
                         seg_label[class_mask])[0][0]
+
                 self.dominant_label = dominant_label
+
+                # If we are in final pass of pixel assignment (where we use
+                # varying widths per node), merge segmentation labels for all
+                # water bodies within max_distance/2.
+                if np.iterable(max_distance):
+                    in_center_channel = np.logical_and(
+                        self.in_channel, abs(self.n) <= max_distance/2)
+
+                    # loop over all nodes in center channel
+                    for this_index in np.unique(self.index[in_center_channel]):
+                        this_node_mask = np.logical_and(
+                            in_center_channel, self.index == this_index)
+
+                        # search for segment in this node which has smallest
+                        # absolute value of n coordinate
+                        min_n_seg_label, min_n = -1, 9999999999999
+                        for this_seg_label in np.unique(
+                                seg_label[this_node_mask]):
+
+                            sub_node_mask = np.logical_and(
+                                self.index == this_index,
+                                seg_label == this_seg_label)
+
+                            this_min_n = np.abs(self.n[sub_node_mask]).min()
+                            if this_min_n < min_n:
+                                min_n = this_min_n
+                                min_n_seg_label = this_seg_label
+
+                        # merge seg label of segment with min abs n coordinate
+                        # with dominant label
+                        if min_n_seg_label != -1:
+                            seg_label[seg_label == min_n_seg_label] = (
+                                dominant_label)
 
                 # keep things already in channel as well as things in dominant
                 # segmentation label up to the extreme distance
@@ -528,3 +565,34 @@ class RiverObs:
         else:
             self.populated_nodes = to_list
             self.unpopulated_nodes = from_list
+
+    def mask_pixels(self, good_mask):
+        """
+        Removes pixels from the RiverObs class based on an input mask. The
+        input mask should be True for pixel indices we want to keep and False
+        for pixels that should be removed.
+        Inputs
+        :param good_mask: a boolean array of pixel indices that is True for
+        pixels we want to keep, and False for pixels we want to remove.
+        """
+
+        # reshape good_mask in order to update RiverObs in_channel mask
+        indx = np.argwhere(self.in_channel)[:, 0][good_mask]
+        new_in_channel = np.zeros(self.in_channel.shape, dtype=bool)
+        new_in_channel[indx] = True
+        self.in_channel = new_in_channel
+
+        # Recompute things set in RiverObs constructor
+        self.index = self.index[good_mask]
+        self.d = self.d[good_mask]
+        self.x = self.x[good_mask]
+        self.y = self.y[good_mask]
+        self.s = self.s[good_mask]
+        self.n = self.n[good_mask]
+        self.nedited_data = len(self.d)
+        self.populated_nodes, self.obs_to_node_map = self.get_obs_to_node_map(
+            self.index, self.minobs)
+
+        self.add_obs('xo', self.xobs)
+        self.add_obs('yo', self.yobs)
+        self.load_nodes(['xo', 'yo'])

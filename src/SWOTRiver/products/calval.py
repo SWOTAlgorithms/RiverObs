@@ -18,6 +18,7 @@ import pyproj
 import numpy as np
 from collections import OrderedDict as odict
 
+import SWOTRiver.SWOTL2
 from SWOTWater.products.product import Product
 
 LOGGER = logging.getLogger(__name__)
@@ -27,8 +28,16 @@ class RiverNCProductMixIn(object):
     def compute_bounding_box(self):
         mask = np.logical_and(
             ~np.isnan(self.latitude), ~np.isnan(self.longitude))
-        return (self.longitude[mask].min(), self.latitude[mask].min(),
-                self.longitude[mask].max(), self.latitude[mask].max())
+
+        reflon = self.longitude[mask][0]
+        lonmin = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(self.longitude[mask]-reflon).min() +
+            reflon)
+        lonmax = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(self.longitude[mask]-reflon).max() +
+            reflon)
+        return (lonmin, self.latitude[mask].min(),
+                lonmax, self.latitude[mask].max())
 
 class PressureTransducer(Product):
     """Class for pressure transducer data"""

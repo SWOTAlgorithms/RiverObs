@@ -13,6 +13,7 @@ import pyproj
 
 from collections import OrderedDict as odict
 
+import SWOTRiver.SWOTL2
 from RiverObs.RiverObs import \
     MISSING_VALUE_FLT, MISSING_VALUE_INT4, MISSING_VALUE_INT9
 from RiverObs.RiverReach import RiverReach
@@ -29,7 +30,10 @@ class LatLonRegion:
     def __init__(self, bounding_box):
         self.bounding_box = bounding_box
         lat_0 = (self.bounding_box[3] + self.bounding_box[1]) / 2.0
-        lon_0 = (self.bounding_box[2] + self.bounding_box[0]) / 2.0
+        lon_0 = SWOTRiver.SWOTL2.wrap(
+            SWOTRiver.SWOTL2.wrap(self.bounding_box[2]-self.bounding_box[0])/2 +
+            self.bounding_box[0])
+
         self.proj = pyproj.Proj(
             proj='laea', x_0=0, y_0=0, lat_0=lat_0, lon_0=lon_0, ellps='WGS84')
 
@@ -124,17 +128,11 @@ class ReachExtractor(object):
     """
     Looks / acts / quacks like ReachExtractor.ReachExtractor
     """
-    def __init__(
-        self, reach_db_path, lat_lon_region, clip=False, clip_buffer=0.1,
-        day_of_year=None):
+    def __init__(self, reach_db_path, lat_lon_region, day_of_year=None):
 
         if day_of_year is None:
             LOGGER.warning(
                 "Day of year not specified, not extracting ice flag!")
-
-        lonmin, latmin, lonmax, latmax = lat_lon_region.bounding_box
-        # check for wraps
-        if lonmax < lonmin: lonmax += 360
 
         if os.path.isdir(reach_db_path):
             LOGGER.info('Extracting reaches')
@@ -157,21 +155,6 @@ class ReachExtractor(object):
             lon = this_reach['nodes']['x']
             lat = this_reach['nodes']['y']
             node_indx = this_reach['nodes']['node_id']
-
-            if clip:
-                clip_lon = lon.copy()
-
-                # check for wraps
-                clip_lon[clip_lon < this_reach['reaches']['x_min']] += 360
-
-                inbbox = np.logical_and(
-                    np.logical_and(clip_lon >= lonmin - clip_buffer,
-                                   clip_lon <= lonmax + clip_buffer),
-                    np.logical_and(lat >= latmin - clip_buffer,
-                                   lat <= latmax + clip_buffer))
-
-                lon = lon[inbbox]
-                lat = lat[inbbox]
 
             if len(lon) == 0:
                 continue
@@ -366,24 +349,23 @@ class ReachDatabase(Product):
         """
         lonmin, latmin, lonmax, latmax = bounding_box
 
-        # wrap to [180, 180) interval
-        if lonmin > 180:
-            lonmin -= 360
-        if lonmax > 180:
-            lonmax -= 360
+        # debias bounding box longitudes to bounding box min longitude
+        lonmin_shift = 0
+        lonmax_shift = SWOTRiver.SWOTL2.wrap(lonmax-lonmin)
 
-        if lonmax < lonmin: lonmax += 360
         klass = None
         for db_file in glob.glob(os.path.join(reach_db_path, '*.nc')):
             with netCDF4.Dataset(db_file, 'r') as ifp:
                 reach_lonmin, reach_lonmax = ifp.x_min, ifp.x_max
                 reach_latmin, reach_latmax = ifp.y_min, ifp.y_max
 
-                # check for wraps
-                if reach_lonmax < reach_lonmin: reach_lonmax += 360
+                # debias reach longitudes to bounding box min longitude
+                reach_lonmin_shift = SWOTRiver.SWOTL2.wrap(reach_lonmin-lonmin)
+                reach_lonmax_shift = SWOTRiver.SWOTL2.wrap(reach_lonmax-lonmin)
 
-                if (reach_lonmin < lonmax and reach_lonmax > lonmin and
-                    reach_latmin < latmax and reach_latmax > latmin):
+                if(latmin < reach_latmax and latmax > reach_latmin and
+                   lonmin_shift < reach_lonmax_shift and
+                   lonmax_shift > reach_lonmin_shift):
 
                     LOGGER.info('Using reach db tile {}'.format(db_file))
                     with warnings.catch_warnings():
@@ -637,8 +619,10 @@ class ReachDatabaseReaches(Product):
         """
         BUFFER = 0.25
         lonmin, latmin, lonmax, latmax = bounding_box
-        if lonmax < lonmin:
-            lonmax += 360
+
+        # debias bounding box longitudes to bounding box min longitude
+        lonmin_shift = 0
+        lonmax_shift = SWOTRiver.SWOTL2.wrap(lonmax-lonmin)
 
         # iterate over reaches in self.reaches
         reach_zips = zip(
@@ -651,12 +635,14 @@ class ReachDatabaseReaches(Product):
             reach_lonmin, reach_latmin, reach_lonmax, reach_latmax, reach_id =\
                 reach_zip
 
-            if reach_lonmax < reach_lonmin:
-                reach_lonmax += 360
+            # debias reach longitudes to bounding box min longitude
+            reach_lonmin_shift = SWOTRiver.SWOTL2.wrap(reach_lonmin-lonmin)
+            reach_lonmax_shift = SWOTRiver.SWOTL2.wrap(reach_lonmax-lonmin)
 
             # test for overlap (assumption is 2D decomp into two 1D intervals)
             if(latmin < reach_latmax and latmax > reach_latmin and
-               lonmin < reach_lonmax and lonmax > reach_lonmin):
+               lonmin_shift < reach_lonmax_shift and
+               lonmax_shift > reach_lonmin_shift):
                 overlapping_reach_ids.append(reach_id)
         return overlapping_reach_ids
 

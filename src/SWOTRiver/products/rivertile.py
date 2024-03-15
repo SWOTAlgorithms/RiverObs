@@ -1878,8 +1878,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
     def update_from_pixc(self, pixc_file, index_file):
         """Adds more datasets from pixc_file file using index_file"""
-        from SWOTRiver.products.pixcvec import L2PIXCVector
-        pixc_vec = L2PIXCVector.from_ncfile(index_file)
+        from SWOTRiver.products.pixcvec import L2PIXCVectorPlus
+        pixc_vec = L2PIXCVectorPlus.from_ncfile(index_file)
 
         pixc2rivertile_map = {
             '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
@@ -3525,8 +3525,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'fractional area of dark water'],
                 ['short_name', 'dark_water_fraction'],
                 ['units', 1],
-                ['valid_min', -1000],
-                ['valid_max', 10000],
+                ['valid_min', 0],
+                ['valid_max', 1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],

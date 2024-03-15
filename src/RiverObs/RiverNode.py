@@ -100,7 +100,7 @@ class RiverNode:
         """Return the number of points in the node."""
         return self.ndata
 
-    def countGood(self, goodvar):
+    def count_good(self, goodvar):
         """Return the number of good points in the node."""
         tmp = np.zeros(self.ndata)
         #exec('tmp[self.%s]=1'%goodvar)
@@ -214,6 +214,16 @@ class RiverNode:
         cdf /= cdf[-1]
         x = np.sort(getattr(self, var)[good])
         return x, cdf
+
+    def bitwise_or(self, var, goodvar='good'):
+        """Bitwise or of inputs"""
+        good = getattr(self, goodvar)
+        return np.bitwise_or.reduce(getattr(self, var)[good])
+
+    def bitwise_and(self, var, goodvar='good'):
+        """Bitwise and of inputs"""
+        good = getattr(self, goodvar)
+        return np.bitwise_and.reduce(getattr(self, var)[good])
 
     def flag_extent(self, var_name, var_min, var_max, goodvar='good'):
         """

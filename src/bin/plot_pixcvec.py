@@ -11,9 +11,6 @@ import RiverObs.ReachDatabase
 from SWOTRiver.products.rivertile import L2HRRiverTile
 from SWOTRiver.products.pixcvec import L2PIXCVector
 
-FIGSIZE = (12, 8)
-DPI = 200
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('rivertile', help='rivertile.nc')
@@ -24,7 +21,7 @@ def main():
     pixc_vector = L2PIXCVector.from_ncfile(args.pixcvec)
 
     scatter_colors = ['k', 'r', 'g', 'b', 'y', 'c']
-    figure, axis = plt.subplots(figsize=FIGSIZE, dpi=DPI)
+    figure, axis = plt.subplots()
     for ii, node_id in enumerate(rivertile.nodes.node_id):
 
         mask = pixc_vector.node_id == node_id
@@ -53,8 +50,8 @@ def main():
 
     axis.set_xlabel('longitude')
     axis.set_ylabel('latitude')
-    axis.set_aspect('equal', adjustable='box')
     axis.legend()
+    axis.grid()
     plt.show()
 
 if __name__ == "__main__":

@@ -69,7 +69,7 @@ class IteratedRiverObs(RiverObs):
                  minobs=1,
                  **kwds):
         # Right now, things do not work for width observations along the
-        # reach, due to ambiguities when the true reach is far from the original
+        # reach due to ambiguities when the true reach is far from the original
         if np.iterable(max_width):
             raise RiverObsUseageException(
                 'maximum_width arrays must be added using add_maximum_width_array'
@@ -124,7 +124,7 @@ class IteratedRiverObs(RiverObs):
             coordinates. It should be implemented by RiverNode. Choices could
             be 'mean', 'median', etc. The default is 'mean'.
         std_statfn : str
-            Statistic to use to get the centroid dispersionbased on the
+            Statistic to use to get the centroid dispersion based on the
             observation coordinates. It should be implemented by RiverNode.
             Choices could be 'std', 'stderr', etc. The default is 'std'.
 
@@ -136,7 +136,7 @@ class IteratedRiverObs(RiverObs):
             Maximum coordinate change in any direction.
         xdelta, ydelta : array_like
             Estimates of data point dispersion, to be used for
-            weigting the centerline fit.
+            weighting the centerline fit.
         """
         xc = np.asarray(self.get_node_stat(statfn, 'xo'))
         yc = np.asarray(self.get_node_stat(statfn, 'yo'))
@@ -191,7 +191,7 @@ class IteratedRiverObs(RiverObs):
             coordinates.  It should be implemented by RiverNode. Choices
             could be 'mean', 'median', etc. The default is 'mean'.
         std_statfn : str
-            Statistic to use to get the centroid dispersionbased on the
+            Statistic to use to get the centroid dispersion based on the
             observation coordinates. It should be implemented by RiverNode.
             Choices could be 'std', 'stderr', etc. The default is 'std'.
         tol : float
@@ -216,7 +216,7 @@ class IteratedRiverObs(RiverObs):
         Attempting to iterate until convergence results in a very jagged
         for small point density.
         """
-        tiny = 1.e-6  # avoid averflows
+        tiny = 1.e-6  # avoid overflows
 
         for i in range(max_iter):
             x1, y1, eps, xdelta, ydelta = self.refine_centerline(
@@ -249,7 +249,7 @@ class IteratedRiverObs(RiverObs):
             self.reinit_centerline_nodes(x1, y1, smooth=smooth, wx=wx, wy=wy)
 
     def reinit_centerline_nodes(self, x1, y1, smooth=None, wx=None, wy=None):
-        """Reinitialize the centerline and rebin the measurements."""
+        """Reinitialize the centerline and re-bin the measurements."""
 
         # If weights and smoothing are given, estimate the centerline points
         # from a smoothed spline
@@ -276,10 +276,10 @@ class IteratedRiverObs(RiverObs):
             self.ds[0] = self.ds[1]
             self.ds[-1] = self.ds[-2]
 
-        # Calculate the local coordiantes for each observation point
+        # Calculate the local coordinates for each observation point
         # index: the index of the nearest point
         # d: distance to the point
-        # x,y: The coordiantes of the nearest point
+        # x,y: The coordinates of the nearest point
         # s,n: The along and across track coordinates of the point
         # relative to the nearest point coordinate system.
         self.index, self.d, self.x, self.y, self.s, self.n = (self.centerline(
