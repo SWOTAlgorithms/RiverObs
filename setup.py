@@ -34,6 +34,7 @@ setup(
         'Centerline': [f'Centerline=={get_version("Centerline")}'],
         'GWDLR': [f'GWDLR=={get_version("GWDLR")}'],
         'GeometryDataBase': [f'GeometryDataBase=={get_version("GeometryDataBase")}'],
+        'SWOTWater': [f'SWOTWater=={get_version("SWOTWater")}'],
         'SWOTRiver': [f'SWOTRiver=={get_version("SWOTRiver")}'],
         'RiverObs': [f'RiverObs=={get_version("RiverObs")}'],
         'toggle_input': [f'toggle_input=={get_version("toggle_input")}'],
