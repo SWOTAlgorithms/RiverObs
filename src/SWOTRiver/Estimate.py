@@ -472,7 +472,9 @@ class L2PixcToRiverTile(object):
             if self.reach_outputs is not None:
                 for reach, lake_flag in zip(self.reach_outputs['reach_idx'],
                                             self.reach_outputs['lake_flag']):
-                    ofp.variables['lake_flag'][pixc_reach == reach] = lake_flag
+                    if lake_flag != MISSING_VALUE_INT4:
+                        ofp.variables['lake_flag'][
+                            pixc_reach == reach] = lake_flag
 
 class CalValToRiverTile(L2PixcToRiverTile):
     """

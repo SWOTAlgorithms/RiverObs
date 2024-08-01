@@ -1237,16 +1237,22 @@ class SWOTRiverEstimator(SWOTL2):
         reach_index = np.ones(len(node_indx)) * (reach_idx)
 
         if self.output_file is not None:
-            self.write_index_file(self.img_x[self.river_obs.in_channel],
-                                  self.img_y[self.river_obs.in_channel],
-                                  reach.node_indx[self.river_obs.index],
-                                  self.river_obs.d, self.river_obs.s,
-                                  self.river_obs.n, reach_idx,
-                                  segOut, self.lat[self.river_obs.in_channel],
-                                  self.lon[self.river_obs.in_channel],
-                                  self.h_noise[self.river_obs.in_channel],
-                                  self.h_flg[self.river_obs.in_channel],
-                                  self.area_flg[self.river_obs.in_channel])
+            self.write_index_file(
+                self.img_x[self.river_obs.in_channel],
+                self.img_y[self.river_obs.in_channel],
+                reach.node_indx[self.river_obs.index],
+                self.river_obs.d, self.river_obs.s,
+                self.river_obs.n, reach_idx,
+                segOut, self.lat[self.river_obs.in_channel],
+                self.lon[self.river_obs.in_channel],
+                self.h_noise[self.river_obs.in_channel],
+                self.h_flg[self.river_obs.in_channel],
+                self.area_flg[self.river_obs.in_channel],
+                self.sig0_flg[self.river_obs.in_channel],
+                self.wse_class_flg[self.river_obs.in_channel],
+                self.geolocation_qual[self.river_obs.in_channel],
+                self.classification_qual[self.river_obs.in_channel],
+                self.sig0_qual[self.river_obs.in_channel])
 
         # Load these datasets from input file and add observations to
         # self.river_obs.
@@ -2259,10 +2265,24 @@ class SWOTRiverEstimator(SWOTL2):
                 'h_flg', 'i4', 'points', fill_value=FILL_VALUES['i4'])
             ofp.createVariable(
                 'area_flg', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+            ofp.createVariable(
+                'sig0_flg', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+            ofp.createVariable(
+                'wse_class_flg', 'i4', 'points', fill_value=FILL_VALUES['i4'])
+            ofp.createVariable(
+                'geolocation_qual', 'u4', 'points',
+                fill_value=FILL_VALUES['u4'])
+            ofp.createVariable(
+                'classification_qual', 'u4', 'points',
+                fill_value=FILL_VALUES['u4'])
+            ofp.createVariable(
+                'sig0_qual', 'u4', 'points', fill_value=FILL_VALUES['u4'])
+
 
     def write_index_file(self, img_x, img_y, node_index, dst, along_reach,
                          cross_reach, reach_index, seg_lbl, lat, lon,
-                         height, h_flg, area_flg):
+                         height, h_flg, area_flg, sig0_flg, wse_class_flg,
+                         geolocation_qual, classification_qual, sig0_qual):
         """
         Write out the river obs indices for each pixel that get mapped to a
         node as well as the pixel cloud coordinates (range and azimuth, or
@@ -2286,6 +2306,16 @@ class SWOTRiverEstimator(SWOTL2):
             ofp.variables['height_vectorproc'][curr_len:new_len] = height
             ofp.variables['h_flg'][curr_len:new_len] = h_flg.astype('i')
             ofp.variables['area_flg'][curr_len:new_len] = area_flg.astype('i')
+            ofp.variables['sig0_flg'][curr_len:new_len] = sig0_flg.astype('i')
+            ofp.variables['wse_class_flg'][curr_len:new_len] = (
+                wse_class_flg.astype('i'))
+            ofp.variables['geolocation_qual'][curr_len:new_len] = (
+                geolocation_qual.astype('u4'))
+            ofp.variables['classification_qual'][curr_len:new_len] = (
+                classification_qual.astype('u4'))
+            ofp.variables['sig0_qual'][curr_len:new_len] = (
+                sig0_qual.astype('u4'))
+
         return
 
     def compute_enhanced_slope(
@@ -2453,7 +2483,7 @@ class SWOTRiverEstimator(SWOTL2):
         if first_node is not None and this_len is not None:
             # get reach node number and apply neighbor reach filters
             this_reach_node_num = mask[first_node:first_node+this_len].sum()
-            if mask.sum() > min_fit_points:
+            if this_reach_node_num > min_fit_points:
                 mask = self.neighbor_reach_filter(SS[:, 0], mask, node_q,
                                                first_node, this_len)
         else:

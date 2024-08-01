@@ -1,123 +1,47 @@
 #!/usr/bin/env python
+"""
+This setup.py script is used to manage the installation of multiple packages
+related to RiverObs. The script consolidates the setup configuration for
+several packages into a single file to minimize changes versus its original
+design. The version of the meta-package (SWOTRiverAlgorithms) matches the
+RiverObs version number. You should be able to import subpackages like RDF,
+SWOTRiver, RiverObs etc following pip install.
+"""
 
-from distutils.core import setup
-from distutils.extension import Extension
+from setuptools import setup, find_packages
 
-setup(name='RDF',
-      version='1.0',
-      description='Read RDF files',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['RDF',]
-      ## scripts=[script_dir+'binary_to_netcdf.py']
-     )
+def get_version(package):
+    version_file = f'src/{package}/version.py'
+    with open(version_file) as f:
+        exec(f.read())
+    return locals()['__version__']
 
-exec(open('src/GDALOGRUtilities/version.py').read())
-setup(name='GDALOGRUtilities',
-      version=__version__,
-      description='Utilities for interacting with GDAL and OGR',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['GDALOGRUtilities',]
-      ## scripts=[script_dir+'binary_to_netcdf.py']
-     )
-
-exec(open('src/Centerline/version.py').read())
-setup(name='Centerline',
-      version=__version__,
-      description='Project coordinates to a curved coordinate system.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['Centerline',]
-      ## scripts=[script_dir+'binary_to_netcdf.py']
-     )
-
-exec(open('src/GWDLR/version.py').read())
-setup(name='GWDLR',
-      version=__version__,
-      description='Read and process Global Width Database for Large River data.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['GWDLR',]
-      ## scripts=[script_dir+'binary_to_netcdf.py']
-     )
-
-exec(open('src/GeometryDataBase/version.py').read())
-setup(name='GeometryDataBase',
-      version=__version__,
-      description='Find geometries within bounding boxes.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['GeometryDataBase',]
-      ## scripts=[script_dir+'binary_to_netcdf.py']
-     )
-
-exec(open('src/SWOTRiver/version.py').read())
-script_dir = 'src/SWOTRiver/scripts/'
-setup(name='SWOTRiver',
-      version=__version__,
-      description='Extract hydrology observables from SWOT data.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['SWOTRiver',],
-      scripts=[script_dir+'estimate_swot_river.py',]
-     )
-
-exec(open('src/RiverObs/version.py').read())
-#script_dir = 'src/SWOTRiver/scripts/'
-setup(name='RiverObs',
-      version=__version__,
-      description='Associate observations with river reaches and nodes.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['RiverObs',],
-      ## scripts=[script_dir+'make_simulation_catalog.py',
-      ##         script_dir+'estimate_swot_rivers.py',]
-     )
-
-exec(open('src/RDF/version.py').read())
-setup(name='RDF',
-      version=__version__,
-      description='Read, write various flavours of RDF format files.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['RDF',],
-      ## scripts=[script_dir+'']
-     )
-
-exec(open('src/toggle_input/version.py').read())
-setup(name='toggle_input',
-      version=__version__,
-      description='Toggle notebook input cells.',
-      author='Ernesto Rodriguez',
-      author_email='ernesto.rodriguez@jpl.nasa.gov',
-      ##      url='http://www.python.org/sigs/distutils-sig/',
-      package_dir = {'': 'src'},
-      ## packages = find_packages()
-      packages=['toggle_input',],
-      ## scripts=[script_dir+'']
-     )
+setup(
+    name='SWOTRiverAlgorithms',
+    version=get_version("RiverObs"),
+    description='Meta-package for SWOT River Algorithms',
+    author='Ernesto Rodriguez',
+    author_email='ernesto.rodriguez@jpl.nasa.gov',
+    package_dir={'': 'src'},
+    packages=find_packages(where='src'),
+    scripts=[
+        'src/SWOTRiver/scripts/make_simulation_catalog.py',
+        'src/SWOTRiver/scripts/estimate_swot_rivers.py',
+    ],
+    extras_require={
+        'RDF': [f'RDF=={get_version("RDF")}'],
+        'GDALOGRUtilities': [f'GDALOGRUtilities=={get_version("GDALOGRUtilities")}'],
+        'Centerline': [f'Centerline=={get_version("Centerline")}'],
+        'GWDLR': [f'GWDLR=={get_version("GWDLR")}'],
+        'GeometryDataBase': [f'GeometryDataBase=={get_version("GeometryDataBase")}'],
+        'SWOTWater': [f'SWOTWater=={get_version("SWOTWater")}'],
+        'SWOTRiver': [f'SWOTRiver=={get_version("SWOTRiver")}'],
+        'RiverObs': [f'RiverObs=={get_version("RiverObs")}'],
+        'toggle_input': [f'toggle_input=={get_version("toggle_input")}'],
+    },
+    install_requires=[
+        line.strip() for line in open('requirements.txt')
+    ],
+    
+    
+)

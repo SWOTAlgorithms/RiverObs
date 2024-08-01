@@ -1,0 +1,27 @@
+name: RiverObs
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.9
+  - numpy>=1.13.3
+  - pandas>=0.22.0
+  - rtree>=0.8.3
+  - cython>=0.27.3
+  - scikit-image>=0.13.1
+  - matplotlib>=2.1.2
+  - fiona>=1.7.11
+  - pyproj>=1.9.5.1
+  - scipy>=1.0.0
+  - pysal>=1.14.3
+  - shapely>=1.6.3
+  - statsmodels>=0.8.0
+  - pytest>=3.3.2
+  - netcdf4>=1.4.3
+  - gdal>=2.2.4
+  - bottleneck>=1.3.7
+  - pip
+  - pip:
+      - piecewise-regression>=1.5.0
+      - osr>=0.0.1
+      # - gdal>=2.2.4

@@ -436,3 +436,42 @@ class L2PIXCVectorPlus(L2PIXCVector):
         ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
         ['comment', 'Area flag from RiverObs.'],
         ['dimensions', DIMENSIONS]])
+    VARIABLES['sig0_flg'] = odict([
+        ['dtype', 'i4'],
+        ['long_name', 'sigma0 flag'],
+        ['units', '1'],
+        ['valid_min', 0],
+        ['valid_max', 1],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'sigma0 flag from RiverObs.'],
+        ['dimensions', DIMENSIONS]])
+    VARIABLES['wse_class_flg'] = odict([
+        ['dtype', 'i4'],
+        ['long_name', 'wse class flag'],
+        ['units', '1'],
+        ['valid_min', 0],
+        ['valid_max', 1],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'wse class flag from RiverObs.'],
+        ['dimensions', DIMENSIONS]])
+    VARIABLES['geolocation_qual'] = odict([
+        ['dtype', 'u4'],
+        ['long_name', 'geolocation_qual'],
+        ['units', '1'],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'geolocation_qual from PIXC.'],
+        ['dimensions', DIMENSIONS]])
+    VARIABLES['classification_qual'] = odict([
+        ['dtype', 'u4'],
+        ['long_name', 'classification_qual'],
+        ['units', '1'],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'classification_qual from PIXC.'],
+        ['dimensions', DIMENSIONS]])
+    VARIABLES['sig0_qual'] = odict([
+        ['dtype', 'u4'],
+        ['long_name', 'sig0_qual'],
+        ['units', '1'],
+        ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+        ['comment', 'sig0_qual from PIXC.'],
+        ['dimensions', DIMENSIONS]])
