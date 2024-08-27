@@ -203,8 +203,11 @@ class RiverNode:
     def sum(self, var, goodvar='good'):
         """Return the sum of all variable values (e.g., for area)."""
         good = getattr(self, goodvar)
-        Sum = np.sum(getattr(self, var)[good])
-        return Sum
+        if good.any():
+            Sum = np.sum(getattr(self, var)[good])
+            return Sum
+        else:
+            return 0
 
     def cdf(self, var, goodvar='good'):
         """Get the cdf for a variable."""

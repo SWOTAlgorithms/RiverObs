@@ -160,8 +160,8 @@ class RiverObs:
         that are unconnected to the dominant label but within the original
         max_dist threshold.
 
-        If no extreme distance value is given it will use a very wide threshold
-        of 20x the input max_width for all nodes.
+        If no extreme distance value is given it will use a threshold of 5x
+        the input max_width for all nodes.
 
         Parameters
         ----------
@@ -201,17 +201,18 @@ class RiverObs:
         # Find the dominant label and include pixels up to the extreme dist
         self.dominant_label = None
         if seg_label is not None and self.in_channel.any():
-            class_mask = np.logical_and(self.in_channel, seg_label > 0)
-            if class_mask.any():
-                # find the largest (i.e. dominant) label within the
-                # max_distance bounds
+            # remove unattached land-near-water pixels
+            self.in_channel = np.logical_and(self.in_channel, seg_label > 0)
+            # find the largest (i.e. dominant) label within the
+            # max_distance bounds
+            if self.in_channel.any():
                 try:
                     dominant_label = scipy.stats.mode(
-                        seg_label[class_mask], keepdims=False)[0]
+                        seg_label[self.in_channel], keepdims=False)[0]
                 except TypeError:
                     # Try previous syntax if TypeError raised (older scipy)
                     dominant_label = scipy.stats.mode(
-                        seg_label[class_mask])[0][0]
+                        seg_label[self.in_channel])[0][0]
 
                 self.dominant_label = dominant_label
 
@@ -229,7 +230,7 @@ class RiverObs:
 
                         # search for segment in this node which has smallest
                         # absolute value of n coordinate
-                        min_n_seg_label, min_n = -1, 9999999999999
+                        min_n_seg_label, min_n = 0, 9999999999999
                         for this_seg_label in np.unique(
                                 seg_label[this_node_mask]):
 
@@ -244,7 +245,8 @@ class RiverObs:
 
                         # merge seg label of segment with min abs n coordinate
                         # with dominant label
-                        if min_n_seg_label != -1:
+                        if min_n_seg_label != 0 \
+                                and min_n_seg_label != dominant_label:
                             seg_label[seg_label == min_n_seg_label] = (
                                 dominant_label)
 
@@ -257,9 +259,6 @@ class RiverObs:
                                    np.logical_and(
                                        dst0 <= extreme_dist,
                                        abs(self.n) <= extreme_dist)))
-
-            else:
-                self.in_channel = class_mask
 
         self.index = self.index[self.in_channel]
         self.d = self.d[self.in_channel]
@@ -291,16 +290,19 @@ class RiverObs:
         lakes
         """
         if np.iterable(max_width):
-            max_distance = max_width[self.index] / 2.
+            max_distance = max_width[self.index] / 3.  # was 2
         else:
-            max_distance = max_width / 2.
+            max_distance = max_width / 3.  # was 2
 
         node_spacing = abs(self.ds[self.index])
         if ext_dist_coef is None:
-            scale_factor = 20.0
+            scale_factor = 5.0
         else:
             scale_factor = ext_dist_coef[self.index]
-        extreme_dist = scale_factor * np.maximum(node_spacing, max_distance)
+
+        extreme_dist = scale_factor * np.maximum(
+            node_spacing, max_distance * 3/2
+        )  # includes 3/2 to make ext_dist operate on river half-width
         return max_distance, extreme_dist
 
     def flag_out_channel(self, max_width):
@@ -309,9 +311,9 @@ class RiverObs:
         and remove the points from the list of observations.
         """
         if np.iterable(max_width):
-            max_distance = max_width[self.index] / 2.
+            max_distance = max_width[self.index] / 3.  # was 2
         else:
-            max_distance = max_width / 2.
+            max_distance = max_width / 3.  # was 2
 
         self.in_channel = np.abs(self.n) <= max_distance
 
@@ -485,8 +487,8 @@ class RiverObs:
         """
         outputs = {key: [] for key in [
             'h', 'h_std', 'h_u', 'lat_u', 'lon_u', 'area', 'area_u',
-            'area_det', 'area_det_u', 'width_area', 'width_area_u', 'sig0',
-            'sig0_u', 'sig0_std']}
+            'area_det', 'area_det_u', 'area_of_ht', 'area_of_ht_u',
+            'width_area', 'width_area_u', 'sig0', 'sig0_u', 'sig0_std']}
 
         for node in self.all_nodes:
             if node in self.populated_nodes:
@@ -501,6 +503,10 @@ class RiverObs:
                 area, width_area, area_u, width_area_u, area_det, area_det_u =\
                     river_node.area_with_uncert(
                         method=area_method, goodvar=goodvar_area)
+
+                area_of_ht, _, area_of_ht_u, _, _, _ = \
+                    river_node.area_with_uncert(
+                        method = area_method, goodvar = goodvar_wse)
 
                 local_vars = locals()
                 for key in outputs:

@@ -254,6 +254,8 @@ class L2PixcToRiverTile(object):
             'num_good_sus_pix_thresh_area': (
                 self.config['num_good_sus_pix_thresh_area']),
             'use_bright_land': self.config['use_bright_land'],
+            'reach_pct_good_sus_thresh': (
+                self.config['reach_pct_good_sus_thresh']),
         }
 
         river_estimator = SWOTRiver.SWOTRiverEstimator(
