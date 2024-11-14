@@ -1019,9 +1019,15 @@ class SWOTRiverEstimator(SWOTL2):
             # Search width is the width it uses to always include (1/2 on
             # each side of centerline).
             
-            # set the best initial search width for each node/reach
-            primary_width = np.maximum(self.reaches[i_reach].max_width,
-                                       self.reaches[i_reach].width)
+            # Use SWORD width for the initial search width for each node/reach.
+            # The search width specifies how far (in the cross-reach direction)
+            # we will "search" for water pixels that could be the dominant
+            # label. This SWORD width accounts for the width of the water
+            # channel only, and is an underestimate anywhere there are interior
+            # bars or islands. For the "search" width this is OK, because we
+            # will expand to the extreme width later (after identifying the
+            # dominant label).
+            primary_width = self.reaches[i_reach].width  # get width from PRD
             # fix any potential NaN or zero values from PRD
             primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
             primary_width[primary_width <= 0] = np.nanmedian(primary_width)
