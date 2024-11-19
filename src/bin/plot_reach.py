@@ -135,11 +135,11 @@ def plot_wse(data, truth, errors, reach_id, axis, figure,
     )
     # plot the reconstructed WSE, if present
     try:
-        w_opt = data.nodes['w_opt'][node_i]
-        w_opt_r_u = data.nodes['w_opt_r_u'][node_i]
+        w_opt = data.nodes['wse_sm'][node_i]
+        w_opt_u = data.nodes['wse_sm_u'][node_i]
         opt_mask = w_opt > -999
         (_, caps, bars) = axis.errorbar(
-            node_p_dist[opt_mask], w_opt[opt_mask], w_opt_r_u[opt_mask],
+            node_p_dist[opt_mask], w_opt[opt_mask], w_opt_u[opt_mask],
             label='opt WSE', linestyle=':', alpha=0.5, color='orange'
         )
     except AttributeError:
