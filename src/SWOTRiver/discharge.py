@@ -546,7 +546,7 @@ def _area(
         else:
             observed_width_hat = np.polyval(
                 poly_fits[ifit], observed_height_hat)
-            observed_width_hat_u = observed_height_hat_u * poly_fit[ifit][0]
+            observed_width_hat_u = observed_height_hat_u * poly_fits[ifit][0]
 
         delta_area_hat = 0
         for poly_int, height_ll, height_ul in zip(

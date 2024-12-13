@@ -80,6 +80,10 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                                                  search_str + '*.shp',
                                        recursive=True))
             river_fwd = True
+        elif 'local' in river_run_id:
+            rivertiles.extend(glob.glob(basedir + '/SWOT_L2_HR_RiverTile*'
+                                        + search_str + '*.nc'))
+            river_fwd = False
         else:
             rivertiles.extend(glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
                                                  'SWOT_L2_HR_PIXC_*/' +
@@ -91,7 +95,6 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                                                  search_str + '*.nc',
                                        recursive=True))
             river_fwd=False
-
     if len(rivertiles) == 0:
         raise Exception('No rivertile found, check input directory names')
 
@@ -105,10 +108,16 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                     '/' + os.path.join(*rivertile.split('/')[:-1])
                     + '/SWOT_L2_HR_PIXCVecRiver_*.nc'
             )[0]
-            pixcs[index] = glob.glob(
-                '/' + os.path.join(*rivertile.split('/')[:-3])
-                + '/SWOT_L2_HR_PIXC_*.nc'
-            )[0]
+            if 'local' in river_run_id:
+                pixcs[index] = glob.glob(
+                    '/' + os.path.join(*rivertile.split('/')[:-3])
+                    + '/**/SWOT_L2_HR_PIXC_*.nc'
+                )[0]
+            else:
+                pixcs[index] = glob.glob(
+                    '/' + os.path.join(*rivertile.split('/')[:-3])
+                    + '/SWOT_L2_HR_PIXC_*.nc'
+                )[0]
         if len(rivertiles) != len(pixcvecs):
             raise Exception('The number of rivertiles found doesnt match with '
                             'the number of pixcvecs found, some will be missing')
