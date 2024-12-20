@@ -2172,15 +2172,15 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['grand_id'] = reach.metadata['grod_id']
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
-        reach_stats['ice_clim_f'] = reach.metadata['iceflag']
         reach_stats['river_name'] = reach.metadata['river_name']
-
 
         # Avoid letting fill value of -9999 from PRD propagate into outputs
         # (these variables are just passed through from PRD to RiverTile).
         def fill_if_was_fill(value, other_fill, fill):
             return value if value != other_fill else fill
 
+        reach_stats['ice_clim_f'] = fill_if_was_fill(
+            reach.metadata['iceflag'], -9999, MISSING_VALUE_INT4)
         reach_stats['p_low_slp'] = fill_if_was_fill(
             reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
 
@@ -2575,7 +2575,10 @@ class SWOTRiverEstimator(SWOTL2):
             area_mask = valid_area_mask
 
         # wse related masks
-        wse_mask = np.logical_and(hh > MIN_VALID_WSE, hh < MAX_VALID_WSE)
+        finite_mask = np.isfinite(hh)
+        wse_mask = np.zeros_like(hh, dtype=bool)
+        wse_mask[finite_mask] = (hh[finite_mask] > MIN_VALID_WSE) \
+                                & (hh[finite_mask] < MAX_VALID_WSE)
         if (ww[wse_mask] == 0).any():
             LOGGER.warning(
                 "get_reach_mask: Removing invalid wse_r_u (Inf) values!")
