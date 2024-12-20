@@ -1913,14 +1913,65 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
         data['lat_prior'] = np.array([
             record['geometry']['coordinates'][1] for record in records])
         for key, reference in klass.VARIABLES.items():
-            if key not in ['lat_prior', 'lon_prior']:
-                data[key] = np.array([
-                    record['properties'][key] for record in records])
+            try:
+                if key not in ['lat_prior', 'lon_prior']:
+                    data[key] = np.array([
+                        record['properties'][key] for record in records])
+            except KeyError:
+                # Can occur if product class is not synced with input data, and
+                # the product class has vars that the input data doesn't.
+                LOGGER.warning('shapefile does not contain {}'.format(key))
+                pass
         for key, value in data.items():
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
                 value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
+        # Check for variables that appear in the shapefile but aren't defined in
+        # the product (klass.VARIABLES). These will be added as the data type
+        # they were input as, with defaulted attributes.
+        if len(records) > 0:
+            record_keys = records[0]['properties'].keys()
+            undefined_vars = set(record_keys).difference(klass.VARIABLES.keys())
+            all_metadata = root.findall(".//attributes/*")
+            for var in undefined_vars:
+                values = [record['properties'][var] for record in records]
+                values_arr = np.array(values)
+                data[var] = values_arr
+                this_metadata = cls.get_var_metadata(all_metadata, var, values_arr)
+                klass.VARIABLES[var] = this_metadata[var]
+                setattr(klass, var, values_arr)
+                LOGGER.warning(
+                    "Input shapefile has variable '%s' not defined in product "
+                    "class VARIABLES. Propagated through from input.", var)
         return klass
+
+    @staticmethod
+    def get_var_metadata(all_metadata, var, values_arr):
+        """Gets cleaned and typed metadata for a given input variable and list
+        of metadata. Intended for dynamic class variable additions, to account
+        for version differences between inputs and product class."""
+        this_metadata = {
+            v.tag: {attrib.tag: attrib.text for attrib in v}
+            for v in all_metadata if v.tag == var
+        }
+        this_metadata[var]['dtype'] = values_arr.dtype.str
+        this_metadata[var]['dimensions'] = odict([('nodes', 0)])
+        # Convert metadata values to proper types; they are read in as strings
+        this_metadata[var]['valid_min'] = float(this_metadata[var]['valid_min'])
+        this_metadata[var]['valid_max'] = float(this_metadata[var]['valid_max'])
+        this_metadata[var]['dtype'] = this_metadata[var]['dtype'].lstrip('<')
+        if 'fill_value' in this_metadata[var]:
+            # Ensure `_FillValue` is correctly named and typed
+            this_metadata[var]['_FillValue'] = float(
+                this_metadata[var]['fill_value'])
+            del this_metadata[var]['fill_value']
+        if 'flag_masks' in this_metadata[var]:
+            # Convert string representation ("[0 1 2 4..]") to numpy array
+            flags_str = this_metadata[var]['flag_masks'].strip('[]').split()
+            cleaned_flags = [int(num) for num in flags_str]
+            this_metadata[var]['flag_masks'] = np.array(cleaned_flags,
+                                                        dtype=np.int32)
+        return this_metadata
 
     def uncorrect_tides(self):
         """Removes geoid, solid earth tide, pole tide, and load tide"""
