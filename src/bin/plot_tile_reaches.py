@@ -108,6 +108,14 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                     '/' + os.path.join(*rivertile.split('/')[:-1])
                     + '/SWOT_L2_HR_PIXCVecRiver_*.nc'
             )[0]
+            pixc = glob.glob(
+                '/' + os.path.join(*rivertile.split('/')[:-3])
+                + '/SWOT_L2_HR_PIXC_*.nc'
+            )
+            if pixc:
+                pixcs[index] = pixc[0]
+            else:
+                print(f"No PIXC found for rivertile {rivertile}")
             if 'local' in river_run_id:
                 pixcs[index] = glob.glob(
                     '/' + os.path.join(*rivertile.split('/')[:-3])

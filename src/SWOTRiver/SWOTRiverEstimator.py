@@ -37,6 +37,9 @@ LOGGER = logging.getLogger(__name__)
 
 REACH_WSE_SYS_UNCERT = 0.09  # m
 SLOPE_SYS_UNCERT = 0.000003  # m/m
+WSE_SM_NOISY_THRESHOLD = 0.3 # m
+POOR_P_FIT_THRESHOLD = 0.5
+BAYES_LARGE_RESID_THRESHOLD = 0.1 # m
 
 NEAR_RANGE_XTRACK_THRESHOLD = 10000
 FAR_RANGE_XTRACK_TRESHOLD = 60000
@@ -926,7 +929,6 @@ class SWOTRiverEstimator(SWOTL2):
                 out_river_reach.metadata['slope2_r_u'] = enhanced_slope_r_u
                 out_river_reach.metadata['slope2_u'] = enhanced_slope_u
                 out_river_reach_collection.append(out_river_reach)
-
         return out_river_reach_collection
 
     def assign_reaches(self,
@@ -1702,12 +1704,12 @@ class SWOTRiverEstimator(SWOTL2):
             'sum', 'is_area_degraded'))
 
         # create empty arrays for the reconst WSE & uncertainty (for later)
-        w_opt = np.ones(wse.shape,
-                        dtype=np.float64) * self.river_obs.missing_value
-        w_opt_r_u = np.ones(wse.shape,
-                        dtype=np.float64) * self.river_obs.missing_value
-
-        # Create node_q_b quality bitwise flag
+        wse_sm = np.ones(reach.node_length.shape, dtype=np.float64) * self.river_obs.missing_value
+        wse_sm_u = np.ones(reach.node_length.shape, dtype=np.float64) *	self.river_obs.missing_value
+        wse_sm_idx = reach.node_indx
+        wse_sm_reach_id = np.ones(reach.node_length.shape, dtype=np.int64) * reach_idx
+        
+        # Create node_q_b bitwise quality flag
         node_q_b = np.zeros(lat_median.shape, dtype='i4')
 
         # bit 0 / sig0_qual_suspect
@@ -1781,8 +1783,8 @@ class SWOTRiverEstimator(SWOTL2):
         # reach masks are generated)
 
         # bit 24 / wse_bad
-        node_q_b[np.logical_or(wse < MIN_VALID_WSE, wse > MAX_VALID_WSE)] |= (
-            SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
+        wse_bad = np.logical_or(wse < MIN_VALID_WSE, wse > MAX_VALID_WSE)
+        node_q_b[wse_bad] |= (SWOTRiver.products.rivertile.QUAL_IND_WSE_BAD)
 
         # bit 25 / no_sig0_observations
         node_q_b[n_pix_sig0 == 0] |= (
@@ -1800,6 +1802,39 @@ class SWOTRiverEstimator(SWOTL2):
         node_q_b[n_pix == 0] |= (
             SWOTRiver.products.rivertile.QUAL_IND_NO_PIXELS)
 
+        # Initialize wse_sm_q_b and copy over the bits that overlap with wse_sm_q_b
+        wse_sm_q_b = np.zeros_like(node_q_b, dtype='i4')
+
+        # Bit 0 / fill_value_input
+        # Check for QUAL_IND_NO_WSE_PIX or QUAL_IND_WSE_BAD in node_q_b
+        # If either is present, set FILL_VALUE_INPUT in wse_sm_q_b
+        fill_value_wse = np.logical_or(n_pix == 0, wse_bad)
+        wse_sm_q_b[fill_value_wse] |= SWOTRiver.products.rivertile.FILL_VALUE_INPUT
+        
+        # Bit 2 / geolocation_qual_suspect
+        wse_sm_q_b |= (
+                node_q_b & SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_SUSPECT)
+
+        # Bit 4 / few_wse_observations
+        wse_sm_q_b |= (
+                node_q_b & SWOTRiver.products.rivertile.QUAL_IND_FEW_WSE_PIX)
+
+        # Bit 9 / noisy_inputs
+        wse_sm_q_b[wse_r_u > WSE_SM_NOISY_THRESHOLD] |= \
+            SWOTRiver.products.rivertile.BAYES_NOISY_IN
+
+        # Bit 13 / far_range_suspect
+        wse_sm_q_b |= (
+                node_q_b & SWOTRiver.products.rivertile.QUAL_IND_FAR_RANGE_SUSPECT)
+
+        # Bit 14 / near_range_suspect
+        wse_sm_q_b |= (
+                node_q_b & SWOTRiver.products.rivertile.QUAL_IND_NEAR_RANGE_SUSPECT)
+
+        # Bit 19 / geolocation_qual_degraded
+        wse_sm_q_b |= (
+                node_q_b & SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_DEGRADED)
+
         # Create node_q from node_q_b
         thresh_sus = 1
         thresh_deg = (
@@ -1811,6 +1846,9 @@ class SWOTRiverEstimator(SWOTL2):
         node_q[node_q_b >= thresh_deg] = 2
         node_q[node_q_b >= thresh_bad] = 3
 
+        # Create wse_sm_q from wse_sm_q_b (populate after bayes estimate)
+        wse_sm_q = np.zeros_like(node_q)
+        
         # create xovr_cal_q
         xovr_cal_q = np.zeros(lat_median.shape, dtype='i2')
         n_pix_xovercal_suspect = np.array(
@@ -1856,8 +1894,12 @@ class SWOTRiverEstimator(SWOTL2):
             'wse': wse.astype('float64'),
             'wse_std': wse_std.astype('float64'),
             'wse_r_u': wse_r_u.astype('float64'),
-            'w_opt': w_opt.astype('float64'),
-            'w_opt_r_u': w_opt_r_u.astype('float64'),
+            'wse_sm': wse_sm.astype('float64'),
+            'wse_sm_u': wse_sm_u.astype('float64'),
+            'wse_sm_idx': wse_sm_idx.astype('int64'),
+            'wse_sm_reach_id': wse_sm_reach_id.astype('int64'),
+            'wse_sm_q': wse_sm_q.astype('uint8'),
+            'wse_sm_q_b': wse_sm_q.astype('int32'),
             'nobs': nobs.astype('int32'),
             'nobs_h': nobs_h.astype('int32'),
             'n_good_pix': n_pix_wse.astype('int32'),
@@ -1932,7 +1974,8 @@ class SWOTRiverEstimator(SWOTL2):
         river_reach : partially populated RiverReach instance with node
             quantities already computed
         reach : Reach instance
-            One of the reaches from ReachExtractor.
+            One of the reaches from ReachExtractor. Contains full reach
+            information, not just the populated nodes.
         reach_id : int
             Index in the list of reaches extracted for this scene.
         reach_idx, int
@@ -2064,34 +2107,50 @@ class SWOTRiverEstimator(SWOTL2):
                     hh_opt, wse_r_u_opt, mask_opt, ss_opt = \
                         hh, wse_r_u, mask_wse, ss
                 # get the optimal reconstruction (Bayes estimate)
-                wse_opt, wse_opt_r_u, height_u, slope_u,  = \
+                wse_sm, wse_sm_u, height_u, slope_u = \
                     self.optimal_reconstruct(
                         river_reach_collection,
                         river_reach, reach_id,
                         ss_opt, hh_opt,
                         wse_r_u_opt, mask_opt,
-                        min_fit_points,
-                        method='Bayes',
+                        method='Bayes'
                     )
                 # Store the reconstructed node heights in river reach object.
                 # Currently, only store populated nodes (node_indx clipped to
                 # nodes with minobs observations as specified by L2_HR_Param
                 # file).
-                river_reach.w_opt = wse_opt[self.river_obs.populated_nodes]
-                river_reach.w_opt_r_u = wse_opt_r_u[
-                    self.river_obs.populated_nodes]
-                # Use reconstruction height and slope for reach outputs
-                dx = ss_opt[0] - ss_opt[-1]  # along-reach dist
-                reach_stats['slope'] = (wse_opt[0] - wse_opt[-1]) / dx
-                reach_stats['height'] = np.mean(wse_opt)
-                reach_stats['slope_r_u'] = slope_u
-                reach_stats['height_r_u'] = height_u
-                reach_stats['slope_u'] = np.sqrt(
-                    SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
-                reach_stats['height_u'] = np.sqrt(
-                    REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
-                reach_stats['slope2_u'] = MISSING_VALUE_FLT
-                reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
+                river_reach.wse_sm = wse_sm
+                river_reach.wse_sm_u = wse_sm_u
+                if np.any(wse_sm == FILL_VALUES['f8']):
+                    # If the reconstruction failed for any node, it failed for
+                    # all nodes. Use observed data (hh_opt) for reach height
+                    # and slope.
+                    reach_stats['slope'] = (
+                            hh_opt[mask_opt][0] - hh_opt[mask_opt][-1])/(
+                            ss_opt[mask_opt][0]-ss_opt[mask_opt][-1])
+                    reach_stats['height'] = (
+                            np.mean(hh_opt[mask_opt]) + reach_stats['slope']
+                            * np.mean(ss_opt) - np.mean(ss_opt[mask_opt])
+                    )
+                    reach_stats['slope_r_u'] = np.sqrt(np.sum(
+                        wse_r_u_opt[mask_opt]**2)) / len(wse_r_u_opt[mask_opt])
+                    reach_stats['height_r_u'] = np.sqrt(np.sum(
+                        wse_r_u_opt[mask_opt]**2)) / len(wse_r_u_opt[mask_opt])
+                    reach_stats['slope_u'] = MISSING_VALUE_FLT
+                    reach_stats['height_u'] = MISSING_VALUE_FLT
+                else:
+                    # use reconstructed WSEs for reach-level height and slope
+                    dx = ss_opt[0] - ss_opt[-1]  # along-reach dist
+                    reach_stats['slope'] = (wse_sm[0] - wse_sm[-1]) / dx
+                    reach_stats['height'] = np.mean(wse_sm)
+                    reach_stats['slope_r_u'] = slope_u
+                    reach_stats['height_r_u'] = height_u
+                    reach_stats['slope_u'] = np.sqrt(
+                        SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                    reach_stats['height_u'] = np.sqrt(
+                        REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+                    reach_stats['slope2_u'] = MISSING_VALUE_FLT
+                    reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
         else:
             # insufficient node heights for fit to reach
@@ -3007,7 +3066,6 @@ class SWOTRiverEstimator(SWOTL2):
             wse,
             wse_r_u,
             mask,
-            min_fit_points=2,
             prior_cov_method='exponential',
             full_noise_cov=False,
             method='Bayes'):
@@ -3080,6 +3138,18 @@ class SWOTRiverEstimator(SWOTL2):
             wse_fit = statsmodels.api.WLS(wse[mask], SS[mask],
                                           weights=ww[mask]).fit()
             prior_wse = wse_fit.predict(SS)
+            # Calculate R^2 to evaluate the fit quality
+            fitted_values = wse_fit.predict(SS[mask])
+            ss_res = np.sum(((wse[mask] - fitted_values) ** 2) * ww[
+                mask])  # Weighted residual sum of squares
+            ss_tot = np.sum(
+                ((wse[mask] - np.average(wse[mask], weights=ww[mask])) ** 2) *
+                ww[mask])  # Weighted total sum of squares
+            r_squared = 1 - (ss_res / ss_tot)
+
+            # Set the poor_p_fit bit for all nodes in reach if R^2 is below threshold
+            if r_squared < POOR_P_FIT_THRESHOLD:
+                river_reach.wse_sm_q_b |= SWOTRiver.products.rivertile.BAYES_POOR_P_FIT
 
         # get the sampling operator
         # find where the data is not masked out or NaN
@@ -3116,7 +3186,17 @@ class SWOTRiverEstimator(SWOTL2):
         # compute the optimal wse reconstruction filter
         if method == 'Bayes':
             # get the bayes estimate
-            K, K_bar, A_inv = self.compute_bayes_estimator(Ry, Rv, H)
+            try:
+                K, K_bar, A_inv = self.compute_bayes_estimator(Ry, Rv, H)
+            except np.linalg.LinAlgError:
+                # Set the "bad" bit in wse_sm_q_b if SVD fails
+                river_reach.wse_sm_q_b |= (
+                    SWOTRiver.products.rivertile.BAYES_NO_RECONST)
+                # Output fill values for the reconstructed WSEs and uncertainties
+                wse_out = np.full_like(wse,
+                                       FILL_VALUES['f8'])
+                wse_out_std = np.full_like(wse, FILL_VALUES['f8'])
+                return wse_out, wse_out_std, FILL_VALUES['f8'], FILL_VALUES['f8']
         else:
             raise Exception('Reconstruction method %s is not an implemented '
                             'option for the reconstruction' % method)
@@ -3132,6 +3212,21 @@ class SWOTRiverEstimator(SWOTL2):
         # apply the prior term
         wse_out = wse_out0 + np.matmul(K_bar, prior_wse)
         wse_out_std = np.sqrt(np.diag(A_inv))  # node-level height uncertainty
+        # set wse_sm_q_b if the residuals of the estimate are large, while
+        # accounting for fill values in msk
+        large_residuals = np.logical_and(
+            np.abs(wse - wse_out) > BAYES_LARGE_RESID_THRESHOLD, msk)
+        river_reach.wse_sm_q_b[
+            large_residuals[
+                river_reach.populated_nodes]] |= SWOTRiver.products.rivertile.BAYES_BIG_RESID
+        # populate wse_sm_q now that wse_sm_q_b is fully defined
+        thresh_sus = 1
+        thresh_deg = (
+            SWOTRiver.products.rivertile.QUAL_IND_NODE_DEGRADED_THRESHOLD)
+        thresh_bad = SWOTRiver.products.rivertile.QUAL_IND_NODE_BAD_THRESHOLD 
+        river_reach.wse_sm_q[river_reach.wse_sm_q_b >= thresh_sus] = 1
+        river_reach.wse_sm_q[river_reach.wse_sm_q_b >= thresh_deg] = 2
+        river_reach.wse_sm_q[river_reach.wse_sm_q_b >= thresh_bad] = 3
         height_u = np.sqrt(this_reach_mask_b @ A_inv @ this_reach_mask_b.T)
         slope_u = np.sqrt(first_and_last_node_c @ A_inv @ np.atleast_2d(
             first_and_last_node_c).T)

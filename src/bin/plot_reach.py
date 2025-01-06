@@ -956,7 +956,7 @@ def make_plots(rivertile_file, rivertile_df, truth_data, pixcvec, pixc,
     # handle overwriting if user says not to
     make_rivers = True
     make_pixc = True
-    if ~overwrite:
+    if (~overwrite) and (out_dir is not None):
         # Don't write files if they exist already!
         river_code = get_river_code(rivertile_df, reach_id)
         river_exists, has_truth = check_for_existing_river_plots(
@@ -1354,9 +1354,13 @@ def main():
     if args.pixc_truth is not None:
         pixc_truth = os.path.abspath(args.pixc_truth)
     if os.path.isfile(proc_tile):
-        make_plots(proc_tile, truth_tile, pixcvec, pixc,
+        # read the dataframe
+        proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_ncfile(proc_tile)
+        # call the make plots routine
+        #breakpoint()
+        make_plots(proc_tile, proc_df, truth_tile, pixcvec, pixc,
                    truth_pixcvec, truth_pixc, args.reach_id,
-                   gdem_dem, reach_error, nodes=args.nodes,
+                   reach_error, nodes=args.nodes,
                    pixc_truth=pixc_truth)
         plt.show()
     else:
