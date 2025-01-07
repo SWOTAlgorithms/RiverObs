@@ -20,6 +20,12 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
 
     if d_x_area < -10000000 or np.ma.is_masked(d_x_area):
         d_x_area = MISSING_VALUE_FLT
+    if np.isnan(d_x_area):
+        # TODO: this can happen if polyfit breakpoints have NaNs. Reset for now.
+        # See https://jira-fn.jpl.nasa.gov/browse/KCV-520
+        d_x_area = MISSING_VALUE_FLT
+    if np.isnan(d_x_area_u):
+        d_x_area_u = MISSING_VALUE_FLT
 
     if d_x_area_u < 0 or np.ma.is_masked(d_x_area_u):
         d_x_area_u = MISSING_VALUE_FLT
@@ -152,7 +158,6 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         else:
             momma_n = momma_nb*(1-log_factor)
             log_check = log_factor < 1
-
         if (reach_width > 0 and reach_slope > 0 and momma_n > 0 and
             momma_Save > 0 and momma_H > momma_B and momma_nb > 0
                 and log_check):
@@ -172,7 +177,18 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
                 momma_s_rel_u = MISSING_VALUE_FLT
                 momma_s_u = MISSING_VALUE_FLT
                 momma_u = MISSING_VALUE_FLT
+            # Sanitize momma variables, which (unlike other discharge algorithms)
+            # can have masked arrays as the output
+            def clean_masked(value):
+                if isinstance(value, np.ma.MaskedArray):
+                    return np.ma.getdata(value).item()
+                return value
 
+            momma_q = clean_masked(momma_q)
+            momma_r_u = clean_masked(momma_r_u)
+            momma_u = clean_masked(momma_u)
+            if momma_q == -9999.0:
+                momma_q = MISSING_VALUE_FLT
         else:
             momma_q = MISSING_VALUE_FLT
             momma_s_rel_u = MISSING_VALUE_FLT
