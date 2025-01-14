@@ -2238,7 +2238,7 @@ class SWOTRiverEstimator(SWOTL2):
         def fill_if_was_fill(value, other_fill, fill):
             # We use np.isclose(...) here since the SWORD fill values can be
             # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
-            return value if not np.isclose(value, other_fill) else fill
+            return value if value is not np.ma.core.MaskedConstant() and not np.isclose(value, other_fill) else fill
 
         reach_stats['ice_clim_f'] = fill_if_was_fill(
             reach.metadata['iceflag'], -9999, MISSING_VALUE_INT4)
