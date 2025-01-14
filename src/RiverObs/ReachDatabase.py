@@ -241,8 +241,7 @@ class ReachExtractor(object):
                         # ice_flag will be off-by-one and processor will crash
                         # at end of leap years
                         day_index = day_of_year - 1
-                        reach_metadata[key] = this_reach['reaches'][key][
-                            day_index, 0]
+                        reach_metadata[key] = this_reach['reaches'][key].filled(MISSING_VALUE_INT4)[day_index, 0]
                     else:
                         reach_metadata[key] = MISSING_VALUE_INT4
                 else:
