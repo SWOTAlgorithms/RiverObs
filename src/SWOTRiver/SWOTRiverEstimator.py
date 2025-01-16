@@ -2236,12 +2236,16 @@ class SWOTRiverEstimator(SWOTL2):
         # Avoid letting fill value of -9999 from PRD propagate into outputs
         # (these variables are just passed through from PRD to RiverTile).
         def fill_if_was_fill(value, other_fill, fill):
-            return value if value != other_fill else fill
+            # We use np.isclose(...) here since the SWORD fill values can be
+            # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
+            return value if value is not np.ma.core.MaskedConstant() and not np.isclose(value, other_fill) else fill
 
         reach_stats['ice_clim_f'] = fill_if_was_fill(
             reach.metadata['iceflag'], -9999, MISSING_VALUE_INT4)
         reach_stats['p_low_slp'] = fill_if_was_fill(
             reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
+        reach_stats['max_width'] = fill_if_was_fill(
+            reach.metadata['max_width'], -9999.0, MISSING_VALUE_FLT)
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
