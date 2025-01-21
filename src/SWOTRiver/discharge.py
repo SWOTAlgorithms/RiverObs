@@ -17,27 +17,19 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         d_x_area, d_x_area_u, width_c, width_c_u, height_c, height_c_u = area(
             reach_height, reach_height_u, reach_width, reach_width_u,
             reach.metadata['area_fits'])
-
-    if d_x_area < -10000000 or np.ma.is_masked(d_x_area):
+    if d_x_area < -10000000 or np.ma.is_masked(d_x_area) or np.isnan(d_x_area):
         d_x_area = MISSING_VALUE_FLT
-    if np.isnan(d_x_area):
-        # TODO: this can happen if polyfit breakpoints have NaNs. Reset for now.
-        # See https://jira-fn.jpl.nasa.gov/browse/KCV-520
-        d_x_area = MISSING_VALUE_FLT
-    if np.isnan(d_x_area_u):
+    if d_x_area_u < 0 or np.ma.is_masked(d_x_area_u) or np.isnan(d_x_area_u):
         d_x_area_u = MISSING_VALUE_FLT
-
-    if d_x_area_u < 0 or np.ma.is_masked(d_x_area_u):
-        d_x_area_u = MISSING_VALUE_FLT
-
+    # Convert the masked arrays to normal arrays with appropriate
+    # fill values, if needed
+    reach.metadata = unmask_metadata(reach.metadata)
     outputs = {'d_x_area': d_x_area, 'd_x_area_u': d_x_area_u}
     for key, models in reach.metadata['discharge_models'].items():
-
         metro_ninf = models['MetroMan']['ninf']
         metro_Abar = models['MetroMan']['Abar']
         metro_p = models['MetroMan']['p']
-        metro_s_rel_u = models['MetroMan']['sbQ_rel'].item()
-
+        metro_s_rel_u = models['MetroMan']['sbQ_rel']
         if (reach_width > 0 and reach_slope > 0 and metro_Abar+d_x_area >= 0
                 and metro_Abar > 0 and metro_ninf > 0):
 
@@ -78,8 +70,7 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         # 3: Compute BAM model
         bam_n = models['BAM']['n']
         bam_Abar = models['BAM']['Abar']
-        bam_s_rel_u = models['BAM']['sbQ_rel'].item()
-
+        bam_s_rel_u = models['BAM']['sbQ_rel']
         if (reach_width > 0 and reach_slope > 0 and bam_Abar+d_x_area >= 0 and
             bam_Abar > 0 and bam_n > 0):
 
@@ -109,7 +100,7 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         hivdi_Abar = models['HiVDI']['Abar']
         hivdi_alpha = models['HiVDI']['alpha']
         hivdi_beta = models['HiVDI']['beta']
-        hivdi_s_rel_u = models['HiVDI']['sbQ_rel'].item()
+        hivdi_s_rel_u = models['HiVDI']['sbQ_rel']
 
         if (reach_width > 0 and reach_slope > 0 and hivdi_Abar+d_x_area >= 0 and
             hivdi_Abar > 0 and hivdi_alpha > 0):
@@ -145,9 +136,12 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         momma_H = models['MOMMA']['H']
         momma_Save = models['MOMMA']['Save']
         momma_r = 2
-        momma_s_rel_u = models['MOMMA']['sbQ_rel'].item()
+        momma_s_rel_u = models['MOMMA']['sbQ_rel']
 
-        momma_nb = 0.11 * momma_Save**0.18
+        if momma_Save != MISSING_VALUE_FLT:
+            momma_nb = 0.11 * momma_Save**0.18
+        else:
+            momma_nb = MISSING_VALUE_FLT
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
@@ -161,7 +155,6 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         if (reach_width > 0 and reach_slope > 0 and momma_n > 0 and
             momma_Save > 0 and momma_H > momma_B and momma_nb > 0
                 and log_check):
-
             momma_q = (
                 ((reach_height - momma_B)*(momma_r/(1+momma_r)))**(5/3) *
                 reach_width * reach_slope**(1/2)) / momma_n
@@ -177,16 +170,6 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
                 momma_s_rel_u = MISSING_VALUE_FLT
                 momma_s_u = MISSING_VALUE_FLT
                 momma_u = MISSING_VALUE_FLT
-            # Sanitize momma variables, which (unlike other discharge algorithms)
-            # can have masked arrays as the output
-            def clean_masked(value):
-                if isinstance(value, np.ma.MaskedArray):
-                    return np.ma.getdata(value).item()
-                return value
-
-            momma_q = clean_masked(momma_q)
-            momma_r_u = clean_masked(momma_r_u)
-            momma_u = clean_masked(momma_u)
             if momma_q == -9999.0:
                 momma_q = MISSING_VALUE_FLT
         else:
@@ -199,8 +182,7 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         # 6: Compute SADS model
         sads_Abar = models['SADS']['Abar']
         sads_n = models['SADS']['n']
-        sads_s_rel_u = models['SADS']['sbQ_rel'].item()
-
+        sads_s_rel_u = models['SADS']['sbQ_rel']
         if (reach_width > 0 and reach_slope > 0 and sads_Abar+d_x_area >= 0 and
             sads_Abar > 0 and sads_n > 0):
 
@@ -230,11 +212,10 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         # 7: Compute SIC4DVar model
         sic4dvar_n = models['SIC4DVar']['n']
         sic4dvar_Abar = models['SIC4DVar']['Abar']
-        sic4dvar_s_rel_u = models['SIC4DVar']['sbQ_rel'].item()
+        sic4dvar_s_rel_u = models['SIC4DVar']['sbQ_rel']
 
         if (reach_width > 0 and reach_slope > 0 and sic4dvar_Abar+d_x_area >= 0
                 and sic4dvar_Abar > 0 and sic4dvar_n > 0):
-
             sic4dvar_q = (
                 (d_x_area+sic4dvar_Abar)**(5/3) * reach_width**(-2/3) *
                 (reach_slope)**(1/2)) / sic4dvar_n
@@ -260,7 +241,6 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
             sic4dvar_r_u = MISSING_VALUE_FLT
             sic4dvar_u = MISSING_VALUE_FLT
 
-        # 8: Compute consensus discharge and its uncertainties
         q_results = np.ma.masked_values([metro_q, bam_q, hivdi_q, momma_q,
                                          sads_q, sic4dvar_q],
                                         MISSING_VALUE_FLT)
@@ -270,12 +250,14 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         q_s_u = np.ma.masked_values([metro_s_u, bam_s_u, hivdi_s_u,
                                      momma_s_u, sads_s_u, sic4dvar_s_u],
                                     MISSING_VALUE_FLT)
-        nalgo = np.sum(q_results.mask == False)
+        # Determine the number of non-masked algorithms
+        nalgo = np.sum(~q_results.mask)
         if nalgo >= 1:
-            consensus_q = np.median(q_results)
-            consensus_s_u = np.sqrt(np.pi / 2 * np.mean(q_s_u)**2 / nalgo)
-            consensus_u = np.sqrt(consensus_s_u**2 + np.median(q_r_u)**2)
+            consensus_q = np.ma.median(q_results)
+            consensus_s_u = np.ma.sqrt(np.pi / 2 * np.ma.mean(q_s_u)**2 / nalgo)
+            consensus_u = np.ma.sqrt(consensus_s_u**2 + np.ma.median(q_r_u)**2)
             consensus_s_rel_u = consensus_s_u / consensus_u
+
         else:
             consensus_q = MISSING_VALUE_FLT
             consensus_s_rel_u = MISSING_VALUE_FLT
@@ -589,6 +571,45 @@ def _area(
     return delta_area_hat, dAunc, observed_width_hat, observed_width_hat_u,\
            observed_height_hat, observed_height_hat_u
 
+def unmask_metadata(data):
+    """
+    Recursively convert all masked arrays in the metadata to regular numpy
+    arrays and fill with appropriate fill values. Handles nested dictionaries
+    and lists, since the metadata exist at varying levels.
+    """
+    FILL_VALUES = {
+        np.int32: MISSING_VALUE_INT4,
+        np.int64: MISSING_VALUE_INT9,
+        np.float32: MISSING_VALUE_FLT,
+        np.float64: MISSING_VALUE_FLT,
+    }
+    # if data are nested in lists or dictionaries, unmask its contents
+    if isinstance(data, dict):
+        return {key: unmask_metadata(value) for key, value in data.items()}
+    if isinstance(data, list):
+        return [unmask_metadata(item) for item in data]
+
+    # if data are in a masked array, convert to normal array and use fill values
+    # for masked elements
+    if np.ma.isMaskedArray(data):
+        dt = data.dtype.type
+        unmasked = data.filled(
+            FILL_VALUES[dt]) if dt in FILL_VALUES else data.data
+        return unmasked.item() if unmasked.size == 1 else unmasked
+
+    # if data are already an unmasked array, check for -9999 fill values from
+    # SWORD and replace with the correct fill value
+    if isinstance(data, np.ndarray):
+        dt = data.dtype.type
+        if dt in FILL_VALUES:
+            return np.where(data == -9999, FILL_VALUES[dt], data)
+
+    # same as above but for singular ints and floats
+    if isinstance(data, (int, float)):
+        dt = type(data)
+        if dt in FILL_VALUES and data == -9999:
+            return FILL_VALUES[dt]
+    return data
 
 def estimate_height(observed_width, observed_height, poly_fit, fit_width_var,
                     fit_height_var):
