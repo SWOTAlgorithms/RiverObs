@@ -1929,6 +1929,7 @@ class SWOTRiverEstimator(SWOTL2):
             'p_wid_var': reach.width_var[self.river_obs.populated_nodes],
             'p_dist_out': reach.dist_out[self.river_obs.populated_nodes],
             'p_length': reach.node_length[self.river_obs.populated_nodes],
+            'p_length_all': reach.node_length,
             'grand_id': reach.grod_id[self.river_obs.populated_nodes],
             'n_chan_max': reach.n_chan_max[self.river_obs.populated_nodes],
             'n_chan_mod': reach.n_chan_mod[self.river_obs.populated_nodes],
@@ -1999,7 +2000,7 @@ class SWOTRiverEstimator(SWOTL2):
                       ).format(reach_idx, ngood))
 
         reach_stats = collections.OrderedDict()
-        reach_stats['length'] = np.sum(river_reach.p_length)
+        reach_stats['length'] = np.sum(river_reach.p_length_all)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
 
@@ -2014,19 +2015,20 @@ class SWOTRiverEstimator(SWOTL2):
         if reach_area_length > 0:
             reach_stats['area_det'] = np.sum(river_reach.area_det[mask_area]) \
                                   * reach_stats['length'] / reach_area_length
-            reach_stats['area'] = np.sum(river_reach.area[mask_area]) \
-                                  * reach_stats['length'] / reach_area_length
+            width = np.sum(river_reach.area[mask_area]) / reach_area_length
+            reach_stats['area'] = width * reach_stats['length']
             reach_stats['width_u'] = np.sqrt(
                 np.sum(river_reach.area_u[mask_area] ** 2)) / reach_area_length
         else:
             reach_stats['area_det'] = 0
+            width = 0
             reach_stats['area'] = 0
             reach_stats['width_u'] = 0
         reach_stats['area_det_u'] = np.sqrt(np.sum(
             river_reach.area_det_u[mask_area] ** 2))
         reach_stats['area_u'] = np.sqrt(np.sum(
             river_reach.area_u[mask_area] ** 2))
-        reach_stats['width'] = reach_stats['area'] / reach_stats['length']
+        reach_stats['width'] = width
 
         reach_stats['layovr_val'] = np.sqrt(np.sum(
             river_reach.layovr_val[river_reach.mask_wse]**2))
