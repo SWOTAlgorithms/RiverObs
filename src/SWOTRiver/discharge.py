@@ -137,47 +137,54 @@ def compute(reach, reach_height, reach_height_u, reach_width, reach_width_u,
         momma_Save = models['MOMMA']['Save']
         momma_r = 2
         momma_s_rel_u = models['MOMMA']['sbQ_rel']
-
-        if momma_Save != MISSING_VALUE_FLT:
-            momma_nb = 0.11 * momma_Save**0.18
-        else:
-            momma_nb = MISSING_VALUE_FLT
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
-
-        if reach_height <= momma_H:
-            momma_n = momma_nb*(1+log_factor)
-            log_check = log_factor > -1
-        else:
-            momma_n = momma_nb*(1-log_factor)
-            log_check = log_factor < 1
-        if (reach_width > 0 and reach_slope > 0 and momma_n > 0 and
-            momma_Save > 0 and momma_H > momma_B and momma_nb > 0
-                and log_check):
-            momma_q = (
-                ((reach_height - momma_B)*(momma_r/(1+momma_r)))**(5/3) *
-                reach_width * reach_slope**(1/2)) / momma_n
-            momma_width_u = reach_width_u / reach_width
-            momma_slp_u = reach_slope_u / (2 * reach_slope)
-            momma_wse_u = 5 * reach_height_u / (3 * (reach_height - momma_B))
-            momma_r_u = np.sqrt(momma_width_u**2 + momma_slp_u**2 +
-                                momma_wse_u**2)
-            if 0 <= momma_s_rel_u < 1:
-                momma_s_u, momma_u = discharge_uncertainty(momma_s_rel_u,
-                                                           momma_r_u)
-            else:
-                momma_s_rel_u = MISSING_VALUE_FLT
-                momma_s_u = MISSING_VALUE_FLT
-                momma_u = MISSING_VALUE_FLT
-            if momma_q == -9999.0:
-                momma_q = MISSING_VALUE_FLT
-        else:
+        if (momma_B == MISSING_VALUE_FLT
+            or momma_H == MISSING_VALUE_FLT
+            or reach_height == MISSING_VALUE_FLT
+            or momma_Save == MISSING_VALUE_FLT
+        ):
             momma_q = MISSING_VALUE_FLT
             momma_s_rel_u = MISSING_VALUE_FLT
             momma_s_u = MISSING_VALUE_FLT
             momma_r_u = MISSING_VALUE_FLT
             momma_u = MISSING_VALUE_FLT
+        else:
+            momma_nb = 0.11 * momma_Save**0.18
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                log_factor = np.log10((momma_H-momma_B)/(reach_height-momma_B))
+
+            if reach_height <= momma_H:
+                momma_n = momma_nb*(1+log_factor)
+                log_check = log_factor > -1
+            else:
+                momma_n = momma_nb*(1-log_factor)
+                log_check = log_factor < 1
+            if (reach_width > 0 and reach_slope > 0 and momma_n > 0 and
+                momma_Save > 0 and momma_H > momma_B and momma_nb > 0
+                    and log_check):
+                momma_q = (
+                    ((reach_height - momma_B)*(momma_r/(1+momma_r)))**(5/3) *
+                    reach_width * reach_slope**(1/2)) / momma_n
+                momma_width_u = reach_width_u / reach_width
+                momma_slp_u = reach_slope_u / (2 * reach_slope)
+                momma_wse_u = 5 * reach_height_u / (3 * (reach_height - momma_B))
+                momma_r_u = np.sqrt(momma_width_u**2 + momma_slp_u**2 +
+                                    momma_wse_u**2)
+                if 0 <= momma_s_rel_u < 1:
+                    momma_s_u, momma_u = discharge_uncertainty(momma_s_rel_u,
+                                                               momma_r_u)
+                else:
+                    momma_s_rel_u = MISSING_VALUE_FLT
+                    momma_s_u = MISSING_VALUE_FLT
+                    momma_u = MISSING_VALUE_FLT
+                if momma_q == -9999.0:
+                    momma_q = MISSING_VALUE_FLT
+            else:
+                momma_q = MISSING_VALUE_FLT
+                momma_s_rel_u = MISSING_VALUE_FLT
+                momma_s_u = MISSING_VALUE_FLT
+                momma_r_u = MISSING_VALUE_FLT
+                momma_u = MISSING_VALUE_FLT
 
         # 6: Compute SADS model
         sads_Abar = models['SADS']['Abar']
