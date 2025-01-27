@@ -1179,7 +1179,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_min', 0],
                 ['valid_max', 3],
                 ['_FillValue', MISSING_VALUE_INT4],
-                ['tag_basic_expert', 'Basic'],
+                ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Summary quality indicator for the estimated node WSE
