@@ -3759,7 +3759,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Fraction of reach area_total covered by dark water.""")],
+                    Fraction of the measured reach area covered by dark water.
+                    """)],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
@@ -4203,9 +4204,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Length of the reach from the prior river database.  This
-                    value is used to compute the reach width from the water
-                    surface area.""")],
+                    Length of the reach from the prior river database.""")],
                 ])],
         ['p_maf',
          odict([['dtype', 'f8'],
