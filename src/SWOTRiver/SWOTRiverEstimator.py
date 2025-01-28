@@ -2013,14 +2013,18 @@ class SWOTRiverEstimator(SWOTL2):
         mask_area = river_reach.mask_area
         reach_area_length = np.sum(river_reach.p_length[mask_area])
         if reach_area_length > 0:
-            reach_stats['area_det'] = np.sum(river_reach.area_det[mask_area]) \
-                                  * reach_stats['length'] / reach_area_length
-            width = np.sum(river_reach.area[mask_area]) / reach_area_length
+            # detected area, actual area of detected water in the nodes used to estimate width and total area
+            reach_stats['area_det'] = np.sum(river_reach.area_det[mask_area])
+            # masked area, the total area of the nodes used to estimate reach area, including dark water
+            masked_area = np.sum(river_reach.area[mask_area])
+            # total area, estimated total water surface area of the reach, extrapolated to the full reach length
+            width = masked_area / reach_area_length
             reach_stats['area'] = width * reach_stats['length']
             reach_stats['width_u'] = np.sqrt(
                 np.sum(river_reach.area_u[mask_area] ** 2)) / reach_area_length
         else:
             reach_stats['area_det'] = 0
+            masked_area = 0
             width = 0
             reach_stats['area'] = 0
             reach_stats['width_u'] = 0
@@ -2211,9 +2215,12 @@ class SWOTRiverEstimator(SWOTL2):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            dark_frac = (
-                1-np.sum(river_reach.area_det)/np.sum(river_reach.area))
+            if masked_area == 0 :
+                dark_frac = 0
+            else :
+                dark_frac = 1 - reach_stats['area_det'] / masked_area
             reach_stats['dark_frac'] = min(dark_frac, 1)  # clip to <= 1
+            # sring_frac is not in the product, is effectively depreciated
             sring_frac = (
                 np.sum(river_reach.area_sring)/np.sum(river_reach.area))
             reach_stats['sring_frac'] = min(sring_frac, 1)  # clip to <= 1
