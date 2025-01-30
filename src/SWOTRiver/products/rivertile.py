@@ -985,6 +985,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_min', -80],
                 ['valid_max', 80],
                 ['_FillValue', MISSING_VALUE_FLT],
+                ['quality_flag', 'node_q'],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Geodetic latitude of the centroid of water-detected pixels
@@ -1000,6 +1001,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_min', -180],
                 ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
+                ['quality_flag', 'node_q'],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Geodetic longitude of the centroid of water-detected
@@ -1089,6 +1091,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Fitted node water surface elevation, relative to the
@@ -1140,6 +1143,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'wse_sm_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Estimated node water surface elevation following Bayesian
@@ -1241,6 +1245,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""Node width.""")],
                 ])],
@@ -1267,6 +1272,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total estimated water surface area, including dark water
@@ -1297,6 +1303,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Surface area of node that was detected as water by the
@@ -1326,6 +1333,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Surface area of the node that contributed to the
@@ -1586,6 +1594,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Median of the sigma0 from the pixel cloud points assigned
@@ -2276,6 +2285,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fitted reach water surface elevation, relative to the
@@ -2362,6 +2372,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fitted water surface slope relative to the geoid, and
@@ -2409,6 +2420,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Enhanced water surface slope relative to the geoid,
@@ -2511,6 +2523,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total estimated water surface area, including dark water
@@ -2542,6 +2555,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Surface area of reach that was detected as water by the
@@ -2572,6 +2586,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Surface area of the reach that contributed to the
@@ -2586,6 +2601,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'dschg_q_b'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Change in channel cross sectional area from the value
