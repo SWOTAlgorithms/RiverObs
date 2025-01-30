@@ -2468,6 +2468,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""Reach width.""")],
                 ])],
