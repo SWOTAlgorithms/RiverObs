@@ -237,8 +237,11 @@ class ReachExtractor(object):
                     reach_metadata[key] = this_reach['reaches'][key]
                 elif key in ['iceflag']:
                     if day_of_year is not None:
-                        reach_metadata[key] = this_reach['reaches'][key][
-                            day_of_year, 0]
+                        # Be sure to reindex day_of_year to zero, otherwise
+                        # ice_flag will be off-by-one and processor will crash
+                        # at end of leap years
+                        day_index = day_of_year - 1
+                        reach_metadata[key] = this_reach['reaches'][key].filled(MISSING_VALUE_INT4)[day_index, 0]
                     else:
                         reach_metadata[key] = MISSING_VALUE_INT4
                 else:

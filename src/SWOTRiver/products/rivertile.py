@@ -80,6 +80,27 @@ DSCHG_REACH_QUAL_BAD = 4194304                  # bit 22
 DSCHG_NO_DISCHARGE_OUTPUTS = 8388608            # bit 23
 DSCHG_NEGATIVE_SLOPE = 16777216                 # bit 24
 
+# Define constants for Bayes WSE qual bits
+FILL_VALUE_INPUT = 1                            # bit 0
+BAYES_NOISY_IN = 512                            # bit 9
+BAYES_POOR_P_FIT = 1024                         # bit 10
+BAYES_BIG_RESID = 4096                          # bit 12
+QUAL_IND_FAR_RANGE_SUSPECT = 8192               # bit 13
+QUAL_IND_NEAR_RANGE_SUSPECT = 16384             # bit 14
+BAYES_NO_RECONST = 8388608                      # bit 23
+WSE_SM_VALID_MAX = sum([
+    FILL_VALUE_INPUT,
+    QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
+    BAYES_NOISY_IN,
+    BAYES_POOR_P_FIT,
+    QUAL_IND_FEW_WSE_PIX,
+    BAYES_BIG_RESID,
+    QUAL_IND_FAR_RANGE_SUSPECT,
+    QUAL_IND_NEAR_RANGE_SUSPECT,
+    QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+    BAYES_NO_RECONST
+])
+                          
 # Node degraded/bad threshold values
 QUAL_IND_NODE_DEGRADED_THRESHOLD = QUAL_IND_CLASS_QUAL_DEGRADED
 QUAL_IND_NODE_BAD_THRESHOLD = QUAL_IND_LAKE_FLAGGED
@@ -349,7 +370,6 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
             cls, node_outputs, reach_outputs, reach_collection, prd_reaches):
         """Constructs self from riverobs outputs"""
         klass = cls()
-
         # add missing reaches and nodes
         for reach, reach_id in zip(prd_reaches, prd_reaches.reach_idx):
 
@@ -359,22 +379,19 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
 
             # check for missing nodes
             mask_nodes = node_outputs['reach_indx'] == reach_id
-
+            
+            # missing nodes for observed data                                                        
             missing_node_ids = np.setdiff1d(
                 reach.node_indx, node_outputs['node_indx'][mask_nodes])
-
             if len(missing_node_ids) > 0:
                 for missing_node_id in np.sort(missing_node_ids):
-
                     rch_idx = np.argwhere(
                         reach.node_indx == missing_node_id)[0][0]
-
                     try:
                         insert_idx = np.where(
                             missing_node_id > node_outputs['node_indx'])[0][-1]
                     except IndexError:
                         insert_idx = 0
-
                     node_outputs['x_prior'] = np.insert(
                         node_outputs['x_prior'], insert_idx, reach.x[rch_idx])
                     node_outputs['y_prior'] = np.insert(
@@ -421,19 +438,27 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     node_outputs['river_name'] = np.insert(
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
-
+                   
                     for key in ['nobs', 'nobs_h', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
 
                     node_outputs['node_q'] = np.insert(
                             node_outputs['node_q'], insert_idx, 3)
+                    node_outputs['wse_sm_q'] = np.insert(
+                            node_outputs['wse_sm_q'], insert_idx, 1)
 
+                    # set default node_q_b bits where there are no obs
                     node_outputs['node_q_b'] = np.insert(
                             node_outputs['node_q_b'], insert_idx, (
                             QUAL_IND_WSE_BAD + QUAL_IND_NO_SIG0_PIX +
                             QUAL_IND_NO_AREA_PIX + QUAL_IND_NO_WSE_PIX +
                             QUAL_IND_NO_PIXELS))
+                    # set default wse_sm_q_b bits where there are no obs
+                    node_outputs['wse_sm_q_b'] = np.insert(
+                        node_outputs['wse_sm_q_b'], insert_idx, (
+                            FILL_VALUE_INPUT)
+                    )
 
                     node_outputs['xovr_cal_q'] = np.insert(
                             node_outputs['xovr_cal_q'], insert_idx, 2)
@@ -441,10 +466,9 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     for key in [
                         'lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db', 'area',
                         'area_u', 'area_det', 'area_det_u', 'area_of_ht',
-                        'wse', 'wse_std', 'wse_u', 'wse_r_u', # 'w_opt',
-                        'rdr_sig0', 'rdr_sig0_u', # 'w_opt_r_u',
-                        'latitude_u', 'longitud_u', 'width_u', 'geoid_hght',
-                        'solid_tide', 'load_tidef', 'load_tideg',
+                        'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
+                        'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
+                        'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
                         'pole_tide', 'flow_dir', 'dark_frac', # 'sring_frac',
                         'xtrack', 'h_n_ave', 'fit_height', 'layovr_val']:
                         node_outputs[key] = np.insert(
@@ -561,7 +585,39 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
 
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
+        # match length of reconstructed nodes to observed nodes
+        missing_sm_ids = np.setdiff1d(
+            node_outputs['node_indx'],
+            node_outputs['wse_sm_idx']).tolist()
 
+        # Iterate over missing node IDs, inserting fill values into wse_sm and
+        # wse_sm_u and appropriate qual flag for wse_sm_q and wse_sm_q_b
+        for missing_id in missing_sm_ids:
+            try:
+                insert_idx = np.where(
+                    missing_id > node_outputs['wse_sm_idx'])[0][-1]
+            except IndexError:
+                insert_idx = 0
+            node_outputs['wse_sm'] = np.insert(node_outputs['wse_sm'],
+                                               insert_idx, MISSING_VALUE_FLT)
+            node_outputs['wse_sm_u'] = np.insert(node_outputs['wse_sm_u'],
+                                                 insert_idx, MISSING_VALUE_FLT)
+            node_outputs['wse_sm_idx'] = np.insert(node_outputs['wse_sm_idx'],
+                                                   insert_idx, missing_id)
+            node_outputs['wse_sm_reach_id'] = np.insert(
+                node_outputs['wse_sm_reach_id'], insert_idx,
+                node_outputs['reach_indx'][insert_idx])
+            node_outputs['wse_sm_q_b'][insert_idx] |= BAYES_NO_RECONST
+            node_outputs['wse_sm_q'][insert_idx] = 3
+        # now sort the wse_sm-related variables to force the same node-order as the other variables
+        sm_keys = ['wse_sm', 'wse_sm_u', 'wse_sm_idx', 'wse_sm_reach_id', 'wse_sm_q_b', 'wse_sm_q']
+        node_tmp = {}
+        for sm_key in sm_keys:
+            node_tmp[sm_key] = node_outputs[sm_key].copy()
+        for node_i, node_id in enumerate(node_outputs['node_indx']):
+            nid = np.where(node_tmp['wse_sm_idx']==node_id)[0][0]
+            for sm_key in sm_keys:
+                node_outputs[sm_key][node_i] = node_tmp[sm_key][nid]
         klass.nodes = RiverTileNodes.from_riverobs(node_outputs)
         klass.reaches = RiverTileReaches.from_riverobs(
             reach_outputs, reach_collection)
@@ -929,6 +985,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_min', -80],
                 ['valid_max', 80],
                 ['_FillValue', MISSING_VALUE_FLT],
+                ['quality_flag', 'node_q'],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Geodetic latitude of the centroid of water-detected pixels
@@ -944,6 +1001,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_min', -180],
                 ['valid_max', 180],
                 ['_FillValue', MISSING_VALUE_FLT],
+                ['quality_flag', 'node_q'],
                 ['tag_basic_expert', 'Basic'],
                 ['comment', textjoin("""
                     Geodetic longitude of the centroid of water-detected
@@ -1033,6 +1091,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Fitted node water surface elevation, relative to the
@@ -1073,42 +1132,110 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     including uncertainties of corrections, and variation about
                     the fit.""")],
                 ])],
-        # ['w_opt',
-        #  odict([['dtype', 'f8'],
-        #         ['long_name',
-        #          'reconstructed water surface elevation with respect to the '
-        #          'geoid'],
-        #         ['short_name', 'wse_optimal'],
-        #         ['units', 'm'],
-        #         ['valid_min', -1000],
-        #         ['valid_max', 100000],
-        #         ['_FillValue', MISSING_VALUE_FLT],
-        #         ['tag_basic_expert', 'Expert'],
-        #         ['coordinates', 'lon lat'],
-        #         ['comment', textjoin("""
-        #             Reconstructed node water surface elevation, relative to the
-        #             provided model of the geoid (geoid_hght), with all
-        #             corrections for media delays (wet and dry troposphere,
-        #             and ionosphere), crossover correction, and tidal effects
-        #             (solid_tide, load_tidef, and pole_tide) applied.""")],
-        #         ])],
-        # ['w_opt_r_u',
-        #  odict([['dtype', 'f8'],
-        #         ['long_name',
-        #          'random-only uncertainty in the reconstructed water surface '
-        #          'elevation'],
-        #         ['short_name', 'wse_optimal_random_uncert'],
-        #         ['units', 'm'],
-        #         ['valid_min', 0.0],
-        #         ['valid_max', 999999],
-        #         ['_FillValue', MISSING_VALUE_FLT],
-        #         ['tag_basic_expert', 'Expert'],
-        #         ['coordinates', 'lon lat'],
-        #         ['comment', textjoin("""
-        #             Random-only uncertainty component in the reconstructed node
-        #             WSE, including uncertainties of corrections, and variation
-        #             about the fit.""")],
-        #         ])],
+        ['wse_sm',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'smoothed water surface elevation with respect to the '
+                 'geoid'],
+                ['short_name', 'wse_smooth'],
+                ['units', 'm'],
+                ['valid_min', -1000],
+                ['valid_max', 100000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'wse_sm_q'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Estimated node water surface elevation following Bayesian
+                    reconstruction, relative to the provided model of the geoid
+                    (geoid_hght), with all corrections for media delays (wet
+                    and dry troposphere, and ionosphere), crossover correction,
+                    and tidal effects (solid_tide, load_tidef, and pole_tide)
+                    applied.""")],
+                ])],
+        ['wse_sm_u',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'uncertainty in the smoothed water surface elevation'],
+                ['short_name', 'wse_smooth_std'],
+                ['units', 'm'],
+                ['valid_min', 0.0],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Estimated standard deviation of the reconstructed node
+                    WSE following Bayesian reconstruction. Quantifies the
+                    uncertainty of each node's WSE estimate, derived from the
+                    minimum covariance estimate that includes both observation
+                    noise and prior covariance assumptions.""")],
+                ])],
+        ['wse_sm_q',
+         odict([['dtype', 'i2'],
+                ['long_name',
+                 'summary quality indicator for the smoothed node WSE '
+                 'estimate'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'wse_smooth_node_qual'],
+                ['flag_meanings', textjoin("""good suspect degraded bad""")],
+                ['flag_values', np.array([0, 1, 2, 3]).astype('i2')],
+                ['valid_min', 0],
+                ['valid_max', 3],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Summary quality indicator for the estimated node WSE
+                    following Bayesian reconstruction. Value of 0 indicates a
+                    nominal measurement, 1 indicates a suspect measurement, 2
+                    indicates a degraded quality measurement, and 3 indicates a
+                    bad measurement.
+                    """)],
+                ])],
+        ['wse_sm_q_b',
+         odict([['dtype', 'i4'],
+                ['long_name',
+                 'bitwise quality indicator for the smoothed WSE estimate'],
+                ['standard_name', 'status_flag'],
+                ['short_name', 'wse_smooth_qual_bitwise'],
+                ['flag_meanings', textjoin("""
+                    fill_value_input
+                    geolocation_qual_suspect
+                    noisy_inputs
+                    poor_p_fit
+                    few_wse_observations
+                    big_resid
+                    far_range_suspect
+                    near_range_suspect
+                    geolocation_qual_degraded
+                    no_reconstruction""")],
+                ['flag_masks', np.array([
+                    FILL_VALUE_INPUT,
+                    QUAL_IND_GEOLOCATION_QUAL_SUSPECT,
+                    BAYES_NOISY_IN,
+                    BAYES_POOR_P_FIT,
+                    QUAL_IND_FEW_WSE_PIX,
+                    BAYES_BIG_RESID,
+                    QUAL_IND_FAR_RANGE_SUSPECT,
+                    QUAL_IND_NEAR_RANGE_SUSPECT,
+                    QUAL_IND_GEOLOCATION_QUAL_DEGRADED,
+                    BAYES_NO_RECONST
+                ]).astype('i4')],
+                ['valid_min', 0],
+                ['valid_max', WSE_SM_VALID_MAX],
+                ['_FillValue', MISSING_VALUE_INT9],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Bitwise quality indicator for the reconstructed node
+                    measurement. If this word is interpreted as an unsigned
+                    integer, a value of 0 indicates good data, values greater
+                    than 0 but less than 262144 represent suspect data, values
+                    greater than or equal to 262144 but less than 4194304
+                    represent degraded data, and values greater than or equal
+                    to 4194304 represent bad data.""")],
+                ])],
         ['width',
          odict([['dtype', 'f8'],
                 ['long_name', "node width"],
@@ -1118,6 +1245,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""Node width.""")],
                 ])],
@@ -1144,6 +1272,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Total estimated water surface area, including dark water
@@ -1174,6 +1303,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Surface area of node that was detected as water by the
@@ -1203,6 +1333,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Surface area of the node that contributed to the
@@ -1463,6 +1594,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
+                ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
                     Median of the sigma0 from the pixel cloud points assigned
@@ -1844,8 +1976,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['wse'] = node_outputs['wse']
             klass['wse_u'] = node_outputs['wse_u']
             klass['wse_r_u'] = node_outputs['wse_r_u']
-            # klass['w_opt'] = node_outputs['w_opt']
-            # klass['w_opt_r_u'] = node_outputs['w_opt_r_u']
+            klass['wse_sm'] = node_outputs['wse_sm']
+            klass['wse_sm_u'] = node_outputs['wse_sm_u']
             klass['width'] = node_outputs['w_area']
             klass['width_u'] = node_outputs['width_u']
             klass['area_detct'] = node_outputs['area_det']
@@ -1879,10 +2011,10 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['p_n_ch_mod'] = node_outputs['n_chan_mod']
             klass['ice_clim_f'] = node_outputs['ice_clim_f']
             klass['river_name'] = node_outputs['river_name']
-
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
-                        'node_q', 'node_q_b', 'xovr_cal_q', 'layovr_val']:
+                        'node_q', 'node_q_b', 'xovr_cal_q', 'layovr_val',
+                        'wse_sm_q', 'wse_sm_q_b']:
                 klass[key] = node_outputs[key]
 
         return klass
@@ -1913,14 +2045,65 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
         data['lat_prior'] = np.array([
             record['geometry']['coordinates'][1] for record in records])
         for key, reference in klass.VARIABLES.items():
-            if key not in ['lat_prior', 'lon_prior']:
-                data[key] = np.array([
-                    record['properties'][key] for record in records])
+            try:
+                if key not in ['lat_prior', 'lon_prior']:
+                    data[key] = np.array([
+                        record['properties'][key] for record in records])
+            except KeyError:
+                # Can occur if product class is not synced with input data, and
+                # the product class has vars that the input data doesn't.
+                LOGGER.warning('shapefile does not contain {}'.format(key))
+                pass
         for key, value in data.items():
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
                 value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
+        # Check for variables that appear in the shapefile but aren't defined in
+        # the product (klass.VARIABLES). These will be added as the data type
+        # they were input as, with defaulted attributes.
+        if len(records) > 0:
+            record_keys = records[0]['properties'].keys()
+            undefined_vars = set(record_keys).difference(klass.VARIABLES.keys())
+            all_metadata = root.findall(".//attributes/*")
+            for var in undefined_vars:
+                values = [record['properties'][var] for record in records]
+                values_arr = np.array(values)
+                data[var] = values_arr
+                this_metadata = cls.get_var_metadata(all_metadata, var, values_arr)
+                klass.VARIABLES[var] = this_metadata[var]
+                setattr(klass, var, values_arr)
+                LOGGER.warning(
+                    "Input shapefile has variable '%s' not defined in product "
+                    "class VARIABLES. Propagated through from input.", var)
         return klass
+
+    @staticmethod
+    def get_var_metadata(all_metadata, var, values_arr):
+        """Gets cleaned and typed metadata for a given input variable and list
+        of metadata. Intended for dynamic class variable additions, to account
+        for version differences between inputs and product class."""
+        this_metadata = {
+            v.tag: {attrib.tag: attrib.text for attrib in v}
+            for v in all_metadata if v.tag == var
+        }
+        this_metadata[var]['dtype'] = values_arr.dtype.str
+        this_metadata[var]['dimensions'] = odict([('nodes', 0)])
+        # Convert metadata values to proper types; they are read in as strings
+        this_metadata[var]['valid_min'] = float(this_metadata[var]['valid_min'])
+        this_metadata[var]['valid_max'] = float(this_metadata[var]['valid_max'])
+        this_metadata[var]['dtype'] = this_metadata[var]['dtype'].lstrip('<')
+        if 'fill_value' in this_metadata[var]:
+            # Ensure `_FillValue` is correctly named and typed
+            this_metadata[var]['_FillValue'] = float(
+                this_metadata[var]['fill_value'])
+            del this_metadata[var]['fill_value']
+        if 'flag_masks' in this_metadata[var]:
+            # Convert string representation ("[0 1 2 4..]") to numpy array
+            flags_str = this_metadata[var]['flag_masks'].strip('[]').split()
+            cleaned_flags = [int(num) for num in flags_str]
+            this_metadata[var]['flag_masks'] = np.array(cleaned_flags,
+                                                        dtype=np.int32)
+        return this_metadata
 
     def uncorrect_tides(self):
         """Removes geoid, solid earth tide, pole tide, and load tide"""
@@ -2102,6 +2285,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 150000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fitted reach water surface elevation, relative to the
@@ -2188,6 +2372,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fitted water surface slope relative to the geoid, and
@@ -2235,6 +2420,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 0.1],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Enhanced water surface slope relative to the geoid,
@@ -2282,6 +2468,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""Reach width.""")],
                 ])],
@@ -2337,6 +2524,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Total estimated water surface area, including dark water
@@ -2368,6 +2556,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Surface area of reach that was detected as water by the
@@ -2398,6 +2587,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
+                ['quality_flag', 'reach_q'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Surface area of the reach that contributed to the
@@ -2412,6 +2602,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
+                ['quality_flag', 'dschg_q_b'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Change in channel cross sectional area from the value
@@ -3585,7 +3776,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Fraction of reach area_total covered by dark water.""")],
+                    Fraction of the measured reach area covered by dark water.
+                    """)],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
@@ -4029,9 +4221,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Length of the reach from the prior river database.  This
-                    value is used to compute the reach width from the water
-                    surface area.""")],
+                    Length of the reach from the prior river database.""")],
                 ])],
         ['p_maf',
          odict([['dtype', 'f8'],
@@ -4296,7 +4486,6 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             this_cl = np.array(record['geometry']['coordinates'])
             data['centerline_lon'][irec, :this_cl.shape[0]] = this_cl[:, 0]
             data['centerline_lat'][irec, :this_cl.shape[0]] = this_cl[:, 1]
-
         for key, reference in klass.VARIABLES.items():
             if key in ['centerline_lon', 'centerline_lat']:
                 pass
