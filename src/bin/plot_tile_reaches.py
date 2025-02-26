@@ -33,6 +33,18 @@ CALVAL_RIVERS = [
     "L'Aussonnelle", '181601', 'La Garonne', 'Tsiribihina', 'Maroni'
 ]
 
+def find_file(directory, pattern, recursive=False):
+    """Finds the first file matching a pattern in a given directory."""
+    if recursive:
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.startswith(pattern):
+                    return os.path.join(root, file)
+    else:
+        files = [f for f in os.listdir(directory) if f.startswith(pattern)]
+        if files:
+            return os.path.join(directory, files[0])
+    return None
 
 def get_input_files(basedir, pixc_run_id, river_run_id,
                     cycles=None, passes=None, tiles=None, pkl=None):
@@ -47,16 +59,7 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
     search_strings = ['*'.join(map(str, combo)) for combo in
                       itertools.product(cycles, passes, tiles)]
     print('Cycle/pass/tile search strings are:', search_strings)
-
     rivertiles = []
-    # uncomment below & comment out the globs for quick .nc test mode
-    # rivertiles = ['/u/franz-r0/swot/calval-site-data/garonne/swot-data/016_076R/522/SWOT_L1B_HR_SLC_522_016_076R/SWOT_L2_HR_PIXC_522_016_076R/fineval_L3PGC0c_dev/SWOT_L2_HR_RiverTile_522_016_076R/SWOT_L2_HR_RiverTile_522_016_076R_fineval_L3PGC0c_dev_prd16_KCV-418_20240516/SWOT_L2_HR_RiverTile_522_016_076R_20230516T033113_20230516T033124_PGA1_01.nc']
-    # river_fwd = False
-    # uncomment below & comment out the globs for quick .shp test mode
-    # rivertiles = [(
-    # '/u/franz-r0/swot/swot-adt-data/009_228R/509/SWOT_L1B_HR_SLC_509_009_228R/SWOT_L2_HR_PIXC_509_009_228R/bulkreprocPGC0/SWOT_L2_HR_RiverTile_509_009_228R/SWOT_L2_HR_RiverTile_509_009_228R_bulkreprocPGC0/SWOT_L2_HR_RiverTile_Reach_509_009_228R_20230503T000035_20230503T000046_PGC0_01.shp',
-    # '/u/franz-r0/swot/swot-adt-data/009_228R/509/SWOT_L1B_HR_SLC_509_009_228R/SWOT_L2_HR_PIXC_509_009_228R/bulkreprocPGC0/SWOT_L2_HR_RiverTile_509_009_228R/SWOT_L2_HR_RiverTile_509_009_228R_bulkreprocPGC0/SWOT_L2_HR_RiverTile_Node_509_009_228R_20230503T000035_20230503T000046_PGC0_01.shp')]
-    # river_fwd = True
 
     for search_str in search_strings:
         if 'fwd' in pixc_run_id:
@@ -81,8 +84,16 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                                        recursive=True))
             river_fwd = True
         elif 'local' in river_run_id:
-            rivertiles.extend(glob.glob(basedir + '/SWOT_L2_HR_RiverTile*'
-                                        + search_str + '*.nc'))
+            # Files were output to a local directory, outside the usual
+            # directory structure. We walk until we find all RiverTiles (since
+            # there should only be one version).
+            for root, dirs, files in os.walk(basedir, followlinks=True):
+                for file in files:
+                    if file.startswith("SWOT_L2_HR_RiverTile_") and file.endswith(
+                        ".nc"):
+                        full_path = os.path.join(root, file)
+                        if os.path.isfile(full_path):
+                            rivertiles.append(full_path)
             river_fwd = False
         else:
             rivertiles.extend(glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
@@ -101,40 +112,38 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
     pixcvecs = np.empty(len(rivertiles), dtype=object)
     pixcs = np.empty(len(rivertiles), dtype=object)
     if not river_fwd:
-        # get the associated pixcvecs and pixc files for each rivertile
+        # If the data aren't RiverSP pulled from PO.DAAC, get the associated
+        # PIXCVecRiver and PIXC files we should have reprocessed.
         for index, rivertile in enumerate(rivertiles):
             print('RiverTile', rivertile)
-            pixcvecs[index] = glob.glob(
-                    '/' + os.path.join(*rivertile.split('/')[:-1])
-                    + '/SWOT_L2_HR_PIXCVecRiver_*.nc'
-            )[0]
-            pixc = glob.glob(
-                '/' + os.path.join(*rivertile.split('/')[:-3])
-                + '/SWOT_L2_HR_PIXC_*.nc'
-            )
-            if pixc:
-                pixcs[index] = pixc[0]
-            else:
-                print(f"No PIXC found for rivertile {rivertile}")
-            if 'local' in river_run_id:
-                pixcs[index] = glob.glob(
-                    '/' + os.path.join(*rivertile.split('/')[:-3])
-                    + '/**/SWOT_L2_HR_PIXC_*.nc'
-                )[0]
-            else:
-                pixcs[index] = glob.glob(
-                    '/' + os.path.join(*rivertile.split('/')[:-3])
-                    + '/SWOT_L2_HR_PIXC_*.nc'
-                )[0]
+            rivertile_dir = os.path.dirname(os.path.abspath(rivertile))
+            parent_dir = os.path.dirname(rivertile_dir)
+            grandparent_dir = os.path.dirname(parent_dir)
+            # Find PIXCVecRiver file in the same directory as the rivertile
+            pixcvecs[index] = find_file(rivertile_dir,
+                                        "SWOT_L2_HR_PIXCVecRiver_")
+            # Find PIXC file in the grandparent directory
+            pixcs[index] = find_file(grandparent_dir, "SWOT_L2_HR_PIXC_")
+            # If river_run_id is 'local', look recursively for PIXC
+            if "local" in river_run_id:
+                pixcs[index] = find_file(grandparent_dir, "SWOT_L2_HR_PIXC_",
+                                         recursive=True)
+
+            if pixcvecs[index] is None:
+                raise FileNotFoundError(
+                    f"No PIXCVecRiver file found for {rivertile}")
+            if pixcs[index] is None:
+                print(f"Warning: No PIXC file found for {rivertile}")
+
         if len(rivertiles) != len(pixcvecs):
-            raise Exception('The number of rivertiles found doesnt match with '
-                            'the number of pixcvecs found, some will be missing')
+            raise Exception(
+                "Mismatch: The number of RiverTiles does not match the number "
+                "of PIXCVecRiver files found.")
     else:
         # pair the reach and node files from a list to a list of tuples
         rivertiles = pair_files(rivertiles)
-        # print('test mode') # comment above and uncomment this for shp test
     if pkl is not None:
-        pt_node_file = pkl + '/dataframe/matched_pt_node_df.pkl'  # '/dataframe/matched_pt_node_df.pkl'
+        pt_node_file = pkl + '/dataframe/matched_pt_node_df.pkl'
         pt_reach_file = pkl + '/dataframe/pt_reach_wse_df.pkl'
         pt_reach_matched_wse = pkl + '/dataframe/matched_pt_reach_wse_df.pkl'
         pt_matched_slope = pkl + '/dataframe/matched_pt_reach_slope_df.pkl'
@@ -319,7 +328,6 @@ def main():
                 os.makedirs(this_out_dir + '/no_truth/', 0o777)
         else:
             this_out_dir = None
-
         for reach_id in reach_ids:
             if 'Reach' in file_parts:
                 # input was a shapefile
