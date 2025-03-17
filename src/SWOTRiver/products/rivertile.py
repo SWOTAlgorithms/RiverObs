@@ -2119,20 +2119,19 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
         pixc_vec = L2PIXCVectorPlus.from_ncfile(index_file)
 
         pixc2rivertile_map = {
-            '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
-            '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
-            '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
-            '/pixel_cloud/height_cor_xover': 'xovr_cal_c',
-            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',# old format
-            '/tvp/time': 'time',
-            '/tvp/time_tai': 'time_tai'}
+            'model_dry_tropo_cor': 'dry_trop_c',
+            'model_wet_tropo_cor': 'wet_trop_c',
+            'iono_cor_gim_ka': 'iono_c',
+            'height_cor_xover': 'xovr_cal_c',
+            'xover_height_cor': 'xovr_cal_c',# old format
+            'illumination_time': 'time',
+            'illumination_time_tai': 'time_tai'}
 
         pixc_data = {}
         with netCDF4.Dataset(pixc_file, 'r') as ifp:
             for key in pixc2rivertile_map:
-                group, dset = key.split('/')[1::]
                 try:
-                    pixc_data[key] = ifp.groups[group][dset][:]
+                    pixc_data[key] = ifp.groups['pixel_cloud'][key][:]
                 except IndexError:
                     pass
             for attr in ATTRS_2COPY_FROM_PIXC:
@@ -2144,14 +2143,10 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
         for inkey, outkey in pixc2rivertile_map.items():
             # subset pixel cloud data to look like pixcvec data
-            if inkey.split('/')[1] == 'tvp':
-                # silly hack
-                subdata = pixc_data[inkey][pixc_vec.azimuth_index]
-            else:
-                try:
-                    subdata = pixc_data[inkey][pixc_vec.pixc_index]
-                except KeyError:
-                    pass
+            try:
+                subdata = pixc_data[inkey][pixc_vec.pixc_index]
+            except KeyError:
+                pass
 
             # index into pixcvec shaped data
             outdata = np.ones(self[outkey].shape)
