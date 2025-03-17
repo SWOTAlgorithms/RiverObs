@@ -34,7 +34,7 @@ from SWOTRiver.products.rivertile import RiverTileNodes
 
 FIGSIZE = (16, 9)
 DPI = 200
-LEFT, WIDTH = .05, .75
+LEFT, WIDTH = .04, .75
 RIGHT = LEFT + WIDTH
 BOTTOM, HEIGHT = .02, .85
 TOP = BOTTOM + HEIGHT
@@ -349,6 +349,7 @@ def transform_reach_id_from_node_id(number):
     # Convert back to integer
     return int(transformed_str)
 
+
 def annotate_errors(axis, slp_e, wse_e, pt_wse_e, pt_stdev, pt_slp_e):
     # puts the input errors on the input axis
     def add_text(y_offset, error_value, label, color_key):
@@ -371,22 +372,37 @@ def annotate_errors(axis, slp_e, wse_e, pt_wse_e, pt_stdev, pt_slp_e):
     for offset, value, label, color_key in errors:
         add_text(offset, value, label, color_key)
 
+
 def plot_summary_metrics(data, axis, reach_i):
     reach_width = get_first_element(data.reaches['width'][reach_i])
     reach_xtrk = get_first_element(data.reaches['xtrk_dist'][reach_i])
-    reach_xtrk = str(round(np.mean(reach_xtrk) / 1000, 1))
+    reach_xtrk = str(round(np.mean(reach_xtrk) / 1000, 1))  # km
     reach_dark_frac = get_first_element(data.reaches['dark_frac'][reach_i])
     reach_obs_frac = get_first_element(data.reaches['obs_frac_n'][reach_i])
     reach_xovr_cal_q = get_first_element(data.reaches['xovr_cal_q'][reach_i])
-    summary_string = 'w = ' + str(round(reach_width, 2)) + ' m\n' \
+    reach_ice_clim_f = get_first_element(data.reaches['ice_clim_f'][reach_i])
+    reach_pwidth = get_first_element(data.reaches['p_width'][reach_i])
+    reach_plength = get_first_element(data.reaches['p_length'][reach_i])
+    # The ice flag, pwidth, and plength from SWORD can be fill valued, which
+    # looks like a masked array here
+    ice_clim_f = (str(round(reach_ice_clim_f, 2)) if not np.ma.is_masked(
+        reach_ice_clim_f) else '-999')
+    pwidth = (str(round(reach_pwidth, 2)) if not np.ma.is_masked(
+        reach_pwidth) else '-999')
+    plength = (str(round(reach_plength, 2)/1000) if not np.ma.is_masked(  # km
+        reach_plength) else '-999')
+    summary_string = 'p_width =' + pwidth + ' m\n' \
+                     + 'p_length = ' + plength + ' km\n' \
                      + 'x-trk =' + reach_xtrk + ' km\n' \
+                     + 'w = ' + str(round(reach_width, 2)) + ' m\n' \
                      + 'dark_frac = ' + str(round(reach_dark_frac, 2))  \
-                     + '\n' + 'obs_frac = ' + str(round(reach_obs_frac, 2))\
-                     + '\n' + 'xovr_q = ' + str(round(reach_xovr_cal_q, 2))
+                     + '\nobs_frac = ' + str(round(reach_obs_frac, 2))\
+                     + '\nxovr_q = ' + str(round(reach_xovr_cal_q, 2)) \
+                     + '\n ice_clim_f = ' + ice_clim_f
     axis.text(LEFT, BOTTOM, summary_string,
               horizontalalignment='left',
               verticalalignment='bottom',
-              fontsize=8,
+              fontsize=7,
               transform=axis.transAxes,
               bbox=dict(facecolor='white', alpha=0.5, edgecolor='none'))
 
@@ -623,7 +639,7 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.',
                   transform=axis.transAxes)
 
     axis.grid()
-    axis.set_xlabel('node_id')
+    axis.set_xlabel('node_id (index)')
     axis.set_ylabel('area (m^2)')
     leg = axis.legend(['area detected', 'area total', 'truth'], fontsize=5)
     leg.set_draggable(1)
@@ -671,9 +687,8 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
 
     # Set plot properties
     axis.grid(True)
-    # plt.gca().set_aspect('equal', adjustable='box')
-    plt.xlabel('lon')
-    plt.ylabel('lat')
+    axis.set_xlabel('lon (dec deg)')
+    axis.set_ylabel('lat (dec deg)')
 
     # get min and max for colorbar
     if not np.ma.is_masked(node_id) and np.ma.count(node_id) > 0:
@@ -692,7 +707,7 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
 
     # Add colorbar
     colorbar = plt.colorbar(sm, ax=axis)
-    colorbar.set_label('Node ID')
+    colorbar.set_label('Node ID (index)')
 
     if h_flg:
         # plot bad h_flg over existing plot, if it is available
@@ -718,6 +733,7 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
         except AttributeError:
             print('area_flg not in output pixcvecriver.')
 
+
 def plot_locations(data, truth, reach_id, axis, plot_prior=True, title=None):
     # creates plot with the observation centroids and the prior node locations
     reach_id = int(reach_id)
@@ -742,10 +758,10 @@ def plot_locations(data, truth, reach_id, axis, plot_prior=True, title=None):
                      truth.nodes['lat_prior'][node_i_truth],
                      marker='x', s=5, c='k')
     colorbar = plt.colorbar(plot, ax=axis)
-    colorbar.set_label('node_id')
+    colorbar.set_label('Node ID (index)')
     axis.grid()
-    axis.set_xlabel('longitude')
-    axis.set_ylabel('latitude')
+    axis.set_xlabel('longitude (dec deg)')
+    axis.set_ylabel('latitude (dec deg)')
     if title is not None:
         axis.set_title(title)
 
@@ -820,7 +836,7 @@ def make_pixc_plots(
             pixcvec_data, pixc_data, reach_id, nodes, reach_data=river_data,
             pixc_truth=pixc_truth_data
         )
-        if out_dir is not None:
+        if out_dir is not None and slant_plane_fig is not None:
             # save current figure to file
             plt.title(title, backgroundcolor='white')
             if has_truth:
@@ -1008,6 +1024,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
     reach_id = int(reach_id)
     pix_i = (pixc_vec['reach_id'] == reach_id)
 
+
     # If no data for this reach, bail out
     if np.sum(pix_i) == 0:
         print(f'No reach ID matching {reach_id} in this pixel cloud')
@@ -1109,8 +1126,9 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
     ax1 = plt.subplot(2, 3, 1)
     pt1 = ax1.imshow(Node_id, interpolation='none', aspect='auto',
                      cmap=plt.cm.get_cmap('tab20b'))
-    plt.colorbar(pt1, ax=ax1)
+    colorbar = plt.colorbar(pt1, ax=ax1)
     ax1.set_title('node_id ' + title_tag)
+    colorbar.set_label('Node ID')
 
     # Top center: PIXC water classifications
     ax2 = plt.subplot(2, 3, 2, sharex=ax1, sharey=ax1)
@@ -1121,7 +1139,9 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
     pt2 = ax2.imshow(crop_arrays['classification'], interpolation='none',
                      aspect='auto', cmap=class_cmap, clim=(0, 7))
     ax2.set_title('classification ' + title_tag)
-    plt.colorbar(pt2, ax=ax2)
+    colorbar = plt.colorbar(pt2, ax=ax2)
+    colorbar.set_label('PIXC water class')
+
 
     # Top and bottom right: Area plots. Have to handle detected and total.
     ax3 = plt.subplot(2, 3, 3, sharex=ax1, sharey=ax1)
@@ -1152,7 +1172,9 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
         pt3 = ax3.imshow(NodeArea, interpolation='none', aspect='auto',
                          cmap='jet', clim=(a_cmin, a_cmax))
         ax3.set_title('Node Area (m^2)' + title_tag)
-        plt.colorbar(pt3, ax=ax3)
+        colorbar = plt.colorbar(pt3, ax=ax3)
+        colorbar.set_label('Node Area (m^2)')
+
 
         abins0 = np.linspace(50, 450, 100)
         amsk = NodeArea > -100
@@ -1165,7 +1187,8 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
         pt6 = ax6.imshow(NodeArea_det, interpolation='none', aspect='auto',
                          cmap='jet', clim=(a_cmin, a_cmax))  # , clim=(c0,c1))
         ax6.set_title('Node Area det. ' + title_tag)
-        plt.colorbar(pt6, ax=ax6)
+        colorbar = plt.colorbar(pt6, ax=ax6)
+        colorbar.set_label('Detected Node Area (m^2)')
 
     else:
         # plot pixel level water area
@@ -1173,27 +1196,31 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
         pt3 = ax3.imshow(Warea1, interpolation='none', aspect='auto',
                          cmap='jet', clim=(0, wmax))
         ax3.set_title('water area (pixel-level) ' + title_tag)
-        plt.colorbar(pt3, ax=ax3)
+        colorbar = plt.colorbar(pt3, ax=ax3)
+        colorbar.set_label('Pixel water area (m^2)')
 
         ax6 = plt.subplot(2, 3, 6, sharex=ax1, sharey=ax1)
         pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
                          cmap=cmaph)  # , clim=(c0,c1))
         ax6.set_title('geoid height (m) ' + title_tag)
-        plt.colorbar(pt6, ax=ax6)
+        colorbar = plt.colorbar(pt6, ax=ax6)
+        colorbar.set_label('geoid height (m)')
 
     # Bottom left: PIXCVecRiver height. Aggregated node heights.
     ax4 = plt.subplot(2, 3, 4, sharex=ax1, sharey=ax1)
     pt4 = ax4.imshow(Heightv, interpolation='none', aspect='auto',
                      cmap=cmaph, clim=(cmap_min, cmap_max))
     ax4.set_title('height_vectorproc (m) ' + title_tag)
-    plt.colorbar(pt4, ax=ax4)
+    colorbar = plt.colorbar(pt4, ax=ax4)
+    colorbar.set_label('PIXCVecRiver Height, (m)')
 
     # Bottom center: Pixel cloud heights
     ax5 = plt.subplot(2, 3, 5, sharex=ax1, sharey=ax1)
     pt5 = ax5.imshow(crop_arrays['height'], interpolation='none', aspect='auto',
                      cmap=cmaph, clim=(cmap_min, cmap_max))
     ax5.set_title('height (m) ' + title_tag)
-    plt.colorbar(pt5, ax=ax5)
+    colorbar = plt.colorbar(pt5, ax=ax5)
+    colorbar.set_label('PIXC height, (m)')
 
     # Plot an extra set of figures for PIXC truth classifications, if we have
     # them.
@@ -1325,6 +1352,9 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
                             'pixc dark water'], loc='best')
         else:
             print('No reach ID matching', reach_id, 'in this pixel cloud')
+    for ax in [ax1, ax2, ax3, ax4, ax5, ax6]:
+        ax.set_xlabel("Range index")
+        ax.set_ylabel("Azimuth index")
     return slant_plane_fig
 
 
@@ -1379,7 +1409,6 @@ def main():
         # read the dataframe
         proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_ncfile(proc_tile)
         # call the make plots routine
-        #breakpoint()
         make_plots(proc_tile, proc_df, truth_tile, pixcvec, pixc,
                    truth_pixcvec, truth_pixc, args.reach_id,
                    reach_error, nodes=args.nodes,

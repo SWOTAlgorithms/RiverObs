@@ -10,6 +10,7 @@ format.
 """
 
 import os
+import re
 import argparse
 import pdb
 import glob
@@ -33,6 +34,7 @@ CALVAL_RIVERS = [
     "L'Aussonnelle", '181601', 'La Garonne', 'Tsiribihina', 'Maroni'
 ]
 
+
 def find_file(directory, pattern, recursive=False):
     """Finds the first file matching a pattern in a given directory."""
     if recursive:
@@ -46,16 +48,17 @@ def find_file(directory, pattern, recursive=False):
             return os.path.join(directory, files[0])
     return None
 
+
 def get_input_files(basedir, pixc_run_id, river_run_id,
                     cycles=None, passes=None, tiles=None, pkl=None):
     print('Getting input files....')
-    # Ensure cycles, passes, and tiles are lists and replace None with empty list
+    # Ensure cycles, passes, and tiles are lists. Replace None with empty list
     cycles = [str(cycle).zfill(3) if cycle is not None else '' for cycle in
               (cycles if isinstance(cycles, list) else [cycles])]
     passes = [str(p).zfill(3) if p is not None else '' for p in
               (passes if isinstance(passes, list) else [passes])]
     tiles = [str(tile) if tile is not None else '' for tile in
-             (tiles if isinstance(tiles, list) else [tiles])]    # Generate all possible combinations of cycle/pass/tile search strings
+             (tiles if isinstance(tiles, list) else [tiles])]
     search_strings = ['*'.join(map(str, combo)) for combo in
                       itertools.product(cycles, passes, tiles)]
     print('Cycle/pass/tile search strings are:', search_strings)
@@ -105,7 +108,7 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                                                  '/SWOT_L2_HR_RiverTile*' +
                                                  search_str + '*.nc',
                                        recursive=True))
-            river_fwd=False
+            river_fwd = False
     if len(rivertiles) == 0:
         raise Exception('No rivertile found, check input directory names')
 
@@ -116,19 +119,25 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
         # PIXCVecRiver and PIXC files we should have reprocessed.
         for index, rivertile in enumerate(rivertiles):
             print('RiverTile', rivertile)
+            cycle_tile_re = r'_\d{3}_\d{3}_\d{3}[LR]_'
+            cycle_pass_tile = re.search(cycle_tile_re, rivertile).group()
             rivertile_dir = os.path.dirname(os.path.abspath(rivertile))
             parent_dir = os.path.dirname(rivertile_dir)
-            grandparent_dir = os.path.dirname(parent_dir)
-            # Find PIXCVecRiver file in the same directory as the rivertile
-            pixcvecs[index] = find_file(rivertile_dir,
-                                        "SWOT_L2_HR_PIXCVecRiver_")
-            # Find PIXC file in the grandparent directory
-            pixcs[index] = find_file(grandparent_dir, "SWOT_L2_HR_PIXC_")
-            # If river_run_id is 'local', look recursively for PIXC
-            if "local" in river_run_id:
-                pixcs[index] = find_file(grandparent_dir, "SWOT_L2_HR_PIXC_",
-                                         recursive=True)
 
+            # Find PIXCVecRiver file in the same directory as the rivertile
+            pixcvec_tag = 'SWOT_L2_HR_PIXCVecRiver' + cycle_pass_tile
+            pixcvecs[index] = find_file(rivertile_dir, pixcvec_tag)
+
+            # Find the PIXC file somewhere else, depending on the run done
+            pixc_tag = 'SWOT_L2_HR_PIXC' + cycle_pass_tile
+            if "local" in river_run_id:
+                # If river_run_id is 'local', modify for pixc_to_riverplots dir
+                # structure
+                pixc_dir = parent_dir + '/pixc/'
+            else:
+                # standard directory structure
+                pixc_dir = os.path.dirname(parent_dir)
+            pixcs[index] = find_file(pixc_dir, pixc_tag)
             if pixcvecs[index] is None:
                 raise FileNotFoundError(
                     f"No PIXCVecRiver file found for {rivertile}")
@@ -187,6 +196,7 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
         field_dataframes = None
     return rivertiles, pixcvecs, pixcs, field_dataframes
 
+
 # Function to pair reach and node shapefiles together
 def pair_files(files):
     paired_list = []
@@ -201,6 +211,7 @@ def pair_files(files):
                 paired_list.append((file, node_version))
     return paired_list
 
+
 # Function to read NetCDF
 def read_netcdf(file_path):
     with nc.Dataset(file_path, 'r') as ncf:
@@ -212,6 +223,7 @@ def read_netcdf(file_path):
     river_dict = SWOTWater.products.product.MutableProduct.from_ncfile(
         file_path)
     return reach_ids, reach_wse, reach_width, river_names, river_dict
+
 
 # Function to read Shapefile
 def read_shapefile(file_path_tuple):
@@ -230,6 +242,7 @@ def read_shapefile(file_path_tuple):
 
     return reach_ids, reach_wse, reach_width, river_names, river_df
 
+
 def create_data_container(df_nodes, df_reaches):
     class DataContainer:
         def __init__(self, df_nodes, df_reaches):
@@ -240,6 +253,7 @@ def create_data_container(df_nodes, df_reaches):
             return f"DataContainer with nodes and reaches data"
 
     return DataContainer(df_nodes, df_reaches)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -305,9 +319,7 @@ def main():
             else:
                 print('Unsupported file format')
         if args.calval:
-            print(
-                'Calval arg set by user; only processing calval rivers...'
-            )
+            print('Calval arg set; processing calval rivers...')
             if set(river_names) & set(CALVAL_RIVERS):
                 print(
                     'Tile', rivertile, 'has a calval river. Continuing...'
@@ -353,6 +365,7 @@ def main():
                     pixc_truth, out_dir=this_out_dir, title=title,
                     overwrite=args.overwrite
                 )
+
 
 if __name__ == "__main__":
     main()
