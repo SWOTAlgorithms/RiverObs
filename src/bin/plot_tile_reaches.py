@@ -35,22 +35,8 @@ CALVAL_RIVERS = [
 ]
 
 
-def find_file(directory, pattern, recursive=False):
-    """Finds the first file matching a pattern in a given directory."""
-    if recursive:
-        for root, _, files in os.walk(directory):
-            for file in files:
-                if file.startswith(pattern):
-                    return os.path.join(root, file)
-    else:
-        files = [f for f in os.listdir(directory) if f.startswith(pattern)]
-        if files:
-            return os.path.join(directory, files[0])
-    return None
-
-
 def get_input_files(basedir, pixc_run_id, river_run_id,
-                    cycles=None, passes=None, tiles=None, pkl=None):
+                    cycles=None, passes=None, tiles=None):
     print('Getting input files....')
     # Ensure cycles, passes, and tiles are lists. Replace None with empty list
     cycles = [str(cycle).zfill(3) if cycle is not None else '' for cycle in
@@ -111,90 +97,148 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
             river_fwd = False
     if len(rivertiles) == 0:
         raise Exception('No rivertile found, check input directory names')
-
     pixcvecs = np.empty(len(rivertiles), dtype=object)
     pixcs = np.empty(len(rivertiles), dtype=object)
     if not river_fwd:
-        # If the data aren't RiverSP pulled from PO.DAAC, get the associated
-        # PIXCVecRiver and PIXC files we should have reprocessed.
         for index, rivertile in enumerate(rivertiles):
-            print('RiverTile', rivertile)
-            cycle_tile_re = r'_\d{3}_\d{3}_\d{3}[LR]_'
-            cycle_pass_tile = re.search(cycle_tile_re, rivertile).group()
-            rivertile_dir = os.path.dirname(os.path.abspath(rivertile))
-            parent_dir = os.path.dirname(rivertile_dir)
-
-            # Find PIXCVecRiver file in the same directory as the rivertile
-            pixcvec_tag = 'SWOT_L2_HR_PIXCVecRiver' + cycle_pass_tile
-            pixcvecs[index] = find_file(rivertile_dir, pixcvec_tag)
-
-            # Find the PIXC file somewhere else, depending on the run done
-            pixc_tag = 'SWOT_L2_HR_PIXC' + cycle_pass_tile
-            if "local" in river_run_id:
-                # If river_run_id is 'local', modify for pixc_to_riverplots dir
-                # structure
-                pixc_dir = parent_dir + '/pixc/'
-            else:
-                # standard directory structure
-                pixc_dir = os.path.dirname(parent_dir)
-            pixcs[index] = find_file(pixc_dir, pixc_tag)
-            if pixcvecs[index] is None:
-                raise FileNotFoundError(
-                    f"No PIXCVecRiver file found for {rivertile}")
-            if pixcs[index] is None:
-                print(f"Warning: No PIXC file found for {rivertile}")
-
-        if len(rivertiles) != len(pixcvecs):
-            raise Exception(
-                "Mismatch: The number of RiverTiles does not match the number "
-                "of PIXCVecRiver files found.")
+            print('RiverTile:', rivertile)
+            pixcvecs[index] = get_pixcvecriver_from_rivertile(rivertile, river_run_id)
+            pixcs[index] = get_pixc_from_rivertile(rivertile, river_run_id)
     else:
-        # pair the reach and node files from a list to a list of tuples
         rivertiles = pair_files(rivertiles)
-    if pkl is not None:
-        pt_node_file = pkl + '/dataframe/matched_pt_node_df.pkl'
-        pt_reach_file = pkl + '/dataframe/pt_reach_wse_df.pkl'
-        pt_reach_matched_wse = pkl + '/dataframe/matched_pt_reach_wse_df.pkl'
-        pt_matched_slope = pkl + '/dataframe/matched_pt_reach_slope_df.pkl'
-        drift_matched_nodes = pkl + '/dataframe/matched_drift_node_df.pkl'
-        drift_matched_reaches = pkl + 'dataframe/matched_drift_reach_df.pkl'
-        error_dataframe = pkl + '/stats/ALL/pt_matched_reach_error_table_ALL.csv'
-        coarse_nodes = pkl + '/stats/ALL/coarse_matched_node_error_table_ALL.csv'
-        coarse_reaches = pkl + '/stats/ALL/offline_coarse_matched_reach_error_table_ALL.csv'
-        field_dataframes = {'pt_node': pt_node_file,
-                            'pt_reach': pt_reach_file,
-                            'pt_match_wse': pt_reach_matched_wse,
-                            'pt_match_slope': pt_matched_slope,
-                            'drift_node_match': drift_matched_nodes,
-                            'drift_reach_match': drift_matched_reaches}
-        for key in field_dataframes.keys():
-            if os.path.isfile(field_dataframes[key]):
-                field_dataframes[key] = pd.read_pickle(field_dataframes[key])
-            else:
-                print('pkl input', field_dataframes[key],
-                      'does not exist; check filenames!')
-                field_dataframes[key] = None
-        # add PT errors separately due to different file format
-        if os.path.isfile(error_dataframe):
-            field_dataframes['pt_error'] = pd.read_csv(error_dataframe)
+    return rivertiles, pixcvecs, pixcs
+
+
+def get_input_files_from_csv(csv_file, pixc_run_id, river_run_id, pkl=None):
+    # Read CSV using the header row so it is not interpreted as data
+    df = pd.read_csv(csv_file, header=0)
+    # Use the first column by its header name
+    col_name = df.columns[0]
+    rivertiles = df[col_name].tolist()
+    print(f"Loaded {len(rivertiles)} rivertiles from CSV: {csv_file}")
+    pixcvecs = np.empty(len(rivertiles), dtype=object)
+    pixcs = np.empty(len(rivertiles), dtype=object)
+    for index, rivertile in enumerate(rivertiles):
+        print('RiverTile:', rivertile)
+        # Call our helper functions to fetch the corresponding files.
+        pixcvecs[index] = get_pixcvecriver_from_rivertile(rivertile, river_run_id)
+        pixcs[index] = get_pixc_from_rivertile(rivertile, river_run_id)
+    return rivertiles, pixcvecs, pixcs
+
+
+def get_pixcvecriver_from_rivertile(rivertile, river_run_id):
+    """
+    Extract cycle/pass/tile info from the rivertile file name and return
+    the first matching PIXCVecRiver file found in the rivertile directory.
+    """
+    cycle_tile_re = r'_\d{3}_\d{3}_\d{3}[LR]_'
+    m = re.search(cycle_tile_re, rivertile)
+    if not m:
+        raise ValueError(
+            f"Could not extract cycle/pass/tile info from filename: {rivertile}")
+    cycle_pass_tile = m.group()
+    rivertile_dir = os.path.dirname(os.path.abspath(rivertile))
+    pixcvec_tag = 'SWOT_L2_HR_PIXCVecRiver' + cycle_pass_tile
+    pixcvecriver = find_file(rivertile_dir, pixcvec_tag)
+    if pixcvecriver is None:
+        raise FileNotFoundError(f"No PIXCVecRiver file found for {rivertile}")
+    return pixcvecriver
+
+
+def get_pixc_from_rivertile(rivertile, river_run_id):
+    """
+    Extract cycle/pass/tile info from the rivertile file name and return
+    the associated PIXC file found using the appropriate parent directory.
+    """
+    cycle_tile_re = r'_\d{3}_\d{3}_\d{3}[LR]_'
+    m = re.search(cycle_tile_re, rivertile)
+    if not m:
+        raise ValueError(f"Could not extract cycle/pass/tile info from filename: {rivertile}")
+    cycle_pass_tile = m.group()
+    rivertile_dir = os.path.dirname(os.path.abspath(rivertile))
+    parent_dir = os.path.dirname(rivertile_dir)
+    pixc_tag = 'SWOT_L2_HR_PIXC' + cycle_pass_tile
+    if "local" in river_run_id:
+        pixc_dir = os.path.join(parent_dir, 'pixc')
+    else:
+        pixc_dir = os.path.dirname(parent_dir)
+    pixc = find_file(pixc_dir, pixc_tag)
+    if pixc is None:
+        print(f"Warning: No PIXC file found for {rivertile}")
+    return pixc
+
+
+def load_pkl_dataframes(pkl_dir):
+    """Load pkl and CSV dataframes from the specified directory."""
+    field_dataframes = {}
+
+    pt_node_file = os.path.join(pkl_dir, 'dataframe', 'matched_pt_node_df.pkl')
+    pt_reach_file = os.path.join(pkl_dir, 'dataframe', 'pt_reach_wse_df.pkl')
+    pt_reach_matched_wse = os.path.join(pkl_dir, 'dataframe',
+                                        'matched_pt_reach_wse_df.pkl')
+    pt_matched_slope = os.path.join(pkl_dir, 'dataframe',
+                                    'matched_pt_reach_slope_df.pkl')
+    drift_matched_nodes = os.path.join(pkl_dir, 'dataframe',
+                                       'matched_drift_node_df.pkl')
+    drift_matched_reaches = os.path.join(pkl_dir, 'dataframe',
+                                         'matched_drift_reach_df.pkl')
+    error_dataframe = os.path.join(pkl_dir, 'stats', 'ALL',
+                                   'pt_matched_reach_error_table_ALL.csv')
+    coarse_nodes = os.path.join(pkl_dir, 'stats', 'ALL',
+                                'coarse_matched_node_error_table_ALL.csv')
+    coarse_reaches = os.path.join(pkl_dir, 'stats', 'ALL',
+                                  'offline_coarse_matched_reach_error_table_ALL.csv')
+
+    field_dataframes = {'pt_node': pt_node_file, 'pt_reach': pt_reach_file,
+        'pt_match_wse': pt_reach_matched_wse,
+        'pt_match_slope': pt_matched_slope,
+        'drift_node_match': drift_matched_nodes,
+        'drift_reach_match': drift_matched_reaches, }
+    for key in field_dataframes.keys():
+        if os.path.isfile(field_dataframes[key]):
+            field_dataframes[key] = pd.read_pickle(field_dataframes[key])
         else:
-            # try one other file nesting path; maybe reach doesn't exist
-            if os.path.isfile(pkl + '/stats/node/ALL/pt_matched_node_error_table_ALL.csv'):
-                field_dataframes['pt_error'] = pd.read_csv(pkl + '/stats/node/ALL/pt_matched_node_error_table_ALL.csv')
-        if os.path.isfile(coarse_nodes):
-            field_dataframes['coarse_node'] = pd.read_csv(coarse_nodes)
-        elif os.path.isfile(pkl + '/dataframe/drift_node_df.pkl'):
-            # try the cnes dataframe version
-            field_dataframes['coarse_node'] = pd.read_csv(pkl + '/dataframe/drift_node_df.pkl')
+            print(
+                f"pkl input {field_dataframes[key]} does not exist; check filenames!")
+            field_dataframes[key] = None
+
+    if os.path.isfile(error_dataframe):
+        field_dataframes['pt_error'] = pd.read_csv(error_dataframe)
+    else:
+        alt_error = os.path.join(pkl_dir, 'stats', 'node', 'ALL',
+                                 'pt_matched_node_error_table_ALL.csv')
+        if os.path.isfile(alt_error):
+            field_dataframes['pt_error'] = pd.read_csv(alt_error)
+
+    if os.path.isfile(coarse_nodes):
+        field_dataframes['coarse_node'] = pd.read_csv(coarse_nodes)
+    else:
+        alt_coarse = os.path.join(pkl_dir, 'dataframe', 'drift_node_df.pkl')
+        if os.path.isfile(alt_coarse):
+            field_dataframes['coarse_node'] = pd.read_csv(alt_coarse)
         else:
             field_dataframes['coarse_node'] = None
-        if os.path.isfile(coarse_reaches):
-            field_dataframes['coarse_reach'] = pd.read_csv(coarse_reaches)
-        else:
-            field_dataframes['coarse_reach'] = None
+
+    if os.path.isfile(coarse_reaches):
+        field_dataframes['coarse_reach'] = pd.read_csv(coarse_reaches)
     else:
-        field_dataframes = None
-    return rivertiles, pixcvecs, pixcs, field_dataframes
+        field_dataframes['coarse_reach'] = None
+
+    return field_dataframes
+
+
+def find_file(directory, pattern, recursive=False):
+    """Finds the first file matching a pattern in a given directory."""
+    if recursive:
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.startswith(pattern):
+                    return os.path.join(root, file)
+    else:
+        files = [f for f in os.listdir(directory) if f.startswith(pattern)]
+        if files:
+            return os.path.join(directory, files[0])
+    return None
 
 
 # Function to pair reach and node shapefiles together
@@ -259,6 +303,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('rivertile_dir', help='rivertile directory')
     parser.add_argument('--out_dir', help='output dir', default=None)
+    parser.add_argument('--rivertile_csv',
+                        help='CSV file with rivertile filenames',
+                        default=None, type=str)
     parser.add_argument('--pixc_run_id', help='pixc_run_id', default=None)
     parser.add_argument('--river_run_id', help='river_run_id', default=None)
     parser.add_argument('-p', '--passes', help='list of passes', nargs='+',
@@ -294,15 +341,23 @@ def main():
     print('PASSES: ', args.passes)
     print('TILES: ', args.tiles)
     print('CYCLES: ', args.cycles)
-    rivertiles, pixcvecs, pixcs, field_dataframes = get_input_files(
-        args.rivertile_dir,
-        args.pixc_run_id,
-        args.river_run_id,
-        args.cycles,
-        args.passes,
-        args.tiles,
-        args.pkl_input_dir
-    )
+    if args.rivertile_csv is not None:
+        rivertiles, pixcvecs, pixcs = get_input_files_from_csv(
+            args.rivertile_csv, args.pixc_run_id, args.river_run_id)
+    else:
+        rivertiles, pixcvecs, pixcs = get_input_files(
+            args.rivertile_dir,
+            args.pixc_run_id,
+            args.river_run_id,
+            args.cycles,
+            args.passes,
+            args.tiles
+        )
+    # Process PKL/CSV dataframes if provided.
+    if args.pkl_input_dir is not None:
+        field_dataframes = load_pkl_dataframes(args.pkl_input_dir)
+    else:
+        field_dataframes = None
     for rivertile, pixcvec, pixc in zip(rivertiles, pixcvecs, pixcs):
         try:
             file_extension = os.path.splitext(rivertile)[1].lower()
