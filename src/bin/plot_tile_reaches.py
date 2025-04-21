@@ -23,6 +23,8 @@ import geopandas as gpd
 import SWOTWater.products.product
 import itertools
 
+# for multitemporal stuff in plots
+import rivscale.products.along_stretch
 
 CALVAL_RIVERS = [
     'Connecticut River', 'Connecticut River; Westfield River',
@@ -34,8 +36,32 @@ CALVAL_RIVERS = [
     "L'Aussonnelle", '181601', 'La Garonne', 'Tsiribihina', 'Maroni'
 ]
 
+def load_mt_stats_files(mt_basedir, reach_id, mt_flavor='v1'):
+    """
+    search for specific reach 
+    """
+    basename = os.path.join(
+        mt_basedir,
+        '{}'.format(reach_id),
+        '{}'.format(mt_flavor),
+        '{}'.format(reach_id))
+    #
+    wse_file = basename + '_wse_stats.nc'
+    mt_wse = None
+    if os.path.isfile(wse_file):
+        # try to read it
+        mt_wse = rivscale.products.along_stretch.AlongStretchStats.from_ncfile(
+                wse_file)
+    #
+    width_file = basename + '_width_stats.nc'
+    mt_width = None
+    if os.path.isfile(width_file):
+        # try to read it
+        mt_width = rivscale.products.along_stretch.AlongStretchStats.from_ncfile(
+                width_file)
+    return mt_wse, mt_width
 
-def get_input_files(basedir, pixc_run_id, river_run_id,
+def get_input_files(basedir, pixc_run_id, river_run_id, slc_run_id=None,
                     cycles=None, passes=None, tiles=None):
     print('Getting input files....')
     # Ensure cycles, passes, and tiles are lists. Replace None with empty list
@@ -85,7 +111,12 @@ def get_input_files(basedir, pixc_run_id, river_run_id,
                             rivertiles.append(full_path)
             river_fwd = False
         else:
-            rivertiles.extend(glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'
+            if slc_run_id is None:
+                slc_str = ''
+            else:
+                slc_str = '{}/'.format(slc_run_id)
+            rivertiles.extend(glob.glob(basedir + '/**/SWOT_L1B_HR_SLC*/'+
+                                                 slc_str +
                                                  'SWOT_L2_HR_PIXC_*/' +
                                                   pixc_run_id +
                                                  '/SWOT_L2_HR_RiverTile*/'
@@ -306,14 +337,22 @@ def main():
     parser.add_argument('--rivertile_csv',
                         help='CSV file with rivertile filenames',
                         default=None, type=str)
+    parser.add_argument('--mt_basedir',
+                        help='multitemporal stats base directory',
+                        default=None, type=str)
+    parser.add_argument('--slc_run_id', help='slc_run_id', default=None)
     parser.add_argument('--pixc_run_id', help='pixc_run_id', default=None)
     parser.add_argument('--river_run_id', help='river_run_id', default=None)
+    parser.add_argument('--mt_flavor',help='multitemproal flavor',
+                        default='v1', type=str)
     parser.add_argument('-p', '--passes', help='list of passes', nargs='+',
                         type=str.lower, default=None)
     parser.add_argument('-c', '--cycles', help='list of cycles', nargs='+',
                         type=str.lower, default=None)
     parser.add_argument('-t', '--tiles', help='list of tiles, e.g. 038R',
                         nargs='+', type=str.upper, default=None)
+    parser.add_argument('-r', '--reaches', help='list of specific reaches',
+                        nargs='+', type=int, default=None)
     parser.add_argument('-o', '--overwrite', action='store_true', default=False,
                         help='Overwrite existing output files')
     parser.add_argument('-tag', '--tag_output', default='', type=str,
@@ -341,6 +380,7 @@ def main():
     print('PASSES: ', args.passes)
     print('TILES: ', args.tiles)
     print('CYCLES: ', args.cycles)
+    print('REACHES: ', args.reaches)
     if args.rivertile_csv is not None:
         rivertiles, pixcvecs, pixcs = get_input_files_from_csv(
             args.rivertile_csv, args.pixc_run_id, args.river_run_id)
@@ -349,6 +389,7 @@ def main():
             args.rivertile_dir,
             args.pixc_run_id,
             args.river_run_id,
+            args.slc_run_id,
             args.cycles,
             args.passes,
             args.tiles
@@ -395,7 +436,17 @@ def main():
                 os.makedirs(this_out_dir + '/no_truth/', 0o777)
         else:
             this_out_dir = None
-        for reach_id in reach_ids:
+        this_reach_ids = reach_ids
+        # limit to desired reach list
+        if args.reaches is not None:
+            this_reach_ids = list(
+                set(this_reach_ids).intersection(set(args.reaches)))
+        for reach_id in this_reach_ids:
+            # load multitemporal stats
+            if args.mt_basedir is not None:
+                mt_wse, mt_width = load_mt_stats_files(
+                    args.mt_basedir, reach_id, args.mt_flavor)
+            #
             if 'Reach' in file_parts:
                 # input was a shapefile
                 title = file_parts[5] + '_' + file_parts[6] + '_' + file_parts[
@@ -410,7 +461,8 @@ def main():
                     river_df, field_dataframes, pixcvec, pixc,
                     truth_pixcvec, truth_pixc, reach_id,
                     reach_error, nodes, pixc_truth, out_dir=this_out_dir,
-                    title=title, overwrite=args.overwrite
+                    title=title, overwrite=args.overwrite,
+                    mt_wse=mt_wse, mt_width=mt_width
                 )
             else:
                 # deprecated; may delete later
@@ -418,7 +470,8 @@ def main():
                     river_df, truth, pixcvec, pixc, truth_pixcvec,
                     truth_pixc, reach_id, reach_error, nodes,
                     pixc_truth, out_dir=this_out_dir, title=title,
-                    overwrite=args.overwrite
+                    overwrite=args.overwrite,
+                    mt_wse=mt_wse, mt_width=mt_width
                 )
 
 
