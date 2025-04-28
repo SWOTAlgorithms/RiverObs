@@ -69,6 +69,283 @@ cmap_custom = [CUSTOM_COLORS['b'], CUSTOM_COLORS['w'],
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
     'bwr', cmap_custom)
 
+def populate_rivertile(proc_df, node_df, cycle_id, pass_id):
+    # populate node data from node_df to proc_df
+    common_keys = set(proc_df.nodes.VARIABLES.keys()).intersection(
+            set(node_df.keys()))
+    for key in common_keys:
+        proc_df.nodes[key] = np.ma.masked_array(node_df[key])
+    proc_df.nodes.cycle_number = cycle_id
+    proc_df.nodes.pass_number = pass_id
+    proc_df.nodes.wse[np.abs(proc_df.nodes.wse)>1e6] = np.nan
+    proc_df.nodes.width[np.abs(proc_df.nodes.width)>1e6] = np.nan
+
+    # populate some reach variables from nodes
+    ignore_keys = [
+                    'time_str',
+                    'centerline_lat',
+                    'centerline_lon',
+                    'rch_id_up',
+                    'rch_id_dn']
+    keys = set(proc_df.reaches.VARIABLES.keys()) - set(ignore_keys)
+    #print(keys)
+    for key in keys:
+        #print(key)
+        if key == 'river_name':
+            proc_df.reaches[key] = np.ma.masked_array(
+                np.unique(node_df[key]))
+        elif key == 'reach_id':
+            #rid = np.array([int(i) for i in node_df[key]])
+            proc_df.reaches[key] = np.ma.masked_array(
+                np.unique(node_df[key]))
+        elif key in proc_df.nodes.variables.keys():
+            proc_df.reaches[key] = np.ma.masked_array(
+                [np.mean(proc_df.nodes[key]),])# just average the others
+        else:
+            #print(key)
+            proc_df.reaches[key] = np.ma.masked_array([np.nan,])
+    return proc_df
+
+def load_wse_data(pixc_data):
+    p_height = toslant(pixc_data.pixel_cloud, 'height')
+    p_geoid = toslant(pixc_data.pixel_cloud, 'geoid')
+    p_solid = toslant(pixc_data.pixel_cloud, 'solid_earth_tide')
+    p_load = toslant(pixc_data.pixel_cloud, 'load_tide_fes')
+    p_pole = toslant(pixc_data.pixel_cloud, 'pole_tide')
+    pixc_var = p_height - (p_geoid + p_solid + p_load + p_pole)
+    return pixc_var
+
+def get_pixc_var(pixc_data, pixcvec_data, reach_id, var='height'):
+    # handle special cases
+    if var=='height_u':
+        p_var = toslant(pixc_data.pixel_cloud, 'phase_noise_std') * np.abs(
+                toslant(pixc_data.pixel_cloud, 'dheight_dphase'))
+    elif var=='wse':
+        p_var = load_wse_data(pixc_data)
+    else:
+        p_var = toslant(pixc_data.pixel_cloud, var)
+
+    pix_i = (pixcvec_data['reach_id'] == reach_id)
+    azimuth_index_vec = pixcvec_data['azimuth_index'][pix_i]
+    range_index_vec = pixcvec_data['range_index'][pix_i]
+    #
+    var1 = p_var[azimuth_index_vec, range_index_vec]
+    az0 = np.min(azimuth_index_vec)
+    r0 = np.min(range_index_vec)
+    # get 2D cropped around reach
+    var_pixc = np.zeros((
+        np.max(azimuth_index_vec-az0)+1,
+        np.max(range_index_vec-r0)+1)) + np.nan
+    var_pixc[azimuth_index_vec-az0, range_index_vec-r0] = var1
+    return var_pixc, p_var, pix_i, azimuth_index_vec, range_index_vec, az0, r0
+
+def sandbox_run(rivertile_df, pixcvec_data, pixc_data, reach_id):
+    """
+    do some experimental things
+    """
+    # get PIXC variables for pixcvec pixels around this reach
+    height, p_height, pix_i, azimuth_index_vec, range_index_vec, az0, r0 = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='wse')
+    height_u, p_height_u, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='height_u')
+    geo_qual, p_geo_qual, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='geolocation_qual')
+    klass, p_klass, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='classification')
+    klass_qual, p_klass_qual, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='classification_qual')
+    prob, p_prob, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='prior_water_prob')
+    change, p_change, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='prior_water_change')
+    water_frac, p_water_frac, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='water_frac')
+    pixc_area, p_pixc_area, _, _, _, _, _ = get_pixc_var(
+            pixc_data, pixcvec_data, reach_id, var='pixel_area')
+    area_frac = pixc_area.copy()
+    edges = np.where(np.logical_or(klass==2, klass==3))
+    area_frac[edges] = area_frac[edges] * water_frac[edges]
+    # get some pixcvec pixel-wise variables
+    node_id = pixcvec_data['node_id'][pix_i]
+    outlier = np.zeros((
+        np.max(azimuth_index_vec-az0)+1,
+        np.max(range_index_vec-r0)+1))
+    IQR = []
+    ref = []
+    ref_sm = []
+    #breakpoint()
+    for node in np.unique(node_id):
+        #breakpoint()
+        print(node)
+        # compute IQR
+        pix_n = (node_id == node)
+        az_index_vec = azimuth_index_vec[pix_n]
+        rng_index_vec = range_index_vec[pix_n]
+        #p_heightn = toslant(pixc_data.pixel_cloud, 'height')
+        #p_classn = toslant(pixc_data.pixel_cloud, 'classification')
+        heightn = p_height[az_index_vec, rng_index_vec]
+        klassn = p_klass[az_index_vec, rng_index_vec]
+        probn =p_prob[az_index_vec, rng_index_vec]
+        good = np.logical_and(klassn==4, probn>0.05)
+        if np.sum(good)<10:
+            good = probn>0.05
+        p25 = np.nanpercentile(heightn[good], 25)
+        p75 = np.nanpercentile(heightn[good], 75)
+        p50 = np.nanpercentile(heightn[good], 50)
+        IQR.append(p75 - p25)
+        ref.append(p50)
+        #
+        wse_sm = rivertile_df.nodes.wse_sm[
+                rivertile_df.nodes.node_id==node]
+        ref_sm.append(wse_sm)
+    flag = []
+    sig = []
+    ref_a = []
+    ref_a2 = []
+    ref_5 = []
+    ref_25 = []
+    ref_50 = []
+    ref_75 = []
+    for node,ref0 in zip(np.unique(node_id),ref):
+        #breakpoint()
+        print(node)
+        # compute IQR
+        pix_n = (node_id == node)
+        az_index_vec = azimuth_index_vec[pix_n]
+        rng_index_vec = range_index_vec[pix_n]
+        #p_heightn = toslant(pixc_data.pixel_cloud, 'height')
+        heightn = p_height[az_index_vec, rng_index_vec]
+        heightn_u = p_height_u[az_index_vec, rng_index_vec]
+        #p25 = np.nanpercentile(var_pixcn, 25)
+        #p75 = np.nanpercentile(var_pixcn, 75)
+        #p50 = np.nanpercentile(hein, 50)
+        #IQR = p75 - p25
+        med_hu = np.median(heightn_u)
+        sig.append(med_hu)
+        upper = ref0 + 5 * med_hu#heightn_u#np.median(height1_u)#IQR)
+        lower = ref0 - 5 * med_hu#heightn_u#np.median(height1_u)#IQR)
+        msk = np.logical_or(heightn>upper, heightn<lower)
+        outlier[az_index_vec[msk]-az0, rng_index_vec[msk]-r0] = 1
+        frac = np.sum(msk) / len(heightn)
+        flag.append(frac)
+        arean =p_pixc_area[az_index_vec, rng_index_vec]
+        wfn =p_water_frac[az_index_vec, rng_index_vec]
+        klassn = p_klass[az_index_vec, rng_index_vec]
+        probn =p_prob[az_index_vec, rng_index_vec]
+        area_fracn = arean.copy()
+        inds = np.where(np.logical_or(klassn==2, klassn==3))
+        area_fracn[inds] = arean[inds] * wfn[inds]
+        area = np.nansum(area_fracn)
+        area2 = np.nansum(area_fracn[outlier[
+            az_index_vec-az0, rng_index_vec-r0]==0])
+        ref_a.append(area)
+        ref_a2.append(area2)
+        area_5 = np.sum(arean[probn>0.05])
+        area_25 = np.sum(arean[probn>0.25])
+        area_75 = np.sum(arean[probn>0.75])
+        area_50 = np.sum(arean[probn>0.5])
+        ref_5.append(area_5)
+        ref_25.append(area_25)
+        ref_50.append(area_50)
+        ref_75.append(area_75)
+    ref = np.array(ref)
+    ref_sm = np.array(ref_sm)
+    IQR = np.array(IQR)
+    sig = np.array(sig)
+    ref_a = np.array(ref_a)
+    ref_a2 = np.array(ref_a2)
+    ref_5 = np.array(ref_5)
+    ref_25 = np.array(ref_25)
+    ref_50 = np.array(ref_50)
+    ref_75 = np.array(ref_75)
+    # zero out widths with no data
+    ref_5[~np.isfinite(ref_5)] = 0
+    ref_25[~np.isfinite(ref_25)] = 0
+    ref_50[~np.isfinite(ref_50)] = 0
+    ref_75[~np.isfinite(ref_75)] = 0
+    kwargs = {'interpolation':'none', 'aspect':'auto'}
+    plt.figure()
+    plt.imshow(outlier, cmap='gray_r', **kwargs)
+    plt.imshow(height, cmap='jet',alpha=0.5, **kwargs)
+    plt.colorbar()
+    plt.title('height')
+    #
+    plt.figure()
+    plt.imshow(height_u, clim=(0,1), cmap='jet', **kwargs)
+    plt.colorbar()
+    plt.title('height_u')
+    #
+    plt.figure()
+    plt.imshow(klass_qual, cmap='tab20', **kwargs)
+    plt.colorbar()
+    plt.title('classification qual')
+    #
+    plt.figure()
+    plt.imshow(prob, cmap='jet', **kwargs)
+    plt.colorbar()
+    plt.title('prior water prob')
+    #
+    plt.figure()
+    plt.imshow(change, clim=(-1,1), cmap='jet', **kwargs)
+    plt.colorbar()
+    plt.title('prior water change')
+    #
+    plt.figure()
+    plt.imshow(water_frac, cmap='jet', **kwargs)
+    plt.colorbar()
+    plt.title('water_frac')
+    #
+    plt.figure()
+    plt.imshow(area_frac, cmap='jet', **kwargs)
+    plt.colorbar()
+    plt.title('area_frac')
+    #
+    plt.figure()
+    plt.imshow(klass, cmap='jet', **kwargs)
+    plt.colorbar()
+    plt.title('classification')
+    #
+    #plt.figure()
+    #plt.imshow(bright, cmap='jet', **kwargs)
+    #plt.colorbar()
+    #
+    h_qual = IQR / sig
+    x = np.arange(len(ref))
+    plt.figure()
+    plt.plot(x,ref, label='med')
+    plt.plot(x,ref_sm, label='bayes')
+    plt.plot(x[h_qual>3], ref[h_qual>3],'o', label='flag 2')
+    plt.plot(x[h_qual>5], ref[h_qual>5],'x', label='flag 5')
+    plt.title('height')
+    plt.legend()
+
+    plt.figure()
+    plt.plot(x,ref_a, label='data')
+    plt.plot(x,ref_a2, label='data no outlier pixels')
+    plt.plot(x,ref_5, label='5%')
+    plt.plot(x,ref_25, label='25%')
+    plt.plot(x,ref_50, label='50%')
+    plt.plot(x,ref_75, label='75%')
+    #plt.plot(x[h_qual>3], ref[h_qual>3],'o')
+    #plt.plot(x[h_qual>5], ref[h_qual>5],'x')
+    plt.title('area')
+    plt.legend()
+
+    """
+    #
+    plt.figure()
+    plt.plot(IQR)
+    plt.plot(sig)
+    #
+    plt.figure()
+    plt.plot(IQR / sig)
+    plt.grid()
+    #
+    """
+    plt.show()
+
+    breakpoint()
+
 def get_IQR_range(y, ptiles, ptile_list,
         scale_shade=3, scale_lim=5,
         p_low=None, p_high=None):
@@ -754,9 +1031,18 @@ def plot_area(data, truth, errors, reach_id, axis, title=None, style='.',
     if title is not None:
         axis.set_title(title)
 
+def toslant(pixc, varname):
+    data = pixc[varname]
+    var = np.ma.zeros((
+        pixc.interferogram_size_azimuth,
+        pixc.interferogram_size_range),
+        dtype=data.dtype)
+    var[var==0] = np.ma.masked
+    var[pixc.azimuth_index, pixc.range_index] = data
+    return var
 
 def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
-                   pixc=None, var='node_id', multi_reach=False,
+                   pixc_data=None, var='node_id', multi_reach=False,
                    plot_map=True, mt_data=None, clim=None):
     # Filter data for the specified reach_id
     if multi_reach:
@@ -767,35 +1053,40 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
             data['reach_id'] == reach_id + 10
         ))
     else:
+        #breakpoint()
         pix_i = (data['reach_id'] == reach_id)
         if mt_data is not None:
             mt_data = mt_data.crop_to_reach()
     node_id = data['node_id'][pix_i]
     node_id = get_simple_node_id(node_id, reach_id)
+    #breakpoint()
     lat = data['latitude_vectorproc'][pix_i]
     lon = data['longitude_vectorproc'][pix_i]
     height_vec = data['height_vectorproc'][pix_i]
     range_index_vec = data['range_index'][pix_i]
     azimuth_index_vec = data['azimuth_index'][pix_i]
-    if pixc is not None:
+    if pixc_data is not None:
         # get the corresponding pixc pixels
-        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
-        def toslant(pixc, varname):
-            data = pixc[varname]
-            var = np.ma.zeros((
-                pixc.interferogram_size_azimuth,
-                pixc.interferogram_size_range),
-                dtype=data.dtype)
-            var[var==0] = np.ma.masked
-            var[pixc.azimuth_index, pixc.range_index] = data
-            return var
+        #pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
+        #def toslant(pixc, varname):
+        #    data = pixc[varname]
+        #    var = np.ma.zeros((
+        #        pixc.interferogram_size_azimuth,
+        #        pixc.interferogram_size_range),
+        #        dtype=data.dtype)
+        #    var[var==0] = np.ma.masked
+        #    var[pixc.azimuth_index, pixc.range_index] = data
+        #    return var
         if var=='wse':
+            pixc_var = load_wse_data(pixc_data)
+            """
             p_height = toslant(pixc_data.pixel_cloud, 'height')
             p_geoid = toslant(pixc_data.pixel_cloud, 'geoid')
             p_solid = toslant(pixc_data.pixel_cloud, 'solid_earth_tide')
             p_load = toslant(pixc_data.pixel_cloud, 'load_tide_fes')
             p_pole = toslant(pixc_data.pixel_cloud, 'pole_tide')
             pixc_var = p_height - (p_geoid + p_solid + p_load + p_pole)
+            """
         else:
             pixc_var = toslant(pixc_data.pixel_cloud, var)
         var_pixc = pixc_var[azimuth_index_vec, range_index_vec]
@@ -812,7 +1103,7 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
     if var=='height' or var=='wse':
         c_var = var_pixc
         cmap = 'jet'
-        if pixc is None:
+        if pixc_data is None:
             c_label = 'pixcvec {} (m)'.format(var)
         else:
             c_label = 'pixc {} (m)'.format(var)
@@ -1113,14 +1404,15 @@ def check_for_existing_pixc_plots(out_dir, title):
 
 
 def make_pixc_plots(
-        pixcvec_data, river_data, pixc, truth_pixcvec, truth_pixc, reach_id,
+        pixcvec_data, river_data, pixc_data,
+        truth_pixcvec, truth_pixc, reach_id,
         nodes=None, pixc_truth=None, out_dir=None, title=None, has_truth=None):
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
     # mngr.window.setGeometry(0, 0, 1500, 500)
-    if pixc and pixcvec_data:
-        pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
+    if pixc_data and pixcvec_data:
+        #pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
         pixc_truth_data = None
         if pixc_truth is not None:
             pixc_truth_data = SWOTWater.products.product.MutableProduct.from_ncfile(
@@ -1161,7 +1453,7 @@ def make_pixc_plots(
     else:
         print('Missing pixc or pixcvec file, skipping pixel assignment plot')
 
-    if pixc and truth_pixc:  # only plot these if pixc was also given
+    if pixc_data and truth_pixc:  # only plot these if pixc was also given
         truth_pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(
             truth_pixcvec)
         truth_pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(
@@ -1205,9 +1497,13 @@ def get_river_code(river_data, reach_id):
 
 def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
                      errors=None, out_dir=None, title=None, multi_reach=False,
-                     pixc=None, mt_wse=None, mt_width=None, plot_map=True):
+                     pixc_data=None, mt_wse=None, mt_width=None, plot_map=True):
     # contains node group and reach group for each input netcdf
-    cycle, pass_no, tile = decode_rivertile_filename(rivertile_file)
+    #cycle, pass_no, tile = decode_rivertile_filename(rivertile_file)
+    cycle = '{}'.format(river_data.nodes.cycle_number)
+    pass_no = '{}'.format(river_data.nodes.pass_number)
+    tile = '{}'.format(river_data.nodes.tile_number)
+    #breakpoint()
     if truth_data is not None:
         if isinstance(truth_data, str):
             truth = SWOTWater.products.product.MutableProduct.from_ncfile(
@@ -1255,6 +1551,7 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
     axes = np.array([[ax1, ax2],[ax3, ax4]])
     #breakpoint()
     date = river_data.reaches.time_granule_start.split('T')[0] 
+    #breakpoint()
     river_name = river_data.reaches['river_name'][
             river_data.reaches['reach_id']==reach_id][0]
     ttl = '{} {} {},  pass: {}, cycle: {}'.format(
@@ -1277,7 +1574,7 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
     #                title=title_str + ' - locations')
     if pixcvec is not None:
         plot_pix_assgn(pixcvec, reach_id, axes[0][1], h_flg=True,
-                       pixc=pixc, var='wse',#var='height',
+                       pixc_data=pixc_data, var='wse',#var='height',
                        multi_reach=multi_reach, plot_map=plot_map,
                        mt_data=mt_wse)
         #plot_pix_assgn(pixcvec, reach_id, axes[0][1], area_flg=True,
@@ -1309,7 +1606,7 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
 def make_plots(rivertile_file, rivertile_df, truth_data, pixcvec, pixc,
                truth_pixcvec, truth_pixc, reach_id, errors=None,
                nodes=None, pixc_truth=None, mt_wse=None, mt_width=None,
-               out_dir=None, title=None, overwrite=False):
+               out_dir=None, title=None, overwrite=False, sandbox=False):
 
     # handle overwriting if user says not to
     make_rivers = True
@@ -1331,17 +1628,64 @@ def make_plots(rivertile_file, rivertile_df, truth_data, pixcvec, pixc,
         if pixcvec is not None:
             pixcvec_data = SWOTWater.products.product.MutableProduct.from_ncfile(
                 pixcvec)
+            # handle pixcvec reach id that is different than pixcvec river
+            #breakpoint()
+            if (pixcvec_data['reach_id'].dtype == '|S1'):
+                rid = pixcvec_data['reach_id']
+                rid_int = np.array([
+                    np.nan if np.sum(k.mask)>0 else int(k.tostring()) for k in rid])
+                nid = pixcvec_data['node_id']
+                nid_int = np.array([
+                    np.nan if np.sum(k.mask)>0 else int(k.tostring()) for k in nid])
+                #pixcvec_data['reach_id'] = rid_int
+                ATTRS = pixcvec_data.ATTRIBUTES
+                VARS = pixcvec_data.VARIABLES
+                DIMS = pixcvec_data.DIMENSIONS
+                from collections import OrderedDict as odict
+                VARS['reach_id'] = odict([
+                    ('dtype', 'i8'),
+                    ('dimensions', odict([('points', 0),])),
+                    ('coordinates', 'longitude_vectorproc latitude_vectorproc'),
+                    ('comment', '')])
+                VARS['node_id'] = odict([('dtype', 'i8'),
+                    ('dimensions', odict([('points', 0),])),
+                    ('coordinates', 'longitude_vectorproc latitude_vectorproc'),
+                    ('comment', '')])
+                #breakpoint()
+                #make a copy of the pixcvec and replace the reach_id
+                pixcvec_data2 = SWOTWater.products.product.MutableProduct(
+                        attributes=ATTRS,
+                        variables=VARS,
+                        dimensions = DIMS)
+                
+                for key in pixcvec_data.attributes.keys():
+                    pixcvec_data2[key] = pixcvec_data[key]
+                var_keys = list(set(pixcvec_data.variables.keys()) - 
+                        set(['reach_id',]) - set(['node_id',]))
+                for key in var_keys:
+                    pixcvec_data2[key] = pixcvec_data[key]
+                pixcvec_data2['reach_id'] = rid_int
+                pixcvec_data2['node_id'] = nid_int
+                #breakpoint()
+                
+                # now overwrite the original
+                pixcvec_data = pixcvec_data2
         else:
             pixcvec_data = None
-
+        if pixc is not None:
+            pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
+        else:
+            pixc_data = None
+    if sandbox:
+        sandbox_run(rivertile_df, pixcvec_data, pixc_data, reach_id)
     if make_rivers:
         fig, ax, has_truth = make_river_plots(
             rivertile_file, rivertile_df, truth_data, pixcvec_data, reach_id,
-            errors=errors, out_dir=out_dir, title=title, pixc=pixc,
+            errors=errors, out_dir=out_dir, title=title, pixc_data=pixc_data,
             mt_wse=mt_wse, mt_width=mt_width)
     if make_pixc:
         make_pixc_plots(
-            pixcvec_data, rivertile_df, pixc, truth_pixcvec, truth_pixc, reach_id,
+            pixcvec_data, rivertile_df, pixc_data, truth_pixcvec, truth_pixc, reach_id,
             nodes=nodes, pixc_truth=pixc_truth, out_dir=out_dir, title=title,
             has_truth=has_truth)
     plt.close()
@@ -1719,8 +2063,18 @@ def main():
     parser.add_argument('--nodes', nargs='*',
                         help='list of nodes for which to plot height histograms',
                         default=None)
-    parser.add_argument('--mt_wse', help='multitemporal <reach_id>_wse_satas.nc file', default=None)
-    parser.add_argument('--mt_width', help='multitemporal <reach_id>_width_satas.nc file', default=None)
+    parser.add_argument('--mt_wse',
+            help='multitemporal <reach_id>_wse_satas.nc file', default=None)
+    parser.add_argument('--mt_width',
+            help='multitemporal <reach_id>_width_satas.nc file', default=None)
+    parser.add_argument('--sandbox', help='apply experimental algorithms',
+            action='store_true', default=False)
+    parser.add_argument('--cycle_id',
+                        help='which cycle to plot (if using hydrochron nodes)',
+                        default=None)
+    parser.add_argument('--pass_id',
+                        help='which pass to plot (if using hydrochron nodes)',
+                        default=None)
     args = parser.parse_args()
 
     proc_tile = os.path.abspath(args.proc_tile)
@@ -1762,13 +2116,61 @@ def main():
                 args.mt_width)
     if os.path.isfile(proc_tile):
         # read the dataframe
-        proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_ncfile(proc_tile)
+        if proc_tile.endswith('.nc'):
+            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_ncfile(proc_tile)
+        elif proc_tile.endswith('.shp'):
+            # assume it is RiverSP shape-file
+            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile()
+            print("reading RiverSP file:", proc_tile)
+            node_df = gpd.read_file(proc_tile, ignore_geometry=True)
+            node_df = node_df[node_df['reach_id']=='{}'.format(args.reach_id)]
+            # make sure node_id and reach_id are ints
+            node_df['reach_id'] = np.array(
+                    [int(rid) for rid in node_df['reach_id']])
+            node_df['node_id'] = np.array(
+                    [int(nid) for nid in node_df['node_id']])
+            # sort node_id
+            node_df = node_df.sort_values(['node_id'])
+            #i get cycle and pass from filename
+            parts = os.path.split(proc_tile)[1].split('_')
+            cycle_id = parts[5]
+            pass_id = parts[6]
+            # populate the rivertile object
+            proc_df = populate_rivertile(proc_df, node_df, cycle_id, pass_id)
+            #breakpoint()
+            #
+        else:
+            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile()
+            # assume it is a csv dataframe output from hydrochron
+            node_df = pd.read_csv(proc_tile)
+            # filter out the desired reach
+            node_df = node_df[node_df['reach_id']==args.reach_id]
+            # filter out the time/cycle obs based on the pixcvec input
+            cycle_id = args.cycle_id
+            pass_id = args.pass_id
+            if cycle_id is None:
+                # try to get from the opixc of pixcvec
+                breakpoint()
+                if pixcvec is not None:
+                    cycle_id = os.path.split(pixcvec)[1].split('_')[4]
+                elif pixc is not None:
+                    cycle_id = os.path.split(pixc)[1].split('_')[4]
+                else:
+                    print("no cycle provided")
+                    return
+            node_df = node_df[node_df['cycle_id']==int(cycle_id)]
+            # filter on pass_id too
+            pass_id = args.pass_id
+            node_df = node_df[node_df['pass_id']==int(pass_id)]
+            node_df = node_df.sort_values(['node_id'])
+            # populate node data
+            proc_df = populate_rivertile(proc_df, node_df, cycle_id, pass_id)
         # call the make plots routine
-        #breakpoint()
         make_plots(proc_tile, proc_df, truth_tile, pixcvec, pixc,
                    truth_pixcvec, truth_pixc, args.reach_id,
                    reach_error, nodes=args.nodes,
-                   pixc_truth=pixc_truth, mt_wse=mt_wse, mt_width=mt_width)
+                   pixc_truth=pixc_truth, mt_wse=mt_wse, mt_width=mt_width,
+                   sandbox=args.sandbox)
         plt.show()
     else:
         print('Input file', proc_tile, 'does not exist')
