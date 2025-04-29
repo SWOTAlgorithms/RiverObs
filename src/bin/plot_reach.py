@@ -69,7 +69,7 @@ cmap_custom = [CUSTOM_COLORS['b'], CUSTOM_COLORS['w'],
 cmaph = matplotlib.colors.LinearSegmentedColormap.from_list(
     'bwr', cmap_custom)
 
-def populate_rivertile(proc_df, node_df, cycle_id, pass_id):
+def populate_rivertile(proc_df, node_df, cycle_id, pass_id, reach_df=None):
     # populate node data from node_df to proc_df
     common_keys = set(proc_df.nodes.VARIABLES.keys()).intersection(
             set(node_df.keys()))
@@ -80,30 +80,42 @@ def populate_rivertile(proc_df, node_df, cycle_id, pass_id):
     proc_df.nodes.wse[np.abs(proc_df.nodes.wse)>1e6] = np.nan
     proc_df.nodes.width[np.abs(proc_df.nodes.width)>1e6] = np.nan
 
-    # populate some reach variables from nodes
     ignore_keys = [
                     'time_str',
                     'centerline_lat',
                     'centerline_lon',
                     'rch_id_up',
                     'rch_id_dn']
-    keys = set(proc_df.reaches.VARIABLES.keys()) - set(ignore_keys)
-    #print(keys)
-    for key in keys:
-        #print(key)
-        if key == 'river_name':
-            proc_df.reaches[key] = np.ma.masked_array(
-                np.unique(node_df[key]))
-        elif key == 'reach_id':
-            #rid = np.array([int(i) for i in node_df[key]])
-            proc_df.reaches[key] = np.ma.masked_array(
-                np.unique(node_df[key]))
-        elif key in proc_df.nodes.variables.keys():
-            proc_df.reaches[key] = np.ma.masked_array(
-                [np.mean(proc_df.nodes[key]),])# just average the others
-        else:
+    
+    if reach_df is not None:
+        # populate reach data from reach_df if input
+        common_keys = set(proc_df.reaches.VARIABLES.keys()).intersection(
+            set(reach_df.keys())) - set(ignore_keys)
+        for key in common_keys:
             #print(key)
-            proc_df.reaches[key] = np.ma.masked_array([np.nan,])
+            proc_df.reaches[key] = np.ma.masked_array(reach_df[key])
+    else:
+        # populate some reach variables from nodes
+        keys = set(proc_df.reaches.VARIABLES.keys()) - set(ignore_keys)
+        #print(keys)
+        for key in keys:
+            #print(key)
+            if key == 'river_name':
+                proc_df.reaches[key] = np.ma.masked_array(
+                    np.unique(node_df[key]))
+            elif key == 'reach_id':
+                #rid = np.array([int(i) for i in node_df[key]])
+                proc_df.reaches[key] = np.ma.masked_array(
+                    np.unique(node_df[key]))
+            elif key in proc_df.nodes.variables.keys():
+                proc_df.reaches[key] = np.ma.masked_array(
+                    [np.mean(proc_df.nodes[key]),])# just average the others
+            else:
+                #print(key)
+                proc_df.reaches[key] = np.ma.masked_array([np.nan,])
+    # populate the reach.time_granule_start with the first element of
+    # node_df.time_str so we get the dat right in the plots
+    proc_df.reaches.time_granule_start = np.array(node_df.time_str)[0]
     return proc_df
 
 def load_wse_data(pixc_data):
@@ -2131,12 +2143,26 @@ def main():
                     [int(nid) for nid in node_df['node_id']])
             # sort node_id
             node_df = node_df.sort_values(['node_id'])
-            #i get cycle and pass from filename
+            # get cycle and pass from filename
             parts = os.path.split(proc_tile)[1].split('_')
             cycle_id = parts[5]
             pass_id = parts[6]
+            # try to read the reach file by guessing
+            reach_df = None
+            reach_file = proc_tile.replace('Node','Reach')
+            if os.path.isfile(reach_file):
+                reach_df = gpd.read_file(reach_file, ignore_geometry=True)
+                reach_df = reach_df[
+                        reach_df['reach_id']=='{}'.format(args.reach_id)]
+                # make sure reach_id is ints
+                reach_df['reach_id'] = np.array(
+                    [int(rid) for rid in reach_df['reach_id']])
+            else:
+                print('cant find reach file:',reach_file)
+            #breakpoint()
             # populate the rivertile object
-            proc_df = populate_rivertile(proc_df, node_df, cycle_id, pass_id)
+            proc_df = populate_rivertile(
+                    proc_df, node_df, cycle_id, pass_id, reach_df)
             #breakpoint()
             #
         else:
