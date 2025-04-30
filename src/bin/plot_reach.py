@@ -1231,17 +1231,17 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
     # plot swath orientation arrows
     #breakpoint()
     # inner along
-    d_lat_ai = (data.inner_first_latitude - data.inner_last_latitude)
-    d_lon_ai = (data.inner_first_longitude - data.inner_last_longitude)
+    d_lat_ai = (data.inner_last_latitude - data.inner_first_latitude)
+    d_lon_ai = (data.inner_last_longitude - data.inner_first_longitude)
     # outer along
-    d_lat_ao = (data.outer_first_latitude - data.outer_last_latitude)
-    d_lon_ao = (data.outer_first_longitude - data.outer_last_longitude)
+    d_lat_ao = (data.outer_last_latitude - data.outer_first_latitude)
+    d_lon_ao = (data.outer_last_longitude - data.outer_first_longitude)
     # first cross
-    d_lat_xf = (data.inner_first_latitude - data.outer_first_latitude)
-    d_lon_xf = (data.inner_first_longitude - data.outer_first_longitude)
+    d_lat_xf = (data.outer_first_latitude - data.inner_first_latitude)
+    d_lon_xf = (data.outer_first_longitude - data.inner_first_longitude)
     # last cross
-    d_lat_xl = (data.inner_last_latitude - data.outer_last_latitude)
-    d_lon_xl = (data.inner_last_longitude - data.outer_last_longitude)
+    d_lat_xl = (data.outer_last_latitude - data.inner_last_latitude)
+    d_lon_xl = (data.outer_last_longitude - data.inner_last_longitude)
     # inner/outer average
     d_lat_a = (d_lat_ai + d_lat_ao) / 2.0
     d_lon_a = (d_lon_ai + d_lon_ao) / 2.0
@@ -1254,7 +1254,7 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
     # define where to put on plot
     lat_dist = (bbox[3] - bbox[2])
     lon_dist = (bbox[1] - bbox[0])
-    scale = 0.2
+    scale = 0.1
     origin_lon = bbox[0] + scale * lon_dist
     origin_lat = bbox[3] - scale * lat_dist
     arrow_len = 0.5 * scale * np.sqrt(lat_dist**2 + lon_dist**2)
@@ -1274,20 +1274,32 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
             transform=transform,
             size=6
             )
-    """
+    
     axis.text(
-            xy_origin[0], xy_origin[1], #xycoords=coords,
+            #xy_origin[0], xy_origin[1], #xycoords=coords,
+            xy_head_a[0], xy_head_a[1],
             "along-track",
-            rotation=np.rad2deg(ang_a),
+            ha="center",
+            #rotation=np.rad2deg(ang_a),
             transform=transform,
             size=6
             )
-    """
+    
     axis.annotate("",#"cross-track",
             xy=xy_origin, #xycoords=default_tx,
             xytext=xy_head_x, #textcoords=default_tx,
             arrowprops=dict(arrowstyle="<-"),
             ha="center", va="center",#rotation=ang_a*180/np.pi,
+            transform=transform,
+            size=6
+            )
+
+    axis.text(
+            #xy_origin[0], xy_origin[1], #xycoords=coords,
+            xy_head_x[0], xy_head_x[1],
+            "cross-track",
+            va="center",
+            #rotation=np.rad2deg(ang_a),
             transform=transform,
             size=6
             )
