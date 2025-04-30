@@ -395,9 +395,11 @@ def get_first_element(data):
     if isinstance(data, pd.Series) or isinstance(data, pd.DataFrame):
         # Handle Pandas Series and DataFrame
         return data.iloc[0] if isinstance(data, pd.Series) else data.iloc[0, 0]
-    elif isinstance(data, np.ma.MaskedArray):
+    elif (isinstance(data, np.ma.MaskedArray) or 
+            isinstance(data, np.ndarray)):
         # Handle NumPy Masked Array
         return data[0]
+        # handle 
     else:
         # Optional: Handle other types, or raise an error if type is unexpected
         raise TypeError("Unsupported data type")
@@ -453,6 +455,7 @@ def plot_wse(data, truth, errors, reach_id, axis, figure,
     reach_wse = data.reaches['wse'][reach_i]
     reach_slope = data.reaches['slope'][reach_i]
     reach_slope2 = data.reaches['slope2'][reach_i]
+    #breakpoint()
     river_name = get_first_element(data.reaches['river_name'][reach_i])
     fit_x, ss_min, ss_max = plot_wse_and_qual(
         along_dist,#node_p_dist,
@@ -1592,7 +1595,8 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
         #plot_pix_assgn(pixcvec, reach_id, axes[0][1], area_flg=True,
         #               multi_reach=multi_reach)
         plot_pix_assgn(pixcvec, reach_id, axes[1][1], h_flg=True,
-                       multi_reach=multi_reach, plot_map=plot_map)
+                       multi_reach=multi_reach, plot_map=plot_map,
+                       mt_data=mt_wse)# for cropping bounding box around SWORD
     plt.tight_layout()
     #breakpoint()
     if out_dir is not None:
@@ -2129,42 +2133,24 @@ def main():
     if os.path.isfile(proc_tile):
         # read the dataframe
         if proc_tile.endswith('.nc'):
-            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_ncfile(proc_tile)
+            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_ncfile(
+                    proc_tile)
         elif proc_tile.endswith('.shp'):
             # assume it is RiverSP shape-file
-            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile()
-            print("reading RiverSP file:", proc_tile)
-            node_df = gpd.read_file(proc_tile, ignore_geometry=True)
-            node_df = node_df[node_df['reach_id']=='{}'.format(args.reach_id)]
-            # make sure node_id and reach_id are ints
-            node_df['reach_id'] = np.array(
-                    [int(rid) for rid in node_df['reach_id']])
-            node_df['node_id'] = np.array(
-                    [int(nid) for nid in node_df['node_id']])
-            # sort node_id
-            node_df = node_df.sort_values(['node_id'])
-            # get cycle and pass from filename
-            parts = os.path.split(proc_tile)[1].split('_')
-            cycle_id = parts[5]
-            pass_id = parts[6]
-            # try to read the reach file by guessing
-            reach_df = None
-            reach_file = proc_tile.replace('Node','Reach')
-            if os.path.isfile(reach_file):
-                reach_df = gpd.read_file(reach_file, ignore_geometry=True)
-                reach_df = reach_df[
-                        reach_df['reach_id']=='{}'.format(args.reach_id)]
-                # make sure reach_id is ints
-                reach_df['reach_id'] = np.array(
-                    [int(rid) for rid in reach_df['reach_id']])
-            else:
-                print('cant find reach file:',reach_file)
-            #breakpoint()
-            # populate the rivertile object
-            proc_df = populate_rivertile(
-                    proc_df, node_df, cycle_id, pass_id, reach_df)
-            #breakpoint()
-            #
+            path, fname = os.path.split(proc_tile)
+            node_file = fname
+            reach_file = node_file.replace('Node', 'Reach')
+            if 'Reach' in node_file:
+                reach_file = fname
+                node_file = reach_file.replace('Reach', 'Node')
+            # stick back on the path
+            node_file = os.path.join(path, node_file)
+            reach_file = os.path.join(path, reach_file)
+            proc_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_shapes(
+                    node_file, reach_file)
+            # make area_total a masked array with fill-values filled
+            proc_df.nodes['area_total'] = np.ma.masked_array(
+                    proc_df.nodes['area_total'])
         else:
             proc_df = SWOTRiver.products.rivertile.L2HRRiverTile()
             # assume it is a csv dataframe output from hydrochron
@@ -2176,7 +2162,7 @@ def main():
             pass_id = args.pass_id
             if cycle_id is None:
                 # try to get from the opixc of pixcvec
-                breakpoint()
+                #breakpoint()
                 if pixcvec is not None:
                     cycle_id = os.path.split(pixcvec)[1].split('_')[4]
                 elif pixc is not None:

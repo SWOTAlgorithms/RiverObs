@@ -141,20 +141,30 @@ def get_input_files(basedir, pixc_run_id, river_run_id, slc_run_id=None,
 
 
 def get_input_files_from_csv(csv_file, pixc_run_id, river_run_id, pkl=None):
-    # Read CSV using the header row so it is not interpreted as data
-    df = pd.read_csv(csv_file, header=0)
-    # Use the first column by its header name
-    col_name = df.columns[0]
-    rivertiles = df[col_name].tolist()
-    print(f"Loaded {len(rivertiles)} rivertiles from CSV: {csv_file}")
-    pixcvecs = np.empty(len(rivertiles), dtype=object)
-    pixcs = np.empty(len(rivertiles), dtype=object)
-    for index, rivertile in enumerate(rivertiles):
-        print('RiverTile:', rivertile)
-        # Call our helper functions to fetch the corresponding files.
-        pixcvecs[index] = get_pixcvecriver_from_rivertile(rivertile, river_run_id)
-        pixcs[index] = get_pixc_from_rivertile(rivertile, river_run_id)
-    return rivertiles, pixcvecs, pixcs
+    df = pd.read_csv(csv_file)
+    if (('river' in df.keys()) and
+            ('pixc' in df.keys()) and
+            ('pixcvec' in df.keys())):
+        rivertiles = df['river']
+        pixcs = df['pixc']
+        pixcvecs = df['pixcvec']
+        reach_ids = df['reach_id']
+    else:
+        # Read CSV using the header row so it is not interpreted as data
+        df = pd.read_csv(csv_file, header=0)
+        # Use the first column by its header name
+        col_name = df.columns[0]
+        rivertiles = df[col_name].tolist()
+        print(f"Loaded {len(rivertiles)} rivertiles from CSV: {csv_file}")
+        pixcvecs = np.empty(len(rivertiles), dtype=object)
+        pixcs = np.empty(len(rivertiles), dtype=object)
+        for index, rivertile in enumerate(rivertiles):
+            print('RiverTile:', rivertile)
+            # Call our helper functions to fetch the corresponding files.
+            pixcvecs[index] = get_pixcvecriver_from_rivertile(rivertile, river_run_id)
+            pixcs[index] = get_pixc_from_rivertile(rivertile, river_run_id)
+        reach_ids = [None,] * len(rivertiles)
+    return rivertiles, pixcvecs, pixcs, reach_ids
 
 
 def get_pixcvecriver_from_rivertile(rivertile, river_run_id):
@@ -382,7 +392,7 @@ def main():
     print('CYCLES: ', args.cycles)
     print('REACHES: ', args.reaches)
     if args.rivertile_csv is not None:
-        rivertiles, pixcvecs, pixcs = get_input_files_from_csv(
+        rivertiles, pixcvecs, pixcs, reach_ids = get_input_files_from_csv(
             args.rivertile_csv, args.pixc_run_id, args.river_run_id)
     else:
         rivertiles, pixcvecs, pixcs = get_input_files(
@@ -399,17 +409,39 @@ def main():
         field_dataframes = load_pkl_dataframes(args.pkl_input_dir)
     else:
         field_dataframes = None
-    for rivertile, pixcvec, pixc in zip(rivertiles, pixcvecs, pixcs):
+    for rivertile, pixcvec, pixc, this_reach_id in zip(rivertiles, pixcvecs, pixcs, reach_ids):
         try:
             file_extension = os.path.splitext(rivertile)[1].lower()
             if file_extension == '.nc':
-                reach_ids, reach_wse, reach_width, river_names, \
+                reach_ids0, reach_wse, reach_width, river_names, \
                 river_df = read_netcdf(rivertile)
                 river_file = rivertile
+            elif file_extension=='.shp':
+                # handle inputting only the node file assuming reach one is in
+                # same place with identical filenames except the Reach/Node tag
+                # assume it is RiverSP shape-file
+                import SWOTRiver.products
+                # assume it is RiverSP shape-file
+                path, fname = os.path.split(rivertile)
+                node_file = fname
+                reach_file = node_file.replace('Node', 'Reach')
+                if 'Reach' in node_file:
+                    reach_file = fname
+                    node_file = reach_file.replace('Reach', 'Node')
+                # stick back on the path
+                node_file = os.path.join(path, node_file)
+                reach_file = os.path.join(path, reach_file)
+                river_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_shapes(
+                    node_file, reach_file)
+                # make area_total a masked array with fill-values filled
+                river_df.nodes['area_total'] = np.ma.masked_array(
+                    river_df.nodes['area_total'])
+                river_file = rivertile
+                reach_ids0 = np.unique(river_df.reaches['reach_id'])
         except TypeError:
             if isinstance(rivertile, tuple):
                 # input a list of tuples containing reach & node shapefiles
-                reach_ids, reach_wse, reach_width, river_names, \
+                reach_ids0, reach_wse, reach_width, river_names, \
                 river_df = read_shapefile(rivertile)
                 river_file = rivertile[0]
             else:
@@ -426,9 +458,15 @@ def main():
         dir_parts = river_file.split('/')[-1]
         file_parts = dir_parts.split('_')
         if out_dir is not None:
-            last_dir = args.river_run_id + args.tag_output
-            this_out_dir = f'{out_dir}/{args.pixc_run_id}/' \
+            if args.river_run_id is not None:
+                last_dir = args.river_run_id + args.tag_output
+                if args.pixc_run_id is not None:
+                    this_out_dir = f'{out_dir}/{args.pixc_run_id}/' \
                            f'{last_dir}'
+                else:
+                    this_out_dir = f'{out_dir}/{last_dir}/'
+            else:
+                this_out_dir = f'{out_dir}'
             if not os.path.isdir(this_out_dir):
                 os.umask(0)
                 os.makedirs(this_out_dir, 0o777)
@@ -436,7 +474,10 @@ def main():
                 os.makedirs(this_out_dir + '/no_truth/', 0o777)
         else:
             this_out_dir = None
-        this_reach_ids = reach_ids
+        if this_reach_id is not None:
+            this_reach_ids = [this_reach_id,]
+        else:
+            this_reach_ids = reach_ids0
         # limit to desired reach list
         if args.reaches is not None:
             this_reach_ids = list(
@@ -447,7 +488,7 @@ def main():
                 mt_wse, mt_width = load_mt_stats_files(
                     args.mt_basedir, reach_id, args.mt_flavor)
             #
-            if 'Reach' in file_parts:
+            if ('Reach' in file_parts) or ('Node' in file_parts):
                 # input was a shapefile
                 title = file_parts[5] + '_' + file_parts[6] + '_' + file_parts[
                     7] + '_' + str(reach_id) + '_' + args.river_run_id
@@ -465,7 +506,6 @@ def main():
                     mt_wse=mt_wse, mt_width=mt_width
                 )
             else:
-                # deprecated; may delete later
                 plot_reach.make_plots(rivertile,
                     river_df, truth, pixcvec, pixc, truth_pixcvec,
                     truth_pixc, reach_id, reach_error, nodes,
