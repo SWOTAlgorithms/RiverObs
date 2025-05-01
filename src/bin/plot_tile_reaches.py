@@ -22,6 +22,7 @@ import plot_reach
 import geopandas as gpd
 import SWOTWater.products.product
 import itertools
+import warnings
 
 # for multitemporal stuff in plots
 import rivscale.products.along_stretch
@@ -339,6 +340,38 @@ def create_data_container(df_nodes, df_reaches):
 
     return DataContainer(df_nodes, df_reaches)
 
+def get_out_dir(out_dir, river_run_id, pixc_run_id, tag_output):
+    if out_dir is not None:
+        if river_run_id is not None:
+            last_dir = river_run_id + tag_output
+            if pixc_run_id is not None:
+                this_out_dir = f'{out_dir}/{pixc_run_id}/' \
+                    f'{last_dir}'
+            else:
+                this_out_dir = f'{out_dir}/{last_dir}/'
+        else:
+            this_out_dir = f'{out_dir}'
+    else:
+        this_out_dir = None
+    return this_out_dir
+
+def get_out_basename(river_file, reach_id, river_run_id, date):
+    dir_parts = river_file.split('/')[-1]
+    file_parts = dir_parts.split('_')
+    if ('Reach' in file_parts) or ('Node' in file_parts):
+        # input was a shapefile
+        out_basename = date+'_'+file_parts[
+            5] + '_' + file_parts[6] + '_' + file_parts[
+            7] + '_' + str(reach_id) + '_' + river_run_id
+    else:
+        # input was a netcdf
+        out_basename = date+'_'+file_parts[4] + '_' + file_parts[5] + '_' + \
+            file_parts[6] + '_' + str(reach_id) + '_' \
+            + river_run_id
+    #
+    out_basename = out_basename.replace(':','').replace(
+                    '.','p').replace('-','_').replace(' ','_')
+    return out_basename 
 
 def main():
     parser = argparse.ArgumentParser()
@@ -409,13 +442,45 @@ def main():
         field_dataframes = load_pkl_dataframes(args.pkl_input_dir)
     else:
         field_dataframes = None
-    for rivertile, pixcvec, pixc, this_reach_id in zip(rivertiles, pixcvecs, pixcs, reach_ids):
+    for rivertile, pixcvec, pixc, this_reach_id in zip(
+            rivertiles, pixcvecs, pixcs, reach_ids):
+        print('\nloading river file:',rivertile,'\n')
+        # check files up front before loading anything
+        this_out_dir = get_out_dir(
+            out_dir, args.river_run_id, args.pixc_run_id, args.tag_output)
+        # create the output dir if needed
+        if this_out_dir is not None:
+            if not os.path.isdir(this_out_dir):
+                os.umask(0)
+                os.makedirs(this_out_dir, 0o777)
+                os.makedirs(this_out_dir + '/truth/', 0o777)
+                os.makedirs(this_out_dir + '/no_truth/', 0o777)
+        # now get the outfile basename
+        river_file = rivertile
+        if isinstance(rivertile, tuple):
+            river_file=rivertile[0]
+        if this_reach_id is None:
+            this_reach_id0 = '*'
+        else:
+            this_reach_id0 = this_reach_id
+        out_basename = get_out_basename(
+            river_file, this_reach_id0, args.river_run_id, date='*')
+        # now skipcases that already have plots generated
+        # unless commanded to overwrite
+        if (~args.overwrite):
+            glob_str = os.path.join(this_out_dir,'*truth', out_basename+'*.png')
+            lst = glob.glob(glob_str)
+            #breakpoint()
+            if len(lst)>=2:
+                print('output pngs already exist, not rerunning...')
+                continue
+        # now read the input data
         try:
             file_extension = os.path.splitext(rivertile)[1].lower()
             if file_extension == '.nc':
                 reach_ids0, reach_wse, reach_width, river_names, \
                 river_df = read_netcdf(rivertile)
-                river_file = rivertile
+                #river_file = rivertile
             elif file_extension=='.shp':
                 # handle inputting only the node file assuming reach one is in
                 # same place with identical filenames except the Reach/Node tag
@@ -431,19 +496,21 @@ def main():
                 # stick back on the path
                 node_file = os.path.join(path, node_file)
                 reach_file = os.path.join(path, reach_file)
-                river_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_shapes(
-                    node_file, reach_file)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    river_df = SWOTRiver.products.rivertile.L2HRRiverTile.from_shapes(
+                        node_file, reach_file)
                 # make area_total a masked array with fill-values filled
                 river_df.nodes['area_total'] = np.ma.masked_array(
                     river_df.nodes['area_total'])
-                river_file = rivertile
+                #river_file = rivertile
                 reach_ids0 = np.unique(river_df.reaches['reach_id'])
         except TypeError:
             if isinstance(rivertile, tuple):
                 # input a list of tuples containing reach & node shapefiles
                 reach_ids0, reach_wse, reach_width, river_names, \
                 river_df = read_shapefile(rivertile)
-                river_file = rivertile[0]
+                #river_file = rivertile[0]
             else:
                 print('Unsupported file format')
         if args.calval:
@@ -455,25 +522,11 @@ def main():
             else:
                 print('Tile', rivertile, 'does not have a calval river.')
                 continue
-        dir_parts = river_file.split('/')[-1]
-        file_parts = dir_parts.split('_')
-        if out_dir is not None:
-            if args.river_run_id is not None:
-                last_dir = args.river_run_id + args.tag_output
-                if args.pixc_run_id is not None:
-                    this_out_dir = f'{out_dir}/{args.pixc_run_id}/' \
-                           f'{last_dir}'
-                else:
-                    this_out_dir = f'{out_dir}/{last_dir}/'
-            else:
-                this_out_dir = f'{out_dir}'
-            if not os.path.isdir(this_out_dir):
-                os.umask(0)
-                os.makedirs(this_out_dir, 0o777)
-                os.makedirs(this_out_dir + '/truth/', 0o777)
-                os.makedirs(this_out_dir + '/no_truth/', 0o777)
-        else:
-            this_out_dir = None
+        # check if the input is empty here
+        if len(river_df.nodes['river_name'])==0:
+            continue
+        if len(river_df.reaches['river_name'])==0:
+            continue
         if this_reach_id is not None:
             this_reach_ids = [this_reach_id,]
         else:
@@ -482,34 +535,30 @@ def main():
         if args.reaches is not None:
             this_reach_ids = list(
                 set(this_reach_ids).intersection(set(args.reaches)))
+        # get date for filenames
+        date = river_df.reaches.time_granule_start.split('T')[0]
         for reach_id in this_reach_ids:
             # load multitemporal stats
             if args.mt_basedir is not None:
                 mt_wse, mt_width = load_mt_stats_files(
                     args.mt_basedir, reach_id, args.mt_flavor)
             #
-            if ('Reach' in file_parts) or ('Node' in file_parts):
-                # input was a shapefile
-                title = file_parts[5] + '_' + file_parts[6] + '_' + file_parts[
-                    7] + '_' + str(reach_id) + '_' + args.river_run_id
-            else:
-                # input was a netcdf
-                title = file_parts[4] + '_' + file_parts[5] + '_' + \
-                        file_parts[6] + '_' + str(reach_id) + '_' \
-                        + args.river_run_id
+            out_basename = get_out_basename(
+                river_file, reach_id, args.river_run_id, date)
             if args.pkl_input_dir is not None:
                 plot_reach.make_plots(river_file,
                     river_df, field_dataframes, pixcvec, pixc,
                     truth_pixcvec, truth_pixc, reach_id,
                     reach_error, nodes, pixc_truth, out_dir=this_out_dir,
-                    title=title, overwrite=args.overwrite,
+                    out_basename=out_basename, overwrite=args.overwrite,
                     mt_wse=mt_wse, mt_width=mt_width
                 )
             else:
                 plot_reach.make_plots(rivertile,
                     river_df, truth, pixcvec, pixc, truth_pixcvec,
                     truth_pixc, reach_id, reach_error, nodes,
-                    pixc_truth, out_dir=this_out_dir, title=title,
+                    pixc_truth, out_dir=this_out_dir,
+                    out_basename=out_basename,
                     overwrite=args.overwrite,
                     mt_wse=mt_wse, mt_width=mt_width
                 )

@@ -398,8 +398,10 @@ def get_first_element(data):
     elif (isinstance(data, np.ma.MaskedArray) or 
             isinstance(data, np.ndarray)):
         # Handle NumPy Masked Array
-        return data[0]
-        # handle 
+        if len(data)>0:
+            return data[0]
+        else:
+            return None
     else:
         # Optional: Handle other types, or raise an error if type is unexpected
         raise TypeError("Unsupported data type")
@@ -1298,7 +1300,7 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
             #xy_origin[0], xy_origin[1], #xycoords=coords,
             xy_head_x[0], xy_head_x[1],
             "cross-track",
-            va="center",
+            ha="center",
             #rotation=np.rad2deg(ang_a),
             transform=transform,
             size=6
@@ -1406,10 +1408,10 @@ def decode_rivertile_filename(fname):
     return cycle, pas, tile
 
 
-def check_for_existing_river_plots(out_dir, title, river_code):
+def check_for_existing_river_plots(out_dir, out_basename, river_code):
     # returns whether the river plots exist, and whether they have truth or not
-    filename1 = out_dir + '/truth/' + title + '_' + river_code + '.png'
-    filename2 = out_dir + '/no_truth/' + title + '_' + river_code + '.png'
+    filename1 = out_dir + '/truth/' + out_basename + '_' + river_code + '.png'
+    filename2 = out_dir + '/no_truth/' + out_basename + '_' + river_code + '.png'
     if os.path.exists(filename1):
         print('River plot', filename1, 'already exists, continuing...')
         return True, True  # the plots already exist in /truth/ folder
@@ -1420,11 +1422,11 @@ def check_for_existing_river_plots(out_dir, title, river_code):
         return False, None  # the plots do not already exist
 
 
-def check_for_existing_pixc_plots(out_dir, title):
-    filename1 = out_dir + '/truth/' + title + '_PIXC.png'
-    filename2 = out_dir + '/no_truth/' + title + '_PIXC.png'
+def check_for_existing_pixc_plots(out_dir, out_basename):
+    filename1 = out_dir + '/truth/' + out_basename + '_PIXC.png'
+    filename2 = out_dir + '/no_truth/' + out_basename + '_PIXC.png'
     if os.path.exists(filename1) or os.path.exists(filename2):
-        print(title + '_PIXC' + ' already exists, continuing...')
+        print(out_basename + '_PIXC' + ' already exists, continuing...')
         return True  # the plots already exist
     else:
         return False  # the plots do not already exist
@@ -1433,7 +1435,8 @@ def check_for_existing_pixc_plots(out_dir, title):
 def make_pixc_plots(
         pixcvec_data, river_data, pixc_data,
         truth_pixcvec, truth_pixc, reach_id,
-        nodes=None, pixc_truth=None, out_dir=None, title=None, has_truth=None):
+        nodes=None, pixc_truth=None, out_dir=None,
+        out_basename=None, has_truth=None):
 
     plt.tight_layout()
     mngr = plt.get_current_fig_manager()
@@ -1448,7 +1451,10 @@ def make_pixc_plots(
             pixcvec_data, pixc_data, reach_id, nodes, reach_data=river_data,
             pixc_truth=pixc_truth_data
         )
-        if title is None:
+        if slant_plane_fig is None:
+            return
+        title = out_basename
+        if out_basename is None:
             title=''
         this_river_name = river_data['reaches']['river_name'][
             river_data['reaches']['reach_id'] == reach_id][0]
@@ -1460,9 +1466,9 @@ def make_pixc_plots(
         if out_dir is not None:
             # save current figure to file
             plt.title(title, backgroundcolor='white')
-            base_fname = date + '_' + title + '_PIXC'
-            base_fname = base_fname.replace(':','').replace('.','p').replace(
-                '-','_').replace(' ','_')
+            base_fname = out_basename + '_PIXC'
+            #base_fname = base_fname.replace(':','').replace('.','p').replace(
+            #    '-','_').replace(' ','_')
             if has_truth:
                 filename = out_dir + '/truth/' + base_fname
             else:
@@ -1518,13 +1524,15 @@ def get_river_code(river_data, reach_id):
                    'Merrimack River': 'MRK',
                    'Maroni': 'MRN'}
     # Get the river code from the dictionary, use a default if river not found
-    river_code = river_codes.get(river_name, 'N-A')
+    river_code = river_codes.get(river_name, 'N_A')
     return river_code
 
 
 def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
-                     errors=None, out_dir=None, title=None, multi_reach=False,
-                     pixc_data=None, mt_wse=None, mt_width=None, plot_map=True):
+                     errors=None, out_dir=None, out_basename=None,
+                     multi_reach=False,
+                     pixc_data=None, mt_wse=None, mt_width=None, plot_map=True,
+                     remap_names=False):
     # contains node group and reach group for each input netcdf
     #cycle, pass_no, tile = decode_rivertile_filename(rivertile_file)
     cycle = '{}'.format(river_data.nodes.cycle_number)
@@ -1558,10 +1566,12 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
         # Create a mask for each remapping and apply the new name
         for old_name, new_name in river_name_mapping.items():
             mask = river_data.reaches['river_name'] == old_name
+            #breakpoint()
             river_data.reaches['river_name'][mask] = new_name
 
         return river_data
-    river_data = remap_river_names(river_data)
+    if remap_names:
+        river_data = remap_river_names(river_data)
 
     #figure, axes = plt.subplots(2, 2, figsize=FIGSIZE, dpi=DPI)
     figure = plt.figure(figsize=FIGSIZE, dpi=DPI)
@@ -1615,9 +1625,9 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
         # save current figure to file
         river_code = get_river_code(river_data, reach_id)
         #plt.title(title, backgroundcolor='white')
-        base_fname = date + '_' + title + '_' + river_code
-        base_fname = base_fname.replace(':','').replace('.','p').replace(
-                '-','_').replace(' ','_')
+        base_fname = out_basename + '_' + river_code
+        #base_fname = base_fname.replace(':','').replace('.','p').replace(
+        #        '-','_').replace(' ','_')
         if has_truth:
             filename = out_dir + '/truth/' + base_fname
         else:
@@ -1634,7 +1644,7 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
 def make_plots(rivertile_file, rivertile_df, truth_data, pixcvec, pixc,
                truth_pixcvec, truth_pixc, reach_id, errors=None,
                nodes=None, pixc_truth=None, mt_wse=None, mt_width=None,
-               out_dir=None, title=None, overwrite=False, sandbox=False):
+               out_dir=None, out_basename=None, overwrite=False, sandbox=False):
 
     # handle overwriting if user says not to
     make_rivers = True
@@ -1643,13 +1653,17 @@ def make_plots(rivertile_file, rivertile_df, truth_data, pixcvec, pixc,
         # Don't write files if they exist already!
         river_code = get_river_code(rivertile_df, reach_id)
         river_exists, has_truth = check_for_existing_river_plots(
-            out_dir, title, river_code)
-        pixc_exists = check_for_existing_pixc_plots(out_dir, title)
+            out_dir, out_basename, river_code)
+        pixc_exists = check_for_existing_pixc_plots(out_dir, out_basename)
+        #breakpoint()
         if river_exists:
             make_rivers = False
         if pixc_exists:
             make_pixc = False
-
+    # also check if there is no data to plot
+    if len(rivertile_df.reaches.wse)==0:
+        make_rivers = False
+        make_pixc = False
     reach_id = int(reach_id)  # ensure reach ID inputs are integer type
     if make_rivers or make_pixc:
         # import the RiverTile and PIXCVecRiver data
@@ -1709,12 +1723,15 @@ def make_plots(rivertile_file, rivertile_df, truth_data, pixcvec, pixc,
     if make_rivers:
         fig, ax, has_truth = make_river_plots(
             rivertile_file, rivertile_df, truth_data, pixcvec_data, reach_id,
-            errors=errors, out_dir=out_dir, title=title, pixc_data=pixc_data,
+            errors=errors, out_dir=out_dir, out_basename=out_basename,
+            pixc_data=pixc_data,
             mt_wse=mt_wse, mt_width=mt_width)
     if make_pixc:
         make_pixc_plots(
-            pixcvec_data, rivertile_df, pixc_data, truth_pixcvec, truth_pixc, reach_id,
-            nodes=nodes, pixc_truth=pixc_truth, out_dir=out_dir, title=title,
+            pixcvec_data, rivertile_df, pixc_data,
+            truth_pixcvec, truth_pixc, reach_id,
+            nodes=nodes, pixc_truth=pixc_truth, out_dir=out_dir,
+            out_basename=out_basename,
             has_truth=has_truth)
     plt.close()
 
