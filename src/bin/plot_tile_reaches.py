@@ -538,6 +538,9 @@ def main():
         # get date for filenames
         date = river_df.reaches.time_granule_start.split('T')[0]
         for reach_id in this_reach_ids:
+            if len(river_df.reaches['river_name'][
+                    river_df.reaches['reach_id'] == reach_id])==0:
+                continue
             # load multitemporal stats
             if args.mt_basedir is not None:
                 mt_wse, mt_width = load_mt_stats_files(
