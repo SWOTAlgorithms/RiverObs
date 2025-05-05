@@ -1748,7 +1748,7 @@ def get_reach_error(errors, reach_id):
 
 def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
                title_tag='(slant-plane)', reach_data=None, pixc_truth=None,
-               apply_corr=True, plot_area=False):
+               apply_corr=True, plot_area=False, plot_regions=True):
     # Plots six pixel cloud plots in a grid, each showing different information.
     # Windows the pixel cloud to the pixels in PIXCVecRiver (the river assigned
     # ones) for the input reach ID.
@@ -1800,6 +1800,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
         'water_frac': pixc.pixel_cloud['water_frac'],
         'pixel_area': pixc.pixel_cloud['pixel_area'],
         'sig0': pixc.pixel_cloud['sig0'],
+        'phase_unwrapping_region':pixc.pixel_cloud['phase_unwrapping_region'],
     }
     # Initialize 2D grids for each variable
     arrays_2d = {}
@@ -1852,6 +1853,14 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
     Sig0 = 10*np.log10(crop_arrays['sig0']).copy()
     unassigned_mask = np.ones_like(Sig0)
     unassigned_mask[isnan_nodeid] = 0
+    if plot_regions:
+        # pu regions
+        regions0 = crop_arrays['phase_unwrapping_region'].copy().astype(float)
+        regions0[isnan_nodeid] = np.nan
+        uregions = np.unique(regions0[~isnan_nodeid])
+        regions = np.zeros_like(regions0) + np.nan
+        for k,reg in enumerate(uregions):
+            regions[regions0==reg] = k
     # Apply geophysical corrections if specified by user to do so
     if apply_corr:
         correction = (crop_arrays['geoid'] +
@@ -1934,12 +1943,20 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
 
     else:
         # plot pixel level water area
-        #wmax = np.nanpercentile(Warea1, 90)
-        pt3 = ax3.imshow(Warea1, interpolation='none', aspect='auto',
+        if plot_regions:
+            pt3 = ax3.imshow(regions, interpolation='none', aspect='auto',
+                         cmap='tab20')
+            ax3.set_title('phase unwrapping region ' + title_tag)
+            colorbar = plt.colorbar(pt3, ax=ax3)
+            colorbar.set_label('phase unwrapping region')
+        else:
+            #wmax = np.nanpercentile(Warea1, 90)
+            pt3 = ax3.imshow(Warea1, interpolation='none', aspect='auto',
                          cmap='jet', clim=(-0.2, 1.2))#(0, wmax))
-        ax3.set_title('water-frac pixel area scale factor ' + title_tag)
-        colorbar = plt.colorbar(pt3, ax=ax3)
-        colorbar.set_label('water-frac pixel-area scale factor')
+            ax3.set_title('water-frac pixel area scale factor ' + title_tag)
+            colorbar = plt.colorbar(pt3, ax=ax3)
+            colorbar.set_label('water-frac pixel-area scale factor')
+        
 
         ax6 = plt.subplot(2, 3, 6, sharex=ax1, sharey=ax1)
         #pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
