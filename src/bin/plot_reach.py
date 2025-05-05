@@ -1465,7 +1465,7 @@ def make_pixc_plots(
         slant_plane_fig.suptitle(fig_title)
         if out_dir is not None:
             # save current figure to file
-            plt.title(title, backgroundcolor='white')
+            plt.title(out_basename, backgroundcolor='white')
             base_fname = out_basename + '_PIXC'
             #base_fname = base_fname.replace(':','').replace('.','p').replace(
             #    '-','_').replace(' ','_')
@@ -1480,7 +1480,7 @@ def make_pixc_plots(
             slant_plane_fig.savefig(filename)
             plt.close()
         else:
-            plt.title(title, backgroundcolor='white')
+            plt.title(out_basename, backgroundcolor='white')
             plt.show()
 
     else:
@@ -1636,7 +1636,7 @@ def make_river_plots(rivertile_file, river_data, truth_data, pixcvec, reach_id,
         plt.savefig(filename)
         plt.close()
     else:
-        plt.title(title, backgroundcolor='white')
+        #plt.title(out_basename, backgroundcolor='white')
         plt.show()
     return figure, axes, has_truth
 
@@ -1748,7 +1748,7 @@ def get_reach_error(errors, reach_id):
 
 def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
                title_tag='(slant-plane)', reach_data=None, pixc_truth=None,
-               apply_corr=True):
+               apply_corr=True, plot_area=False):
     # Plots six pixel cloud plots in a grid, each showing different information.
     # Windows the pixel cloud to the pixels in PIXCVecRiver (the river assigned
     # ones) for the input reach ID.
@@ -1799,6 +1799,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
         'classification': pixc.pixel_cloud['classification'],
         'water_frac': pixc.pixel_cloud['water_frac'],
         'pixel_area': pixc.pixel_cloud['pixel_area'],
+        'sig0': pixc.pixel_cloud['sig0'],
     }
     # Initialize 2D grids for each variable
     arrays_2d = {}
@@ -1837,10 +1838,20 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
     crop_arrays['water_frac'][isnan_nodeid] = np.nan
     crop_arrays['pixel_area'][isnan_nodeid] = np.nan
     # Create a water-area array for display
-    Warea1 = crop_arrays['pixel_area'].copy()
+    #Warea1 = crop_arrays['pixel_area'].copy()
+    Warea1 = crop_arrays['water_frac'].copy()
     # Remove classes 2, 1, and 3 from area display
-    for badclass in [2, 1, 3]:
-        Warea1[crop_arrays['classification'] == badclass] *= 0
+    for badclass in [1,]:
+        Warea1[crop_arrays['classification'] == badclass] = 0
+    #for edgeclass in [2, 3]:
+    #    msk = crop_arrays['classification'] == badclass
+    #    Warea1[msk] *= crop_arrays['water_frac'][msk]
+    for badclass in [4,5,6,7]:
+        Warea1[crop_arrays['classification'] == badclass] = 1
+    # crate Sig0
+    Sig0 = 10*np.log10(crop_arrays['sig0']).copy()
+    unassigned_mask = np.ones_like(Sig0)
+    unassigned_mask[isnan_nodeid] = 0
     # Apply geophysical corrections if specified by user to do so
     if apply_corr:
         correction = (crop_arrays['geoid'] +
@@ -1876,7 +1887,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
 
     # Top and bottom right: Area plots. Have to handle detected and total.
     ax3 = plt.subplot(2, 3, 3, sharex=ax1, sharey=ax1)
-    if reach_data is not None:
+    if (reach_data is not None) and (plot_area):
         NodeArea = Node_id.copy()      # total area
         NodeArea_det = Node_id.copy()  # detected area
         node_i = np.logical_and(
@@ -1923,20 +1934,26 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
 
     else:
         # plot pixel level water area
-        wmax = np.nanpercentile(Warea1, 90)
+        #wmax = np.nanpercentile(Warea1, 90)
         pt3 = ax3.imshow(Warea1, interpolation='none', aspect='auto',
-                         cmap='jet', clim=(0, wmax))
-        ax3.set_title('water area (pixel-level) ' + title_tag)
+                         cmap='jet', clim=(-0.2, 1.2))#(0, wmax))
+        ax3.set_title('water-frac pixel area scale factor ' + title_tag)
         colorbar = plt.colorbar(pt3, ax=ax3)
-        colorbar.set_label('Pixel water area (m^2)')
+        colorbar.set_label('water-frac pixel-area scale factor')
 
         ax6 = plt.subplot(2, 3, 6, sharex=ax1, sharey=ax1)
-        pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
-                         cmap=cmaph)  # , clim=(c0,c1))
-        ax6.set_title('geoid height (m) ' + title_tag)
+        #pt6 = ax6.imshow(Geoid1, interpolation='none', aspect='auto',
+        #                 cmap=cmaph)  # , clim=(c0,c1))
+        #ax6.set_title('geoid height (m) ' + title_tag)
+        #colorbar = plt.colorbar(pt6, ax=ax6)
+        #colorbar.set_label('geoid height (m)')
+        pt60 = ax6.imshow(unassigned_mask, interpolation='none', aspect='auto',
+                         cmap='gray')  # , clim=(c0,c1))
+        pt6 = ax6.imshow(Sig0, interpolation='none', aspect='auto',
+                         cmap='jet', alpha=0.7, clim=(0,15))  # , clim=(c0,c1))
+        ax6.set_title('sig0 (dB) ' + title_tag)
         colorbar = plt.colorbar(pt6, ax=ax6)
-        colorbar.set_label('geoid height (m)')
-
+        colorbar.set_label('sig0 (dB)')
     # Bottom left: PIXCVecRiver height. Aggregated node heights.
     ax4 = plt.subplot(2, 3, 4, sharex=ax1, sharey=ax1)
     pt4 = ax4.imshow(Heightv, interpolation='none', aspect='auto',
