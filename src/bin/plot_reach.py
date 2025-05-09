@@ -1060,7 +1060,7 @@ def toslant(pixc, varname):
 
 def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
                    pixc_data=None, var='node_id', multi_reach=False,
-                   plot_map=True, mt_data=None, clim=None):
+                   plot_map=True, mt_data=None, clim=None, pixc_loc=False):
     # Filter data for the specified reach_id
     if multi_reach:
         # grab adjacent reaches too if they exist
@@ -1084,29 +1084,17 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
     azimuth_index_vec = data['azimuth_index'][pix_i]
     if pixc_data is not None:
         # get the corresponding pixc pixels
-        #pixc_data = SWOTWater.products.product.MutableProduct.from_ncfile(pixc)
-        #def toslant(pixc, varname):
-        #    data = pixc[varname]
-        #    var = np.ma.zeros((
-        #        pixc.interferogram_size_azimuth,
-        #        pixc.interferogram_size_range),
-        #        dtype=data.dtype)
-        #    var[var==0] = np.ma.masked
-        #    var[pixc.azimuth_index, pixc.range_index] = data
-        #    return var
         if var=='wse':
             pixc_var = load_wse_data(pixc_data)
-            """
-            p_height = toslant(pixc_data.pixel_cloud, 'height')
-            p_geoid = toslant(pixc_data.pixel_cloud, 'geoid')
-            p_solid = toslant(pixc_data.pixel_cloud, 'solid_earth_tide')
-            p_load = toslant(pixc_data.pixel_cloud, 'load_tide_fes')
-            p_pole = toslant(pixc_data.pixel_cloud, 'pole_tide')
-            pixc_var = p_height - (p_geoid + p_solid + p_load + p_pole)
-            """
         else:
             pixc_var = toslant(pixc_data.pixel_cloud, var)
         var_pixc = pixc_var[azimuth_index_vec, range_index_vec]
+        if pixc_loc:
+            # use the pixc locations instead of the pixcvec locations 
+            lat0 = toslant(pixc_data.pixel_cloud, 'latitude')
+            lon0 = toslant(pixc_data.pixel_cloud, 'longitude')
+            lat = lat0[azimuth_index_vec, range_index_vec]
+            lon = lon0[azimuth_index_vec, range_index_vec]
     else:
         var_pixc = height_vec
         if var=='wse':
@@ -1821,7 +1809,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
     # Crop everything to match the pixc_vec bounding box (M0:M1, N0:N1)
     crop_arrays = {}
     for key, arr2d in arrays_2d.items():
-        crop_arrays[key] = arr2d[M0:M1, N0:N1]
+        crop_arrays[key] = arr2d[M0:M1, N0:N1].copy()
 
     # If we have truth classifications, slice that too
     cls_t = None
@@ -1967,7 +1955,7 @@ def plot_pixcs(pixc_vec, pixc, reach_id, nodes=None,
         pt60 = ax6.imshow(unassigned_mask, interpolation='none', aspect='auto',
                          cmap='gray')  # , clim=(c0,c1))
         pt6 = ax6.imshow(Sig0, interpolation='none', aspect='auto',
-                         cmap='jet', alpha=0.7, clim=(0,15))  # , clim=(c0,c1))
+                         cmap='jet', alpha=0.5, clim=(0,15))  # , clim=(c0,c1))
         ax6.set_title('sig0 (dB) ' + title_tag)
         colorbar = plt.colorbar(pt6, ax=ax6)
         colorbar.set_label('sig0 (dB)')
