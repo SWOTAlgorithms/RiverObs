@@ -1058,6 +1058,81 @@ def toslant(pixc, varname):
     var[pixc.azimuth_index, pixc.range_index] = data
     return var
 
+def plot_swath_arrows(data, bbox, axis, transform):
+    # inner along
+    d_lat_ai = (data.inner_last_latitude - data.inner_first_latitude)
+    d_lon_ai = (data.inner_last_longitude - data.inner_first_longitude)
+    # outer along
+    d_lat_ao = (data.outer_last_latitude - data.outer_first_latitude)
+    d_lon_ao = (data.outer_last_longitude - data.outer_first_longitude)
+    # first cross
+    d_lat_xf = (data.outer_first_latitude - data.inner_first_latitude)
+    d_lon_xf = (data.outer_first_longitude - data.inner_first_longitude)
+    # last cross
+    d_lat_xl = (data.outer_last_latitude - data.inner_last_latitude)
+    d_lon_xl = (data.outer_last_longitude - data.inner_last_longitude)
+    # inner/outer average
+    d_lat_a = (d_lat_ai + d_lat_ao) / 2.0
+    d_lon_a = (d_lon_ai + d_lon_ao) / 2.0
+    # first/last average
+    d_lat_x = (d_lat_xf + d_lat_xl) / 2.0
+    d_lon_x = (d_lon_xf + d_lon_xl) / 2.0
+    # compute angles
+    ang_a = np.arctan2(d_lat_a, d_lon_a)
+    ang_x = np.arctan2(d_lat_x, d_lon_x)
+    # define where to put on plot
+    lat_dist = (bbox[3] - bbox[2])
+    lon_dist = (bbox[1] - bbox[0])
+    scale = 0.1
+    origin_lon = bbox[0] + scale * lon_dist
+    origin_lat = bbox[3] - scale * lat_dist
+    arrow_len = 0.5 * scale * np.sqrt(lat_dist**2 + lon_dist**2)
+    #
+    xy_origin = np.array((origin_lon, origin_lat))
+    xy_head_a = np.array((origin_lon + arrow_len * np.cos(ang_a),
+        origin_lat + arrow_len * np.sin(ang_a)))
+    xy_head_x = np.array((origin_lon + arrow_len * np.cos(ang_x),
+        origin_lat + arrow_len * np.sin(ang_x)))
+
+    # put the arrows on the plot
+    axis.annotate("",#"along-track",
+            xy=xy_origin, #xycoords=coords,
+            xytext=xy_head_a, #textcoords=transform,
+            arrowprops=dict(arrowstyle="<-"),
+            ha="center", va="center",#rotation=ang_a*180/np.pi,
+            transform=transform,
+            size=6
+            )
+
+    axis.text(
+            #xy_origin[0], xy_origin[1], #xycoords=coords,
+            xy_head_a[0], xy_head_a[1],
+            "along-track",
+            ha="center",
+            #rotation=np.rad2deg(ang_a),
+            transform=transform,
+            size=6
+            )
+
+    axis.annotate("",#"cross-track",
+            xy=xy_origin, #xycoords=default_tx,
+            xytext=xy_head_x, #textcoords=default_tx,
+            arrowprops=dict(arrowstyle="<-"),
+            ha="center", va="center",#rotation=ang_a*180/np.pi,
+            transform=transform,
+            size=6
+            )
+
+    axis.text(
+            #xy_origin[0], xy_origin[1], #xycoords=coords,
+            xy_head_x[0], xy_head_x[1],
+            "cross-track",
+            ha="center",
+            #rotation=np.rad2deg(ang_a),
+            transform=transform,
+            size=6
+            )
+
 def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
                    pixc_data=None, var='node_id', multi_reach=False,
                    plot_map=True, mt_data=None, clim=None, pixc_loc=False):
@@ -1219,81 +1294,11 @@ def plot_pix_assgn(data, reach_id, axis, h_flg=False, area_flg=False,
                            linewidth=0, alpha=0.7, s=5, clim=clim,
                            transform=transform)
     # plot swath orientation arrows
-    #breakpoint()
-    # inner along
-    d_lat_ai = (data.inner_last_latitude - data.inner_first_latitude)
-    d_lon_ai = (data.inner_last_longitude - data.inner_first_longitude)
-    # outer along
-    d_lat_ao = (data.outer_last_latitude - data.outer_first_latitude)
-    d_lon_ao = (data.outer_last_longitude - data.outer_first_longitude)
-    # first cross
-    d_lat_xf = (data.outer_first_latitude - data.inner_first_latitude)
-    d_lon_xf = (data.outer_first_longitude - data.inner_first_longitude)
-    # last cross
-    d_lat_xl = (data.outer_last_latitude - data.inner_last_latitude)
-    d_lon_xl = (data.outer_last_longitude - data.inner_last_longitude)
-    # inner/outer average
-    d_lat_a = (d_lat_ai + d_lat_ao) / 2.0
-    d_lon_a = (d_lon_ai + d_lon_ao) / 2.0
-    # first/last average
-    d_lat_x = (d_lat_xf + d_lat_xl) / 2.0
-    d_lon_x = (d_lon_xf + d_lon_xl) / 2.0
-    # compute angles
-    ang_a = np.arctan2(d_lat_a, d_lon_a)
-    ang_x = np.arctan2(d_lat_x, d_lon_x)
-    # define where to put on plot
-    lat_dist = (bbox[3] - bbox[2])
-    lon_dist = (bbox[1] - bbox[0])
-    scale = 0.1
-    origin_lon = bbox[0] + scale * lon_dist
-    origin_lat = bbox[3] - scale * lat_dist
-    arrow_len = 0.5 * scale * np.sqrt(lat_dist**2 + lon_dist**2)
-    #
-    xy_origin = np.array((origin_lon, origin_lat))
-    xy_head_a = np.array((origin_lon + arrow_len * np.cos(ang_a),
-        origin_lat + arrow_len * np.sin(ang_a)))
-    xy_head_x = np.array((origin_lon + arrow_len * np.cos(ang_x),
-        origin_lat + arrow_len * np.sin(ang_x)))
-
-    # put the arrows on the plot
-    axis.annotate("",#"along-track",
-            xy=xy_origin, #xycoords=coords,
-            xytext=xy_head_a, #textcoords=transform,
-            arrowprops=dict(arrowstyle="<-"),
-            ha="center", va="center",#rotation=ang_a*180/np.pi,
-            transform=transform,
-            size=6
-            )
+    try:
+        plot_swath_arrows(data, bbox, axis, transform)
+    except AttributeError as e:
+        print(e)
     
-    axis.text(
-            #xy_origin[0], xy_origin[1], #xycoords=coords,
-            xy_head_a[0], xy_head_a[1],
-            "along-track",
-            ha="center",
-            #rotation=np.rad2deg(ang_a),
-            transform=transform,
-            size=6
-            )
-    
-    axis.annotate("",#"cross-track",
-            xy=xy_origin, #xycoords=default_tx,
-            xytext=xy_head_x, #textcoords=default_tx,
-            arrowprops=dict(arrowstyle="<-"),
-            ha="center", va="center",#rotation=ang_a*180/np.pi,
-            transform=transform,
-            size=6
-            )
-
-    axis.text(
-            #xy_origin[0], xy_origin[1], #xycoords=coords,
-            xy_head_x[0], xy_head_x[1],
-            "cross-track",
-            ha="center",
-            #rotation=np.rad2deg(ang_a),
-            transform=transform,
-            size=6
-            )
-
     if not plot_map:
         # Set plot properties
         axis.grid(True)
