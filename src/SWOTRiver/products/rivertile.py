@@ -1601,7 +1601,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     assigned to the node in determining the node WSE.  The
                     value is provided as a linear power ratio, not a value in
                     decibels. A decibel value may be obtained from:
-                    rdr_sig0_in_dB = 10*log10(rdr_sig0). TThe linear value may
+                    rdr_sig0_in_dB = 10*log10(rdr_sig0). The linear value may
                     be slightly negative due to noise in the estimate.""")],
                 ])],
         ['rdr_sig0_u',
