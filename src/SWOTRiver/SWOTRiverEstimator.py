@@ -1124,7 +1124,7 @@ class SWOTRiverEstimator(SWOTL2):
             # set the best initial search width for each node/reach
             primary_width = np.ma.max(np.ma.stack((self.reaches[ireach].max_width, self.reaches[ireach].width), axis=0), axis=0)
             # in case both width and max_width are masked, use a default value
-            primary_width = primary_width.filled(600)  # default used elsewhere
+            primary_width = primary_width.filled(scalar_max_width)
             # fix any potential NaN or zero values from PRD
             primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
             primary_width[primary_width <= 0] = np.nanmedian(primary_width)
