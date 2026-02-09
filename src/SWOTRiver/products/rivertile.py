@@ -379,8 +379,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
 
             # check for missing nodes
             mask_nodes = node_outputs['reach_indx'] == reach_id
-            
-            # missing nodes for observed data                                                        
+
+            # missing nodes for observed data
             missing_node_ids = np.setdiff1d(
                 reach.node_indx, node_outputs['node_indx'][mask_nodes])
             if len(missing_node_ids) > 0:
@@ -438,7 +438,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     node_outputs['river_name'] = np.insert(
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
-                   
+
                     for key in ['nobs', 'nobs_h', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
@@ -469,7 +469,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
                         'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
                         'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
-                        'pole_tide', 'flow_dir', 'dark_frac', # 'sring_frac',
+                        'pole_tide', 'flow_dir', 'dark_frac', 'edge_frac', # 'sring_frac',
                         'xtrack', 'h_n_ave', 'fit_height', 'layovr_val']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
@@ -580,11 +580,11 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                             'slope_u', 'height_u', 'height_c', 'height_c_u',
                             'geoid_slop', 'geoid_hght', 'd_x_area',
                             'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
-                            'slope2', 'slope2_u', 'slope2_r_u', # 'sring_frac',
+                            'edge_frac', 'slope2', 'slope2_u', 'slope2_r_u', # 'sring_frac',
                             'layovr_val']:
-
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
+
         # match length of reconstructed nodes to observed nodes
         missing_sm_ids = np.setdiff1d(
             node_outputs['node_indx'],
@@ -1490,26 +1490,46 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'fractional area of dark water'],
                 ['short_name', 'dark_water_fraction'],
                 ['units', 1],
-                ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Fraction of node area_total covered by dark water.""")],
+                    Fraction of node area_total covered by dark water. The
+                    value is typically between 0 and 1 but may occasionally go
+                    outside this range due to noise in the estimates.""")],
+                ])],
+        ['edge_frac',
+         odict([['dtype', 'f8'],
+                ['long_name', 'fractional area of edge water'],
+                ['short_name', 'edge_water_fraction'],
+                ['units', 1],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Fraction of node area_total covered by edge/shoreline
+                    water. The value is typically between 0 and 1 but may
+                    occasionally go outside this range due to noise in the
+                    estimates.""")],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
         #         ['long_name', 'fractional area of specular ringing'],
         #         ['short_name', 'specular_ringing_fraction'],
         #         ['units', 1],
-        #         ['valid_min', 0],
-        #         ['valid_max', 1],
+        #         ['valid_min', -1000],
+        #         ['valid_max', 10000],
         #         ['_FillValue', MISSING_VALUE_FLT],
         #         ['tag_basic_expert', 'Expert'],
         #         ['coordinates', 'lon lat'],
         #         ['comment', textjoin("""
-        #             Fraction of node area_total covered by specular ringing.""")],
+        #             Fraction of node area_total covered by specular ringing. The
+        #             value is typically between 0 and 1 but may occasionally go
+        #             outside this range due to noise in the estimates.""")],
         #         ])],
         ['ice_clim_f',
          odict([['dtype', 'i2'],
@@ -2005,6 +2025,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 (node_outputs['y'][mask]-node_outputs['y_prior'][mask])**2)
 
             klass['dark_frac'] = node_outputs['dark_frac']
+            klass['edge_frac'] = node_outputs['edge_frac']
             # klass['sring_frac'] = node_outputs['sring_frac']
 
             klass['p_dam_id'] = node_outputs['grand_id']
@@ -3766,14 +3787,31 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'fractional area of dark water'],
                 ['short_name', 'dark_water_fraction'],
                 ['units', 1],
-                ['valid_min', 0],
-                ['valid_max', 1],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fraction of the measured reach area covered by dark water.
-                    """)],
+                    The value is typically between 0 and 1 but may occasionally
+                    go outside this range due to noise in the estimates.""")],
+                ])],
+        ['edge_frac',
+         odict([['dtype', 'f8'],
+                ['long_name', 'fractional area of edge water'],
+                ['short_name', 'edge_water_fraction'],
+                ['units', 1],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Fraction of the measured reach area covered by
+                    edge water. The value is typically between 0 and 1 but may
+                    occasionally go outside this range due to noise in the
+                    estimates.""")],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
@@ -3786,7 +3824,9 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         #         ['tag_basic_expert', 'Expert'],
         #         ['coordinates', 'p_lon p_lat'],
         #         ['comment', textjoin("""
-        #             Fraction of reach area_total covered by specular ringing.""")],
+        #             Fraction of reach area_total covered by specular ringing.
+        #             The value is typically between 0 and 1 but may occasionally
+        #             go outside this range due to noise in the estimates.""")],
         #         ])],
         ['ice_clim_f',
          odict([['dtype', 'i2'],
@@ -4394,6 +4434,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['d_x_area'] = reach_outputs['d_x_area']
             klass['d_x_area_u'] = reach_outputs['d_x_area_u']
             klass['dark_frac'] = reach_outputs['dark_frac']
+            klass['edge_frac'] = reach_outputs['edge_frac']
             # klass['sring_frac'] = reach_outputs['sring_frac']
             klass['p_n_ch_max'] = reach_outputs['n_chan_max']
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']
