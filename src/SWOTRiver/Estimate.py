@@ -487,8 +487,7 @@ class L2PixcToRiverTile(object):
             self.pixc_file, self.index_file)
 
         history_string = datetime.datetime.now(datetime.UTC).strftime(
-            '%Y-%m-%dT%H:%M:%SZ : Creation'))
-
+            '%Y-%m-%dT%H:%M:%SZ : Creation')
         pixcvec = L2PIXCVectorPlus.from_ncfile(self.index_file)
         pixcvec.update_from_rivertile(self.rivertile_product)
         pixcvec.update_from_pixc(self.pixc_file)
