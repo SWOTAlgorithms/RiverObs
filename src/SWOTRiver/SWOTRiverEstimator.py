@@ -1089,7 +1089,8 @@ class SWOTRiverEstimator(SWOTL2):
         for river_obs, reach_idx, ireach in reach_zips:
 
             # Filter out ghost reaches and reaches with only one node
-            if reach_idx % 10 == 6 or len(self.reaches[ireach].x) == 1:
+            if self.reaches[ireach].metadata['type'] == 6 \
+               or len(self.reaches[ireach].x) == 1:
                 continue
 
             if len(river_obs.populated_nodes) > 0:
@@ -1947,6 +1948,7 @@ class SWOTRiverEstimator(SWOTL2):
             'populated_nodes': self.river_obs.populated_nodes,
             'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape),
             'river_name': reach.river_name[self.river_obs.populated_nodes],
+            'reach_type': reach.metadata['type']*np.ones(lat_median.shape),
             'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
             'layovr_val': layovr_val.astype('float64'),
             'mask_wse': river_node_mask,
@@ -2212,12 +2214,14 @@ class SWOTRiverEstimator(SWOTL2):
 
         # copy things from the prior DB into reach outputs
         reach_stats['rch_id_up'] = np.array([
-            item[0] for item in reach.metadata['rch_id_up']], dtype='i8')
+            item[0] if item[0] is not np.ma.masked else MISSING_VALUE_INT9
+            for item in reach.metadata['rch_id_up']], dtype='i8')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
             MISSING_VALUE_INT9
 
         reach_stats['rch_id_dn'] = np.array([
-            item[0] for item in reach.metadata['rch_id_dn']], dtype='i8')
+            item[0] if item[0] is not np.ma.masked else MISSING_VALUE_INT9
+            for item in reach.metadata['rch_id_dn']], dtype='i8')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
 
@@ -2266,6 +2270,8 @@ class SWOTRiverEstimator(SWOTL2):
             reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
         reach_stats['max_width'] = fill_if_was_fill(
             reach.metadata['max_width'], -9999.0, MISSING_VALUE_FLT)
+        reach_stats['reach_type'] = fill_if_was_fill(
+            reach.metadata['type'], -9999, MISSING_VALUE_INT4)
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
@@ -2919,61 +2925,60 @@ class SWOTRiverEstimator(SWOTL2):
         # skip (disconnected lake, dam, unrealizable topology) reaches
         skip_types = [3, 4, 5]
 
-        # use the first good adjacent reach that is not skipped for height
-        # smoothing
-        # TO-DO: add handling for multiple upstream/downstream reaches
-        for up_id_try in self.reaches[ireach].metadata['rch_id_up'][:, 0]:
-            if not up_id_try % 10 in skip_types:
-                break
-
-        for dn_id_try in self.reaches[ireach].metadata['rch_id_dn'][:, 0]:
-            if not dn_id_try % 10 in skip_types:
-                break
-
         # In all these dicts: -1 -- downstream, +1 -- upstream
         prd_rch = {}
         prd_rch[0] = self.reaches.reach[
             np.where(self.reaches.reach_idx == this_id)[0][0]]
+        up_dn_keys = {-1: 'rch_id_dn', 1: 'rch_id_up'}
         prd_is_good = {-1: False, 1: False}
         prd_delta = {}
         adj_rch = {}
 
+        # use the first good upstream and downstream reach that is not skipped
+        # for height smoothing
+        # TO-DO: add handling for multiple upstream/downstream reaches
         for side in [-1, 1]:
-            for id_try in [dn_id_try, up_id_try]:
+            for id_try in self.reaches[ireach].metadata[up_dn_keys[side]][:, 0]:
                 try:
                     # index in observed reaches
                     other_idx = np.where(other_ids == id_try)[0][0]
+                except IndexError:
+                    # cannot find adjacent reach with id_try in observed reaches
+                    continue
 
+                try:
                     # get PRD reach
                     try_prd_rch = self.reaches.reach[
                         np.where(self.reaches.reach_idx == id_try)[0][0]]
-
                 except IndexError:
-                    # cannot find adjacent reach with id_try in either
-                    # PRD or observed reaches
+                    # cannot find adjacent reach with id_try in PRD
                     continue
 
-                # only add when neighbor has more than 5 non-bad nodes
+                if try_prd_rch.metadata['type'] in skip_types:
+                    # skip reaches with specified types
+                    continue
+
                 adj_rch_obs = river_reach_collection[other_idx]
                 adj_rch_mask = adj_rch_obs.node_q < 3
-                if side == -1 and adj_rch_mask.sum() > 5:
-                    # side is downstream of current reach
-                    dx = try_prd_rch.x[-1] - prd_rch[0].x[0]
-                    dy = try_prd_rch.y[-1] - prd_rch[0].y[0]
-                elif side == 1 and adj_rch_mask.sum() > 5:
-                    # side is upstream of current reach
-                    dx = try_prd_rch.x[0] - prd_rch[0].x[-1]
-                    dy = try_prd_rch.y[0] - prd_rch[0].y[-1]
-                else:
-                    dx = np.nan
-                    dy = np.nan
 
-                delta = np.sqrt(dx**2+dy**2)
-                if delta < 300:
-                    prd_is_good[side] = True
-                    prd_delta[side] = delta
-                    adj_rch[side] = river_reach_collection[other_idx]
-                    prd_rch[side] = try_prd_rch
+                if adj_rch_mask.sum() > 5:
+                    if side == -1:
+                        # side is downstream of current reach
+                        dx = try_prd_rch.x[-1] - prd_rch[0].x[0]
+                        dy = try_prd_rch.y[-1] - prd_rch[0].y[0]
+                    elif side == 1:
+                        # side is upstream of current reach
+                        dx = try_prd_rch.x[0] - prd_rch[0].x[-1]
+                        dy = try_prd_rch.y[0] - prd_rch[0].y[-1]
+
+                    delta = np.sqrt(dx**2+dy**2)
+                    if delta < 300:
+                        side = 1 # +1 -- upstream
+                        prd_is_good[side] = True
+                        prd_delta[side] = delta
+                        adj_rch[side] = river_reach_collection[other_idx]
+                        prd_rch[side] = try_prd_rch
+                        break
 
         # Build up array of data to be smoothed from upstream to
         # downstream.  Adjust along-reach to be cumulative across

@@ -374,7 +374,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
         for reach, reach_id in zip(prd_reaches, prd_reaches.reach_idx):
 
             # skip ghost reaches and reaches with only one node
-            if reach_id % 10 == 6 or len(reach.x) == 1:
+            if reach.metadata['type'] == 6 or len(reach.x) == 1:
                 continue
 
             # check for missing nodes
@@ -432,6 +432,9 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         node_outputs['node_indx'], insert_idx, missing_node_id)
                     node_outputs['reach_indx'] = np.insert(
                         node_outputs['reach_indx'], insert_idx, reach_id)
+                    node_outputs['reach_type'] = np.insert(
+                        node_outputs['reach_type'], insert_idx,
+                        reach.metadata['type'])
                     node_outputs['ice_clim_f'] = np.insert(
                         node_outputs['ice_clim_f'], insert_idx,
                         reach.metadata['iceflag'])
@@ -495,6 +498,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     reach_outputs['n_reach_dn'], (this_rch_id_dn > 0).sum())
                 reach_outputs['reach_idx'] = np.append(
                         reach_outputs['reach_idx'], reach_id)
+                reach_outputs['reach_type'] = np.append(
+                    reach_outputs['reach_type'], reach.metadata['type'])
                 reach_outputs['p_lon'] = np.append(
                         reach_outputs['p_lon'], reach.metadata['lon'])
                 reach_outputs['p_lat'] = np.append(
@@ -924,6 +929,22 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     Unique node identifier from the prior river database.
                     The format of the identifier is CBBBBBRRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
+                ])],
+        ['reach_type',
+         odict([['dtype', 'i2'],
+                ['long_name', 'waterbody type code'],
+                ['short_name', 'reach_type'],
+                ['flag_meanings', textjoin("""
+                    river connected_lake dam unreliable_topology ghost""")],
+                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('i2')],
+                ['valid_min', 1],
+                ['valid_max', 6],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Waterbody type code for the reach from the prior river
+                    database.""")],
                 ])],
         ['time',
          odict([['dtype', 'f8'],
@@ -1903,7 +1924,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     node, and a positive value indicates there is an influence
                     of a dam at the node. The value of grand_id identifies the
                     dam ID in the GRanD database.  Nodes influenced by dams
-                    are indicated by the type code in node_id.  """)],
+                    are indicated by the type code in reach_type and
+                    node_id.""")],
                 ])],
         ['p_n_ch_max',
          odict([['dtype', 'i2'],
@@ -1990,6 +2012,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
         if node_outputs is not None:
             klass['reach_id'] = node_outputs['reach_indx']
             klass['node_id'] = node_outputs['node_indx']
+            klass['reach_type'] = node_outputs['reach_type']
             klass['lat'] = node_outputs['lat']
             klass['lon'] = node_outputs['lon']
             klass['lat_u'] = node_outputs['latitude_u']
@@ -2222,6 +2245,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     The format of the identifier is CBBBBBRRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
+        ['reach_type', RiverTileNodes.VARIABLES['reach_type'].copy()],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
         ['time_str', RiverTileNodes.VARIABLES['time_str'].copy()],
@@ -4289,7 +4313,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     reach, and a positive value indicates there is an influence
                     of a dam along the reach. The value of grand_id identifies
                     the dam ID in the GRanD database.  Reaches influenced by
-                    dams are indicated by the type code in reach_id.""")],
+                    dams are indicated by the type code in reach_type and
+                    reach_id.""")],
                 ])],
         ['p_n_ch_max',
          odict([['dtype', 'i2'],
@@ -4400,6 +4425,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         klass = cls()
         if reach_outputs is not None:
             klass['reach_id'] = reach_outputs['reach_idx']
+            klass['reach_type'] = reach_outputs['reach_type']
             klass['wse'] = reach_outputs['height']
             klass['wse_r_u'] = reach_outputs['height_r_u']
             klass['wse_u'] = reach_outputs['height_u']
@@ -4574,16 +4600,12 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 'pole_tide', 'load_tidef', 'load_tideg', 'dry_trop_c',
                 'wet_trop_c', 'iono_c', 'xovr_cal_c']
 
-        node_reach_type = nodes.node_id % 10
-        node_reach_ids = (
-            np.floor(nodes.node_id / 10000).astype('int'))*10 + node_reach_type
-
         for key in keys:
             node_value = getattr(nodes, key)
             reach_value = getattr(self, key)
             for ii, reach_id in enumerate(self.reach_id):
                 mask = np.logical_and(
-                    node_reach_ids == reach_id, nodes.n_good_pix > 0)
+                    nodes.reach_id == reach_id, nodes.n_good_pix > 0)
                 if mask.sum() > 0:
                     try:
                         reach_value[ii] = np.mean(

@@ -228,7 +228,7 @@ class ReachExtractor(object):
                 'wse', 'wse_var', 'width', 'width_var', 'max_width',
                 'n_chan_max', 'n_chan_mod', 'grod_id', 'slope', 'dist_out',
                 'n_rch_up', 'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag',
-                'iceflag', 'river_name'
+                'iceflag', 'river_name', 'type'
             ]
 
             for key in reach_metadata_keys:
@@ -250,7 +250,8 @@ class ReachExtractor(object):
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
                 'max_width', 'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out',
-                'wth_coef', 'ext_dist_coef', 'river_name']
+                'wth_coef', 'ext_dist_coef', 'river_name'
+            ]
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}
@@ -565,6 +566,8 @@ class ReachDatabaseReaches(Product):
          odict([['dtype', 'U254'], ['dimensions', DIMENSIONS_REACHES]])],
         ['trib_flag',
          odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
+        ['type',
+         odict([['dtype', 'i4'], ['dimensions', DIMENSIONS_REACHES]])],
         ])
 
     for var in VARIABLES:
@@ -601,7 +604,7 @@ class ReachDatabaseReaches(Product):
                     'width_var', 'n_chan_max', 'n_chan_mod', 'grod_id',
                     'slope', 'dist_out', 'n_rch_up', 'n_rch_down', 'lakeflag',
                     'river_name', 'facc', 'obstr_type', 'hfalls_id',
-                    'swot_obs', 'max_width', 'low_slope_flag']:
+                     'swot_obs', 'max_width', 'low_slope_flag', 'type']:
             setattr(klass, dset, np.ma.concatenate([
                 getattr(self, dset), getattr(other, dset)]))
 
