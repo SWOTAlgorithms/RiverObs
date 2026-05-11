@@ -1913,6 +1913,7 @@ class SWOTRiverEstimator(SWOTL2):
             'n_good_pix': n_pix_wse.astype('int32'),
             'node_indx': node_indx.astype('int64'),
             'reach_indx': reach_index.astype('int64'),
+            'reach_type': reach.metadata['type']*np.ones(lat_median.shape),
             'rdr_sig0': rdr_sig0.astype('float64'),
             'rdr_sig0_u': rdr_sig0_u.astype('float64'),
             'latitude_u': latitude_u.astype('float64'),
@@ -1948,7 +1949,6 @@ class SWOTRiverEstimator(SWOTL2):
             'populated_nodes': self.river_obs.populated_nodes,
             'ice_clim_f': reach.metadata['iceflag']*np.ones(lat_median.shape),
             'river_name': reach.river_name[self.river_obs.populated_nodes],
-            'reach_type': reach.metadata['type']*np.ones(lat_median.shape),
             'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
             'layovr_val': layovr_val.astype('float64'),
             'mask_wse': river_node_mask,
@@ -2013,6 +2013,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.sum(river_reach.p_length_all)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
+        reach_stats['reach_type'] = reach.metadata['type']
 
         reach_stats['node_dist'] = np.mean(np.sqrt(
                 (river_reach.x-river_reach.x_prior)**2 +
@@ -2218,7 +2219,7 @@ class SWOTRiverEstimator(SWOTL2):
         def fill_if_was_fill(value, other_fill, fill):
             # We use np.isclose(...) here since the SWORD fill values can be
             # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
-            return value if value is not np.ma.core.MaskedConstant() \
+            return value if value is not np.ma.masked \
                 and not np.isclose(value, other_fill) else fill
 
         reach_stats['rch_id_up'] = np.array([
@@ -2271,8 +2272,6 @@ class SWOTRiverEstimator(SWOTL2):
             reach.metadata['p_low_slp'], -9999, MISSING_VALUE_INT4)
         reach_stats['max_width'] = fill_if_was_fill(
             reach.metadata['max_width'], -9999.0, MISSING_VALUE_FLT)
-        reach_stats['reach_type'] = fill_if_was_fill(
-            reach.metadata['type'], -9999, MISSING_VALUE_INT4)
 
         dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
         dsch_m_c = reach.metadata['discharge_models']['constrained']
