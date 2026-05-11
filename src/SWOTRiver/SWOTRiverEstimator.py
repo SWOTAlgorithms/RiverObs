@@ -2937,15 +2937,11 @@ class SWOTRiverEstimator(SWOTL2):
         # use the first good upstream and downstream reach that is not skipped
         # for height smoothing
         # TO-DO: add handling for multiple upstream/downstream reaches
-        for side in [-1, 1]:
+        for side in (-1, 1):
+            # Use the first valid (not in skip_types) up/downstream reach,
+            # if one exists
+            valid_side_reach = False
             for id_try in self.reaches[ireach].metadata[up_dn_keys[side]][:, 0]:
-                try:
-                    # index in observed reaches
-                    other_idx = np.where(other_ids == id_try)[0][0]
-                except IndexError:
-                    # cannot find adjacent reach with id_try in observed reaches
-                    continue
-
                 try:
                     # get PRD reach
                     try_prd_rch = self.reaches.reach[
@@ -2954,32 +2950,40 @@ class SWOTRiverEstimator(SWOTL2):
                     # cannot find adjacent reach with id_try in PRD
                     continue
 
-                if try_prd_rch.metadata['type'] in skip_types:
-                    # skip reaches with specified types
-                    continue
+                if try_prd_rch.metadata['type'] not in skip_types:
+                    valid_side_reach = True
+                    break
 
-                adj_rch_obs = river_reach_collection[other_idx]
-                adj_rch_mask = adj_rch_obs.node_q < 3
+            if not valid_side_reach:
+                continue
 
-                # only add when neighbor has more than 5 non-bad nodes
-                if adj_rch_mask.sum() > 5:
-                    if side == -1:
-                        # side is downstream of current reach
-                        dx = try_prd_rch.x[-1] - prd_rch[0].x[0]
-                        dy = try_prd_rch.y[-1] - prd_rch[0].y[0]
-                    elif side == 1:
-                        # side is upstream of current reach
-                        dx = try_prd_rch.x[0] - prd_rch[0].x[-1]
-                        dy = try_prd_rch.y[0] - prd_rch[0].y[-1]
+            try:
+                # index in observed reaches
+                other_idx = np.where(other_ids == id_try)[0][0]
+            except IndexError:
+                # cannot find adjacent reach with id_try in observed reaches
+                continue
 
-                    delta = np.sqrt(dx**2+dy**2)
-                    if delta < 300:
-                        side = 1 # +1 -- upstream
-                        prd_is_good[side] = True
-                        prd_delta[side] = delta
-                        adj_rch[side] = river_reach_collection[other_idx]
-                        prd_rch[side] = try_prd_rch
-                        break
+            # only add when neighbor has more than 5 non-bad nodes
+            adj_rch_obs = river_reach_collection[other_idx]
+            adj_rch_mask = adj_rch_obs.node_q < 3
+            if adj_rch_mask.sum() > 5:
+                if side == -1:
+                    # side is downstream of current reach
+                    dx = try_prd_rch.x[-1] - prd_rch[0].x[0]
+                    dy = try_prd_rch.y[-1] - prd_rch[0].y[0]
+                elif side == 1:
+                    # side is upstream of current reach
+                    dx = try_prd_rch.x[0] - prd_rch[0].x[-1]
+                    dy = try_prd_rch.y[0] - prd_rch[0].y[-1]
+
+                delta = np.sqrt(dx**2+dy**2)
+                if delta < 300:
+                    side = 1 # +1 -- upstream
+                    prd_is_good[side] = True
+                    prd_delta[side] = delta
+                    adj_rch[side] = river_reach_collection[other_idx]
+                    prd_rch[side] = try_prd_rch
 
         # Build up array of data to be smoothed from upstream to
         # downstream.  Adjust along-reach to be cumulative across
