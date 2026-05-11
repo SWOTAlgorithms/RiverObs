@@ -228,8 +228,7 @@ class ReachExtractor(object):
                 'wse', 'wse_var', 'width', 'width_var', 'max_width',
                 'n_chan_max', 'n_chan_mod', 'grod_id', 'slope', 'dist_out',
                 'n_rch_up', 'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag',
-                'iceflag', 'river_name', 'type'
-            ]
+                'iceflag', 'river_name', 'type']
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
@@ -250,8 +249,7 @@ class ReachExtractor(object):
             node_metadata_keys = [
                 'node_length', 'wse', 'wse_var', 'width', 'width_var',
                 'max_width', 'n_chan_max', 'n_chan_mod', 'grod_id', 'dist_out',
-                'wth_coef', 'ext_dist_coef', 'river_name'
-            ]
+                'wth_coef', 'ext_dist_coef', 'river_name']
 
             node_metadata = {
                 key: this_reach['nodes'][key] for key in node_metadata_keys}

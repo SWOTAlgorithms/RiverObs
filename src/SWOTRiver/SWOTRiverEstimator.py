@@ -2961,6 +2961,7 @@ class SWOTRiverEstimator(SWOTL2):
                 adj_rch_obs = river_reach_collection[other_idx]
                 adj_rch_mask = adj_rch_obs.node_q < 3
 
+                # only add when neighbor has more than 5 non-bad nodes
                 if adj_rch_mask.sum() > 5:
                     if side == -1:
                         # side is downstream of current reach
