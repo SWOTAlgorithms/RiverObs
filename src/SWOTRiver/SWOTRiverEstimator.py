@@ -2213,14 +2213,22 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach.fit_height = MISSING_VALUE_FLT * np.ones(ss.shape)
 
         # copy things from the prior DB into reach outputs
+        # Avoid letting fill value of -9999 from PRD propagate into outputs
+        # for some of the variables which are just passed through from PRD.
+        def fill_if_was_fill(value, other_fill, fill):
+            # We use np.isclose(...) here since the SWORD fill values can be
+            # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
+            return value if value is not np.ma.core.MaskedConstant() \
+                and not np.isclose(value, other_fill) else fill
+
         reach_stats['rch_id_up'] = np.array([
-            item[0] if item[0] is not np.ma.masked else MISSING_VALUE_INT9
+            fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
             for item in reach.metadata['rch_id_up']], dtype='i8')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
             MISSING_VALUE_INT9
 
         reach_stats['rch_id_dn'] = np.array([
-            item[0] if item[0] is not np.ma.masked else MISSING_VALUE_INT9
+            fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
             for item in reach.metadata['rch_id_dn']], dtype='i8')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
@@ -2256,13 +2264,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
         reach_stats['river_name'] = reach.metadata['river_name']
-
-        # Avoid letting fill value of -9999 from PRD propagate into outputs
-        # (these variables are just passed through from PRD to RiverTile).
-        def fill_if_was_fill(value, other_fill, fill):
-            # We use np.isclose(...) here since the SWORD fill values can be
-            # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
-            return value if value is not np.ma.core.MaskedConstant() and not np.isclose(value, other_fill) else fill
 
         reach_stats['ice_clim_f'] = fill_if_was_fill(
             reach.metadata['iceflag'], -9999, MISSING_VALUE_INT4)
