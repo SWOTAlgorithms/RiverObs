@@ -492,17 +492,17 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         reach_outputs[key])+[reach.metadata[key],],
                         dtype=object)
 
-                this_rch_id_up = np.array([
-                    fill_if_was_fill(item, -9999, MISSING_VALUE_INT9)
-                    for item in reach.metadata['rch_id_up'].T], dtype='i8')
+                this_rch_id_up = np.array([[
+                    fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
+                    for item in reach.metadata['rch_id_up']]], dtype='i8')
                 this_rch_id_up[this_rch_id_up == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_up'] = np.concatenate(
                     (reach_outputs['rch_id_up'], this_rch_id_up))
                 reach_outputs['n_reach_up'] = np.append(
                     reach_outputs['n_reach_up'], (this_rch_id_up > 0).sum())
-                this_rch_id_dn = np.array([
-                    fill_if_was_fill(item, -9999, MISSING_VALUE_INT9)
-                    for item in reach.metadata['rch_id_dn'].T], dtype='i8')
+                this_rch_id_dn = np.array([[
+                    fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
+                    for item in reach.metadata['rch_id_dn']]], dtype='i8')
                 this_rch_id_dn[this_rch_id_dn == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_dn'] = np.concatenate(
                     (reach_outputs['rch_id_dn'], this_rch_id_dn))
@@ -938,7 +938,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
                 ])],
         ['reach_type',
-         odict([['dtype', 'i2'],
+         odict([['dtype', 'u1'],
                 ['long_name', 'waterbody type code'],
                 ['short_name', 'reach_type'],
                 ['flag_meanings', textjoin("""

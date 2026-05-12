@@ -256,11 +256,11 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     body.""")],
                 ])],
         ['reach_type',
-         odict([['dtype', 'i2'],
+         odict([['dtype', 'u1'],
                 ['long_name', 'waterbody type code'],
                 ['flag_meanings', textjoin("""
                     river connected_lake dam unreliable_topology ghost""")],
-                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('i2')],
+                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('u1')],
                 ['valid_min', 1],
                 ['valid_max', 6],
                 ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
