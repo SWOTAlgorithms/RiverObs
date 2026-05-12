@@ -938,7 +938,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
                 ])],
         ['reach_type',
-         odict([['dtype', 'u1'],
+         odict([['dtype', 'i2'],
                 ['long_name', 'waterbody type code'],
                 ['short_name', 'reach_type'],
                 ['flag_meanings', textjoin("""
