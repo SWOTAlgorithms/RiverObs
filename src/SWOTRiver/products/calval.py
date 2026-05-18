@@ -277,6 +277,38 @@ class Drifter(RiverNCProductMixIn, Product):
         raise NotImplementedError(
             "Drifter.split_profiles not implemented yet!")
 
+
+class PriorWaterMask(Product):
+    """This is the prior water mask used in the PIXC processing."""
+    ATTRIBUTES = odict([
+        ['Conventions', {}],
+        ['title', {}],
+        ['institution', {}],
+        ['source', {}],
+        ['history', {}],
+        ['platform', {}],
+        ['description', {}],
+        ['ellipsoid_semi_major_axis', {}],
+        ['ellipsoid_flattening', {}],
+        ['xref_input_gnss_files', {}],
+        ['xref_input_height_offset_files', {}],
+        ])
+    GROUPS = odict()
+    DIMENSIONS = odict([['latitude', 0], ['longitude' , 0]])
+    VARIABLES = odict([
+        ['time', {'dtype': 'f8'}],
+        ['time_tai', {'dtype': 'f8'}],
+        ['latitude', {'dtype': 'f8'}],
+        ['longitude', {'dtype': 'f8'}],
+        ['probability', {'dtype': 'f8'}],
+        ['change', {'dtype': 'f8'}],
+        ])
+
+    for name, reference in VARIABLES.items():
+        reference['dimensions'] = DIMENSIONS
+    VARIABLES['longitude']['dimensions'] = odict([['longitude',0],])
+    VARIABLES['latitude']['dimensions'] = odict([['latitude',0],])
+
 class SimplePixelCloud(RiverNCProductMixIn, Product):
     """
     This is the class/object that all the various cal/val datasets get converted
@@ -495,3 +527,44 @@ class SimplePixelCloud(RiverNCProductMixIn, Product):
         """TODO: implement converter"""
         raise NotImplementedError(
             "SimplePixelCloud.from_airborne_imagery not implemented!")
+    #
+    @classmethod
+    def from_prior_water_mask(cls, water_mask_file):
+        """convert prior water prob into a simple pixel cloud"""
+        import scipy.ndimage
+        water_mask = PriorWaterMask.from_ncfile(water_mask_file)
+        classification = np.zeros_like(water_mask.probability)
+        water_frac = np.zeros_like(water_mask.probability)
+        lons, lats = np.meshgrid(water_mask.longitude, water_mask.latitude)
+        #breakpoint()
+        min_prob = 0.05
+        classification[water_mask.probability > min_prob] = 1
+        water_frac[water_mask.probability > min_prob] = 1
+        dil = scipy.ndimage.binary_dilation(classification, iterations=5)
+        classification[dil>0] = 2 # treat as land near water
+        classification[water_mask.probability > min_prob] = 4 # treat as open water
+        #
+        pixel_area = 30 * 30 # (m^2) TODO: actually compute area in m^2 for each pixel?
+        #
+        mask = classification > 0
+        #
+        klass = cls()
+        # only use possible water pixels
+        #mask = np.where(arr==1)
+        klass.classification = classification[mask]
+        klass.water_frac = water_frac[mask]
+        klass.latitude = lats[mask]
+        klass.longitude = lons[mask]
+        klass.height = np.zeros_like(klass.latitude)
+        M,N = np.shape(water_mask.probability)
+        ri = np.arange(N, dtype=int)
+        ai = np.arange(M, dtype=int)
+        range_index, azimuth_index = np.meshgrid(ri, ai)
+        klass.range_index = range_index[mask]
+        klass.azimuth_index = azimuth_index[mask]
+        klass.pixel_area = np.ones_like(klass.latitude) * pixel_area
+        klass.interferogram_size_azimuth = M
+        klass.interferogram_size_range = N
+
+        return klass
+

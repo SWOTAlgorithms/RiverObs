@@ -386,7 +386,7 @@ class L2PIXCVector(ProductTesterMixIn, Product):
         for node_id, ice_clim_f, ice_dyn_f in zip(
             rivertile.nodes.node_id, rivertile.nodes.ice_clim_f,
             rivertile.nodes.ice_dyn_f):
-            mask = self.node_id == node_id
+            mask = (self.node_id == node_id).filled(False)
             self.ice_clim_f[mask] = ice_clim_f
             self.ice_dyn_f[mask] = ice_dyn_f
 

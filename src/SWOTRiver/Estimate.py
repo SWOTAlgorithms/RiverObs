@@ -26,8 +26,56 @@ LOGGER = logging.getLogger(__name__)
 
 class L2PixcToRiverTile(object):
     """
-    Class for running RiverObs on a SWOT L2 PixelCloud data product
-    """
+    Processes SWOT L2 PixelCloud data to generate river products.
+
+    This class reads a SWOT L2 PixelCloud (PIXC) file and performs
+    river processing using RiverObs. The output is written to a
+    secondary NetCDF file (`index_file`), which serves as an intermediate
+    product containing per-pixel vectorized data used in river processing.
+
+    Parameters
+    ----------
+    l2pixc_file : str
+        Path to the SWOT L2_HR_PIXC input file containing pixel cloud data.
+    index_file : str
+        Path to the NetCDF output file where pixel-to-river mappings,
+        geolocation corrections, and other processing results are stored.
+
+    Attributes
+    ----------
+    pixc_file : str
+        Stores the path to the input L2_HR_PIXC file.
+    index_file : str
+        Stores the path to the NetCDF file that holds vectorized
+        per-pixel data for river processing.
+    day_of_year : int or None
+        The day of the year extracted from the PIXC file metadata.
+    node_outputs : dict or None
+        Stores processed river node-level outputs (heights, widths, etc.).
+    reach_outputs : dict or None
+        Stores processed river reach-level outputs (aggregated statistics).
+
+    Methods
+    -------
+    load_config(config)
+        Loads and validates the configuration settings.
+    compute_bounding_box(from_attrs=True)
+        Computes the bounding box of the PIXC file based on attributes or data.
+    validate_inputs()
+        Checks the PIXC file for validity and raises errors if requirements
+        are not met.
+    enforce_config()
+        Ensures required configuration parameters are set and assigns defaults.
+    do_river_processing()
+        Runs river processing, mapping pixels to reaches and computing river
+        properties.
+    do_improved_geolocation()
+        Applies geolocation corrections using external calibration data.
+    match_pixc_idx()
+        Matches PIXC pixels to the processed output for consistency.
+    build_products()
+        Constructs the final river tile data product and updates `index_file`.
+     """
     def __init__(self, l2pixc_file, index_file):
         self.pixc_file = l2pixc_file
         self.index_file = index_file
@@ -438,9 +486,8 @@ class L2PixcToRiverTile(object):
         self.rivertile_product.update_from_pixc(
             self.pixc_file, self.index_file)
 
-        history_string = "Created {}".format(
-            datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f'))
-
+        history_string = datetime.datetime.now(datetime.UTC).strftime(
+            '%Y-%m-%dT%H:%M:%SZ : Creation')
         pixcvec = L2PIXCVectorPlus.from_ncfile(self.index_file)
         pixcvec.update_from_rivertile(self.rivertile_product)
         pixcvec.update_from_pixc(self.pixc_file)
@@ -477,6 +524,7 @@ class L2PixcToRiverTile(object):
                     if lake_flag != MISSING_VALUE_INT4:
                         ofp.variables['lake_flag'][
                             pixc_reach == reach] = lake_flag
+
 
 class CalValToRiverTile(L2PixcToRiverTile):
     """

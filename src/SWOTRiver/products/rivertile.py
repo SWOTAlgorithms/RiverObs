@@ -379,8 +379,8 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
 
             # check for missing nodes
             mask_nodes = node_outputs['reach_indx'] == reach_id
-            
-            # missing nodes for observed data                                                        
+
+            # missing nodes for observed data
             missing_node_ids = np.setdiff1d(
                 reach.node_indx, node_outputs['node_indx'][mask_nodes])
             if len(missing_node_ids) > 0:
@@ -438,7 +438,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     node_outputs['river_name'] = np.insert(
                         node_outputs['river_name'], insert_idx,
                         reach.river_name[rch_idx])
-                   
+
                     for key in ['nobs', 'nobs_h', 'n_good_pix']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_INT9)
@@ -469,7 +469,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
                         'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
                         'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
-                        'pole_tide', 'flow_dir', 'dark_frac', # 'sring_frac',
+                        'pole_tide', 'flow_dir', 'dark_frac', 'edge_frac', # 'sring_frac',
                         'xtrack', 'h_n_ave', 'fit_height', 'layovr_val']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
@@ -580,11 +580,11 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                             'slope_u', 'height_u', 'height_c', 'height_c_u',
                             'geoid_slop', 'geoid_hght', 'd_x_area',
                             'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
-                            'slope2', 'slope2_u', 'slope2_r_u', # 'sring_frac',
+                            'edge_frac', 'slope2', 'slope2_u', 'slope2_r_u', # 'sring_frac',
                             'layovr_val']:
-
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
+
         # match length of reconstructed nodes to observed nodes
         missing_sm_ids = np.setdiff1d(
             node_outputs['node_indx'],
@@ -1241,8 +1241,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', "node width"],
                 ['short_name', 'width'],
                 ['units', 'm'],
-                ['valid_min', 0.0],
-                ['valid_max', 100000],
+                ['valid_min', -10000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['quality_flag', 'node_q'],
@@ -1255,7 +1255,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'width_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 100000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
                 ['coordinates', 'lon lat'],
@@ -1268,7 +1268,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'total water surface area including dark water'],
                 ['short_name', 'area_total'],
                 ['units', 'm^2'],
-                ['valid_min', 0],
+                ['valid_min', -2000000],
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Basic'],
@@ -1299,7 +1299,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'surface area of detected water pixels'],
                 ['short_name', 'area_detected'],
                 ['units', 'm^2'],
-                ['valid_min', 0],
+                ['valid_min', -2000000],
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -1329,7 +1329,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'area used to compute water surface elevation'],
                 ['short_name', 'area_wse'],
                 ['units', 'm^2'],
-                ['valid_min', 0],
+                ['valid_min', -2000000],
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
@@ -1489,27 +1489,47 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
                 ['short_name', 'dark_water_fraction'],
-                ['units', 1],
-                ['valid_min', 0],
-                ['valid_max', 1],
+                ['units', '1'],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Fraction of node area_total covered by dark water.""")],
+                    Fraction of node area_total covered by dark water. The
+                    value is typically between 0 and 1 but may occasionally go
+                    outside this range due to noise in the estimates.""")],
+                ])],
+        ['edge_frac',
+         odict([['dtype', 'f8'],
+                ['long_name', 'fractional area of edge water'],
+                ['short_name', 'edge_water_fraction'],
+                ['units', '1'],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Fraction of node area_total covered by edge/shoreline
+                    water. The value is typically between 0 and 1 but may
+                    occasionally go outside this range due to noise in the
+                    estimates.""")],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
         #         ['long_name', 'fractional area of specular ringing'],
         #         ['short_name', 'specular_ringing_fraction'],
-        #         ['units', 1],
-        #         ['valid_min', 0],
-        #         ['valid_max', 1],
+        #         ['units', '1'],
+        #         ['valid_min', -1000],
+        #         ['valid_max', 10000],
         #         ['_FillValue', MISSING_VALUE_FLT],
         #         ['tag_basic_expert', 'Expert'],
         #         ['coordinates', 'lon lat'],
         #         ['comment', textjoin("""
-        #             Fraction of node area_total covered by specular ringing.""")],
+        #             Fraction of node area_total covered by specular ringing. The
+        #             value is typically between 0 and 1 but may occasionally go
+        #             outside this range due to noise in the estimates.""")],
         #         ])],
         ['ice_clim_f',
          odict([['dtype', 'i2'],
@@ -1559,7 +1579,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
          odict([['dtype', 'i4'],
                 ['long_name', 'number of pixels that have a valid WSE'],
                 ['short_name', 'num_good_pixels'],
-                ['units', 1],
+                ['units', '1'],
                 ['valid_min', 0],
                 ['valid_max', 100000],
                 ['_FillValue', MISSING_VALUE_INT9],
@@ -1597,11 +1617,12 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['quality_flag', 'node_q'],
                 ['coordinates', 'lon lat'],
                 ['comment', textjoin("""
-                    Median of the sigma0 from the pixel cloud points assigned
-                    to the node in determining the node WSE.  The value is
-                    provided as a linear power ratio, not a value in decibels. 
-                    A decibel value may be obtained from: rdr_sig0_in_dB =
-                    10*log10(rdr_sig0).""")],
+                    Unweighted mean of the sigma0 from the pixel cloud points
+                    assigned to the node in determining the node WSE.  The
+                    value is provided as a linear power ratio, not a value in
+                    decibels. A decibel value may be obtained from:
+                    rdr_sig0_in_dB = 10*log10(rdr_sig0). The linear value may
+                    be slightly negative due to noise in the estimate.""")],
                 ])],
         ['rdr_sig0_u',
          odict([['dtype', 'f8'],
@@ -1669,7 +1690,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric load tide height (FES)'],
                 ['short_name', 'load_tide_fes'],
-                ['source', 'FES2014b (Carrere et al., 2016)'],
+                ['source', 'FES2022b'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -2004,6 +2025,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 (node_outputs['y'][mask]-node_outputs['y_prior'][mask])**2)
 
             klass['dark_frac'] = node_outputs['dark_frac']
+            klass['edge_frac'] = node_outputs['edge_frac']
             # klass['sring_frac'] = node_outputs['sring_frac']
 
             klass['p_dam_id'] = node_outputs['grand_id']
@@ -2119,20 +2141,19 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
         pixc_vec = L2PIXCVectorPlus.from_ncfile(index_file)
 
         pixc2rivertile_map = {
-            '/pixel_cloud/model_dry_tropo_cor': 'dry_trop_c',
-            '/pixel_cloud/model_wet_tropo_cor': 'wet_trop_c',
-            '/pixel_cloud/iono_cor_gim_ka': 'iono_c',
-            '/pixel_cloud/height_cor_xover': 'xovr_cal_c',
-            '/pixel_cloud/xover_height_cor': 'xovr_cal_c',# old format
-            '/tvp/time': 'time',
-            '/tvp/time_tai': 'time_tai'}
+            'model_dry_tropo_cor': 'dry_trop_c',
+            'model_wet_tropo_cor': 'wet_trop_c',
+            'iono_cor_gim_ka': 'iono_c',
+            'height_cor_xover': 'xovr_cal_c',
+            'xover_height_cor': 'xovr_cal_c',# old format
+            'illumination_time': 'time',
+            'illumination_time_tai': 'time_tai'}
 
         pixc_data = {}
         with netCDF4.Dataset(pixc_file, 'r') as ifp:
             for key in pixc2rivertile_map:
-                group, dset = key.split('/')[1::]
                 try:
-                    pixc_data[key] = ifp.groups[group][dset][:]
+                    pixc_data[key] = ifp.groups['pixel_cloud'][key][:]
                 except IndexError:
                     pass
             for attr in ATTRS_2COPY_FROM_PIXC:
@@ -2144,14 +2165,10 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
 
         for inkey, outkey in pixc2rivertile_map.items():
             # subset pixel cloud data to look like pixcvec data
-            if inkey.split('/')[1] == 'tvp':
-                # silly hack
-                subdata = pixc_data[inkey][pixc_vec.azimuth_index]
-            else:
-                try:
-                    subdata = pixc_data[inkey][pixc_vec.pixc_index]
-                except KeyError:
-                    pass
+            try:
+                subdata = pixc_data[inkey][pixc_vec.pixc_index]
+            except KeyError:
+                pass
 
             # index into pixcvec shaped data
             outdata = np.ones(self[outkey].shape)
@@ -2464,8 +2481,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'reach width'],
                 ['short_name', 'width'],
                 ['units', 'm'],
-                ['valid_min', 0],
-                ['valid_max', 100000],
+                ['valid_min', -10000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['quality_flag', 'reach_q'],
@@ -2478,7 +2495,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'width_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 100000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
@@ -2490,8 +2507,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'constrained reach width'],
                 ['short_name', 'width_constrained'],
                 ['units', 'm'],
-                ['valid_min', 0],
-                ['valid_max', 100000],
+                ['valid_min', -10000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -2507,7 +2524,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'width_constr_uncert'],
                 ['units', 'm'],
                 ['valid_min', 0],
-                ['valid_max', 100000],
+                ['valid_max', 10000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
                 ['coordinates', 'p_lon p_lat'],
@@ -2520,7 +2537,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'total water surface area including dark water'],
                 ['short_name', 'area_total'],
                 ['units', 'm^2'],
-                ['valid_min', 0],
+                ['valid_min', -2000000],
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
@@ -2539,7 +2556,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'area_total_uncert'],
                 ['units', 'm^2'],
                 ['valid_min', 0],
-                ['valid_max', 10000*200],
+                ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Basic'],
                 ['coordinates', 'p_lon p_lat'],
@@ -2552,7 +2569,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['long_name', 'surface area of detected water pixels'],
                 ['short_name', 'area_detected'],
                 ['units', 'm^2'],
-                ['valid_min', 0],
+                ['valid_min', -2000000],
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
@@ -2583,7 +2600,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     area used to compute water surface elevation""")],
                 ['short_name', 'area_wse'],
                 ['units', 'm^2'],
-                ['valid_min', 0],
+                ['valid_min', -2000000],
                 ['valid_max', 2000000000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert','Expert'],
@@ -3769,28 +3786,47 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
          odict([['dtype', 'f8'],
                 ['long_name', 'fractional area of dark water'],
                 ['short_name', 'dark_water_fraction'],
-                ['units', 1],
-                ['valid_min', 0],
-                ['valid_max', 1],
+                ['units', '1'],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
                 ['_FillValue', MISSING_VALUE_FLT],
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fraction of the measured reach area covered by dark water.
-                    """)],
+                    The value is typically between 0 and 1 but may occasionally
+                    go outside this range due to noise in the estimates.""")],
+                ])],
+        ['edge_frac',
+         odict([['dtype', 'f8'],
+                ['long_name', 'fractional area of edge water'],
+                ['short_name', 'edge_water_fraction'],
+                ['units', '1'],
+                ['valid_min', -1000],
+                ['valid_max', 10000],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Fraction of the measured reach area covered by
+                    edge water. The value is typically between 0 and 1 but may
+                    occasionally go outside this range due to noise in the
+                    estimates.""")],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
         #         ['long_name', 'fractional area of specular ringing'],
         #         ['short_name', 'specular_ringing_fraction'],
-        #         ['units', 1],
+        #         ['units', '1'],
         #         ['valid_min', 0],
         #         ['valid_max', 1],
         #         ['_FillValue', MISSING_VALUE_FLT],
         #         ['tag_basic_expert', 'Expert'],
         #         ['coordinates', 'p_lon p_lat'],
         #         ['comment', textjoin("""
-        #             Fraction of reach area_total covered by specular ringing.""")],
+        #             Fraction of reach area_total covered by specular ringing.
+        #             The value is typically between 0 and 1 but may occasionally
+        #             go outside this range due to noise in the estimates.""")],
         #         ])],
         ['ice_clim_f',
          odict([['dtype', 'i2'],
@@ -3958,7 +3994,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
          odict([['dtype', 'f8'],
                 ['long_name', 'geocentric load tide height (FES)'],
                 ['short_name', 'load_tide_fes'],
-                ['source', 'FES2014b (Carrere et al., 2016)'],
+                ['source', 'FES2022b'],
                 ['institution', 'LEGOS/CNES'],
                 ['units', 'm'],
                 ['valid_min', -0.2],
@@ -4398,6 +4434,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['d_x_area'] = reach_outputs['d_x_area']
             klass['d_x_area_u'] = reach_outputs['d_x_area_u']
             klass['dark_frac'] = reach_outputs['dark_frac']
+            klass['edge_frac'] = reach_outputs['edge_frac']
             # klass['sring_frac'] = reach_outputs['sring_frac']
             klass['p_n_ch_max'] = reach_outputs['n_chan_max']
             klass['p_n_ch_mod'] = reach_outputs['n_chan_mod']

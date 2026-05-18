@@ -22,6 +22,7 @@ from scipy.ndimage.morphology import binary_dilation
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
 import SWOTRiver.discharge
+from SWOTWater.constants import AGG_CLASSES
 from SWOTWater.products.constants import FILL_VALUES
 from .SWOTL2 import SWOTL2
 from RiverObs import WidthDataBase
@@ -1122,8 +1123,9 @@ class SWOTRiverEstimator(SWOTL2):
             # in RiverObs.flag_out_channel_and_label method.
 
             # set the best initial search width for each node/reach
-            primary_width = np.maximum(self.reaches[ireach].max_width,
-                                       self.reaches[ireach].width)
+            primary_width = np.ma.max(np.ma.stack((self.reaches[ireach].max_width, self.reaches[ireach].width), axis=0), axis=0)
+            # in case both width and max_width are masked, use a default value
+            primary_width = primary_width.filled(scalar_max_width)
             # fix any potential NaN or zero values from PRD
             primary_width[np.isnan(primary_width)] = np.nanmedian(primary_width)
             primary_width[primary_width <= 0] = np.nanmedian(primary_width)
@@ -1306,16 +1308,10 @@ class SWOTRiverEstimator(SWOTL2):
                     value = value + np.zeros(np.shape(self.lat))
                 self.river_obs.add_obs(name, value)
 
-        # need to get array of land/water edge classes
-        # to decode/encode the classification routine 
-        # for external call to area agg in RiverNode
-        edge_water = np.zeros(np.shape(self.klass))
-        for i, k in enumerate(self.class_list):
-            if self.use_fractional_inundation[i]:
-                # this is actually both land and water edges,
-                # but setting to water edge
-                edge_water[self.klass == k] = 1
-
+        # Get edge classes to get edge area
+        edge_water = np.isin(
+            self.klass,
+            AGG_CLASSES['water_edge_klasses'] + AGG_CLASSES['land_edge_klasses'])
         self.river_obs.add_obs('edge_water', edge_water)
         dsets_to_load.append('edge_water')
 
@@ -1423,6 +1419,10 @@ class SWOTRiverEstimator(SWOTL2):
             area_sring = np.asarray(
                 self.river_obs.get_node_stat('sum', 'inundated_area',
                 goodvar='sring_flg'))
+            # compute the area of edge pixels
+            area_edge = np.asarray(
+                self.river_obs.get_node_stat('sum', 'inundated_area',
+                goodvar='edge_water'))
 
         # area of pixels used to compute heights
         with warnings.catch_warnings():
@@ -1644,12 +1644,18 @@ class SWOTRiverEstimator(SWOTL2):
         lon_prior = reach.lon[self.river_obs.populated_nodes]
         lat_prior = reach.lat[self.river_obs.populated_nodes]
 
+        nonzero_area_mask = area != 0
         dark_frac = MISSING_VALUE_FLT * np.ones(area.shape)
-        dark_frac[area > 0] = 1 - area_det[area > 0] / area[area > 0]
-        dark_frac[np.logical_and(dark_frac > 1, area > 0)] = 1  # clip to <= 1
+        dark_frac[nonzero_area_mask] = 1 - area_det[nonzero_area_mask] \
+            / area[nonzero_area_mask]
+
+        edge_frac = MISSING_VALUE_FLT * np.ones(area.shape)
+        edge_frac[nonzero_area_mask] = area_edge[nonzero_area_mask] \
+            / area[nonzero_area_mask]
+
         sring_frac = MISSING_VALUE_FLT * np.ones(area.shape)
-        sring_frac[area > 0] = area_sring[area > 0] / area[area > 0]
-        sring_frac[np.logical_and(sring_frac > 1, area > 0)] = 1
+        sring_frac[nonzero_area_mask] = area_sring[nonzero_area_mask] \
+            / area[nonzero_area_mask]
 
         # Compute flow direction relative to along-track
         tangent = self.river_obs.centerline.tangent[
@@ -1708,7 +1714,7 @@ class SWOTRiverEstimator(SWOTL2):
         wse_sm_u = np.ones(reach.node_length.shape, dtype=np.float64) *	self.river_obs.missing_value
         wse_sm_idx = reach.node_indx
         wse_sm_reach_id = np.ones(reach.node_length.shape, dtype=np.int64) * reach_idx
-        
+
         # Create node_q_b bitwise quality flag
         node_q_b = np.zeros(lat_median.shape, dtype='i4')
 
@@ -1810,7 +1816,7 @@ class SWOTRiverEstimator(SWOTL2):
         # If either is present, set FILL_VALUE_INPUT in wse_sm_q_b
         fill_value_wse = np.logical_or(n_pix == 0, wse_bad)
         wse_sm_q_b[fill_value_wse] |= SWOTRiver.products.rivertile.FILL_VALUE_INPUT
-        
+
         # Bit 2 / geolocation_qual_suspect
         wse_sm_q_b |= (
                 node_q_b & SWOTRiver.products.rivertile.QUAL_IND_GEOLOCATION_QUAL_SUSPECT)
@@ -1848,7 +1854,7 @@ class SWOTRiverEstimator(SWOTL2):
 
         # Create wse_sm_q from wse_sm_q_b (populate after bayes estimate)
         wse_sm_q = np.zeros_like(node_q)
-        
+
         # create xovr_cal_q
         xovr_cal_q = np.zeros(lat_median.shape, dtype='i2')
         n_pix_xovercal_suspect = np.array(
@@ -1891,6 +1897,7 @@ class SWOTRiverEstimator(SWOTL2):
             'area_det_u': area_det_u.astype('float64'),
             'area_of_ht': area_of_ht.astype('float64'),
             'area_sring': area_sring.astype('float64'),
+            'area_edge': area_edge.astype('float64'),
             'wse': wse.astype('float64'),
             'wse_std': wse_std.astype('float64'),
             'wse_r_u': wse_r_u.astype('float64'),
@@ -1917,6 +1924,7 @@ class SWOTRiverEstimator(SWOTL2):
             'pole_tide': pole_tide.astype('float64'),
             'node_blocked': is_blocked.astype('uint8'),
             'dark_frac': dark_frac,
+            'edge_frac': edge_frac,
             'sring_frac': sring_frac,
             'x_prior': x_prior.astype('float64'),
             'y_prior': y_prior.astype('float64'),
@@ -2215,15 +2223,18 @@ class SWOTRiverEstimator(SWOTL2):
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            if masked_area == 0 :
-                dark_frac = 0
-            else :
-                dark_frac = 1 - reach_stats['area_det'] / masked_area
-            reach_stats['dark_frac'] = min(dark_frac, 1)  # clip to <= 1
-            # sring_frac is not in the product, is effectively depreciated
-            sring_frac = (
-                np.sum(river_reach.area_sring)/np.sum(river_reach.area))
-            reach_stats['sring_frac'] = min(sring_frac, 1)  # clip to <= 1
+            if masked_area == 0:
+                reach_stats['dark_frac'] = 0
+                reach_stats['edge_frac'] = 0
+                reach_stats['sring_frac'] = 0
+            else:
+                reach_stats['dark_frac'] = \
+                    1 - (reach_stats['area_det'] / masked_area)
+                reach_stats['edge_frac'] = \
+                    np.sum(river_reach.area_edge[mask_area]) / masked_area
+                # sring_frac is not in the product, is effectively depreciated
+                reach_stats['sring_frac'] = \
+                    np.sum(river_reach.area_sring[mask_area]) / masked_area
 
         reach_stats['n_reach_up'] = (reach_stats['rch_id_up'] > 0).sum()
         reach_stats['n_reach_dn'] = (reach_stats['rch_id_dn'] > 0).sum()
