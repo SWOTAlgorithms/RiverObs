@@ -3793,9 +3793,9 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Fraction of reach area_total covered by dark water. The
-                    value is typically between 0 and 1 but may occasionally go
-                    outside this range due to noise in the estimates.""")],
+                    Fraction of the measured reach area covered by dark water.
+                    The value is typically between 0 and 1 but may occasionally
+                    go outside this range due to noise in the estimates.""")],
                 ])],
         ['edge_frac',
          odict([['dtype', 'f8'],
@@ -3808,10 +3808,10 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['tag_basic_expert', 'Expert'],
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
-                    Fraction of reach area_total covered by edge/shoreline
-                    water. The value is typically between 0 and 1 but may
-                    occasionally go outside this range due to noise in the
-                    estimates.""")],
+                    Fraction of the measured reach area covered by
+                    edge/shoreline water. The value is typically between 0 and
+                    1 but may occasionally go outside this range due to noise
+                    in the estimates.""")],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
@@ -3824,7 +3824,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         #         ['tag_basic_expert', 'Expert'],
         #         ['coordinates', 'p_lon p_lat'],
         #         ['comment', textjoin("""
-        #             Fraction of reach area_total covered by specular ringing.
+        #             Fraction of the measured reach area covered by specular ringing.
         #             The value is typically between 0 and 1 but may occasionally
         #             go outside this range due to noise in the estimates.""")],
         #         ])],
