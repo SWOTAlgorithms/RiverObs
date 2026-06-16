@@ -223,12 +223,18 @@ class ReachExtractor(object):
                 'centerline_lat': this_reach['centerlines']['y'],
             }
 
+            # Set reach type from reach_id if type does not exist
+            reach_type = this_reach['reaches']['type'][0]
+            if reach_type is np.ma.masked:
+                reach_type = reach_idx % 10
+            reach_metadata['type'] = reach_type
+
             reach_metadata_keys = [
                 'area_fits', 'discharge_models', 'reach_length', 'n_nodes',
                 'wse', 'wse_var', 'width', 'width_var', 'max_width',
                 'n_chan_max', 'n_chan_mod', 'grod_id', 'slope', 'dist_out',
                 'n_rch_up', 'n_rch_down', 'rch_id_up', 'rch_id_dn', 'lakeflag',
-                'iceflag', 'river_name', 'type']
+                'iceflag', 'river_name']
 
             for key in reach_metadata_keys:
                 if key in ['rch_id_up', 'rch_id_dn', 'area_fits',
