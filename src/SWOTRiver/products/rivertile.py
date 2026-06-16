@@ -2110,23 +2110,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
                 value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
-        # Check for variables that appear in the shapefile but aren't defined in
-        # the product (klass.VARIABLES). These will be added as the data type
-        # they were input as, with defaulted attributes.
-        if len(records) > 0:
-            record_keys = records[0]['properties'].keys()
-            undefined_vars = set(record_keys).difference(klass.VARIABLES.keys())
-            all_metadata = root.findall(".//attributes/*")
-            for var in undefined_vars:
-                values = [record['properties'][var] for record in records]
-                values_arr = np.array(values)
-                data[var] = values_arr
-                this_metadata = cls.get_var_metadata(all_metadata, var, values_arr)
-                klass.VARIABLES[var] = this_metadata[var]
-                setattr(klass, var, values_arr)
-                LOGGER.warning(
-                    "Input shapefile has variable '%s' not defined in product "
-                    "class VARIABLES. Propagated through from input.", var)
+
         return klass
 
     @staticmethod
