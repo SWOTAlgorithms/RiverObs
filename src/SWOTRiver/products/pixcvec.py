@@ -255,6 +255,19 @@ class L2PIXCVector(ProductTesterMixIn, Product):
                     C=continent, B=basin, R=reach, N=node, T=type of water
                     body.""")],
                 ])],
+        ['reach_type',
+         odict([['dtype', 'u1'],
+                ['long_name', 'waterbody type code'],
+                ['flag_meanings', textjoin("""
+                    river connected_lake dam unreliable_topology ghost""")],
+                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('u1')],
+                ['valid_min', 1],
+                ['valid_max', 6],
+                ['coordinates', 'longitude_vectorproc latitude_vectorproc'],
+                ['comment', textjoin("""
+                    Waterbody type code for the reach from the prior river
+                    database.""")],
+                ])],
         ['ice_clim_f',
          odict([['dtype', 'i1'],
                 ['long_name', 'climatological ice cover flag'],
@@ -383,12 +396,13 @@ class L2PIXCVector(ProductTesterMixIn, Product):
 
     def update_from_rivertile(self, rivertile):
         """Updates some stuff in PIXCVecRiver from RiverTile"""
-        for node_id, ice_clim_f, ice_dyn_f in zip(
+        for node_id, ice_clim_f, ice_dyn_f, reach_type in zip(
             rivertile.nodes.node_id, rivertile.nodes.ice_clim_f,
-            rivertile.nodes.ice_dyn_f):
+            rivertile.nodes.ice_dyn_f, rivertile.nodes.reach_type):
             mask = (self.node_id == node_id).filled(False)
             self.ice_clim_f[mask] = ice_clim_f
             self.ice_dyn_f[mask] = ice_dyn_f
+            self.reach_type[mask] = reach_type
 
     def update_from_pixc(self, pixc_file):
         """Adds some attributes from PIXC file"""
