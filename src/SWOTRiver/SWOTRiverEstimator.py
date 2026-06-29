@@ -1089,7 +1089,8 @@ class SWOTRiverEstimator(SWOTL2):
         for river_obs, reach_idx, ireach in reach_zips:
 
             # Filter out ghost reaches and reaches with only one node
-            if reach_idx % 10 == 6 or len(self.reaches[ireach].x) == 1:
+            if self.reaches[ireach].metadata['type'] == 6 \
+               or len(self.reaches[ireach].x) == 1:
                 continue
 
             if len(river_obs.populated_nodes) > 0:
@@ -1912,6 +1913,7 @@ class SWOTRiverEstimator(SWOTL2):
             'n_good_pix': n_pix_wse.astype('int32'),
             'node_indx': node_indx.astype('int64'),
             'reach_indx': reach_index.astype('int64'),
+            'reach_type': reach.metadata['type']*np.ones(lat_median.shape),
             'rdr_sig0': rdr_sig0.astype('float64'),
             'rdr_sig0_u': rdr_sig0_u.astype('float64'),
             'latitude_u': latitude_u.astype('float64'),
@@ -2011,6 +2013,7 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['length'] = np.sum(river_reach.p_length_all)
         reach_stats['reach_id'] = reach_id
         reach_stats['reach_idx'] = reach_idx
+        reach_stats['reach_type'] = reach.metadata['type']
 
         reach_stats['node_dist'] = np.mean(np.sqrt(
                 (river_reach.x-river_reach.x_prior)**2 +
@@ -2211,13 +2214,23 @@ class SWOTRiverEstimator(SWOTL2):
             river_reach.fit_height = MISSING_VALUE_FLT * np.ones(ss.shape)
 
         # copy things from the prior DB into reach outputs
+        # Avoid letting fill value of -9999 from PRD propagate into outputs
+        # for some of the variables which are just passed through from PRD.
+        def fill_if_was_fill(value, other_fill, fill):
+            # We use np.isclose(...) here since the SWORD fill values can be
+            # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
+            return value if value is not np.ma.masked \
+                and not np.isclose(value, other_fill) else fill
+
         reach_stats['rch_id_up'] = np.array([
-            item[0] for item in reach.metadata['rch_id_up']], dtype='i8')
+            fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
+            for item in reach.metadata['rch_id_up']], dtype='i8')
         reach_stats['rch_id_up'][reach_stats['rch_id_up']==0] = \
             MISSING_VALUE_INT9
 
         reach_stats['rch_id_dn'] = np.array([
-            item[0] for item in reach.metadata['rch_id_dn']], dtype='i8')
+            fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
+            for item in reach.metadata['rch_id_dn']], dtype='i8')
         reach_stats['rch_id_dn'][reach_stats['rch_id_dn']==0] = \
             MISSING_VALUE_INT9
 
@@ -2252,13 +2265,6 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['n_chan_max'] = reach.metadata['n_chan_max']
         reach_stats['n_chan_mod'] = reach.metadata['n_chan_mod']
         reach_stats['river_name'] = reach.metadata['river_name']
-
-        # Avoid letting fill value of -9999 from PRD propagate into outputs
-        # (these variables are just passed through from PRD to RiverTile).
-        def fill_if_was_fill(value, other_fill, fill):
-            # We use np.isclose(...) here since the SWORD fill values can be
-            # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
-            return value if value is not np.ma.core.MaskedConstant() and not np.isclose(value, other_fill) else fill
 
         reach_stats['ice_clim_f'] = fill_if_was_fill(
             reach.metadata['iceflag'], -9999, MISSING_VALUE_INT4)
@@ -2919,57 +2925,61 @@ class SWOTRiverEstimator(SWOTL2):
         # skip (disconnected lake, dam, unrealizable topology) reaches
         skip_types = [3, 4, 5]
 
-        # use the first good adjacent reach that is not skipped for height
-        # smoothing
-        # TO-DO: add handling for multiple upstream/downstream reaches
-        for up_id_try in self.reaches[ireach].metadata['rch_id_up'][:, 0]:
-            if not up_id_try % 10 in skip_types:
-                break
-
-        for dn_id_try in self.reaches[ireach].metadata['rch_id_dn'][:, 0]:
-            if not dn_id_try % 10 in skip_types:
-                break
-
         # In all these dicts: -1 -- downstream, +1 -- upstream
         prd_rch = {}
         prd_rch[0] = self.reaches.reach[
             np.where(self.reaches.reach_idx == this_id)[0][0]]
+        up_dn_keys = {-1: 'rch_id_dn', 1: 'rch_id_up'}
         prd_is_good = {-1: False, 1: False}
         prd_delta = {}
         adj_rch = {}
 
-        for side in [-1, 1]:
-            for id_try in [dn_id_try, up_id_try]:
+        # use the first good upstream and downstream reach that is not skipped
+        # for height smoothing
+        # TO-DO: add handling for multiple upstream/downstream reaches
+        for side in (-1, 1):
+            # Use the first valid (not in skip_types) up/downstream reach,
+            # if one exists
+            valid_side_reach = False
+            for id_try in self.reaches[ireach].metadata[up_dn_keys[side]][:, 0]:
                 try:
-                    # index in observed reaches
-                    other_idx = np.where(other_ids == id_try)[0][0]
-
                     # get PRD reach
                     try_prd_rch = self.reaches.reach[
                         np.where(self.reaches.reach_idx == id_try)[0][0]]
-
                 except IndexError:
-                    # cannot find adjacent reach with id_try in either
-                    # PRD or observed reaches
+                    # cannot find adjacent reach with id_try in PRD
                     continue
 
-                # only add when neighbor has more than 5 non-bad nodes
-                adj_rch_obs = river_reach_collection[other_idx]
-                adj_rch_mask = adj_rch_obs.node_q < 3
-                if side == -1 and adj_rch_mask.sum() > 5:
+                if try_prd_rch.metadata['type'] not in skip_types:
+                    valid_side_reach = True
+                    break
+
+            if not valid_side_reach:
+                continue
+
+            try:
+                # index in observed reaches
+                other_idx = np.where(other_ids == id_try)[0][0]
+            except IndexError:
+                # cannot find adjacent reach with id_try in observed reaches
+                continue
+
+            # only add when neighbor has more than 5 non-bad nodes
+            adj_rch_obs = river_reach_collection[other_idx]
+            adj_rch_mask = adj_rch_obs.node_q < 3
+            if adj_rch_mask.sum() > 5:
+                if side == -1:
                     # side is downstream of current reach
                     dx = try_prd_rch.x[-1] - prd_rch[0].x[0]
                     dy = try_prd_rch.y[-1] - prd_rch[0].y[0]
-                elif side == 1 and adj_rch_mask.sum() > 5:
+                elif side == 1:
                     # side is upstream of current reach
                     dx = try_prd_rch.x[0] - prd_rch[0].x[-1]
                     dy = try_prd_rch.y[0] - prd_rch[0].y[-1]
-                else:
-                    dx = np.nan
-                    dy = np.nan
 
                 delta = np.sqrt(dx**2+dy**2)
                 if delta < 300:
+                    side = 1 # +1 -- upstream
                     prd_is_good[side] = True
                     prd_delta[side] = delta
                     adj_rch[side] = river_reach_collection[other_idx]

@@ -370,11 +370,20 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
             cls, node_outputs, reach_outputs, reach_collection, prd_reaches):
         """Constructs self from riverobs outputs"""
         klass = cls()
+
+        # Avoid letting fill value of -9999 from PRD propagate into outputs
+        # for some of the variables which are just passed through from PRD.
+        def fill_if_was_fill(value, other_fill, fill):
+            # We use np.isclose(...) here since the SWORD fill values can be
+            # -9999 or -9999.0, and the SWORD PDD doesn't define all fill values
+            return value if value is not np.ma.masked \
+                and not np.isclose(value, other_fill) else fill
+
         # add missing reaches and nodes
         for reach, reach_id in zip(prd_reaches, prd_reaches.reach_idx):
 
             # skip ghost reaches and reaches with only one node
-            if reach_id % 10 == 6 or len(reach.x) == 1:
+            if reach.metadata['type'] == 6 or len(reach.x) == 1:
                 continue
 
             # check for missing nodes
@@ -432,6 +441,9 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         node_outputs['node_indx'], insert_idx, missing_node_id)
                     node_outputs['reach_indx'] = np.insert(
                         node_outputs['reach_indx'], insert_idx, reach_id)
+                    node_outputs['reach_type'] = np.insert(
+                        node_outputs['reach_type'], insert_idx,
+                        reach.metadata['type'])
                     node_outputs['ice_clim_f'] = np.insert(
                         node_outputs['ice_clim_f'], insert_idx,
                         reach.metadata['iceflag'])
@@ -450,15 +462,14 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
 
                     # set default node_q_b bits where there are no obs
                     node_outputs['node_q_b'] = np.insert(
-                            node_outputs['node_q_b'], insert_idx, (
+                        node_outputs['node_q_b'], insert_idx, (
                             QUAL_IND_WSE_BAD + QUAL_IND_NO_SIG0_PIX +
                             QUAL_IND_NO_AREA_PIX + QUAL_IND_NO_WSE_PIX +
                             QUAL_IND_NO_PIXELS))
                     # set default wse_sm_q_b bits where there are no obs
                     node_outputs['wse_sm_q_b'] = np.insert(
                         node_outputs['wse_sm_q_b'], insert_idx, (
-                            FILL_VALUE_INPUT)
-                    )
+                            FILL_VALUE_INPUT))
 
                     node_outputs['xovr_cal_q'] = np.insert(
                             node_outputs['xovr_cal_q'], insert_idx, 2)
@@ -481,37 +492,42 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                         reach_outputs[key])+[reach.metadata[key],],
                         dtype=object)
 
-                this_rch_id_up = reach.metadata['rch_id_up'].T
+                this_rch_id_up = np.array([[
+                    fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
+                    for item in reach.metadata['rch_id_up']]], dtype='i8')
                 this_rch_id_up[this_rch_id_up == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_up'] = np.concatenate(
                     (reach_outputs['rch_id_up'], this_rch_id_up))
                 reach_outputs['n_reach_up'] = np.append(
                     reach_outputs['n_reach_up'], (this_rch_id_up > 0).sum())
-                this_rch_id_dn = reach.metadata['rch_id_dn'].T
+                this_rch_id_dn = np.array([[
+                    fill_if_was_fill(item[0], -9999, MISSING_VALUE_INT9)
+                    for item in reach.metadata['rch_id_dn']]], dtype='i8')
                 this_rch_id_dn[this_rch_id_dn == 0] = MISSING_VALUE_INT9
                 reach_outputs['rch_id_dn'] = np.concatenate(
                     (reach_outputs['rch_id_dn'], this_rch_id_dn))
                 reach_outputs['n_reach_dn'] = np.append(
                     reach_outputs['n_reach_dn'], (this_rch_id_dn > 0).sum())
                 reach_outputs['reach_idx'] = np.append(
-                        reach_outputs['reach_idx'], reach_id)
+                    reach_outputs['reach_idx'], reach_id)
+                reach_outputs['reach_type'] = np.append(
+                    reach_outputs['reach_type'], reach.metadata['type'])
                 reach_outputs['p_lon'] = np.append(
-                        reach_outputs['p_lon'], reach.metadata['lon'])
+                    reach_outputs['p_lon'], reach.metadata['lon'])
                 reach_outputs['p_lat'] = np.append(
-                        reach_outputs['p_lat'], reach.metadata['lat'])
+                    reach_outputs['p_lat'], reach.metadata['lat'])
                 reach_outputs['p_wse'] = np.append(
-                        reach_outputs['p_wse'], reach.metadata['wse'])
+                    reach_outputs['p_wse'], reach.metadata['wse'])
                 reach_outputs['p_wse_var'] = np.append(
-                        reach_outputs['p_wse_var'], reach.metadata['wse_var'])
+                    reach_outputs['p_wse_var'], reach.metadata['wse_var'])
                 reach_outputs['p_width'] = np.append(
                     reach_outputs['p_width'], reach.metadata['width'])
                 reach_outputs['p_wid_var'] = np.append(
                     reach_outputs['p_wid_var'], reach.metadata['width_var'])
                 reach_outputs['p_n_nodes'] = np.append(
-                        reach_outputs['p_n_nodes'], len(reach.x))
+                    reach_outputs['p_n_nodes'], len(reach.x))
                 reach_outputs['p_dist_out'] = np.append(
-                        reach_outputs['p_dist_out'], reach.metadata['dist_out']
-                )
+                    reach_outputs['p_dist_out'], reach.metadata['dist_out'])
                 reach_outputs['p_length'] = np.append(
                     reach_outputs['p_length'], reach.metadata['reach_length'])
                 reach_outputs['grand_id'] = np.append(
@@ -540,20 +556,16 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                 reach_outputs['xovr_cal_q'] = np.append(
                     reach_outputs['xovr_cal_q'], 2)
 
-                reach_outputs['ice_clim_f'] = np.append(
-                    reach_outputs['ice_clim_f'], reach.metadata['iceflag'])
                 reach_outputs['river_name'] = np.append(
                     reach_outputs['river_name'], reach.metadata['river_name'])
 
                 dsch_m_uc = reach.metadata['discharge_models']['unconstrained']
                 dsch_m_c = reach.metadata['discharge_models']['constrained']
 
-                # Avoid letting fill value of -9999 from PRD propagate into
-                # outputs (these variables are just passed through from PRD
-                # to RiverTile).
-                def fill_if_was_fill(value, other_fill, fill):
-                    return value if value != other_fill else fill
-
+                reach_outputs['ice_clim_f'] = np.append(
+                    reach_outputs['ice_clim_f'], fill_if_was_fill(
+                        reach.metadata['iceflag'], -9999,
+                        MISSING_VALUE_INT4))
                 reach_outputs['p_low_slp'] = np.append(
                     reach_outputs['p_low_slp'], fill_if_was_fill(
                         reach.metadata['p_low_slp'], -9999,
@@ -924,6 +936,22 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     Unique node identifier from the prior river database.
                     The format of the identifier is CBBBBBRRRRNNNT, where
                     C=continent, B=basin, R=reach, N=node, T=type.""")],
+                ])],
+        ['reach_type',
+         odict([['dtype', 'i2'],
+                ['long_name', 'waterbody type code'],
+                ['short_name', 'reach_type'],
+                ['flag_meanings', textjoin("""
+                    river connected_lake dam unreliable_topology ghost""")],
+                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('i2')],
+                ['valid_min', 1],
+                ['valid_max', 6],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'lon lat'],
+                ['comment', textjoin("""
+                    Waterbody type code for the reach from the prior river
+                    database.""")],
                 ])],
         ['time',
          odict([['dtype', 'f8'],
@@ -1903,7 +1931,8 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     node, and a positive value indicates there is an influence
                     of a dam at the node. The value of grand_id identifies the
                     dam ID in the GRanD database.  Nodes influenced by dams
-                    are indicated by the type code in node_id.  """)],
+                    are indicated by the type code in reach_type and
+                    node_id.""")],
                 ])],
         ['p_n_ch_max',
          odict([['dtype', 'i2'],
@@ -1990,6 +2019,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
         if node_outputs is not None:
             klass['reach_id'] = node_outputs['reach_indx']
             klass['node_id'] = node_outputs['node_indx']
+            klass['reach_type'] = node_outputs['reach_type']
             klass['lat'] = node_outputs['lat']
             klass['lon'] = node_outputs['lon']
             klass['lat_u'] = node_outputs['latitude_u']
@@ -2080,23 +2110,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
                 value = value.astype(klass.VARIABLES[key]['dtype'])
             setattr(klass, key, value)
-        # Check for variables that appear in the shapefile but aren't defined in
-        # the product (klass.VARIABLES). These will be added as the data type
-        # they were input as, with defaulted attributes.
-        if len(records) > 0:
-            record_keys = records[0]['properties'].keys()
-            undefined_vars = set(record_keys).difference(klass.VARIABLES.keys())
-            all_metadata = root.findall(".//attributes/*")
-            for var in undefined_vars:
-                values = [record['properties'][var] for record in records]
-                values_arr = np.array(values)
-                data[var] = values_arr
-                this_metadata = cls.get_var_metadata(all_metadata, var, values_arr)
-                klass.VARIABLES[var] = this_metadata[var]
-                setattr(klass, var, values_arr)
-                LOGGER.warning(
-                    "Input shapefile has variable '%s' not defined in product "
-                    "class VARIABLES. Propagated through from input.", var)
+
         return klass
 
     @staticmethod
@@ -2222,6 +2236,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     The format of the identifier is CBBBBBRRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
+        ['reach_type', RiverTileNodes.VARIABLES['reach_type'].copy()],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
         ['time_str', RiverTileNodes.VARIABLES['time_str'].copy()],
@@ -3809,9 +3824,9 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Fraction of the measured reach area covered by
-                    edge water. The value is typically between 0 and 1 but may
-                    occasionally go outside this range due to noise in the
-                    estimates.""")],
+                    edge/shoreline water. The value is typically between 0 and
+                    1 but may occasionally go outside this range due to noise
+                    in the estimates.""")],
                 ])],
         # ['sring_frac',
         #  odict([['dtype', 'f8'],
@@ -3824,7 +3839,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         #         ['tag_basic_expert', 'Expert'],
         #         ['coordinates', 'p_lon p_lat'],
         #         ['comment', textjoin("""
-        #             Fraction of reach area_total covered by specular ringing.
+        #             Fraction of the measured reach area covered by specular ringing.
         #             The value is typically between 0 and 1 but may occasionally
         #             go outside this range due to noise in the estimates.""")],
         #         ])],
@@ -4289,7 +4304,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     reach, and a positive value indicates there is an influence
                     of a dam along the reach. The value of grand_id identifies
                     the dam ID in the GRanD database.  Reaches influenced by
-                    dams are indicated by the type code in reach_id.""")],
+                    dams are indicated by the type code in reach_type and
+                    reach_id.""")],
                 ])],
         ['p_n_ch_max',
          odict([['dtype', 'i2'],
@@ -4400,6 +4416,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
         klass = cls()
         if reach_outputs is not None:
             klass['reach_id'] = reach_outputs['reach_idx']
+            klass['reach_type'] = reach_outputs['reach_type']
             klass['wse'] = reach_outputs['height']
             klass['wse_r_u'] = reach_outputs['height_r_u']
             klass['wse_u'] = reach_outputs['height_u']
@@ -4574,16 +4591,12 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 'pole_tide', 'load_tidef', 'load_tideg', 'dry_trop_c',
                 'wet_trop_c', 'iono_c', 'xovr_cal_c']
 
-        node_reach_type = nodes.node_id % 10
-        node_reach_ids = (
-            np.floor(nodes.node_id / 10000).astype('int'))*10 + node_reach_type
-
         for key in keys:
             node_value = getattr(nodes, key)
             reach_value = getattr(self, key)
             for ii, reach_id in enumerate(self.reach_id):
                 mask = np.logical_and(
-                    node_reach_ids == reach_id, nodes.n_good_pix > 0)
+                    nodes.reach_id == reach_id, nodes.n_good_pix > 0)
                 if mask.sum() > 0:
                     try:
                         reach_value[ii] = np.mean(
