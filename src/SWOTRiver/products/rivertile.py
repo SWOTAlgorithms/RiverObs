@@ -2236,7 +2236,22 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     The format of the identifier is CBBBBBRRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
-        ['reach_type', RiverTileNodes.VARIABLES['reach_type'].copy()],
+        ['reach_type',
+         odict([['dtype', 'i2'],
+                ['long_name', 'waterbody type code'],
+                ['short_name', 'reach_type'],
+                ['flag_meanings', textjoin("""
+                    river connected_lake dam unreliable_topology ghost""")],
+                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('i2')],
+                ['valid_min', 1],
+                ['valid_max', 6],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Waterbody type code for the reach from the prior river
+                    database.""")],
+                ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
         ['time_str', RiverTileNodes.VARIABLES['time_str'].copy()],
@@ -2773,7 +2788,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -2840,7 +2855,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_consensus_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -2903,7 +2918,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -2970,7 +2985,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3032,7 +3047,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3099,7 +3114,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3161,7 +3176,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3228,7 +3243,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3290,7 +3305,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3357,7 +3372,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3419,7 +3434,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3486,7 +3501,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3548,7 +3563,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_sic4dvar_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3604,7 +3619,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Systematic component of the uncertainty in the discharge
-                    from the gauge-constrained SIC4DVar algorithm as a 
+                    from the gauge-constrained SIC4DVar algorithm as a
                     fractional quantity.""")],
                 ])],
         ['dschg_gi_q',
@@ -3615,7 +3630,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_sic4dvar_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
