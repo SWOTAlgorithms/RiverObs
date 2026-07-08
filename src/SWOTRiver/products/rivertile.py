@@ -2105,7 +2105,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 # Can occur if product class is not synced with input data, and
                 # the product class has vars that the input data doesn't.
                 LOGGER.warning('shapefile does not contain {}'.format(key))
-                pass
+
         for key, value in data.items():
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
                 value = value.astype(klass.VARIABLES[key]['dtype'])
@@ -4555,20 +4555,22 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             this_cl = np.array(record['geometry']['coordinates'])
             data['centerline_lon'][irec, :this_cl.shape[0]] = this_cl[:, 0]
             data['centerline_lat'][irec, :this_cl.shape[0]] = this_cl[:, 1]
+
         for key, reference in klass.VARIABLES.items():
             if key in ['centerline_lon', 'centerline_lat']:
                 pass
-
             elif key in ['rch_id_up', 'rch_id_dn']:
                 fill = klass.VARIABLES[key]['_FillValue']
                 n_ids = klass.DIMENSIONS['reach_neighbors']
                 data[key] = np.ones([len(records), n_ids])*fill
-                for irec, record in enumerate(records):
-                    tmp = record['properties'][key].replace(
-                        'no_data', str(fill))
-                    data[key][irec, :] = np.array([
-                        int(float(item)) for item in tmp.split(', ')])
-
+                try:
+                    for irec, record in enumerate(records):
+                        tmp = record['properties'][key].replace(
+                            'no_data', str(fill))
+                        data[key][irec, :] = np.array([
+                            int(float(item)) for item in tmp.split(', ')])
+                except KeyError:
+                    LOGGER.warning('shapefile does not contain {}'.format(key))
             else:
                 try:
                     data[key] = np.array([
