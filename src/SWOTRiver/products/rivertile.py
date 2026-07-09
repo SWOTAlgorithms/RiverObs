@@ -474,14 +474,16 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     node_outputs['xovr_cal_q'] = np.insert(
                             node_outputs['xovr_cal_q'], insert_idx, 2)
 
-                    for key in [
-                        'lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db', 'area',
-                        'area_u', 'area_det', 'area_det_u', 'area_of_ht',
-                        'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
-                        'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
-                        'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
-                        'pole_tide', 'flow_dir', 'dark_frac', 'edge_frac', # 'sring_frac',
-                        'xtrack', 'h_n_ave', 'fit_height', 'layovr_val']:
+                    for key in ['lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db',
+                                'area', 'area_u', 'area_det', 'area_det_u',
+                                'area_of_ht', 'wse', 'wse_std', 'wse_u',
+                                'wse_r_u', 'rdr_sig0', 'rdr_sig0_u',
+                                'latitude_u', 'longitud_u', 'width_u',
+                                'geoid_hght', 'solid_tide', 'load_tidef',
+                                'load_tideg', 'pole_tide', 'flow_dir',
+                                'dark_frac', 'edge_frac', # 'sring_frac',
+                                'xtrack', 'h_n_ave', 'fit_height',
+                                'layovr_val', 't_prv_xovr', 't_nxt_xovr']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
@@ -593,7 +595,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                             'geoid_slop', 'geoid_hght', 'd_x_area',
                             'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
                             'edge_frac', 'slope2', 'slope2_u', 'slope2_r_u', # 'sring_frac',
-                            'layovr_val']:
+                            'layovr_val', 't_prv_xovr', 't_nxt_xovr']:
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
 
@@ -1633,6 +1635,37 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     indicates a nominal measurement, 1 indicates a suspect
                     measurement, and 2 indicates a bad measurement.""")],
                 ])],
+        ['t_prv_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds from the previous crossover'],
+                ['short_name', 'time_from_prev_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds from the previous
+                    crossover-calibration location (nominally positive).""")],
+                ])],
+        ['t_nxt_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds to the next crossover'],
+                ['short_name', 'time_to_next_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds to the next
+                    crossover-calibration location (nominally negative).""")],
+                ])],
+
         ['rdr_sig0',
          odict([['dtype', 'f8'],
                 ['long_name', 'sigma0'],
@@ -2066,7 +2099,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
                         'node_q', 'node_q_b', 'xovr_cal_q', 'layovr_val',
-                        'wse_sm_q', 'wse_sm_q_b']:
+                        't_prv_xovr', 't_nxt_xovr', 'wse_sm_q', 'wse_sm_q_b']:
                 klass[key] = node_outputs[key]
 
         return klass
@@ -3967,7 +4000,36 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     indicates a nominal measurement, 1 indicates a suspect
                     measurement, and 2 indicates a bad measurement.""")],
                 ])],
-
+        ['t_prv_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds from the previous crossover'],
+                ['short_name', 'time_from_prev_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds from the previous
+                    crossover-calibration location (nominally positive).""")],
+                ])],
+        ['t_nxt_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds to the next crossover'],
+                ['short_name', 'time_to_next_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds to the next
+                    crossover-calibration location (nominally negative).""")],
+                ])],
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
@@ -4480,6 +4542,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['dschg_gq_b'] = reach_outputs['dschg_gq_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
+            klass['t_prv_xovr'] = reach_outputs['t_prv_xovr']
+            klass['t_nxt_xovr'] = reach_outputs['t_nxt_xovr']
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
                         'p_lat', 'p_lon']:

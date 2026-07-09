@@ -21,6 +21,7 @@ from scipy.ndimage.morphology import binary_dilation
 
 import RiverObs.ReachDatabase
 import SWOTWater.aggregate
+import SWOTWater.sys_uncert
 import SWOTRiver.discharge
 from SWOTWater.constants import AGG_CLASSES
 from SWOTWater.products.constants import FILL_VALUES
@@ -36,8 +37,6 @@ from Centerline.Centerline import Centerline, CenterLineException
 
 LOGGER = logging.getLogger(__name__)
 
-REACH_WSE_SYS_UNCERT = 0.09  # m
-SLOPE_SYS_UNCERT = 0.000003  # m/m
 WSE_SM_NOISY_THRESHOLD = 0.3 # m
 POOR_P_FIT_THRESHOLD = 0.5
 BAYES_LARGE_RESID_THRESHOLD = 0.1 # m
@@ -293,6 +292,8 @@ class SWOTRiverEstimator(SWOTL2):
                  geolocation_qual_kwd='geolocation_qual',
                  sig0_qual_kwd='sig0_qual',
                  layover_impact_kwd='layover_impact',
+                 time_from_prev_xover_kwd='time_from_prev_xover',
+                 time_to_next_xover_kwd='time_to_next_xover',
                  proj='laea',
                  x_0=0,
                  y_0=0,
@@ -489,8 +490,7 @@ class SWOTRiverEstimator(SWOTL2):
             ['geolocation_qual', geolocation_qual_kwd],
             ['classification_qual', classification_qual_kwd],
             ['sig0_qual', sig0_qual_kwd],
-            ['bright_land_flag', bright_land_flag_kwd],
-        ]
+            ['bright_land_flag', bright_land_flag_kwd]]
 
         for dset_name, keyword in datasets2load:
             try:
@@ -498,6 +498,17 @@ class SWOTRiverEstimator(SWOTL2):
                 # hack ifgram re/im parts into complex dtype
                 if dset_name == 'ifgram':
                     value = value[:,0] + 1j* value[:,1]
+            except KeyError:
+                value = None
+            setattr(self, dset_name, value)
+
+        # Set per-line variables
+        line_datasets2load = [
+            ['time_from_prev_xover', time_from_prev_xover_kwd],
+            ['time_to_next_xover', time_to_next_xover_kwd]]
+        for dset_name, keyword in line_datasets2load:
+            try:
+                value = self.get(keyword, use_index=False)
             except KeyError:
                 value = None
             setattr(self, dset_name, value)
@@ -1298,7 +1309,8 @@ class SWOTRiverEstimator(SWOTL2):
             'load_tide_got', 'pole_tide', 'is_area_degraded',
             'is_area_suspect', 'is_wse_degraded', 'is_wse_suspect',
             'is_sig0_bad', 'is_sig0_suspect', 'bright_land_flag',
-            'is_xovercal_suspect', 'is_xovercal_degraded', 'layover_impact']
+            'is_xovercal_suspect', 'is_xovercal_degraded', 'layover_impact',
+            'time_from_prev_xover', 'time_to_next_xover']
 
         dsets_to_load = []
         for name in dsets:
@@ -1307,6 +1319,8 @@ class SWOTRiverEstimator(SWOTL2):
                 dsets_to_load.append(name)
                 if name == 'looks_to_efflooks':
                     value = value + np.zeros(np.shape(self.lat))
+                elif name in ('time_from_prev_xover', 'time_to_next_xover'):
+                    value = value[self.img_y]
                 self.river_obs.add_obs(name, value)
 
         # Get edge classes to get edge area
@@ -1398,14 +1412,17 @@ class SWOTRiverEstimator(SWOTL2):
                     'median', 'h_noise', goodvar='wse_class_flg')
                 )[~mask_good_sus_wse]
 
-            wse_r_u = np.asarray(self.river_obs.get_node_stat(
+            wse_std = np.asarray(self.river_obs.get_node_stat(
                 'std', 'h_noise', goodvar='h_flg'))
-            wse_r_u[~mask_good_sus_wse] = np.asarray(
+            wse_std[~mask_good_sus_wse] = np.asarray(
                 self.river_obs.get_node_stat(
                     'std', 'h_noise', goodvar='wse_class_flg')
                 )[~mask_good_sus_wse]
 
-        wse_std = wse_r_u
+        wse_r_u = wse_std
+        wse_s_u = np.sqrt(SWOTWater.sys_uncert.HEIGHT_SYS_UNCERT**2
+            + SWOTWater.sys_uncert.DEFAULT_XOVER_HEIGHT_SYS_UNCERT**2)
+        wse_u = np.sqrt(wse_r_u**2 + wse_s_u**2)
 
         # These are area based estimates, the nominal SWOT approach
         with warnings.catch_warnings():
@@ -1516,9 +1533,15 @@ class SWOTRiverEstimator(SWOTL2):
                     'h_std'][~mask_good_sus_wse]
 
                 # height_uncert_multilook
-                wse_r_u = node_aggs['h_u']
-                wse_r_u[~mask_good_sus_wse] = node_aggs_w_degraded[
+                wse_u = node_aggs['h_u']
+                wse_u[~mask_good_sus_wse] = node_aggs_w_degraded[
                     'h_u'][~mask_good_sus_wse]
+                wse_s_u = node_aggs['h_s_u']
+                wse_s_u[~mask_good_sus_wse] = node_aggs_w_degraded[
+                    'h_s_u'][~mask_good_sus_wse]
+                wse_r_u = node_aggs['h_r_u']
+                wse_r_u[~mask_good_sus_wse] = node_aggs_w_degraded[
+                    'h_r_u'][~mask_good_sus_wse]
 
         # geoid heights and tide corrections weighted by height uncertainty
         try:
@@ -1613,6 +1636,26 @@ class SWOTRiverEstimator(SWOTL2):
                                              )[~mask_good_sus_wse]
         except AttributeError:
             layovr_val = np.nan*np.ones(area.shape)
+
+        # TODO: add better handling of nans/masked values in in get_node_stat
+        # for all vars - remove opportunities for node vars to be nan
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            t_prv_xovr = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'time_from_prev_xover', goodvar='h_flg'))
+            t_prv_xovr[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                'mean', 'time_from_prev_xover', goodvar='wse_class_flg')
+            )[~mask_good_sus_wse]
+            t_prv_xovr[np.isnan(t_prv_xovr)] = MISSING_VALUE_FLT
+
+            t_nxt_xovr = np.asarray(self.river_obs.get_node_stat(
+                'mean', 'time_to_next_xover', goodvar='h_flg'))
+            t_nxt_xovr[~mask_good_sus_wse] = np.asarray(
+                self.river_obs.get_node_stat(
+                'mean', 'time_to_next_xover', goodvar='wse_class_flg')
+            )[~mask_good_sus_wse]
+            t_nxt_xovr[np.isnan(t_nxt_xovr)] = MISSING_VALUE_FLT
 
         # These are the values from the width database
         width_db = np.ones(self.river_obs.n_nodes, dtype=np.float64) * \
@@ -1901,6 +1944,8 @@ class SWOTRiverEstimator(SWOTL2):
             'area_edge': area_edge.astype('float64'),
             'wse': wse.astype('float64'),
             'wse_std': wse_std.astype('float64'),
+            'wse_u': wse_u.astype('float64'),
+            'wse_s_u': wse_s_u.astype('float64'),
             'wse_r_u': wse_r_u.astype('float64'),
             'wse_sm': wse_sm.astype('float64'),
             'wse_sm_u': wse_sm_u.astype('float64'),
@@ -1951,17 +1996,11 @@ class SWOTRiverEstimator(SWOTL2):
             'river_name': reach.river_name[self.river_obs.populated_nodes],
             'node_q': node_q, 'node_q_b': node_q_b, 'xovr_cal_q': xovr_cal_q,
             'layovr_val': layovr_val.astype('float64'),
+            't_prv_xovr': t_prv_xovr.astype('float64'),
+            't_nxt_xovr': t_nxt_xovr.astype('float64'),
             'mask_wse': river_node_mask,
             'mask_area': river_node_mask
         }
-
-        # Get wse_u from RSS of random wse_r_u and REACH_WSE_SYS_UNCERT
-        river_reach_kw_args['wse_u'] = MISSING_VALUE_FLT * np.ones(
-            river_reach_kw_args['wse_r_u'].shape)
-        mask = river_reach_kw_args['wse_r_u'] > 0
-        river_reach_kw_args['wse_u'][mask] = np.sqrt(
-            river_reach_kw_args['wse_r_u'][mask]**2 + REACH_WSE_SYS_UNCERT**2
-            ).astype('float64')
 
         if xtrack_median is not None:
             river_reach_kw_args['xtrack'] = xtrack_median.astype('float64')
@@ -2048,6 +2087,23 @@ class SWOTRiverEstimator(SWOTL2):
         reach_stats['layovr_val'] = np.sqrt(np.sum(
             river_reach.layovr_val[river_reach.mask_wse]**2))
 
+        # TODO: add better handling of nans and fill values for all vars
+        t_prv_xovr_mask = np.logical_and(
+            river_reach.mask_wse, river_reach.t_prv_xovr != MISSING_VALUE_FLT)
+        t_prv_xovr = np.mean(river_reach.t_prv_xovr[t_prv_xovr_mask])
+        if not np.isnan(t_prv_xovr):
+            reach_stats['t_prv_xovr'] = t_prv_xovr
+        else:
+            reach_stats['t_prv_xovr'] = MISSING_VALUE_FLT
+
+        t_nxt_xovr_mask = np.logical_and(
+            river_reach.mask_wse, river_reach.t_nxt_xovr != MISSING_VALUE_FLT)
+        t_nxt_xovr = np.mean(river_reach.t_nxt_xovr[t_nxt_xovr_mask])
+        if not np.isnan(t_nxt_xovr):
+            reach_stats['t_nxt_xovr'] = t_nxt_xovr
+        else:
+            reach_stats['t_nxt_xovr'] = MISSING_VALUE_FLT
+
         reach_stats['loc_offset'] = (
             river_reach.s.mean() - self.river_obs.centerline.s.mean())
 
@@ -2083,8 +2139,10 @@ class SWOTRiverEstimator(SWOTL2):
                 # TBD on unc quantities for first_to_last method
                 reach_stats['slope_r_u'] = MISSING_VALUE_FLT
                 reach_stats['height_r_u'] = MISSING_VALUE_FLT
-                reach_stats['slope_u'] = SLOPE_SYS_UNCERT
-                reach_stats['height_u'] = REACH_WSE_SYS_UNCERT
+                reach_stats['slope_u'] = SWOTWater.sys_uncert.SLOPE_SYS_UNCERT
+                reach_stats['height_u'] = np.sqrt(
+                    SWOTWater.sys_uncert.WSE_SYS_UNCERT**2
+                    + SWOTWater.sys_uncert.DEFAULT_XOVER_WSE_SYS_UNCERT**2)
                 reach_stats['slope2_u'] = MISSING_VALUE_FLT
                 reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
@@ -2109,9 +2167,11 @@ class SWOTRiverEstimator(SWOTL2):
                 reach_stats['slope_r_u'] = fit.HC0_se[0]
                 reach_stats['height_r_u'] = fit.HC0_se[1]
                 reach_stats['slope_u'] = np.sqrt(
-                    SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                    SWOTWater.sys_uncert.SLOPE_SYS_UNCERT**2
+                    + reach_stats['slope_r_u']**2)
                 reach_stats['height_u'] = np.sqrt(
-                    REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+                    np.mean(river_reach.wse_s_u[river_reach.mask_wse])**2
+                    + reach_stats['height_r_u']**2)
 
             elif self.slope_method == 'bayes':
                 if self.bayes_slope_use_all_nodes:
@@ -2163,9 +2223,11 @@ class SWOTRiverEstimator(SWOTL2):
                     reach_stats['slope_r_u'] = slope_u
                     reach_stats['height_r_u'] = height_u
                     reach_stats['slope_u'] = np.sqrt(
-                        SLOPE_SYS_UNCERT**2 + reach_stats['slope_r_u']**2)
+                        SWOTWater.sys_uncert.SLOPE_SYS_UNCERT**2
+                        + reach_stats['slope_r_u']**2)
                     reach_stats['height_u'] = np.sqrt(
-                        REACH_WSE_SYS_UNCERT**2 + reach_stats['height_r_u']**2)
+                        np.mean(river_reach.wse_s_u[river_reach.mask_wse])**2
+                        + reach_stats['height_r_u']**2)
                     reach_stats['slope2_u'] = MISSING_VALUE_FLT
                     reach_stats['slope2_r_u'] = MISSING_VALUE_FLT
 
@@ -2557,7 +2619,8 @@ class SWOTRiverEstimator(SWOTL2):
                     2 * cov_first_last)
 
             enhanced_slope_u = np.sqrt(
-                SLOPE_SYS_UNCERT**2 + enhanced_slope_r_u**2)
+                SWOTWater.sys_uncert.SLOPE_SYS_UNCERT**2
+                + enhanced_slope_r_u**2)
 
         if np.isnan(enhanced_slope):
             enhanced_slope = MISSING_VALUE_FLT

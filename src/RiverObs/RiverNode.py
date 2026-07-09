@@ -7,6 +7,7 @@ from __future__ import absolute_import, division, print_function
 
 import numpy as np
 import SWOTWater.aggregate as aggregate
+import SWOTWater.sys_uncert as sys_uncert
 from SWOTWater.constants import AGG_CLASSES
 from SWOTRiver.errors import RiverObsUseageException
 
@@ -358,7 +359,7 @@ class RiverNode:
 
     def height_with_uncert(self, goodvar='good', method='weight'):
         """
-        Return the aggregate height with corresponding uncertainty 
+        Return the aggregate height with corresponding uncertainty
         """
         good = getattr(self, goodvar)
         if self.height_std_pix is None:
@@ -371,15 +372,24 @@ class RiverNode:
             self.dh_dphi, self.dlat_dphi, self.dlon_dphi, self.height_std_pix,
             method=method)
 
+    def height_systematic_uncert(self, goodvar='good'):
+        """
+        Return the systematic height uncertainty
+        """
+        good = getattr(self, goodvar)
+        return sys_uncert.height_systematic_uncert(
+            np.abs(self.xtrack), good, self.time_from_prev_xover,
+            self.time_to_next_xover)
+
     def area_with_uncert(self, goodvar='good', method='composite'):
         """
-        Return the aggregate width_area with corresponding uncertainty 
+        Return the aggregate width_area with corresponding uncertainty
         """
         # compute the pixel assignment error?
         # call the general function, TODO
 
-        # should normally just use all the data 
-        # (not just the use_heights pixels), but could use goodvar 
+        # should normally just use all the data
+        # (not just the use_heights pixels), but could use goodvar
         # to filter out outliers
         good = getattr(self, goodvar)
 
