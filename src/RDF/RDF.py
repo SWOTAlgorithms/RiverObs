@@ -140,7 +140,7 @@ class RDF:
                     v = str.strip(v)
 
                     #units key separation
-                    m = re.match("(.*)\((.*)\).*", k)
+                    m = re.match(r"(.*)\((.*)\).*", k)
                     if m:
                         u = str.strip(m.group(2))
                         if u == "": u = "-"
