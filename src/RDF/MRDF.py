@@ -147,7 +147,7 @@ class MRDF:
                     v = string.strip(v)
 
                     #units key separation
-                    m = re.match("(.*)\((.*)\).*", k)
+                    m = re.match(r"(.*)\((.*)\).*", k)
                     if m:
                         u = string.strip(m.group(2))
                         if u == "": u = "-"

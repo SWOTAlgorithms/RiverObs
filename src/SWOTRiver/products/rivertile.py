@@ -474,14 +474,16 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                     node_outputs['xovr_cal_q'] = np.insert(
                             node_outputs['xovr_cal_q'], insert_idx, 2)
 
-                    for key in [
-                        'lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db', 'area',
-                        'area_u', 'area_det', 'area_det_u', 'area_of_ht',
-                        'wse', 'wse_std', 'wse_u', 'wse_r_u', 'rdr_sig0',
-                        'rdr_sig0_u', 'latitude_u', 'longitud_u', 'width_u',
-                        'geoid_hght', 'solid_tide', 'load_tidef', 'load_tideg',
-                        'pole_tide', 'flow_dir', 'dark_frac', 'edge_frac', # 'sring_frac',
-                        'xtrack', 'h_n_ave', 'fit_height', 'layovr_val']:
+                    for key in ['lat', 'lon', 'x', 'y', 's', 'w_area', 'w_db',
+                                'area', 'area_u', 'area_det', 'area_det_u',
+                                'area_of_ht', 'wse', 'wse_std', 'wse_u',
+                                'wse_r_u', 'rdr_sig0', 'rdr_sig0_u',
+                                'latitude_u', 'longitud_u', 'width_u',
+                                'geoid_hght', 'solid_tide', 'load_tidef',
+                                'load_tideg', 'pole_tide', 'flow_dir',
+                                'dark_frac', 'edge_frac', # 'sring_frac',
+                                'xtrack', 'h_n_ave', 'fit_height',
+                                'layovr_val', 't_prv_xovr', 't_nxt_xovr']:
                         node_outputs[key] = np.insert(
                             node_outputs[key], insert_idx, MISSING_VALUE_FLT)
 
@@ -593,7 +595,7 @@ class L2HRRiverTile(ProductTesterMixIn, Product):
                             'geoid_slop', 'geoid_hght', 'd_x_area',
                             'd_x_area_u', 'width_c', 'width_c_u', 'dark_frac',
                             'edge_frac', 'slope2', 'slope2_u', 'slope2_r_u', # 'sring_frac',
-                            'layovr_val']:
+                            'layovr_val', 't_prv_xovr', 't_nxt_xovr']:
                     reach_outputs[key] = np.append(
                         reach_outputs[key], MISSING_VALUE_FLT)
 
@@ -1633,6 +1635,37 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     indicates a nominal measurement, 1 indicates a suspect
                     measurement, and 2 indicates a bad measurement.""")],
                 ])],
+        ['t_prv_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds from the previous crossover'],
+                ['short_name', 'time_from_prev_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds from the previous
+                    crossover-calibration location (nominally positive).""")],
+                ])],
+        ['t_nxt_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds to the next crossover'],
+                ['short_name', 'time_to_next_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'lon lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds to the next
+                    crossover-calibration location (nominally negative).""")],
+                ])],
+
         ['rdr_sig0',
          odict([['dtype', 'f8'],
                 ['long_name', 'sigma0'],
@@ -2066,7 +2099,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
             for key in ['lat_prior', 'lon_prior', 'p_wse', 'p_wse_var',
                         'p_width', 'p_wid_var', 'p_dist_out', 'p_length',
                         'node_q', 'node_q_b', 'xovr_cal_q', 'layovr_val',
-                        'wse_sm_q', 'wse_sm_q_b']:
+                        't_prv_xovr', 't_nxt_xovr', 'wse_sm_q', 'wse_sm_q_b']:
                 klass[key] = node_outputs[key]
 
         return klass
@@ -2105,7 +2138,7 @@ class RiverTileNodes(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 # Can occur if product class is not synced with input data, and
                 # the product class has vars that the input data doesn't.
                 LOGGER.warning('shapefile does not contain {}'.format(key))
-                pass
+
         for key, value in data.items():
             if klass.VARIABLES[key]['dtype'][0] in ['i', 'u']:
                 value = value.astype(klass.VARIABLES[key]['dtype'])
@@ -2236,7 +2269,22 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     The format of the identifier is CBBBBBRRRRT, where
                     C=continent, B=basin, R=reach, T=type.""")],
                 ])],
-        ['reach_type', RiverTileNodes.VARIABLES['reach_type'].copy()],
+        ['reach_type',
+         odict([['dtype', 'i2'],
+                ['long_name', 'waterbody type code'],
+                ['short_name', 'reach_type'],
+                ['flag_meanings', textjoin("""
+                    river connected_lake dam unreliable_topology ghost""")],
+                ['flag_values', np.array([1, 3, 4, 5, 6]).astype('i2')],
+                ['valid_min', 1],
+                ['valid_max', 6],
+                ['_FillValue', MISSING_VALUE_INT4],
+                ['tag_basic_expert', 'Basic'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment', textjoin("""
+                    Waterbody type code for the reach from the prior river
+                    database.""")],
+                ])],
         ['time', RiverTileNodes.VARIABLES['time'].copy()],
         ['time_tai', RiverTileNodes.VARIABLES['time_tai'].copy()],
         ['time_str', RiverTileNodes.VARIABLES['time_str'].copy()],
@@ -2773,7 +2821,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['standard_name', 'status_flag'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -2840,7 +2888,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_consensus_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -2903,7 +2951,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -2970,7 +3018,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_metroman_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3032,7 +3080,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3099,7 +3147,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_bam_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3161,7 +3209,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3228,7 +3276,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_hivdi_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3290,7 +3338,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3357,7 +3405,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_momma_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3419,7 +3467,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3486,7 +3534,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_sads_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3548,7 +3596,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_sic4dvar_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3604,7 +3652,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['coordinates', 'p_lon p_lat'],
                 ['comment', textjoin("""
                     Systematic component of the uncertainty in the discharge
-                    from the gauge-constrained SIC4DVar algorithm as a 
+                    from the gauge-constrained SIC4DVar algorithm as a
                     fractional quantity.""")],
                 ])],
         ['dschg_gi_q',
@@ -3615,7 +3663,7 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                 ['short_name', 'discharge_gauge_constr_sic4dvar_qual'],
                 ['flag_meanings', textjoin("""
                     valid questionable invalid""")],
-                ['flag_values', np.array([0, 1, 2]).astype('i2')],
+                ['flag_values', np.array([0, 1, 2]).astype('i4')],
                 ['valid_min', 0],
                 ['valid_max', 2],
                 ['_FillValue', MISSING_VALUE_INT4],
@@ -3952,7 +4000,36 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
                     indicates a nominal measurement, 1 indicates a suspect
                     measurement, and 2 indicates a bad measurement.""")],
                 ])],
-
+        ['t_prv_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds from the previous crossover'],
+                ['short_name', 'time_from_prev_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds from the previous
+                    crossover-calibration location (nominally positive).""")],
+                ])],
+        ['t_nxt_xovr',
+         odict([['dtype', 'f8'],
+                ['long_name',
+                 'time difference in seconds to the next crossover'],
+                ['short_name', 'time_to_next_xover'],
+                ['units', 's'],
+                ['valid_min', -999999],
+                ['valid_max', 999999],
+                ['_FillValue', MISSING_VALUE_FLT],
+                ['tag_basic_expert', 'Expert'],
+                ['coordinates', 'p_lon p_lat'],
+                ['comment',  textjoin("""
+                    Time difference in seconds to the next
+                    crossover-calibration location (nominally negative).""")],
+                ])],
         ['geoid_hght',
          odict([['dtype', 'f8'],
                 ['long_name', 'geoid height'],
@@ -4465,6 +4542,8 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             klass['dschg_gq_b'] = reach_outputs['dschg_gq_b']
             klass['xovr_cal_q'] = reach_outputs['xovr_cal_q']
             klass['layovr_val'] = reach_outputs['layovr_val']
+            klass['t_prv_xovr'] = reach_outputs['t_prv_xovr']
+            klass['t_nxt_xovr'] = reach_outputs['t_nxt_xovr']
             for key in ['p_wse', 'p_wse_var', 'p_width', 'p_wid_var',
                         'p_dist_out', 'p_length', 'p_n_nodes',
                         'p_lat', 'p_lon']:
@@ -4540,20 +4619,22 @@ class RiverTileReaches(ProductTesterMixIn, ShapeWriterMixIn, Product):
             this_cl = np.array(record['geometry']['coordinates'])
             data['centerline_lon'][irec, :this_cl.shape[0]] = this_cl[:, 0]
             data['centerline_lat'][irec, :this_cl.shape[0]] = this_cl[:, 1]
+
         for key, reference in klass.VARIABLES.items():
             if key in ['centerline_lon', 'centerline_lat']:
                 pass
-
             elif key in ['rch_id_up', 'rch_id_dn']:
                 fill = klass.VARIABLES[key]['_FillValue']
                 n_ids = klass.DIMENSIONS['reach_neighbors']
                 data[key] = np.ones([len(records), n_ids])*fill
-                for irec, record in enumerate(records):
-                    tmp = record['properties'][key].replace(
-                        'no_data', str(fill))
-                    data[key][irec, :] = np.array([
-                        int(float(item)) for item in tmp.split(', ')])
-
+                try:
+                    for irec, record in enumerate(records):
+                        tmp = record['properties'][key].replace(
+                            'no_data', str(fill))
+                        data[key][irec, :] = np.array([
+                            int(float(item)) for item in tmp.split(', ')])
+                except KeyError:
+                    LOGGER.warning('shapefile does not contain {}'.format(key))
             else:
                 try:
                     data[key] = np.array([

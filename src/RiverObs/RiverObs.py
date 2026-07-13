@@ -486,16 +486,22 @@ class RiverObs:
         the missing_value.
         """
         outputs = {key: [] for key in [
-            'h', 'h_std', 'h_u', 'lat_u', 'lon_u', 'area', 'area_u',
-            'area_det', 'area_det_u', 'area_of_ht', 'area_of_ht_u',
-            'width_area', 'width_area_u', 'sig0', 'sig0_u', 'sig0_std']}
+            'h', 'h_std', 'h_u', 'h_s_u', 'h_r_u',
+            'lat_u', 'lon_u',
+            'area', 'area_u', 'area_det', 'area_det_u',
+            'area_of_ht', 'area_of_ht_u',
+            'width_area', 'width_area_u',
+            'sig0', 'sig0_u', 'sig0_std']}
 
         for node in self.all_nodes:
             if node in self.populated_nodes:
                 river_node = self.river_nodes[node]
 
-                h, h_std, h_u, lat_u, lon_u = river_node.height_with_uncert(
+                h, h_std, h_r_u, lat_u, lon_u = river_node.height_with_uncert(
                     method=height_method, goodvar=goodvar_wse)
+                h_s_u = river_node.height_systematic_uncert(
+                    goodvar=goodvar_wse)
+                h_u = np.sqrt(h_r_u**2 + h_s_u**2)
 
                 sig0, sig0_std, sig0_u = river_node.sig0_with_uncert(
                     goodvar=goodvar_sig0)
