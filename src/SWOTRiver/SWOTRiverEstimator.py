@@ -3042,7 +3042,6 @@ class SWOTRiverEstimator(SWOTL2):
 
                 delta = np.sqrt(dx**2+dy**2)
                 if delta < 300:
-                    side = 1 # +1 -- upstream
                     prd_is_good[side] = True
                     prd_delta[side] = delta
                     adj_rch[side] = river_reach_collection[other_idx]
