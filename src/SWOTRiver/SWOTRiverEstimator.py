@@ -3005,6 +3005,9 @@ class SWOTRiverEstimator(SWOTL2):
             # if one exists
             valid_side_reach = False
             for id_try in self.reaches[ireach].metadata[up_dn_keys[side]][:, 0]:
+                if id_try is np.ma.masked or id_try == MISSING_VALUE_INT9:
+                    continue
+
                 try:
                     # get PRD reach
                     try_prd_rch = self.reaches.reach[
@@ -3042,7 +3045,6 @@ class SWOTRiverEstimator(SWOTL2):
 
                 delta = np.sqrt(dx**2+dy**2)
                 if delta < 300:
-                    side = 1 # +1 -- upstream
                     prd_is_good[side] = True
                     prd_delta[side] = delta
                     adj_rch[side] = river_reach_collection[other_idx]
